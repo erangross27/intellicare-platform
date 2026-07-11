@@ -16,6 +16,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PhysicalTherapyEvaluationsDocumentPDFTemplate from '../pdf-templates/PhysicalTherapyEvaluationsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PhysicalTherapyEvaluationsDocument.css';
 
@@ -97,11 +99,20 @@ const NUMBER_FIELDS = [];
 const ARRAY_FIELDS = ['rangeOfMotion', 'strength', 'functionalGoals', 'precautions'];
 const STRING_FIELDS = ['referralDiagnosis', 'therapist'];
 
+/* Clause openers must NOT be treated as a "Label:" (e.g. "If needed: rest") */
+const CLAUSE_OPENER = /^(if|when|while|unless|although|though|because|since|after|before|once|given|whether|should|as|until|provided|assuming|in case)\b/i;
+
+/* Decimal-aware step for the −/+ number stepper (integer→1, one decimal→0.1, …) */
+const stepFor = (v) => { const s = String(v); const dot = s.indexOf('.'); if (dot === -1) return 1; const decimals = s.length - dot - 1; return decimals <= 0 ? 1 : Math.pow(10, -decimals); };
+
+/* splitRatio: "6/6" → {num:'6', denom:'6'}; else null (score-ratio leaves like ADL/IADL) */
+const splitRatio = (text) => { const m = String(text).trim().match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/); return m ? { num: m[1], denom: m[2] } : null; };
+
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
   const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  if (m && !CLAUSE_OPENER.test(m[1].trim())) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
 
@@ -113,7 +124,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -197,7 +208,7 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -549,14 +560,14 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
       if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
       const entries = Object.entries(obj).filter(([k, v]) => k !== '_id' && hasVal(v));
       if (entries.length === 0) return;
-      if (DYNAMIC_OBJECT_TITLES[objName]) text += `${DYNAMIC_OBJECT_TITLES[objName]}\n`;
+      if (DYNAMIC_OBJECT_TITLES[objName]) text += `${DYNAMIC_OBJECT_TITLES[objName]}\n${'-'.repeat(40)}\n`;
       entries.forEach(([k, v]) => {
         const lbl = DYNAMIC_KEY_LABELS[k] || keyToLabel(k);
         if (Array.isArray(v)) {
           const items = v.filter(it => it !== null && it !== undefined && String(it).trim() !== '');
           text += `${lbl}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n`;
         } else {
-          text += `${lbl}: ${fmtVal(v)}\n`;
+          text += `${lbl}\n${fmtVal(v)}\n`;
         }
       });
       text += '\n';
@@ -565,7 +576,7 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== PHYSICAL THERAPY EVALUATIONS ===\n\n';
+    let text = `Physical Therapy Evaluations\n${'='.repeat(40)}\n\n`;
     pdfData.forEach((r, idx) => {
       text += `Physical Therapy Evaluation ${idx + 1}\n${'='.repeat(40)}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
@@ -593,7 +604,7 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -628,7 +639,11 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" className="edit-textarea" style={{ minHeight: 'auto', height: 40 }} value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="num-stepper-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(v => String(Math.max(0, (parseFloat(v) || 0) - stepFor(v)))); }}>−</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(v => String((parseFloat(v) || 0) + stepFor(v))); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -638,7 +653,7 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -663,10 +678,7 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue === 'Yes' ? 'Yes' : 'No'} options={['Yes', 'No']} onChange={v => setEditValue(v)} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -676,7 +688,7 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -925,6 +937,8 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
       const isEditing = editingField === editKey;
       const isModified = editedFields[editKey];
       const isNumeric = typeof value === 'number';
+      const ratio = !isNumeric && typeof localVal === 'string' ? splitRatio(localVal) : null;
+      const isStepper = isNumeric || !!ratio;
       const displayVal = fmtVal(localVal);
 
       if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
@@ -935,24 +949,31 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
       return (
         <div key={key} className="rec-mini-card">
           <div className="nested-subtitle">{highlightText(label)}</div>
-          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(ratio ? ratio.num : displayVal); setSaveError(null); } }}>
             {isEditing ? (
               <div className="edit-field-container">
-                {isNumeric ? (
-                  <input type="number" className="edit-textarea" style={{ minHeight: 'auto', height: 40 }} value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                {isStepper ? (
+                  <div className="number-edit-row">
+                    <div className="num-stepper-row">
+                      <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(v => String(Math.max(0, (parseFloat(v) || 0) - stepFor(v)))); }}>−</button>
+                      <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(v => String((parseFloat(v) || 0) + stepFor(v))); }}>+</button>
+                    </div>
+                    {ratio && <span className="number-edit-unit">/{ratio.denom}</span>}
+                  </div>
                 ) : (
                   <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                 )}
                 {saveError && <div className="save-error">{saveError}</div>}
                 <div className="edit-actions">
-                  <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNumeric) { const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); } else { handleSaveField(record, fn, idx, sid); } }}>{saving ? 'Saving...' : 'Save'}</button>
+                  <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNumeric) { const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); } else if (ratio) { const np = editValue.trim(); if (!/^-?\d+(?:\.\d+)?$/.test(np)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, `${np}/${ratio.denom}`); } else { handleSaveField(record, fn, idx, sid); } }}>{saving ? 'Saving...' : 'Save'}</button>
                   <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                 </div>
               </div>
             ) : (
               <>
                 <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-                <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
               </>
             )}
           </div>
@@ -1023,7 +1044,7 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Physical Therapy Evaluations</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PhysicalTherapyEvaluationsDocumentPDFTemplate document={pdfData} />} fileName={`physical-therapy-evaluations-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PhysicalTherapyEvaluationsDocumentPDFTemplate document={pdfData} />} fileName="Physical_Therapy_Evaluations.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1036,11 +1057,6 @@ const PhysicalTherapyEvaluationsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.evaluationDate) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.evaluationDate)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(record.referralDiagnosis || `Physical Therapy Evaluation ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'evaluation-info')}

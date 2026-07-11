@@ -1,6 +1,6 @@
 /**
  * PhysicalTherapyEvaluationsDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — physical therapy evaluations
+ * Box-free black & white — Helvetica — LETTER size — physical therapy evaluations
  * Collection: physical_therapy_evaluations
  */
 import React from 'react';
@@ -8,26 +8,20 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  documentHeader: { marginBottom: 24 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
+  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid', marginBottom: 8 },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid', marginBottom: 3 },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
-  fieldRow: { flexDirection: 'row', marginBottom: 6 },
-  fieldRowLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#404040', width: 120 },
-  fieldRowValue: { fontSize: 12, color: '#404040', flex: 1 },
-  sectionContent: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 4, borderWidth: 1, borderColor: '#e2e8f0', borderStyle: 'solid' },
 });
 
 /* ======= UTILS ======= */
@@ -77,6 +71,28 @@ const DYNAMIC_KEY_LABELS = {
 };
 const dynLabel = (key) => DYNAMIC_KEY_LABELS[key] || keyToLabel(key);
 
+/* A dynamic-key object → stacked fieldBox rows (label above value); array leaves numbered */
+const objectRows = (obj, labelFn) => Object.entries(obj)
+  .filter(([k, v]) => k !== '_id' && hasVal(v))
+  .map(([key, value], itemIdx) => (
+    Array.isArray(value) ? (
+      <View key={itemIdx} style={styles.fieldBox}>
+        <Text style={styles.fieldLabel}>{labelFn(key)}</Text>
+        {value.filter(v => hasVal(v)).map((v, vIdx) => (
+          <Text key={vIdx} style={styles.listItem}>{vIdx + 1}. {safeString(v)}</Text>
+        ))}
+      </View>
+    ) : (
+      <View key={itemIdx} style={styles.fieldBox}>
+        <Text style={styles.fieldLabel}>{labelFn(key)}</Text>
+        <Text style={styles.fieldValue}>{safeString(value)}</Text>
+      </View>
+    )
+  ));
+
+const objectHasData = (obj) => obj && typeof obj === 'object' && !Array.isArray(obj) &&
+  Object.entries(obj).filter(([k, v]) => k !== '_id' && hasVal(v)).length > 0;
+
 /* ======= COMPONENT ======= */
 const PhysicalTherapyEvaluationsDocumentPDFTemplate = ({ document: data }) => {
   const unwrapData = (inputData) => {
@@ -121,11 +137,6 @@ const PhysicalTherapyEvaluationsDocumentPDFTemplate = ({ document: data }) => {
 
             {/* Record Header */}
             <View style={styles.recordHeader}>
-              {record.evaluationDate && (
-                <View style={styles.recordDateRow}>
-                  <Text style={styles.recordDate}>{formatDate(record.evaluationDate)}</Text>
-                </View>
-              )}
               <Text style={styles.recordTitle}>
                 {safeString(record.referralDiagnosis) || `Physical Therapy Evaluation ${index + 1}`}
               </Text>
@@ -135,41 +146,32 @@ const PhysicalTherapyEvaluationsDocumentPDFTemplate = ({ document: data }) => {
             {(hasVal(record.evaluationDate) || hasVal(record.referralDiagnosis) || hasVal(record.therapist)) && (
               <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Evaluation Information</Text>
-                <View style={styles.sectionContent}>
-                  {hasVal(record.evaluationDate) && (
-                    <View style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>Evaluation Date</Text>
-                      <Text style={styles.fieldValue}>{formatDate(record.evaluationDate)}</Text>
-                    </View>
-                  )}
-                  {hasVal(record.referralDiagnosis) && (
-                    <View style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>Referral Diagnosis</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.referralDiagnosis)}</Text>
-                    </View>
-                  )}
-                  {hasVal(record.therapist) && (
-                    <View style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>Therapist</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.therapist)}</Text>
-                    </View>
-                  )}
-                </View>
+                {hasVal(record.evaluationDate) && (
+                  <View style={styles.fieldBox}>
+                    <Text style={styles.fieldLabel}>Evaluation Date</Text>
+                    <Text style={styles.fieldValue}>{formatDate(record.evaluationDate)}</Text>
+                  </View>
+                )}
+                {hasVal(record.referralDiagnosis) && (
+                  <View style={styles.fieldBox}>
+                    <Text style={styles.fieldLabel}>Referral Diagnosis</Text>
+                    <Text style={styles.fieldValue}>{safeString(record.referralDiagnosis)}</Text>
+                  </View>
+                )}
+                {hasVal(record.therapist) && (
+                  <View style={styles.fieldBox}>
+                    <Text style={styles.fieldLabel}>Therapist</Text>
+                    <Text style={styles.fieldValue}>{safeString(record.therapist)}</Text>
+                  </View>
+                )}
               </View>
             )}
 
             {/* Functional Status (dynamic-key object) */}
-            {record.functionalStatus && typeof record.functionalStatus === 'object' && !Array.isArray(record.functionalStatus) && Object.entries(record.functionalStatus).filter(([k, v]) => k !== '_id' && hasVal(v)).length > 0 && (
+            {objectHasData(record.functionalStatus) && (
               <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Functional Status</Text>
-                <View style={styles.sectionContent}>
-                  {Object.entries(record.functionalStatus).filter(([k, v]) => k !== '_id' && hasVal(v)).map(([key, value], itemIdx) => (
-                    <View key={itemIdx} style={styles.fieldRow}>
-                      <Text style={styles.fieldRowLabel}>{dynLabel(key)}:</Text>
-                      <Text style={styles.fieldRowValue}>{Array.isArray(value) ? value.map(v => safeString(v)).join('; ') : safeString(value)}</Text>
-                    </View>
-                  ))}
-                </View>
+                {objectRows(record.functionalStatus, dynLabel)}
               </View>
             )}
 
@@ -177,11 +179,9 @@ const PhysicalTherapyEvaluationsDocumentPDFTemplate = ({ document: data }) => {
             {record.rangeOfMotion?.length > 0 && (
               <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Range of Motion</Text>
-                <View style={styles.sectionContent}>
-                  {record.rangeOfMotion.map((item, itemIdx) => (
-                    <Text key={itemIdx} style={styles.listItem}>{itemIdx + 1}. {safeString(item)}</Text>
-                  ))}
-                </View>
+                {record.rangeOfMotion.map((item, itemIdx) => (
+                  <Text key={itemIdx} style={styles.listItem}>{itemIdx + 1}. {safeString(item)}</Text>
+                ))}
               </View>
             )}
 
@@ -189,56 +189,33 @@ const PhysicalTherapyEvaluationsDocumentPDFTemplate = ({ document: data }) => {
             {record.strength?.length > 0 && (
               <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Strength</Text>
-                <View style={styles.sectionContent}>
-                  {record.strength.map((item, itemIdx) => (
-                    <Text key={itemIdx} style={styles.listItem}>{itemIdx + 1}. {safeString(item)}</Text>
-                  ))}
-                </View>
+                {record.strength.map((item, itemIdx) => (
+                  <Text key={itemIdx} style={styles.listItem}>{itemIdx + 1}. {safeString(item)}</Text>
+                ))}
               </View>
             )}
 
             {/* Balance */}
-            {record.balance && Object.keys(record.balance).filter(k => k !== '_id').length > 0 && (
+            {objectHasData(record.balance) && (
               <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Balance</Text>
-                <View style={styles.sectionContent}>
-                  {Object.entries(record.balance).filter(([k, v]) => k !== '_id' && hasVal(v)).map(([key, value], itemIdx) => (
-                    <View key={itemIdx} style={styles.fieldRow}>
-                      <Text style={styles.fieldRowLabel}>{keyToLabel(key)}:</Text>
-                      <Text style={styles.fieldRowValue}>{safeString(value)}</Text>
-                    </View>
-                  ))}
-                </View>
+                {objectRows(record.balance, keyToLabel)}
               </View>
             )}
 
             {/* Gait */}
-            {record.gait && Object.keys(record.gait).filter(k => k !== '_id').length > 0 && (
+            {objectHasData(record.gait) && (
               <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Gait</Text>
-                <View style={styles.sectionContent}>
-                  {Object.entries(record.gait).filter(([k, v]) => k !== '_id' && hasVal(v)).map(([key, value], itemIdx) => (
-                    <View key={itemIdx} style={styles.fieldRow}>
-                      <Text style={styles.fieldRowLabel}>{keyToLabel(key)}:</Text>
-                      <Text style={styles.fieldRowValue}>{safeString(value)}</Text>
-                    </View>
-                  ))}
-                </View>
+                {objectRows(record.gait, keyToLabel)}
               </View>
             )}
 
             {/* Pain Assessment */}
-            {record.painAssessment && Object.keys(record.painAssessment).filter(k => k !== '_id').length > 0 && (
+            {objectHasData(record.painAssessment) && (
               <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Pain Assessment</Text>
-                <View style={styles.sectionContent}>
-                  {Object.entries(record.painAssessment).filter(([k, v]) => k !== '_id' && hasVal(v)).map(([key, value], itemIdx) => (
-                    <View key={itemIdx} style={styles.fieldRow}>
-                      <Text style={styles.fieldRowLabel}>{keyToLabel(key)}:</Text>
-                      <Text style={styles.fieldRowValue}>{safeString(value)}</Text>
-                    </View>
-                  ))}
-                </View>
+                {objectRows(record.painAssessment, keyToLabel)}
               </View>
             )}
 
@@ -246,35 +223,17 @@ const PhysicalTherapyEvaluationsDocumentPDFTemplate = ({ document: data }) => {
             {record.functionalGoals?.length > 0 && (
               <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Functional Goals</Text>
-                <View style={styles.sectionContent}>
-                  {record.functionalGoals.map((goal, goalIdx) => (
-                    <Text key={goalIdx} style={styles.listItem}>{goalIdx + 1}. {safeString(goal)}</Text>
-                  ))}
-                </View>
+                {record.functionalGoals.map((goal, goalIdx) => (
+                  <Text key={goalIdx} style={styles.listItem}>{goalIdx + 1}. {safeString(goal)}</Text>
+                ))}
               </View>
             )}
 
             {/* Treatment Plan (dynamic-key object; interventions may be an array) */}
-            {record.treatmentPlan && typeof record.treatmentPlan === 'object' && !Array.isArray(record.treatmentPlan) && Object.entries(record.treatmentPlan).filter(([k, v]) => k !== '_id' && hasVal(v)).length > 0 && (
-              <View style={styles.section} wrap={Object.entries(record.treatmentPlan).filter(([k, v]) => k !== '_id' && hasVal(v)).reduce((n, [, v]) => n + (Array.isArray(v) ? v.filter(x => hasVal(x)).length : 1), 0) > 8 ? undefined : false}>
+            {objectHasData(record.treatmentPlan) && (
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Treatment Plan</Text>
-                <View style={styles.sectionContent}>
-                  {Object.entries(record.treatmentPlan).filter(([k, v]) => k !== '_id' && hasVal(v)).map(([key, value], itemIdx) => (
-                    Array.isArray(value) ? (
-                      <View key={itemIdx} style={styles.fieldBox}>
-                        <Text style={styles.nestedSubtitle}>{dynLabel(key)}</Text>
-                        {value.filter(v => hasVal(v)).map((v, vIdx) => (
-                          <Text key={vIdx} style={styles.listItem}>{vIdx + 1}. {safeString(v)}</Text>
-                        ))}
-                      </View>
-                    ) : (
-                      <View key={itemIdx} style={styles.fieldRow}>
-                        <Text style={styles.fieldRowLabel}>{dynLabel(key)}:</Text>
-                        <Text style={styles.fieldRowValue}>{safeString(value)}</Text>
-                      </View>
-                    )
-                  ))}
-                </View>
+                {objectRows(record.treatmentPlan, dynLabel)}
               </View>
             )}
 
@@ -282,11 +241,9 @@ const PhysicalTherapyEvaluationsDocumentPDFTemplate = ({ document: data }) => {
             {record.precautions?.length > 0 && (
               <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Precautions</Text>
-                <View style={styles.sectionContent}>
-                  {record.precautions.map((precaution, precIdx) => (
-                    <Text key={precIdx} style={styles.listItem}>{precIdx + 1}. {safeString(precaution)}</Text>
-                  ))}
-                </View>
+                {record.precautions.map((precaution, precIdx) => (
+                  <Text key={precIdx} style={styles.listItem}>{precIdx + 1}. {safeString(precaution)}</Text>
+                ))}
               </View>
             )}
           </View>

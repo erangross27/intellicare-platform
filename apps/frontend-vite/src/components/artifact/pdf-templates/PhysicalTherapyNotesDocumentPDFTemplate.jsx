@@ -21,17 +21,17 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
+  documentHeader: { marginBottom: 24 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid', marginBottom: 8 },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#000000', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid', marginBottom: 3 },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   noDataText: { fontSize: 12, color: '#000000', textAlign: 'center', marginTop: 40 },
 });
@@ -134,7 +134,7 @@ const parseLabel = (text) => {
 /* ======= SENTENCE SPLIT ======= */
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/)
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])[.;](?:\s+)/)
     .map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
@@ -182,7 +182,7 @@ const renderSection = (record, sid) => {
   if (presentFields.length === 0) return null;
 
   return (
-    <View key={sid} style={styles.fieldBox} wrap={presentFields.length > 8 ? undefined : false}>
+    <View key={sid} style={styles.fieldBox} wrap={presentFields.length > 8}>
       {presentFields.map((f, i) => renderField(record, f, i === 0 ? title : null))}
     </View>
   );
@@ -210,7 +210,7 @@ const PhysicalTherapyNotesDocumentPDFTemplate = ({ document: docProp }) => {
   if (!records || records.length === 0) {
     return (
       <Document>
-        <Page size="A4" style={styles.page}>
+        <Page size="LETTER" style={styles.page}>
           <View style={styles.documentHeader}>
             <Text style={styles.documentTitle}>Physical Therapy Notes</Text>
           </View>
@@ -222,7 +222,7 @@ const PhysicalTherapyNotesDocumentPDFTemplate = ({ document: docProp }) => {
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="LETTER" style={styles.page}>
         <View style={styles.documentHeader}>
           <Text style={styles.documentTitle}>Physical Therapy Notes</Text>
         </View>

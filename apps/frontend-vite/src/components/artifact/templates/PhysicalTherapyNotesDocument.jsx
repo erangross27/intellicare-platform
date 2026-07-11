@@ -83,11 +83,17 @@ const MEANINGFUL_ZERO_FIELDS = ['painLevelNumericRating'];
 // Arrays of strings → per-item editing with arrayIndex
 const ARRAY_FIELDS = ['rangeOfMotionMeasurements', 'muscleStrengthGrading', 'assistiveDeviceUsed', 'neurologicalDeficits', 'treatmentInterventions', 'rehabilitationGoals'];
 
+/* Clause openers must NOT be treated as a "Label:" (e.g. "If needed: rest") */
+const CLAUSE_OPENER = /^(if|when|while|unless|although|though|because|since|after|before|once|given|whether|should|as|until|provided|assuming|in case)\b/i;
+
+/* Decimal-aware step for the −/+ number stepper (integer→1, one decimal→0.1, …) */
+const stepFor = (v) => { const s = String(v); const dot = s.indexOf('.'); if (dot === -1) return 1; const decimals = s.length - dot - 1; return decimals <= 0 ? 1 : Math.pow(10, -decimals); };
+
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
   const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  if (m && !CLAUSE_OPENER.test(m[1].trim())) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
 
@@ -99,7 +105,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -222,7 +228,7 @@ const PhysicalTherapyNotesDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -508,7 +514,7 @@ const PhysicalTherapyNotesDocument = ({ document: docProp }) => {
   }, [splitBySentence]);
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
-    const title = (SECTION_TITLES[sid] || '').toUpperCase();
+    const title = SECTION_TITLES[sid] || '';
     let text = `${title}\n${'='.repeat(40)}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
@@ -520,7 +526,7 @@ const PhysicalTherapyNotesDocument = ({ document: docProp }) => {
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val.filter(x => x !== null && x !== undefined && String(x).trim() !== '') : [];
         text += `${label}\n`;
-        items.forEach((item) => { const p = parseLabel(String(item)); text += `  ${p.value || item}\n`; });
+        items.forEach((item, i) => { const p = parseLabel(String(item)); text += `${i + 1}. ${p.value || item}\n`; });
         text += '\n';
       } else {
         const strVal = fieldDisplay(f, val);
@@ -538,7 +544,7 @@ const PhysicalTherapyNotesDocument = ({ document: docProp }) => {
   }, [getFieldValue, fieldHasVal, fieldDisplay, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== PHYSICAL THERAPY NOTES ===\n\n';
+    let text = `Physical Therapy Notes\n${'='.repeat(40)}\n\n`;
     pdfData.forEach((r, idx) => {
       const rt = `Physical Therapy Note ${idx + 1}`;
       text += `${rt}\n${'='.repeat(40)}\n\n`;
@@ -616,7 +622,11 @@ const PhysicalTherapyNotesDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) handleStartEdit(fn, idx, displayVal); }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} style={{ minHeight: 'auto', padding: '10px' }} />
+              <div className="num-stepper-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(v => String(Math.max(0, (parseFloat(v) || 0) - stepFor(v)))); }}>−</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(v => String((parseFloat(v) || 0) + stepFor(v))); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (String(editValue).trim() === '') { setSaveError('This field cannot be empty.'); return; } const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, 0, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -819,7 +829,7 @@ const PhysicalTherapyNotesDocument = ({ document: docProp }) => {
         <h2 className="document-title">Physical Therapy Notes</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PhysicalTherapyNotesDocumentPDFTemplate document={pdfData} />} fileName={`physical-therapy-notes-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PhysicalTherapyNotesDocumentPDFTemplate document={pdfData} />} fileName="Physical_Therapy_Notes.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

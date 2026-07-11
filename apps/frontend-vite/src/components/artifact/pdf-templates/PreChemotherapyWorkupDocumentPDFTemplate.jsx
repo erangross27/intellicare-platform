@@ -1,27 +1,26 @@
 /**
  * PreChemotherapyWorkupDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt -- LETTER size -- US medical platform
+ * Helvetica — LETTER size — US medical platform
  * Collection: pre_chemotherapy_workup
+ * Box-free B&W underline theme (mirrors the JSX Copy All structure for parity).
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, backgroundColor: '#f5f5f5', padding: 12, borderWidth: 2, borderColor: '#000000', borderLeftWidth: 5, borderLeftColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 11, color: '#333333', marginTop: 4 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000', lineHeight: 1.5 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 24 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 12 },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
+  emptyState: { fontSize: 14, color: '#333333', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
@@ -36,11 +35,13 @@ const formatDate = (d) => {
 
 const safeString = (val) => {
   if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s.replace(/×/g, 'x');
 };
 
 const hasVal = (v) => {
@@ -59,9 +60,14 @@ const fmtVal = (v) => {
   return String(v || '');
 };
 
+/* splitBySentence — split on '.'/';' + whitespace, guarding abbreviations, single-letter
+   initials (Dr. R. Vashisht), and digits (5.8, "124; "); strip a leading "N. " marker. */
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text
+    .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/)
+    .map(s => s.replace(/^\d+\.\s+/, '').trim())
+    .filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -71,82 +77,80 @@ const parseLabel = (text) => {
   return { isLabeled: false, label: '', value: text };
 };
 
+/* splitByComma — parenthesis-aware; skip no-space commas (3,951) and year-leading commas. */
 const splitByComma = (text) => {
   if (!text || typeof text !== 'string') return [text || ''];
   const result = []; let current = ''; let depth = 0;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    if (ch === '(' || ch === '"' || ch === "'") { depth++; current += ch; }
-    else if (ch === ')' || (depth > 0 && (ch === '"' || ch === "'"))) { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
 
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value) => {
+/* ======= FIELD RENDERERS (return bare <View fieldBox>) ======= */
+const renderFieldRow = (label, value, key) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View key={key} style={styles.fieldBox}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
     </View>
   );
 };
 
-/* renderSentenceField: parseLabel + comma-split with sequential counter */
-const renderSentenceField = (label, text, counterRef) => {
+/* renderSentenceField — mirrors the JSX renderSentenceField + formatSentenceFieldLines:
+   single unlabeled value -> plain row; multi-sentence or single labeled comma-list ->
+   sub-labels + numbered rows (single running counter per field). */
+const renderSentenceField = (label, text, key) => {
   if (!hasVal(text)) return null;
-  if (typeof text !== 'string') {
-    return renderFieldRow(label, text);
-  }
-  const sentences = splitBySentence(fmtVal(text));
+  if (typeof text !== 'string') return renderFieldRow(label, text, key);
+  const strVal = fmtVal(text);
+  const sentences = splitBySentence(strVal);
   if (sentences.length === 0) return null;
-
-  const rows = [];
-  sentences.forEach(s => {
+  const parsedWhole = parseLabel(strVal);
+  const singleLabeledList = sentences.length === 1 && parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2;
+  if (!(sentences.length > 1 || singleLabeledList)) {
+    return renderFieldRow(label, strVal, key);
+  }
+  const rows = []; let n = 1;
+  sentences.forEach((s, si) => {
     const parsed = parseLabel(s);
     if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: counterRef.n++ }); });
+      const parts = splitByComma(parsed.value);
+      rows.push({ t: 'sub', v: safeString(parsed.label), k: `sub${si}` });
+      if (parts.length >= 2) {
+        parts.forEach((p, pi) => rows.push({ t: 'item', v: safeString(p), num: n++, k: `p${si}-${pi}` }));
       } else {
-        rows.push({ type: 'item', text: safeString(s), num: counterRef.n++ });
+        rows.push({ t: 'item', v: safeString(parsed.value), num: n++, k: `p${si}v` });
       }
     } else {
-      rows.push({ type: 'item', text: safeString(s), num: counterRef.n++ });
+      rows.push({ t: 'item', v: safeString(s), num: n++, k: `s${si}` });
     }
   });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View key={key} style={styles.fieldBox}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
+      {rows.map(r => r.t === 'sub'
+        ? <Text key={r.k} style={styles.nestedSubtitle}>{r.v}</Text>
+        : <Text key={r.k} style={styles.listItem}>{r.num}. {r.v}</Text>)}
     </View>
   );
 };
 
-/* renderArrayField */
-const renderArrayField = (label, items, counterRef) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
+const renderArrayField = (label, items, key) => {
+  if (!Array.isArray(items)) return null;
   const safeItems = items.filter(Boolean);
   if (safeItems.length === 0) return null;
-
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View key={key} style={styles.fieldBox}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{counterRef.n++}. {safeString(item)}</Text>
+        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
       ))}
     </View>
   );
@@ -165,12 +169,12 @@ const humanizeKey = (key) => {
 const isScalar = (v) => v === null || typeof v !== 'object';
 const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return safeString(v); };
 
-/* Recursive OBJECT node renderer (B&W; nested indentation via paddingLeft) */
+/* Recursive OBJECT node renderer (box-free; nested indentation via paddingLeft) */
 const renderObjectNode = (label, value, depth, keyPrefix) => {
   if (!hasVal(value)) return null;
   if (isScalar(value)) {
     return (
-      <View key={keyPrefix} style={[styles.fieldBox, depth > 0 ? { paddingLeft: depth * 8, marginBottom: 4 } : { marginBottom: 4 }]} wrap={false}>
+      <View key={keyPrefix} style={[styles.fieldBox, depth > 0 ? { paddingLeft: depth * 8, marginBottom: 4 } : { marginBottom: 4 }]}>
         <Text style={styles.fieldLabel}>{label}</Text>
         <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
       </View>
@@ -186,30 +190,33 @@ const renderObjectNode = (label, value, depth, keyPrefix) => {
   );
 };
 
-/* Count leaf rows for Rule #74 wrap gating */
-const countLeaves = (v) => {
-  if (!hasVal(v)) return 0;
-  if (isScalar(v)) return 1;
-  return Object.values(v).filter(hasVal).reduce((a, x) => a + countLeaves(x), 0);
-};
-
-/* Render a top-level OBJECT field as its own section (Rule #74) */
-const renderObjectField = (sectionTitle, value) => {
-  if (!hasVal(value) || isScalar(value)) return null;
-  const entries = Object.entries(value).filter(([, v]) => hasVal(v));
-  if (entries.length === 0) return null;
-  const leaves = countLeaves(value);
+/* Anti-orphan: glue the section title to its first present field in a wrap=false View. */
+const renderSection = (title, elements) => {
+  const present = (elements || []).filter(Boolean);
+  if (!present.length) return null;
+  const [first, ...rest] = present;
   return (
-    <View style={styles.section} wrap={leaves > 8 ? undefined : false}>
-      <Text style={styles.sectionTitle}>{sectionTitle}</Text>
-      {entries.map(([k, v], i) => renderObjectNode(humanizeKey(k), v, 0, `${sectionTitle}-${k}-${i}`))}
+    <View style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {first}
+      </View>
+      {rest.map((el, i) => <React.Fragment key={i}>{el}</React.Fragment>)}
     </View>
   );
 };
 
+/* Render a top-level OBJECT field as its own section */
+const renderObjectField = (title, value) => {
+  if (!hasVal(value) || isScalar(value)) return null;
+  const entries = Object.entries(value).filter(([, v]) => hasVal(v));
+  if (entries.length === 0) return null;
+  const nodes = entries.map(([k, v], i) => renderObjectNode(humanizeKey(k), v, 0, `${title}-${k}-${i}`));
+  return renderSection(title, nodes);
+};
+
 /* ======= COMPONENT ======= */
 const PreChemotherapyWorkupDocumentPDFTemplate = ({ document: data }) => {
-  /* Handle data unwrapping */
   let records = [];
   if (Array.isArray(data)) {
     records = data;
@@ -217,13 +224,9 @@ const PreChemotherapyWorkupDocumentPDFTemplate = ({ document: data }) => {
     records = data.pre_chemotherapy_workup;
   } else if (data?.documentData) {
     const docData = data.documentData;
-    if (Array.isArray(docData)) {
-      records = docData;
-    } else if (docData?.pre_chemotherapy_workup) {
-      records = docData.pre_chemotherapy_workup;
-    } else if (docData && typeof docData === 'object') {
-      records = [docData];
-    }
+    if (Array.isArray(docData)) records = docData;
+    else if (docData?.pre_chemotherapy_workup) records = docData.pre_chemotherapy_workup;
+    else if (docData && typeof docData === 'object') records = [docData];
   } else if (data && typeof data === 'object') {
     records = [data];
   }
@@ -232,9 +235,7 @@ const PreChemotherapyWorkupDocumentPDFTemplate = ({ document: data }) => {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.title}>Pre-Chemotherapy Workup</Text>
-          </View>
+          <Text style={styles.documentTitle}>Pre-Chemotherapy Workup</Text>
           <Text style={styles.emptyState}>No records available</Text>
         </Page>
       </Document>
@@ -244,82 +245,55 @@ const PreChemotherapyWorkupDocumentPDFTemplate = ({ document: data }) => {
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Pre-Chemotherapy Workup</Text></View>
+        <Text style={styles.documentTitle}>Pre-Chemotherapy Workup</Text>
         {records.map((record, idx) => {
-          const ctr = { n: 1 };
-
+          const inf = record.infectiousScreening || {};
+          const car = record.cardiacAssessment || {};
           return (
-            <View key={idx} style={styles.recordContainer}>
-              <View style={styles.recordHeader} wrap={false}>
-                <Text style={styles.recordTitle}>{`Pre-Chemotherapy Workup ${idx + 1}`}</Text>
-                {record.date && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
-              </View>
+            <View key={idx} style={styles.recordContainer} break={idx > 0}>
+              <Text style={styles.recordTitle}>{`Pre-Chemotherapy Workup ${idx + 1}`}</Text>
 
-              {/* 1. Visit Information */}
-              {(hasVal(record.date) || hasVal(record.provider) || hasVal(record.facility) || hasVal(record.status)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Visit Information</Text>
-                  {hasVal(record.date) && renderFieldRow('Date', formatDate(record.date))}
-                  {renderSentenceField('Provider', record.provider, ctr)}
-                  {renderSentenceField('Facility', record.facility, ctr)}
-                  {renderSentenceField('Status', record.status, ctr)}
-                </View>
-              )}
+              {renderSection('Visit Information', [
+                hasVal(record.date) ? renderFieldRow('Date', formatDate(record.date), 'date') : null,
+                renderSentenceField('Provider', record.provider, 'provider'),
+                renderSentenceField('Facility', record.facility, 'facility'),
+                renderSentenceField('Status', record.status, 'status'),
+              ])}
 
-              {/* 2. Infectious Screening */}
-              {hasVal(record.infectiousScreening) && (hasVal(record.infectiousScreening?.hepatitisB) || hasVal(record.infectiousScreening?.hepatitisC) || hasVal(record.infectiousScreening?.hiv)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Infectious Screening</Text>
-                  {renderSentenceField('Hepatitis B', record.infectiousScreening?.hepatitisB, ctr)}
-                  {renderSentenceField('Hepatitis C', record.infectiousScreening?.hepatitisC, ctr)}
-                  {renderSentenceField('HIV', record.infectiousScreening?.hiv, ctr)}
-                </View>
-              )}
+              {renderSection('Infectious Screening', [
+                renderSentenceField('Hepatitis B', inf.hepatitisB, 'hepB'),
+                renderSentenceField('Hepatitis C', inf.hepatitisC, 'hepC'),
+                renderSentenceField('HIV', inf.hiv, 'hiv'),
+              ])}
 
-              {/* 3. Cardiac Assessment */}
-              {hasVal(record.cardiacAssessment) && (hasVal(record.cardiacAssessment?.ekg) || hasVal(record.cardiacAssessment?.echo) || hasVal(record.cardiacAssessment?.indication)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Cardiac Assessment</Text>
-                  {renderSentenceField('EKG', record.cardiacAssessment?.ekg, ctr)}
-                  {renderSentenceField('Echo', record.cardiacAssessment?.echo, ctr)}
-                  {renderSentenceField('Indication', record.cardiacAssessment?.indication, ctr)}
-                </View>
-              )}
+              {renderSection('Cardiac Assessment', [
+                renderSentenceField('EKG', car.ekg, 'ekg'),
+                renderSentenceField('Echo', car.echo, 'echo'),
+                renderSentenceField('Indication', car.indication, 'indication'),
+              ])}
 
-              {/* 4. Consultations */}
-              {(hasVal(record.fertilityConsultation) || hasVal(record.dentalClearance)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Consultations</Text>
-                  {renderSentenceField('Fertility Consultation', record.fertilityConsultation, ctr)}
-                  {renderSentenceField('Dental Clearance', record.dentalClearance, ctr)}
-                </View>
-              )}
+              {renderSection('Consultations', [
+                renderSentenceField('Fertility Consultation', record.fertilityConsultation, 'fertility'),
+                renderSentenceField('Dental Clearance', record.dentalClearance, 'dental'),
+              ])}
 
-              {/* 5. Eligibility */}
-              {(hasVal(record.findings) || hasVal(record.assessment)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Eligibility</Text>
-                  {renderSentenceField('Findings', record.findings, ctr)}
-                  {renderSentenceField('Assessment', record.assessment, ctr)}
-                </View>
-              )}
+              {renderSection('Eligibility', [
+                renderSentenceField('Findings', record.findings, 'findings'),
+                renderSentenceField('Assessment', record.assessment, 'assessment'),
+              ])}
 
-              {/* 6. Treatment Plan */}
-              {(hasVal(record.plan) || hasVal(record.notes)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Treatment Plan</Text>
-                  {renderSentenceField('Plan', record.plan, ctr)}
-                  {renderSentenceField('Notes', record.notes, ctr)}
-                </View>
-              )}
+              {renderSection('Treatment Plan', [
+                renderSentenceField('Plan', record.plan, 'plan'),
+                renderSentenceField('Notes', record.notes, 'notes'),
+              ])}
 
-              {/* 7. Results (dynamic-key object) */}
               {renderObjectField('Results', record.results)}
 
-              {/* Recommendations (array, if present) */}
-              {Array.isArray(record.recommendations) && record.recommendations.length > 0 &&
-                renderArrayField('Recommendations', record.recommendations, ctr)
-              }
+              {renderSection('Recommendations', [
+                renderArrayField('Recommendations', record.recommendations, 'recs'),
+              ])}
+
+              {idx < records.length - 1 && <View style={styles.separator} />}
             </View>
           );
         })}

@@ -15,6 +15,8 @@ import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PreChemotherapyWorkupDocumentPDFTemplate from '../pdf-templates/PreChemotherapyWorkupDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import './PreChemotherapyWorkupDocument.css';
 
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
@@ -75,6 +77,7 @@ const SECTION_FIELDS = {
 
 const ARRAY_FIELDS = ['recommendations'];
 const OBJECT_FIELDS = ['results'];
+const DATE_FIELDS = ['date'];
 const STRING_FIELDS = ['provider', 'facility', 'status', 'infectiousScreening.hepatitisB', 'infectiousScreening.hepatitisC', 'infectiousScreening.hiv', 'cardiacAssessment.ekg', 'cardiacAssessment.echo', 'cardiacAssessment.indication', 'fertilityConsultation', 'dentalClearance', 'findings', 'assessment', 'plan', 'notes'];
 
 /* parseLabel: detect "Label: value" patterns */
@@ -93,7 +96,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -104,6 +107,14 @@ const formatDate = (dateValue) => {
   if (!dateValue) return '';
   try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
 };
+
+const toInputDate = (dateValue) => {
+  if (!dateValue) return '';
+  try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
+};
+
+/* num-stepper increment: match the value's decimal precision (integers step by 1) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
 
 const prettifyKey = (key) => {
   const base = key.includes('.') ? key.split('.').pop() : key;
@@ -228,7 +239,12 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    // Split on '.' OR ';' + whitespace, but not after an abbreviation, a single capital
+    // initial (Dr. R. Vashisht), or a digit (5.8, "124; "); strip a leading "N. " marker.
+    return text
+      .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/)
+      .map(s => s.replace(/^\d+\.\s+/, '').trim())
+      .filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -513,7 +529,7 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
       if (f === 'date') {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${label}\n1. ${formatDate(val)}\n\n`;
       } else if (OBJECT_FIELDS.includes(f)) {
         if (!sameAsTitle) text += `${label}\n`;
         Object.entries(val).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => objectCopyLines(humanizeKey(k), v, 0).forEach(l => { text += `${l}\n`; }));
@@ -528,15 +544,17 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
+        const parsedWhole = parseLabel(strVal);
+        const structured = sentences.length > 1 || (parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2);
+        if (structured) {
           text += `${label}\n`;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${label}\n1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${label}\n1. ${fmtVal(val)}\n\n`;
       }
     });
     return text;
@@ -555,6 +573,41 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
+  /* ═══════ RENDER: DATE FIELD (BlueDatePicker) ═══════ */
+  const renderDateField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = FIELD_LABELS[fn] || prettifyKey(fn);
+    const displayVal = formatDate(val);
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: STRING FIELD with splitBySentence ═══════ */
   const renderSentenceField = (record, fn, idx, sid, title) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
@@ -564,8 +617,13 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
     const sectionTitle = SECTION_TITLES[sid] || '';
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* A single "Label: a, b, c" sentence must go through the multi-sentence renderer
+       (sub-label + comma rows), else it renders whole -> side-by-side "Label: value". */
+    const parsedWhole = parseLabel(strVal);
+    const singleLabeledList = sentences.length === 1 && parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2;
+
+    /* Multi-sentence (or single labeled comma-list): render with splitBySentence */
+    if (sentences.length > 1 || singleLabeledList) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
       const showLabel = label !== sectionTitle;
@@ -743,7 +801,7 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
     const isBool = typeof value === 'boolean';
     const ratio = isBool ? null : splitRatio(leafValueString);
     const nu = (isBool || ratio) ? null : splitNumberUnit(leafValueString);
-    const editStartValue = isBool ? (value ? 'yes' : 'no') : ratio ? ratio.num : nu ? nu.num : leafValueString;
+    const editStartValue = isBool ? (value ? 'Yes' : 'No') : ratio ? ratio.num : nu ? nu.num : leafValueString;
     return (
       <div key={path[path.length - 1]} className="nested-mini-card">
         <div className="nested-subtitle sub-label">{highlightText(humanizeKey(path[path.length - 1]))}</div>
@@ -751,13 +809,14 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
           {isEditing ? (
             <div className="edit-field-container">
               {isBool ? (
-                <select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               ) : (ratio || nu) ? (
                 <div className="number-edit-row">
-                  <input type="number" step="any" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <div className="num-stepper-row">
+                    <button type="button" className="num-step" onClick={ev => { ev.stopPropagation(); setEditValue(v => String(Math.max(0, (parseFloat(v) || 0) - stepFor(v)))); }}>−</button>
+                    <input type="text" inputMode="decimal" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    <button type="button" className="num-step" onClick={ev => { ev.stopPropagation(); setEditValue(v => String((parseFloat(v) || 0) + stepFor(v))); }}>+</button>
+                  </div>
                   {ratio ? <span className="number-edit-unit">{`/ ${ratio.denom}`}</span> : (nu.unit && <span className="number-edit-unit">{nu.unit}</span>)}
                 </div>
               ) : (
@@ -769,7 +828,7 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
                   e.stopPropagation();
                   let newVal;
                   if (isBool) {
-                    newVal = editValue === 'yes';
+                    newVal = editValue === 'Yes';
                   } else if (ratio) {
                     const n = parseFloat(editValue);
                     if (isNaN(n)) { setSaveError('Please enter a valid number'); return; }
@@ -860,6 +919,7 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
+            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (OBJECT_FIELDS.includes(f)) return renderObjectField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
             return renderSentenceField(record, f, idx, sid, title);
@@ -885,7 +945,7 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pre-Chemotherapy Workup</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PreChemotherapyWorkupDocumentPDFTemplate document={pdfData} />} fileName={`pre-chemotherapy-workup-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PreChemotherapyWorkupDocumentPDFTemplate document={pdfData} />} fileName="Pre_Chemotherapy_Workup.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -898,11 +958,6 @@ const PreChemotherapyWorkupDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Pre-Chemotherapy Workup ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'visit-info')}

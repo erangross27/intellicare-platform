@@ -1,26 +1,26 @@
 /**
  * PlantarFasciitisManagementDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt -- LETTER size -- US medical platform
+ * Box-free black & white -- Helvetica -- LETTER size -- plantar fasciitis management
  * Collection: plantar_fasciitis_management
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, backgroundColor: '#f5f5f5', padding: 12, borderWidth: 2, borderColor: '#000000', borderLeftWidth: 5, borderLeftColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 11, color: '#333333', marginTop: 4 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 24 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 24 },
+  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid', marginBottom: 8 },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid', marginBottom: 3 },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
 });
 
@@ -59,15 +59,21 @@ const fmtVal = (v) => {
   return String(v || '');
 };
 
+/* A stored numeric 0 is hidden as an extractor "not recorded" sentinel unless the field is in MEANINGFUL_ZERO_FIELDS. */
+const MEANINGFUL_ZERO_FIELDS = ['corticosteroidInjectionsCount', 'extracorporealShockwaveTherapySessions', 'occupationalStandingHours', 'painVasScore', 'symptomDurationWeeks', 'morningStiffnessDuration', 'dorsalAnkleDorsiflexion'];
+const showNum = (fn, v) => hasVal(v) && !(typeof v === 'number' && v === 0 && !MEANINGFUL_ZERO_FIELDS.includes(fn));
+
+const CLAUSE_OPENER = /^(if|when|while|unless|although|though|because|since|after|before|once|given|whether|should|as|until|provided|assuming|in case)\b/i;
+
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
   const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  if (m && !CLAUSE_OPENER.test(m[1].trim())) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
 
@@ -76,27 +82,27 @@ const splitByComma = (text) => {
   const result = []; let current = ''; let depth = 0;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    if (ch === '(' || ch === '"' || ch === "'") { depth++; current += ch; }
-    else if (ch === ')' || (depth > 0 && (ch === '"' || ch === "'"))) { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
 
-/* renderFieldRow: label + value inside fieldBox */
+/* renderFieldRow: label above value inside fieldBox (box-free underline label) */
 const renderFieldRow = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
     </View>
   );
 };
 
-/* renderSentenceField: parseLabel + comma-split with sequential counter */
+/* renderSentenceField: parseLabel + comma-split with sequential counter, numbered rows */
 const renderSentenceField = (label, text, counterRef) => {
   if (!hasVal(text)) return null;
   if (typeof text !== 'string') {
@@ -121,10 +127,8 @@ const renderSentenceField = (label, text, counterRef) => {
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View style={styles.fieldBox} wrap={rows.length > 8}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {rows.map((row, i) => {
         if (row.type === 'subtitle') {
@@ -157,60 +161,61 @@ const PlantarFasciitisManagementDocumentPDFTemplate = ({ document: data }) => {
   }
 
   if (!records || records.length === 0) {
-    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Plantar Fasciitis Management</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.documentTitle}>Plantar Fasciitis Management</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
   }
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Plantar Fasciitis Management</Text></View>
+        <View style={styles.documentHeader}><Text style={styles.documentTitle}>Plantar Fasciitis Management</Text></View>
         {records.map((record, idx) => {
           const ctr = { n: 1 };
           return (
           <View key={idx} style={styles.recordContainer}>
+            {idx > 0 && <View style={styles.separator} />}
+
             <View style={styles.recordHeader} wrap={false}>
               <Text style={styles.recordTitle}>{`Plantar Fasciitis Management ${idx + 1}`}</Text>
-              {record.createdAt && <Text style={styles.recordMeta}>{formatDate(record.createdAt)}</Text>}
             </View>
 
             {/* 1. Pain Assessment */}
-            {(hasVal(record.painVasScore) || hasVal(record.symptomDurationWeeks) || hasVal(record.morningStiffnessDuration)) && (
-              <View style={styles.section}>
+            {(showNum('painVasScore', record.painVasScore) || showNum('symptomDurationWeeks', record.symptomDurationWeeks) || showNum('morningStiffnessDuration', record.morningStiffnessDuration)) && (
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Pain Assessment</Text>
-                {hasVal(record.painVasScore) && renderFieldRow('Pain VAS Score', record.painVasScore)}
-                {hasVal(record.symptomDurationWeeks) && renderFieldRow('Symptom Duration (Weeks)', record.symptomDurationWeeks)}
-                {hasVal(record.morningStiffnessDuration) && renderFieldRow('Morning Stiffness Duration (min)', record.morningStiffnessDuration)}
+                {showNum('painVasScore', record.painVasScore) && renderFieldRow('Pain VAS Score', record.painVasScore)}
+                {showNum('symptomDurationWeeks', record.symptomDurationWeeks) && renderFieldRow('Symptom Duration (Weeks)', record.symptomDurationWeeks)}
+                {showNum('morningStiffnessDuration', record.morningStiffnessDuration) && renderFieldRow('Morning Stiffness Duration (min)', record.morningStiffnessDuration)}
               </View>
             )}
 
             {/* 2. Clinical Tests */}
-            {(hasVal(record.windlassTestResult) || hasVal(record.gastrocnemiusSilvermannTest) || hasVal(record.dorsalAnkleDorsiflexion)) && (
-              <View style={styles.section}>
+            {(hasVal(record.windlassTestResult) || hasVal(record.gastrocnemiusSilvermannTest) || showNum('dorsalAnkleDorsiflexion', record.dorsalAnkleDorsiflexion)) && (
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Clinical Tests</Text>
                 {renderSentenceField('Windlass Test Result', record.windlassTestResult, ctr)}
                 {renderSentenceField('Gastrocnemius Silvermann Test', record.gastrocnemiusSilvermannTest, ctr)}
-                {hasVal(record.dorsalAnkleDorsiflexion) && renderFieldRow('Dorsal Ankle Dorsiflexion (degrees)', record.dorsalAnkleDorsiflexion)}
+                {showNum('dorsalAnkleDorsiflexion', record.dorsalAnkleDorsiflexion) && renderFieldRow('Dorsal Ankle Dorsiflexion (degrees)', record.dorsalAnkleDorsiflexion)}
               </View>
             )}
 
             {/* 3. Imaging Findings */}
-            {(hasVal(record.plantarFasciaThickness) || hasVal(record.heelFatPadThickness) || hasVal(record.archHeightIndex) || hasVal(record.calcanealSpurPresent) || hasVal(record.fascialHyperechogenicity)) && (
-              <View style={styles.section}>
+            {(showNum('plantarFasciaThickness', record.plantarFasciaThickness) || showNum('heelFatPadThickness', record.heelFatPadThickness) || showNum('archHeightIndex', record.archHeightIndex) || hasVal(record.calcanealSpurPresent) || hasVal(record.fascialHyperechogenicity)) && (
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Imaging Findings</Text>
-                {hasVal(record.plantarFasciaThickness) && renderFieldRow('Plantar Fascia Thickness (mm)', record.plantarFasciaThickness)}
-                {hasVal(record.heelFatPadThickness) && renderFieldRow('Heel Fat Pad Thickness (mm)', record.heelFatPadThickness)}
-                {hasVal(record.archHeightIndex) && renderFieldRow('Arch Height Index', record.archHeightIndex)}
+                {showNum('plantarFasciaThickness', record.plantarFasciaThickness) && renderFieldRow('Plantar Fascia Thickness (mm)', record.plantarFasciaThickness)}
+                {showNum('heelFatPadThickness', record.heelFatPadThickness) && renderFieldRow('Heel Fat Pad Thickness (mm)', record.heelFatPadThickness)}
+                {showNum('archHeightIndex', record.archHeightIndex) && renderFieldRow('Arch Height Index', record.archHeightIndex)}
                 {hasVal(record.calcanealSpurPresent) && renderFieldRow('Calcaneal Spur Present', record.calcanealSpurPresent)}
                 {hasVal(record.fascialHyperechogenicity) && renderFieldRow('Fascial Hyperechogenicity', record.fascialHyperechogenicity)}
               </View>
             )}
 
             {/* 4. Treatment Interventions */}
-            {(hasVal(record.corticosteroidInjectionsCount) || hasVal(record.extracorporealShockwaveTherapySessions) || hasVal(record.prpInjectionAdministered) || hasVal(record.customOrthoticType) || hasVal(record.nightSplintCompliance) || hasVal(record.stretchingProtocolAdherence) || hasVal(record.fasciotomyIndicated)) && (
-              <View style={styles.section}>
+            {(showNum('corticosteroidInjectionsCount', record.corticosteroidInjectionsCount) || showNum('extracorporealShockwaveTherapySessions', record.extracorporealShockwaveTherapySessions) || hasVal(record.prpInjectionAdministered) || hasVal(record.customOrthoticType) || hasVal(record.nightSplintCompliance) || hasVal(record.stretchingProtocolAdherence) || hasVal(record.fasciotomyIndicated)) && (
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Treatment Interventions</Text>
-                {hasVal(record.corticosteroidInjectionsCount) && renderFieldRow('Corticosteroid Injections Count', record.corticosteroidInjectionsCount)}
-                {hasVal(record.extracorporealShockwaveTherapySessions) && renderFieldRow('ESWT Sessions', record.extracorporealShockwaveTherapySessions)}
+                {showNum('corticosteroidInjectionsCount', record.corticosteroidInjectionsCount) && renderFieldRow('Corticosteroid Injections Count', record.corticosteroidInjectionsCount)}
+                {showNum('extracorporealShockwaveTherapySessions', record.extracorporealShockwaveTherapySessions) && renderFieldRow('ESWT Sessions', record.extracorporealShockwaveTherapySessions)}
                 {hasVal(record.prpInjectionAdministered) && renderFieldRow('PRP Injection Administered', record.prpInjectionAdministered)}
                 {hasVal(record.fasciotomyIndicated) && renderFieldRow('Fasciotomy Indicated', record.fasciotomyIndicated)}
                 {renderSentenceField('Custom Orthotic Type', record.customOrthoticType, ctr)}
@@ -220,21 +225,21 @@ const PlantarFasciitisManagementDocumentPDFTemplate = ({ document: data }) => {
             )}
 
             {/* 5. Functional Scores */}
-            {(hasVal(record.footFunctionIndex) || hasVal(record.aofasAnkleHindfootScore) || hasVal(record.rolesMaudsleyScore)) && (
-              <View style={styles.section}>
+            {(showNum('footFunctionIndex', record.footFunctionIndex) || showNum('aofasAnkleHindfootScore', record.aofasAnkleHindfootScore) || hasVal(record.rolesMaudsleyScore)) && (
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Functional Scores</Text>
-                {hasVal(record.footFunctionIndex) && renderFieldRow('Foot Function Index', record.footFunctionIndex)}
-                {hasVal(record.aofasAnkleHindfootScore) && renderFieldRow('AOFAS Ankle-Hindfoot Score', record.aofasAnkleHindfootScore)}
+                {showNum('footFunctionIndex', record.footFunctionIndex) && renderFieldRow('Foot Function Index', record.footFunctionIndex)}
+                {showNum('aofasAnkleHindfootScore', record.aofasAnkleHindfootScore) && renderFieldRow('AOFAS Ankle-Hindfoot Score', record.aofasAnkleHindfootScore)}
                 {renderSentenceField('Roles-Maudsley Score', record.rolesMaudsleyScore, ctr)}
               </View>
             )}
 
             {/* 6. Risk Factors */}
-            {(hasVal(record.bodyMassIndex) || hasVal(record.occupationalStandingHours) || hasVal(record.bilateralInvolvement)) && (
-              <View style={styles.section}>
+            {(showNum('bodyMassIndex', record.bodyMassIndex) || showNum('occupationalStandingHours', record.occupationalStandingHours) || hasVal(record.bilateralInvolvement)) && (
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Risk Factors</Text>
-                {hasVal(record.bodyMassIndex) && renderFieldRow('Body Mass Index', record.bodyMassIndex)}
-                {hasVal(record.occupationalStandingHours) && renderFieldRow('Occupational Standing Hours', record.occupationalStandingHours)}
+                {showNum('bodyMassIndex', record.bodyMassIndex) && renderFieldRow('Body Mass Index', record.bodyMassIndex)}
+                {showNum('occupationalStandingHours', record.occupationalStandingHours) && renderFieldRow('Occupational Standing Hours', record.occupationalStandingHours)}
                 {hasVal(record.bilateralInvolvement) && renderFieldRow('Bilateral Involvement', record.bilateralInvolvement)}
               </View>
             )}

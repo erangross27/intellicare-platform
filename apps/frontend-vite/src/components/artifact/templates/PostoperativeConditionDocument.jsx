@@ -16,6 +16,8 @@ import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PostoperativeConditionDocumentPDFTemplate from '../pdf-templates/PostoperativeConditionDocumentPDFTemplate.jsx';
 import secureApiClient from '../../../services/secureApiClient';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import './PostoperativeConditionDocument.css';
 
 /* ═══════ CONSTANTS ═══════ */
@@ -57,6 +59,11 @@ const BOOLEAN_FIELDS = ['aiProcessed'];
 const DATE_FIELDS = ['date'];
 const STRING_FIELDS = ['status', 'extubationLocation', 'transferDestination', 'type', 'findings', 'assessment', 'plan', 'notes', 'provider', 'facility'];
 
+/* single-name gate: hide a field sub-label when it equals its section title */
+const sameAsTitle = (label, sid) => String(label || '').trim().toLowerCase() === String(SECTION_TITLES[sid] || '').trim().toLowerCase();
+/* humanizeKey: camelCase object key → Title Case (bloodPressure → 'Blood Pressure') */
+const humanizeKey = (k) => String(k || '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
+
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
@@ -73,7 +80,12 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0) {
+      const nextIsSpace = /\s/.test(text[i + 1] || '');
+      const nextIsYear = /^\s*\d{4}\b/.test(text.slice(i + 1));
+      if (nextIsSpace && !nextIsYear) { const t = current.trim(); if (t) result.push(t); current = ''; }
+      else { current += ch; }
+    }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -183,7 +195,7 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -511,63 +523,60 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const DASH = '-'.repeat(40);
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
+    const emitString = (label, strVal, gateTitle) => {
+      const head = (gateTitle && sameAsTitle(label, sid)) ? '' : `${label}\n${DASH}\n`;
+      const sentences = splitBySentence(strVal);
+      const parsedWhole = parseLabel(strVal);
+      const structured = sentences.length > 1 || (parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2);
+      if (structured) {
+        text += head;
+        formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
+        text += '\n';
+      } else {
+        text += `${head}${strVal}\n\n`;
+      }
+    };
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      const head = sameAsTitle(label, sid) ? '' : `${label}\n${DASH}\n`;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${head}${formatDate(val)}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `${head}${val ? 'Yes' : 'No'}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
+        emitString(label, fmtVal(val), true);
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${head}${fmtVal(val)}\n\n`;
       }
     });
-    /* Handle object-based sections */
+    /* Handle object-based sections (humanized keys, stacked) */
     if (sid === 'vital-signs' && record.vitalSigns && typeof record.vitalSigns === 'object') {
       Object.entries(record.vitalSigns).forEach(([k, v]) => {
-        if (v != null && v !== '') text += `${k}: ${String(v)}\n`;
+        if (v != null && v !== '') text += `${humanizeKey(k)}\n${DASH}\n${String(v)}\n\n`;
       });
-      text += '\n';
     }
     if (sid === 'results-section' && record.results && typeof record.results === 'object') {
       Object.entries(record.results).forEach(([k, v]) => {
-        if (v != null && v !== '') text += `${k}: ${String(v)}\n`;
+        if (v != null && v !== '') text += `${humanizeKey(k)}\n${DASH}\n${String(v)}\n\n`;
       });
-      text += '\n';
     }
     if (sid === 'recommendations-notes') {
-      if (Array.isArray(record.recommendations) && record.recommendations.length > 0) {
-        text += 'Recommendations\n';
-        record.recommendations.forEach((r, i) => { text += `${i + 1}. ${r}\n`; });
+      const recs = Array.isArray(record.recommendations) ? record.recommendations.filter(Boolean) : [];
+      if (recs.length > 0) {
+        text += `Recommendations\n${DASH}\n`;
+        recs.forEach((r, i) => { text += `${i + 1}. ${r}\n`; });
         text += '\n';
       }
       const notes = getFieldValue(record, 'notes', idx);
-      if (hasVal(notes)) {
-        const strVal = fmtVal(notes);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += 'Notes\n';
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `Notes\n${strVal}\n\n`;
-        }
-      }
+      if (hasVal(notes)) emitString('Notes', fmtVal(notes), false);
     }
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
@@ -595,11 +604,11 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -630,14 +639,11 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -647,7 +653,7 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -662,17 +668,19 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
     const label = FIELD_LABELS[fn] || fn;
+    const parsedWhole = parseLabel(strVal);
+    const singleLabeledList = sentences.length === 1 && parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* Multi-sentence OR a single labeled comma-list: render with the sentence renderer (avoids side-by-side) */
+    if (sentences.length > 1 || singleLabeledList) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -759,7 +767,7 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -791,7 +799,7 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
     if (!shouldShowSection(record, sid)) return null;
 
     const copyId = `${sid}-${idx}`;
-    const copyText = entries.map(([k, v]) => `${k}: ${String(v)}`).join('\n');
+    const copyText = entries.map(([k, v]) => `${humanizeKey(k)}\n${'-'.repeat(40)}\n${String(v)}`).join('\n\n');
 
     return (
       <div key={sid} className="section">
@@ -816,7 +824,7 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
 
             return (
               <div key={eIdx} className="rec-mini-card">
-                <div className="nested-subtitle">{highlightText(key)}</div>
+                <div className="nested-subtitle">{highlightText(humanizeKey(key))}</div>
                 <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(valStr); setSaveError(null); } }}>
                   {isEditing ? (
                     <div className="edit-field-container">
@@ -830,7 +838,7 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
                   ) : (
                     <>
                       <div className="row-content"><span className="content-value">{highlightText(valStr)}</span><span className="edit-indicator">&#9998;</span></div>
-                      <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${key}: ${valStr}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                      <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${humanizeKey(key)}\n${valStr}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                     </>
                   )}
                 </div>
@@ -852,13 +860,7 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
     if (!shouldShowSection(record, sid)) return null;
 
     const copyId = `${sid}-${idx}`;
-    let copyText = `Recommendations & Notes\n${'='.repeat(40)}\n\n`;
-    if (recs.length > 0) {
-      copyText += 'Recommendations\n';
-      recs.forEach((r, i) => { copyText += `${i + 1}. ${r}\n`; });
-      copyText += '\n';
-    }
-    if (hasVal(notesVal)) { copyText += `Notes\n${fmtVal(notesVal)}\n`; }
+    const copyText = buildSectionCopyText(record, idx, sid);
 
     return (
       <div key={sid} className="section">
@@ -968,7 +970,7 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
         <h2 className="document-title">Postoperative Condition</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PostoperativeConditionDocumentPDFTemplate document={pdfData} />} fileName={`postoperative-condition-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PostoperativeConditionDocumentPDFTemplate document={pdfData} />} fileName="Postoperative_Condition.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -981,11 +983,6 @@ const PostoperativeConditionDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Postoperative Condition ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'postoperative-status')}

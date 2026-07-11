@@ -16,6 +16,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PostDialysisAssessmentDocumentPDFTemplate from '../pdf-templates/PostDialysisAssessmentDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PostDialysisAssessmentDocument.css';
 
@@ -36,7 +37,6 @@ const writeDrafts = (store) => {
 
 /* ═══════ CONSTANTS ═══════ */
 const SECTION_TITLES = {
-  'provider-details': 'Provider Details',
   'session-parameters': 'Session Parameters',
   'vital-signs': 'Vital Signs',
   'fluid-management': 'Fluid Management',
@@ -47,7 +47,6 @@ const SECTION_TITLES = {
 };
 
 const FIELD_LABELS = {
-  createdAt: 'Date',
   dialysisSessionDuration: 'Session Duration',
   dialyzerType: 'Dialyzer Type',
   bloodFlowRate: 'Blood Flow Rate',
@@ -76,7 +75,6 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
-  'provider-details': ['createdAt'],
   'session-parameters': ['dialysisSessionDuration', 'dialyzerType', 'bloodFlowRate', 'dialysateFlowRate', 'anticoagulationProtocol'],
   'vital-signs': ['preDialysisSystolicBP', 'postDialysisSystolicBP', 'preDialysisDiastolicBP', 'postDialysisDiastolicBP', 'preDialysisWeight', 'postDialysisWeight'],
   'fluid-management': ['fluidRemovalVolume', 'ultrafiltrationRate', 'dryWeightAssessment'],
@@ -87,8 +85,11 @@ const SECTION_FIELDS = {
 };
 
 const BOOLEAN_FIELDS = ['intradialyticHypotensionOccurred', 'muscleCrampsReported'];
-const DATE_FIELDS = ['createdAt'];
+const DATE_FIELDS = [];
 const NUMBER_FIELDS = ['dialysisSessionDuration', 'bloodFlowRate', 'dialysateFlowRate', 'preDialysisSystolicBP', 'postDialysisSystolicBP', 'preDialysisDiastolicBP', 'postDialysisDiastolicBP', 'preDialysisWeight', 'postDialysisWeight', 'fluidRemovalVolume', 'ultrafiltrationRate', 'ktVRatio', 'ureaReductionRatio', 'postDialysisRecoveryTime'];
+/* number fields where a stored 0 means "not recorded" (sentinel), NOT a real zero — hide when 0.
+   ultrafiltrationRate 0 (real rate ~= fluidRemoval/duration) + postDialysisRecoveryTime 0 are extractor defaults. */
+const SENTINEL_ZERO_FIELDS = ['ultrafiltrationRate', 'postDialysisRecoveryTime'];
 const ARRAY_FIELDS = ['disequilibriumSyndromeSymptoms', 'sessionComplications'];
 const STRING_FIELDS = ['dialyzerType', 'anticoagulationProtocol', 'dryWeightAssessment', 'accessType', 'accessFunctionStatus', 'electrolyteLevelsPostDialysis', 'residualRenalFunction'];
 
@@ -108,7 +109,12 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0) {
+      const nextIsSpace = /\s/.test(text[i + 1] || '');
+      const nextIsYear = /^\s*\d{4}\b/.test(text.slice(i + 1));
+      if (nextIsSpace && !nextIsYear) { const t = current.trim(); if (t) result.push(t); current = ''; }
+      else { current += ch; } // keep thousands separators ("2,000") + years whole
+    }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -120,10 +126,10 @@ const formatDate = (dateValue) => {
   try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
 };
 
-const toInputDate = (dateValue) => {
-  if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
-};
+/* stepFor: derive the +/- step from the value's decimal precision (integer → 1) */
+const stepFor = (v) => { const s = String(v); const dot = s.indexOf('.'); if (dot === -1) return 1; const decimals = s.length - dot - 1; return decimals <= 0 ? 1 : Math.pow(10, -decimals); };
+/* isMeaninglessZero: a sentinel-zero field storing 0 (or "0") means "not recorded" → hide */
+const isMeaninglessZero = (fn, v) => SENTINEL_ZERO_FIELDS.includes(fn) && (v === 0 || v === '0');
 
 /* ═══════ COMPONENT ═══════ */
 const PostDialysisAssessmentDocument = ({ document: docProp }) => {
@@ -184,7 +190,7 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -417,18 +423,18 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
-      if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
-      } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+      if (BOOLEAN_FIELDS.includes(f)) {
+        text += `${label}\n${val ? 'Yes' : 'No'}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
+        if (isMeaninglessZero(f, val)) return;
+        text += `${label}\n${val}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
         text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
@@ -446,7 +452,7 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
         text += `${label}\n${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text; // drop empty sections so their header never leaks into Copy All
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
@@ -462,44 +468,12 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
-  /* ═══════ RENDER: DATE FIELD ═══════ */
-  const renderDateField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
-    const displayVal = formatDate(val);
-    const isModified = editedFields[editKey];
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+  /* NOTE: no date field — the collection carries only ingestion timestamps (createdAt/updatedAt),
+     which are NOT clinical dates, so no date row is rendered (removed the native date input). */
 
-    return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
-
-  /* ═══════ RENDER: NUMBER FIELD ═══════ */
+  /* ═══════ RENDER: NUMBER FIELD (hide sentinel-zero, −/+ stepper) ═══════ */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val) || isMeaninglessZero(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
@@ -513,7 +487,13 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" style={{ minHeight: 'auto', padding: '10px' }} value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { e.stopPropagation(); const num = parseFloat(editValue); if (isNaN(num)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, num); } }} />
+              <div className="number-edit-row">
+                <div className="num-stepper-row">
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const base = parseFloat(editValue); if (isNaN(base)) return; setEditValue(String(Math.max(0, +(base - stepFor(editValue)).toFixed(4)))); }}>&minus;</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { e.stopPropagation(); const num = parseFloat(editValue); if (isNaN(num)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, num); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const base = parseFloat(editValue); if (isNaN(base)) return; setEditValue(String(Math.max(0, +(base + stepFor(editValue)).toFixed(4)))); }}>+</button>
+                </div>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const num = parseFloat(editValue); if (isNaN(num)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, num); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -523,7 +503,7 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -548,10 +528,7 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -561,7 +538,7 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -754,6 +731,7 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
+      if (NUMBER_FIELDS.includes(f) && isMeaninglessZero(f, val)) return false;
       return hasVal(val);
     });
     if (!hasAnyVal) return null;
@@ -770,7 +748,6 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
-            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
@@ -797,7 +774,7 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
         <h2 className="document-title">Post Dialysis Assessment</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PostDialysisAssessmentDocumentPDFTemplate document={pdfData} />} fileName={`post-dialysis-assessment-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PostDialysisAssessmentDocumentPDFTemplate document={pdfData} />} fileName="Post_Dialysis_Assessment.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -810,14 +787,8 @@ const PostDialysisAssessmentDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.createdAt)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Post Dialysis Assessment ${idx + 1}`)}</h3>
             </div>
-            {renderSection(record, idx, 'provider-details')}
             {renderSection(record, idx, 'session-parameters')}
             {renderSection(record, idx, 'vital-signs')}
             {renderSection(record, idx, 'fluid-management')}

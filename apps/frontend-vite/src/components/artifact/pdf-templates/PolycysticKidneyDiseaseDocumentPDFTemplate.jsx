@@ -6,8 +6,8 @@
  * BOX-FREE (no backgroundColor/border on field/section views; recordHeader = black bottom-border only).
  * Rule #74: each section is ONE flowing <View> (spacing only, no wrap prop); each field renders as
  * wrap-gated View(s) via renderField with its sectionTitle embedded INSIDE the first present field's
- * View (isFirst). OBJECT fields gate PER TOP-LEVEL ENTRY (wrap={countRows>8?undefined:false}).
- * Only recordHeader is wrap={false}. Single-name skip: hide a field label when it equals the section title.
+ * View (isFirst). Each field/object-entry View is wrap=false (atomic — moves whole, never overprints).
+ * Single-name skip: hide a field label when it equals the section title.
  * Objects (extrarenalManifestations booleans→Yes/No, geneticTesting, results value+unit) rendered
  * recursively as humanized key/value lines. recommendations date-grouped.
  */
@@ -15,21 +15,21 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 14, borderBottomWidth: 2, borderBottomColor: '#000000' },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1, color: '#000000' },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
+  documentHeader: { marginBottom: 24 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordMeta: { fontSize: 11, color: '#000000', marginTop: 3 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  recordMeta: { fontSize: 13, color: '#000000', marginTop: 3 },
   section: { marginBottom: 16 },
   fieldGroup: { marginBottom: 8 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 2, textTransform: 'uppercase' },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  value: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 1 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', marginBottom: 6 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', marginTop: 6, marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 1 },
   nested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', marginTop: 2 },
-  recDate: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4 },
+  recDate: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4 },
   emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#000000' },
   pageNumber: { position: 'absolute', bottom: 20, right: 40, fontSize: 10, color: '#000000' },
 });
@@ -114,19 +114,11 @@ const renderObjectNode = (label, value, keyPath, depth) => {
   );
 };
 
-/* count rows for the wrap heuristic */
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-/* Rule #74 (per-field gating): render a field as wrap-gated View(s) — EACH View is one wrap unit
-   (rows<=8 -> wrap={false} moves whole/atomic, never overprints; rows>8 -> wrap=undefined flows).
-   For OBJECT fields, gate PER TOP-LEVEL ENTRY (a 15-row object in one un-gated View overprints when
-   react-pdf breaks mid-field). sectionTitle goes INSIDE the first View (isFirst) — never a sibling
-   (would orphan). Returns an ARRAY of Views. */
+/* Rule #74 (per-field gating): render a field as wrap-gated View(s) — EACH View is one atomic wrap
+   unit (wrap={false} moves the whole field/object-entry, never overprints mid-field). For OBJECT
+   fields, gate PER TOP-LEVEL ENTRY (a big object in one un-gated View overprints when react-pdf
+   breaks mid-field). sectionTitle goes INSIDE the first View (isFirst) — never a sibling (would
+   orphan). Returns an ARRAY of Views. */
 const renderField = (record, field, sectionTitle, isFirst) => {
   const val = record[field];
   if (!hasVal(val)) return [];
@@ -160,7 +152,7 @@ const renderField = (record, field, sectionTitle, isFirst) => {
     const groups = [];
     recs.forEach((r) => { const d = (r?.date || '').trim(); const last = groups[groups.length - 1]; if (last && last.date === d) last.items.push(r); else groups.push({ date: d, items: [r] }); });
     return [(
-      <View key={field} style={styles.fieldGroup} wrap={recs.length > 8 ? undefined : false}>
+      <View key={field} style={styles.fieldGroup} wrap={false}>
         {titleNode}
         {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
         {groups.map((group, gIdx) => (
@@ -177,7 +169,7 @@ const renderField = (record, field, sectionTitle, isFirst) => {
     const items = (Array.isArray(val) ? val : []).filter(x => !isEmptyDeep(x));
     if (items.length === 0) return [];
     return [(
-      <View key={field} style={styles.fieldGroup} wrap={items.length > 8 ? undefined : false}>
+      <View key={field} style={styles.fieldGroup} wrap={false}>
         {titleNode}
         {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
         {items.map((it, i) => (<Text key={i} style={styles.value}>{i + 1}. {fmtVal(it)}</Text>))}
@@ -189,9 +181,8 @@ const renderField = (record, field, sectionTitle, isFirst) => {
     const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
     if (entries.length === 0) return [];
     return entries.map(([k, v], i) => {
-      const rows = countRows(v);
       return (
-        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
+        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={false}>
           {i === 0 ? titleNode : null}
           {i === 0 && showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
           {renderObjectNode(humanizeKey(k), v, `${field}-${k}`, 1)}
@@ -205,7 +196,7 @@ const renderField = (record, field, sectionTitle, isFirst) => {
   const sentences = splitBySentence(strVal);
   if (sentences.length > 1) {
     return [(
-      <View key={field} style={styles.fieldGroup} wrap={sentences.length > 8 ? undefined : false}>
+      <View key={field} style={styles.fieldGroup} wrap={false}>
         {titleNode}
         {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
         {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.value}>{sIdx + 1}. {s}</Text>))}
@@ -232,13 +223,13 @@ const PolycysticKidneyDiseaseDocumentPDFTemplate = ({ document: data }) => {
   records = (records || []).filter(r => r && typeof r === 'object');
 
   if (records.length === 0) {
-    return (<Document><Page size="A4" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Polycystic Kidney Disease</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.documentTitle}>Polycystic Kidney Disease</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
   }
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Polycystic Kidney Disease</Text></View>
+      <Page size="LETTER" style={styles.page}>
+        <View style={styles.documentHeader}><Text style={styles.documentTitle}>Polycystic Kidney Disease</Text></View>
         {records.map((record, idx) => (
           <View key={idx} style={styles.recordContainer}>
             <View style={styles.recordHeader} wrap={false}>

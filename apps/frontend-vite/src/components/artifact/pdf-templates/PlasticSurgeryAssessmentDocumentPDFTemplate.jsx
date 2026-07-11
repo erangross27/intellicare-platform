@@ -3,28 +3,27 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 /**
  * Plastic Surgery Assessment PDF Template
- * BLACK & WHITE ONLY — every color is #000000. Helvetica. LETTER size.
- * Recursive object rendering for all object fields (Rule #74 wrap-gating).
- * NO borderRadius.
+ * Box-free BLACK & WHITE — Helvetica — LETTER size.
+ * Recursive object rendering for all object fields; canonical borderBottom underline rules.
  */
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordHeader: { marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordMeta: { fontSize: 10, color: '#000000', marginTop: 2 },
-  section: { marginBottom: 14 },
-  sectionTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  miniCard: { padding: 4, marginBottom: 6 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#000000', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  subLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
-  arrayItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  leafRow: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  recommendedText: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 2 },
+  documentHeader: { marginBottom: 24 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 24 },
+  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 16 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid', marginBottom: 8 },
+  miniCard: { marginBottom: 10 },
+  fieldBox: { marginBottom: 10 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid', marginBottom: 3 },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  arrayItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  leafRow: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  recommendedText: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 2 },
   noDataText: { fontSize: 12, color: '#000000', textAlign: 'center', marginTop: 40 },
 });
 
@@ -59,7 +58,7 @@ const splitIntoItems = (text) => {
   if (numbered.length > 1) return numbered;
   const bySemicolon = text.split(/;\s*/).filter(s => s.trim()).map(s => s.trim());
   if (bySemicolon.length > 1) return bySemicolon;
-  const bySentence = text.split(/(?<!\b(?:Dr|Mr|Mrs|Ms|St|vs|Jr|Sr|No|Vol|Inc|Ltd|etc))\.\s+/).filter(s => s.trim()).map(s => s.trim());
+  const bySentence = text.split(/(?<!\b(?:Dr|Mr|Mrs|Ms|St|vs|Jr|Sr|No|Vol|Inc|Ltd|etc))(?<!\b[A-Z])\.\s+/).filter(s => s.trim()).map(s => s.trim());
   if (bySentence.length > 1) return bySentence.map(s => s.endsWith('.') ? s : s + '.');
   return [text.trim()];
 };
@@ -100,7 +99,7 @@ const ObjectSection = ({ title, value }) => {
   const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
   if (entries.length === 0) return null;
   return (
-    <View style={styles.section} wrap={entries.length > 8 ? undefined : false}>
+    <View style={styles.section} wrap={entries.length > 8}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {entries.map(([k, v]) => (
         <ObjectLeaves key={k} value={v} label={humanizeKey(k)} depth={0} />
@@ -113,7 +112,7 @@ const NarrativeSection = ({ title, text }) => {
   if (fv(text) === null) return null;
   const items = splitIntoItems(text);
   return (
-    <View style={styles.section} wrap={items.length > 8 ? undefined : false}>
+    <View style={styles.section} wrap={items.length > 8}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {items.map((item, i) => (
         <Text key={i} style={styles.arrayItem}>{`${i + 1}. ${item}`}</Text>
@@ -126,7 +125,7 @@ const ArraySection = ({ title, items }) => {
   const arr = safeArray(items).filter(v => !isEmptyDeep(v));
   if (arr.length === 0) return null;
   return (
-    <View style={styles.section} wrap={arr.length > 8 ? undefined : false}>
+    <View style={styles.section} wrap={arr.length > 8}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {arr.map((it, i) => (
         isScalar(it)
@@ -164,26 +163,33 @@ const PlasticSurgeryAssessmentDocumentPDFTemplate = ({ document: data }) => {
           <View key={idx} style={styles.recordContainer}>
             <View style={styles.recordHeader} wrap={false}>
               <Text style={styles.recordTitle}>Plastic Surgery Assessment {idx + 1}</Text>
-              {record.date && <Text style={styles.recordMeta}>Date: {formatDate(record.date)}</Text>}
-              {fv(record.type) !== null && <Text style={styles.recordMeta}>Type: {record.type}</Text>}
-              {fv(record.provider) !== null && <Text style={styles.recordMeta}>Provider: {record.provider}</Text>}
-              {fv(record.facility) !== null && <Text style={styles.recordMeta}>Facility: {record.facility}</Text>}
-              {fv(record.status) !== null && <Text style={styles.recordMeta}>Status: {record.status}</Text>}
             </View>
 
-            {/* Reconstruction Options Discussed (array of objects) */}
+            {/* Encounter */}
+            {(record.date || fv(record.type) !== null || fv(record.provider) !== null || fv(record.facility) !== null || fv(record.status) !== null) && (
+              <View style={styles.section} wrap={false}>
+                <Text style={styles.sectionTitle}>Encounter</Text>
+                {record.date && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Date</Text><Text style={styles.fieldValue}>{formatDate(record.date)}</Text></View>}
+                {fv(record.type) !== null && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Type</Text><Text style={styles.fieldValue}>{record.type}</Text></View>}
+                {fv(record.provider) !== null && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Provider</Text><Text style={styles.fieldValue}>{record.provider}</Text></View>}
+                {fv(record.facility) !== null && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Facility</Text><Text style={styles.fieldValue}>{record.facility}</Text></View>}
+                {fv(record.status) !== null && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Status</Text><Text style={styles.fieldValue}>{record.status}</Text></View>}
+              </View>
+            )}
+
+            {/* Reconstruction Options Discussed (array of objects) — title glued to first option */}
             {safeArray(record.reconstructionOptionsDiscussed).length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Reconstruction Options Discussed</Text>
                 {safeArray(record.reconstructionOptionsDiscussed).map((opt, optIdx) => (
                   <View key={optIdx} style={styles.miniCard} wrap={false}>
+                    {optIdx === 0 && <Text style={styles.sectionTitle}>Reconstruction Options Discussed</Text>}
                     <Text style={styles.fieldLabel}>Option {optIdx + 1}: {opt.option || 'Unknown'}</Text>
                     {opt.recommended !== undefined && (
                       <Text style={styles.recommendedText}>Recommended: {opt.recommended ? 'Yes' : 'No'}</Text>
                     )}
                     {safeArray(opt.advantages).length > 0 && (
                       <View>
-                        <Text style={styles.subLabel}>Advantages:</Text>
+                        <Text style={styles.subLabel}>Advantages</Text>
                         {safeArray(opt.advantages).map((adv, advIdx) => (
                           <Text key={advIdx} style={styles.arrayItem}>{advIdx + 1}. {adv}</Text>
                         ))}
@@ -191,7 +197,7 @@ const PlasticSurgeryAssessmentDocumentPDFTemplate = ({ document: data }) => {
                     )}
                     {safeArray(opt.disadvantages).length > 0 && (
                       <View>
-                        <Text style={styles.subLabel}>Disadvantages:</Text>
+                        <Text style={styles.subLabel}>Disadvantages</Text>
                         {safeArray(opt.disadvantages).map((dis, disIdx) => (
                           <Text key={disIdx} style={styles.arrayItem}>{disIdx + 1}. {dis}</Text>
                         ))}

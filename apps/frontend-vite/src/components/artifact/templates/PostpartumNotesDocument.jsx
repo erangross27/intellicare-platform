@@ -15,6 +15,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PostpartumNotesDocumentPDFTemplate from '../pdf-templates/PostpartumNotesDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PostpartumNotesDocument.css';
 
@@ -39,7 +41,7 @@ const SECTION_TITLES = {
   'recovery-assessment': 'Recovery Assessment',
   'lactation': 'Lactation',
   'screening-scores': 'Screening & Scores',
-  'bowel-bladder': 'Bowel & Bladder Function',
+  'bowel-bladder': 'Bowel and Bladder Function',
   'immunizations': 'Immunizations',
   'discharge-guidance': 'Discharge & Guidance',
 };
@@ -60,7 +62,7 @@ const FIELD_LABELS = {
   estimatedBloodLoss: 'Estimated Blood Loss (mL)',
   hemoglobinLevel: 'Hemoglobin Level',
   postpartumHemorrhageHistory: 'Postpartum Hemorrhage History',
-  bowelBladderFunction: 'Bowel & Bladder Function',
+  bowelBladderFunction: 'Bowel and Bladder Function',
   diastasisRectiMeasurement: 'Diastasis Recti Measurement',
   immunizationStatus: 'Immunization Status',
   rhogamAdministration: 'RhoGAM Administration',
@@ -103,7 +105,12 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0) {
+      const nextIsSpace = /\s/.test(text[i + 1] || '');
+      const nextIsYear = /^\s*\d{4}\b/.test(text.slice(i + 1));
+      if (nextIsSpace && !nextIsYear) { const t = current.trim(); if (t) result.push(t); current = ''; }
+      else { current += ch; }
+    }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -119,6 +126,9 @@ const toInputDate = (dateValue) => {
   if (!dateValue) return '';
   try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
+
+/* stepFor: decimal-aware step size for the number stepper (0.1 for one-decimal values, etc.) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
 
 /* ═══════ COMPONENT ═══════ */
 const PostpartumNotesDocument = ({ document: docProp }) => {
@@ -181,7 +191,22 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    // Protect '.'/';' INSIDE parentheses so a parenthetical clause is never split
+    // (e.g. "intact (cesarean delivery; no vaginal laceration)" stays whole).
+    const D = String.fromCharCode(1), S = String.fromCharCode(2);
+    let depth = 0, guarded = '';
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') depth = Math.max(0, depth - 1);
+      if (depth > 0 && ch === '.') guarded += D;
+      else if (depth > 0 && ch === ';') guarded += S;
+      else guarded += ch;
+    }
+    return guarded
+      .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/)
+      .map(s => s.split(D).join('.').split(S).join(';').replace(/^\d+\.\s+/, '').trim())
+      .filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -432,7 +457,9 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const DASH = '-'.repeat(40);
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     const seenLabels = new Set();
     fields.forEach(f => {
@@ -442,30 +469,33 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
       const showLabelCopy = label.toLowerCase() !== title.toLowerCase();
+      const head = showLabelCopy ? `${label}\n${DASH}\n` : '';
       if (DATE_FIELDS.includes(f)) {
-        text += showLabelCopy ? `${label}\n${formatDate(val)}\n\n` : `${formatDate(val)}\n\n`;
+        text += `${head}1. ${formatDate(val)}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += showLabelCopy ? `${label}: ${val}\n\n` : `${val}\n\n`;
+        text += `${head}1. ${val}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += showLabelCopy ? `${label}: ${val ? 'Yes' : 'No'}\n\n` : `${val ? 'Yes' : 'No'}\n\n`;
+        text += `${head}1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
-        const items = Array.isArray(val) ? val : [val];
-        text += showLabelCopy ? `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n` : `${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        const items = Array.isArray(val) ? val.filter(Boolean) : [val];
+        text += `${head}${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          if (showLabelCopy) text += `${label}\n`;
+        const pw = parseLabel(strVal);
+        const structured = sentences.length > 1 || (pw.isLabeled && splitByComma(pw.value).length >= 2);
+        if (structured) {
+          text += head;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += showLabelCopy ? `${label}\n${strVal}\n\n` : `${strVal}\n\n`;
+          text += `${head}1. ${strVal}\n\n`;
         }
       } else {
-        text += showLabelCopy ? `${label}\n${fmtVal(val)}\n\n` : `${fmtVal(val)}\n\n`;
+        text += `${head}1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
@@ -498,10 +528,10 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (!editValue || isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -534,7 +564,13 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="number-edit-row">
+                <div className="num-stepper-row">
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const s = stepFor(editValue); setEditValue(String(Number(Math.max(0, (parseFloat(editValue) || 0) - s).toFixed(6)))); setSaveError(null); }}>−</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); } if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const s = stepFor(editValue); setEditValue(String(Number(((parseFloat(editValue) || 0) + s).toFixed(6)))); setSaveError(null); }}>+</button>
+                </div>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -544,7 +580,7 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -570,10 +606,7 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -583,7 +616,7 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -652,8 +685,13 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
     const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
+    /* A single sentence that is itself a "Label: a, b, c" list must use the multi-sentence
+       renderer (nested-subtitle + comma rows) — the single-value path would show it side-by-side. */
+    const parsedWhole = parseLabel(strVal);
+    const singleLabeledList = sentences.length === 1 && parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2;
+
     /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    if (sentences.length > 1 || singleLabeledList) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
@@ -825,7 +863,7 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
         <h2 className="document-title">Postpartum Notes</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PostpartumNotesDocumentPDFTemplate document={pdfData} />} fileName={`postpartum-notes-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PostpartumNotesDocumentPDFTemplate document={pdfData} />} fileName="Postpartum_Notes.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -838,11 +876,6 @@ const PostpartumNotesDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.deliveryDate) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.deliveryDate)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Postpartum Note ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'delivery-info')}

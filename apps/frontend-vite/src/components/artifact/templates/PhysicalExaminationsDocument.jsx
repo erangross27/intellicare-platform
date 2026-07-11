@@ -23,6 +23,10 @@ const writeDrafts = (store) => {
   } catch { /* ignore quota/availability errors */ }
 };
 
+/* Copy dividers — canonical '='×40 under titles, '-'×40 under sub-labels/sections */
+const COPY_LINE_EQ = '='.repeat(40);
+const COPY_LINE_DASH = '-'.repeat(40);
+
 const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: tplData }) => {
   const templateData = docProp || data || tplData;
   const [searchTerm, setSearchTerm] = useState('');
@@ -107,32 +111,13 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
 
   // ========================= PARSERS =========================
 
-  // splitBySentence — splits on ". " and "; " with parenthesis + title protection
+  // splitBySentence — canonical: split on [.;]+whitespace, guard abbreviations + single-letter initials
   const splitBySentence = (text) => {
     if (!text || typeof text !== 'string') return [];
-    const result = [];
-    let current = '';
-    let parenDepth = 0;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (ch === '(') parenDepth++;
-      else if (ch === ')') parenDepth = Math.max(0, parenDepth - 1);
-      if ((ch === '.' || ch === ';') && parenDepth === 0 && i + 1 < text.length && /\s/.test(text[i + 1])) {
-        if (ch === '.' && /\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|etc)$/.test(current)) {
-          current += ch;
-          continue;
-        }
-        const trimmed = current.trim();
-        if (trimmed) result.push(trimmed);
-        current = '';
-        while (i + 1 < text.length && /\s/.test(text[i + 1])) i++;
-      } else {
-        current += ch;
-      }
-    }
-    const trimmed = current.replace(/[.;]+$/, '').trim();
-    if (trimmed) result.push(trimmed);
-    return result;
+    return text
+      .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])[.;](?:\s+)/)
+      .map(s => s.replace(/[.;]+$/, '').trim())
+      .filter(s => s && !/^[;.,!?]+$/.test(s));
   };
 
   // parseLabel — detect "Label: Value" in a single sentence
@@ -696,12 +681,12 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
           {showParentLabel && <div className="nested-subtitle">{highlightText(parentLabel)}</div>}
           {isLabeled && !showParentLabel && <div className="nested-subtitle">{highlightText(itemLabel)}</div>}
           {isLabeled && showParentLabel && <div className="sub-label">{highlightText(itemLabel)}</div>}
-          <div className={`numbered-row${isEdited || isAdded ? ' modified' : ''}`}>
-            <div
-              className={`row-content${canEdit ? ' editable' : ''}`}
-              onClick={() => canEdit && handleStartEdit(fieldName, idx, fullSentence, origIdx)}
-              title={canEdit ? 'Click to edit' : undefined}
-            >
+          <div
+            className={`numbered-row${canEdit ? ' editable-row' : ''}${isEdited || isAdded ? ' modified' : ''}`}
+            onClick={() => canEdit && handleStartEdit(fieldName, idx, fullSentence, origIdx)}
+            title={canEdit ? 'Click to edit' : undefined}
+          >
+            <div className="row-content">
               <span className="content-value">{highlightText(isLabeled ? itemValue : fullSentence)}</span>
               {canEdit && !isEdited && !isAdded && (
                 <span className="edit-indicator">
@@ -715,13 +700,13 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
             </div>
             <button
               className={`copy-btn${copiedId === editKey ? ' copied' : ''}`}
-              onClick={() => copyToClipboard(fullSentence, editKey)}
+              onClick={(e) => { e.stopPropagation(); copyToClipboard(fullSentence, editKey); }}
             >
               {copiedId === editKey ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          {isEdited && <div className="modified-badge">edited — click pending approve to save</div>}
-          {isAdded && <div className="modified-badge added">added — click pending approve to save</div>}
+          {isEdited && <div className="modified-badge">edited — click Pending Approve to save</div>}
+          {isAdded && <div className="modified-badge added">added — click Pending Approve to save</div>}
         </div>
       );
     });
@@ -731,7 +716,7 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
 
   const copySectionText = useCallback((fieldKey, value, title) => {
     if (!value) return '';
-    const lines = [title.toUpperCase(), '═══════════════════════════════════════'];
+    const lines = [title.toUpperCase(), COPY_LINE_EQ];
     const sentences = splitField(fieldKey, String(value));
     const parsed = sentences.map(s => ({ ...parseLabel(s), raw: s }));
     if (!COMMA_FIELDS.includes(fieldKey)) {
@@ -749,9 +734,7 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
   }, []);
 
   const getAllRecordText = useCallback((record, idx) => {
-    const lines = [`PHYSICAL EXAMINATION ${idx + 1}`, '═══════════════════════════════════════'];
-
-    if (record.createdAt) lines.push(`Date: ${formatDate(record.createdAt)}`);
+    const lines = [`PHYSICAL EXAMINATION ${idx + 1}`, COPY_LINE_EQ];
 
     const examSections = [
       { key: 'vitalSigns', label: 'VITAL SIGNS' },
@@ -769,7 +752,7 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
     examSections.forEach(({ key, label }) => {
       const val = record[key];
       if (val && String(val).trim()) {
-        lines.push('', label, '───────────────────────────────────────');
+        lines.push('', label, COPY_LINE_DASH);
         const sentences = splitField(key, String(val));
         const parsed = sentences.map(s => ({ ...parseLabel(s), raw: s }));
         if (!COMMA_FIELDS.includes(key)) {
@@ -799,7 +782,7 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
 
     const hasAdditional = additionalFields.some(f => record[f.key] && String(record[f.key]).trim());
     if (hasAdditional) {
-      lines.push('', 'ADDITIONAL FINDINGS', '───────────────────────────────────────');
+      lines.push('', 'ADDITIONAL FINDINGS', COPY_LINE_DASH);
       additionalFields.forEach(f => {
         const val = record[f.key];
         if (val && String(val).trim()) {
@@ -819,7 +802,8 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
               lines.push(`  ${i + 1}. ${item.value}`);
             });
           } else {
-            lines.push(`${f.label}: ${val}`);
+            lines.push(`${f.label}:`);
+            lines.push(`  1. ${val}`);
           }
         }
       });
@@ -827,12 +811,12 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
 
     const measurements = buildMeasurements(record);
     if (measurements.length > 0) {
-      lines.push('', 'MEASUREMENTS / SCORES', '───────────────────────────────────────');
-      measurements.forEach(m => lines.push(`${m.label}: ${m.value}`));
+      lines.push('', 'MEASUREMENTS / SCORES', COPY_LINE_DASH);
+      measurements.forEach((m, i) => { lines.push(m.label); lines.push(`${i + 1}. ${m.value}`); });
     }
 
     return lines.join('\n');
-  }, [formatDate]);
+  }, []);
 
   // ========================= SEARCH FILTERING =========================
 
@@ -1051,11 +1035,6 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
       <div key={record._id || idx} className="record-card">
         {/* Record Header */}
         <div className="record-header">
-          <div className="header-top-row">
-            {record.createdAt && (
-              <span className="date-badge">{highlightText(formatDate(record.createdAt))}</span>
-            )}
-          </div>
           <h2 className="record-title">
             {highlightText(`Physical Examination ${record._documentIndex}`)}
           </h2>
@@ -1113,7 +1092,7 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
                   <button
                     className={`copy-btn${copiedId === `additional-${idx}` ? ' copied' : ''}`}
                     onClick={() => {
-                      const lines = ['ADDITIONAL FINDINGS', '═══════════════════════════════════════'];
+                      const lines = ['ADDITIONAL FINDINGS', COPY_LINE_EQ];
                       visibleAdditional.forEach(f => {
                         const val = getFieldValue(record, f.key, idx);
                         const sentences = splitField(f.key, String(val || ''));
@@ -1132,7 +1111,8 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
                             lines.push(`  ${i + 1}. ${item.value}`);
                           });
                         } else {
-                          lines.push(`${f.label}: ${val}`);
+                          lines.push(`${f.label}:`);
+                          lines.push(`  1. ${val}`);
                         }
                       });
                       copyToClipboard(lines.join('\n'), `additional-${idx}`);
@@ -1165,8 +1145,8 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
                   <button
                     className={`copy-btn${copiedId === `measurements-${idx}` ? ' copied' : ''}`}
                     onClick={() => {
-                      const lines = ['MEASUREMENTS / SCORES', '═══════════════════════════════════════'];
-                      visibleMeasurements.forEach((m, i) => lines.push(`${i + 1}. ${m.label}: ${m.value}`));
+                      const lines = ['MEASUREMENTS / SCORES', COPY_LINE_EQ];
+                      visibleMeasurements.forEach((m, i) => { lines.push(m.label); lines.push(`${i + 1}. ${m.value}`); });
                       copyToClipboard(lines.join('\n'), `measurements-${idx}`);
                     }}
                   >
@@ -1229,7 +1209,7 @@ const PhysicalExaminationsDocument = ({ document: docProp, data, templateData: t
           </button>
           <PDFDownloadLink
             document={<PhysicalExaminationsDocumentPDFTemplate document={pdfData} />}
-            fileName="physical_examinations.pdf"
+            fileName="Physical_Examinations.pdf"
             className="pdf-btn"
           >
             {({ loading }) => (loading ? 'Preparing...' : 'Export PDF')}

@@ -61,12 +61,23 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 15,
     fontFamily: 'Helvetica-Bold',
     color: '#000000',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginBottom: 8,
+    paddingBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontFamily: 'Helvetica-Bold',
+    color: '#333333',
+    marginTop: 6,
+    marginBottom: 3,
+    paddingBottom: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#999999',
   },
   listItem: {
     fontSize: 12,
@@ -430,11 +441,11 @@ const PhysicalExaminationsDocumentPDFTemplate = ({ document: docProp, data, temp
     }
 
     return (
-      <View style={styles.fieldBox} wrap={parsed.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{safeString(sectionTitle)}</Text>
+      <View style={styles.fieldBox}>
         {parsed.map((item, i) => (
-          <View key={i}>
-            {item.isLabeled && <Text style={styles.subFieldLabel}>{safeString(item.label)}</Text>}
+          <View key={i} wrap={false}>
+            {i === 0 && <Text style={styles.sectionTitle}>{safeString(sectionTitle)}</Text>}
+            {item.isLabeled && <Text style={styles.fieldLabel}>{safeString(item.label)}</Text>}
             <Text style={styles.listItem}>{i + 1}. {safeString(item.value)}</Text>
           </View>
         ))}
@@ -588,9 +599,8 @@ const PhysicalExaminationsDocumentPDFTemplate = ({ document: docProp, data, temp
 
         {/* Additional Findings */}
         {visibleAdditional.length > 0 && (
-          <View style={styles.fieldBox} wrap={visibleAdditional.length > 4 ? undefined : false}>
-            <Text style={styles.sectionTitle}>Additional Findings</Text>
-            {visibleAdditional.map((f) => {
+          <View style={styles.fieldBox}>
+            {visibleAdditional.map((f, fi) => {
               const sentences = splitField(f.key, String(record[f.key]));
               const parsed = sentences.map(s => ({ ...parseLabel(s), raw: s }));
               if (!COMMA_FIELDS.includes(f.key)) {
@@ -600,19 +610,19 @@ const PhysicalExaminationsDocumentPDFTemplate = ({ document: docProp, data, temp
                   return 0;
                 });
               }
-              const items = parsed.map((item, i) => {
-                const num = additionalItemNum++;
-                return (
-                  <View key={`${f.key}-${i}`}>
-                    {item.isLabeled && <Text style={styles.subFieldLabel}>{safeString(item.label)}</Text>}
-                    <Text style={styles.listItem}>{num}. {safeString(item.value)}</Text>
-                  </View>
-                );
-              });
               return (
-                <View key={f.key}>
-                  <Text style={styles.subFieldLabel}>{safeString(f.label)}</Text>
-                  {items}
+                <View key={f.key} wrap={false}>
+                  {fi === 0 && <Text style={styles.sectionTitle}>Additional Findings</Text>}
+                  <Text style={styles.fieldLabel}>{safeString(f.label)}</Text>
+                  {parsed.map((item, i) => {
+                    const num = additionalItemNum++;
+                    return (
+                      <View key={`${f.key}-${i}`}>
+                        {item.isLabeled && <Text style={styles.subFieldLabel}>{safeString(item.label)}</Text>}
+                        <Text style={styles.listItem}>{num}. {safeString(item.value)}</Text>
+                      </View>
+                    );
+                  })}
                 </View>
               );
             })}

@@ -7,7 +7,10 @@
   padding: 24px;
   background: #0F1B33;
   min-height: 100%;
+  direction: ltr;
 }
+
+.physical-examinations-document * { direction: ltr; }
 
 /* ========================= DOCUMENT HEADER ========================= */
 
@@ -142,22 +145,6 @@
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(96, 165, 250, 0.3);
-}
-
-.physical-examinations-document .header-top-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-
-.physical-examinations-document .date-badge {
-  font-size: 14px;
-  font-weight: 600;
-  color: #60a5fa;
-  background: rgba(96, 165, 250, 0.15);
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-family: 'Comfortaa', sans-serif;
 }
 
 .physical-examinations-document .record-title {
@@ -411,19 +398,18 @@
 
 /* ========================= EDITING — Inline Edit UI ========================= */
 
-/* Editable row content — hover effect */
-.physical-examinations-document .row-content.editable {
+/* Editable row — hover effect */
+.physical-examinations-document .numbered-row.editable-row {
   cursor: pointer;
-  position: relative;
-  border-radius: 6px;
   transition: background 0.15s ease;
 }
 
-.physical-examinations-document .row-content.editable:hover {
+.physical-examinations-document .numbered-row.editable-row:hover {
   background: rgba(96, 165, 250, 0.06);
+  border-color: rgba(96, 165, 250, 0.5);
 }
 
-.physical-examinations-document .row-content.editable:hover .edit-indicator {
+.physical-examinations-document .numbered-row.editable-row:hover .edit-indicator {
   opacity: 1;
 }
 
@@ -520,7 +506,7 @@
 .physical-examinations-document .edit-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .physical-examinations-document .edit-save-btn {

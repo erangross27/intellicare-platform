@@ -19,6 +19,7 @@ import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PostOperativeReportsDocumentPDFTemplate from '../pdf-templates/PostOperativeReportsDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
+import BlueDatePicker from '../components/BlueDatePicker';
 import './PostOperativeReportsDocument.css';
 
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
@@ -91,6 +92,9 @@ const SECTION_FIELDS = {
 const DATE_FIELDS = ['surgeryDate'];
 const ARRAY_FIELDS = ['recommendations'];
 const STRING_FIELDS = ['procedurePerformed', 'surgicalFindings', 'complications', 'pacuArrival', 'pacuDischarge', 'vitalSignsTrend', 'painLevel', 'painManagement', 'nausea', 'urineOutput', 'drainOutput', 'oxygenRequirement', 'mobilityStatus', 'diet', 'disposition', 'dischargeInstructions', 'followUpPlan', 'prescriptions', 'activityRestrictions', 'returnPrecautions'];
+/* Genuine comma-list strings (meds / restriction items) → split into per-item value-only rows.
+   NOT procedurePerformed: its commas separate graft targets inside one procedure name (keep whole). */
+const COMMA_FIELDS = ['prescriptions', 'activityRestrictions'];
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -108,12 +112,20 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0) {
+      const nextIsSpace = /\s/.test(text[i + 1] || '');
+      const nextIsYear = /^\s*\d{4}\b/.test(text.slice(i + 1));
+      if (nextIsSpace && !nextIsYear) { const t = current.trim(); if (t) result.push(t); current = ''; }
+      else { current += ch; } // keep thousands separators ("2,000") + years whole
+    }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
+
+/* sameAsTitle: single-name gate — hide a field label that equals its section title */
+const sameAsTitle = (label, sid) => String(label || '').trim().toLowerCase() === String(SECTION_TITLES[sid] || '').trim().toLowerCase();
 
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
@@ -193,7 +205,7 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -428,17 +440,21 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      // single-name gate: drop a field label that equals the section title (no duplicate header line)
+      const head = sameAsTitle(label, sid) ? '' : `${label}\n${'-'.repeat(40)}\n`;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${head}${formatDate(val)}\n\n`;
       } else if (f === 'recommendations') {
-        const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n`;
+        const items = Array.isArray(val) ? val.filter(Boolean) : [];
+        if (items.length === 0) return;
+        text += head;
         items.forEach((item, i) => {
           if (typeof item === 'object' && item !== null) {
             const recText = item.recommendation || '';
@@ -449,21 +465,24 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
           }
         });
         text += '\n';
+      } else if (COMMA_FIELDS.includes(f)) {
+        const items = splitByComma(fmtVal(val));
+        text += head;
+        items.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
+        text += '\n';
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
+        const pWhole = parseLabel(strVal);
+        const structured = splitBySentence(strVal).length > 1 || (pWhole.isLabeled && splitByComma(pWhole.value).length >= 2);
+        text += head;
+        if (structured) { formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; }); }
+        else { text += `${strVal}\n`; }
+        text += '\n';
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${head}${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text; // drop empty sections so their header never leaks into Copy All
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
@@ -495,7 +514,7 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -522,15 +541,21 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* A single sentence that is itself a labeled comma-list ("Call surgeon if: a, b, c")
+       routes through the sentence renderer so the label becomes a sub-title above value-only rows
+       (never a side-by-side "Label: value"). */
+    const parsedWhole = parseLabel(strVal);
+    const singleLabeledList = sentences.length === 1 && parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2;
+
+    /* Multi-sentence (or single labeled comma-list): render with splitBySentence */
+    if (sentences.length > 1 || singleLabeledList) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -617,7 +642,7 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -650,7 +675,7 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const isObj = typeof item === 'object' && item !== null;
           const recText = isObj ? (item.recommendation || '') : String(item);
@@ -696,6 +721,56 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
     );
   };
 
+  /* ═══════ RENDER: COMMA-LIST STRING FIELD (genuine list → per-item value-only rows) ═══════ */
+  const renderCommaField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const strVal = fmtVal(val);
+    const items = splitByComma(strVal);
+    const label = FIELD_LABELS[fn] || fn;
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    if (items.length < 2) return renderStringField(record, fn, idx, sid); // not actually a list → fall back
+
+    return (
+      <div key={fn} className="rec-mini-card">
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        {items.map((item, ci) => {
+          const editKey = `${fn}-${idx}-c${ci}`;
+          const isEditing = editingField === editKey;
+          const badge = editedSentences[editKey];
+          const parsed = parseLabel(item);           // a comma item can itself be "Label: value"
+          const displayVal = parsed.isLabeled ? parsed.value : item;
+          if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
+            const phrase = searchTerm.toLowerCase().trim();
+            if (!label.toLowerCase().includes(phrase) && !item.toLowerCase().includes(phrase)) return null;
+          }
+          return (
+            <div key={ci} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+              {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
+              <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
+                {isEditing ? (
+                  <div className="edit-field-container">
+                    <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    {saveError && <div className="save-error">{saveError}</div>}
+                    <div className="edit-actions">
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const cur = splitByComma(String(getFieldValue(record, fn, idx) || '')); const trimmed = editValue.trim(); if (!trimmed) { cur.splice(ci, 1); } else { cur[ci] = parsed.isLabeled ? `${parsed.label}: ${trimmed}` : trimmed; } stageDraft(record, idx, sid, fn, cur.join(', '), { sentences: { [editKey]: 'edited' } }); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(item, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                  </>
+                )}
+              </div>
+              {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -722,6 +797,7 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
           {fields.map(f => {
             if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderRecommendationsField(record, f, idx, sid);
+            if (COMMA_FIELDS.includes(f)) return renderCommaField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
           })}
         </div>
@@ -745,7 +821,7 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Post-Operative Reports</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PostOperativeReportsDocumentPDFTemplate document={pdfData} />} fileName={`post-operative-reports-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PostOperativeReportsDocumentPDFTemplate document={pdfData} />} fileName="Post_Operative_Reports.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -758,12 +834,7 @@ const PostOperativeReportsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.surgeryDate) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.surgeryDate)}</span>
-                </div>
-              )}
-              <h3 className="record-name">{highlightText(record.procedurePerformed || `Post-Operative Report ${idx + 1}`)}</h3>
+              <h3 className="record-name">{highlightText(`Post-Operative Report ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'surgery-info')}
             {renderSection(record, idx, 'complications')}

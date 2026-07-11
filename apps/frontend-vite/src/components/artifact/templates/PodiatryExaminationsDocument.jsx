@@ -16,6 +16,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PodiatryExaminationsDocumentPDFTemplate from '../pdf-templates/PodiatryExaminationsDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PodiatryExaminationsDocument.css';
 
@@ -72,6 +73,22 @@ const isEmptyDeep = (v) => {
 const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
 const isScalar = (v) => v === null || typeof v !== 'object';
 const deepClone = (x) => (x === undefined ? x : JSON.parse(JSON.stringify(x)));
+/* stepFor: decimal-aware increment for the number stepper (integers step by 1, decimals by their last place). */
+const stepFor = (v) => { const s = String(v); const dot = s.indexOf('.'); if (dot === -1) return 1; const decimals = s.length - dot - 1; return decimals <= 0 ? 1 : Math.pow(10, -decimals); };
+/* splitByComma: parenthesis-aware, splits only on comma+whitespace (keeps thousands & parens whole). */
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
 const setByPath = (obj, pathArr, val) => { let cur = obj; for (let i = 0; i < pathArr.length - 1; i++) cur = cur[pathArr[i]]; cur[pathArr[pathArr.length - 1]] = val; };
 const flattenSearchable = (v) => {
   if (v === null || v === undefined) return '';
@@ -85,19 +102,25 @@ const formatDate = (dateValue) => {
   if (!dateValue) return '';
   try { const d = new Date(dateValue.$date || dateValue); if (isNaN(d.getTime())) return String(dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
 };
+/* buildCopyLines: STACK label-over-value (never "Label: value" side-by-side); every value row is
+   numbered "N. value" (restart per labeled leaf / per array). Group/object headers are colon-free. */
 const buildCopyLines = (label, value, indent) => {
   const pad = '  '.repeat(indent); const out = [];
   if (isEmptyDeep(value)) return out;
-  if (isScalar(value)) { out.push(`${pad}${label ? label + ': ' : ''}${fmtScalar(value)}`); return out; }
+  if (isScalar(value)) { if (label) out.push(`${pad}${label}`); out.push(`${pad}1. ${fmtScalar(value)}`); return out; }
   if (Array.isArray(value)) {
-    if (label) out.push(`${pad}${label}:`);
+    if (label) out.push(`${pad}${label}`);
+    let n = 1;
     value.filter(x => !isEmptyDeep(x)).forEach(item => {
-      if (isScalar(item)) out.push(`${pad}  - ${fmtScalar(item)}`);
-      else { const e = Object.entries(item).filter(([, v]) => !isEmptyDeep(v)); if (!e.length) return; const head = isScalar(e[0][1]) ? fmtScalar(e[0][1]) : ''; if (head && e.length === 2 && isScalar(e[1][1])) out.push(`${pad}  - ${head}: ${fmtScalar(e[1][1])}`); else if (head) { out.push(`${pad}  - ${head}`); e.slice(1).forEach(([k, v]) => out.push(...buildCopyLines(humanizeKey(k), v, indent + 2))); } else e.forEach(([k, v]) => out.push(...buildCopyLines(humanizeKey(k), v, indent + 1))); }
+      if (isScalar(item)) { out.push(`${pad}${n++}. ${fmtScalar(item)}`); return; }
+      const e = Object.entries(item).filter(([, v]) => !isEmptyDeep(v)); if (!e.length) return;
+      const headScalar = isScalar(e[0][1]);
+      if (headScalar) { out.push(`${pad}${n++}. ${fmtScalar(e[0][1])}`); e.slice(1).forEach(([k, v]) => out.push(...buildCopyLines(humanizeKey(k), v, indent + 1))); }
+      else e.forEach(([k, v]) => out.push(...buildCopyLines(humanizeKey(k), v, indent + 1)));
     });
     return out;
   }
-  if (label) out.push(`${pad}${label}:`);
+  if (label) out.push(`${pad}${label}`);
   Object.entries(value).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => out.push(...buildCopyLines(humanizeKey(k), v, indent + (label ? 1 : 0))));
   return out;
 };
@@ -187,7 +210,7 @@ const PodiatryExaminationsDocument = ({ document: docProp, data, templateData })
   }, [searchTerm]);
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
   function reconstructFullText(sentences) {
     if (!sentences || sentences.length === 0) return '';
@@ -282,11 +305,13 @@ const PodiatryExaminationsDocument = ({ document: docProp, data, templateData })
         <div className={variant === 'head' ? 'editable-head editing' : 'numbered-row'} key={editKey}>
           <div className="edit-field-container">
             {isBool ? (
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option><option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
             ) : isNum ? (
-              <input type="number" step="any" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { e.preventDefault(); commit(); } }} />
+              <div className="number-edit-row"><div className="num-stepper-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const base = parseFloat(editValue); if (isNaN(base)) return; setEditValue(String(Math.max(0, +(base - stepFor(editValue)).toFixed(4)))); }}>&minus;</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { e.preventDefault(); commit(); } }} />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const base = parseFloat(editValue); if (isNaN(base)) return; setEditValue(String(Math.max(0, +(base + stepFor(editValue)).toFixed(4)))); }}>+</button>
+              </div></div>
             ) : (
               <textarea className="edit-textarea" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); commit(); } }} />
             )}
@@ -370,7 +395,11 @@ const PodiatryExaminationsDocument = ({ document: docProp, data, templateData })
     const fn = SECTION_FIELD[sid]; const val = getFieldValue(record, fn, idx);
     if (isEmptyDeep(val)) return '';
     let text = `${SECTION_TITLES[sid]}\n${'='.repeat(40)}\n`;
-    if (sid === 'indication' && typeof val === 'string') { (splitBySentence(val).length > 1 ? splitBySentence(val) : [val]).forEach(s => { text += `${s}\n`; }); }
+    if (sid === 'indication' && typeof val === 'string') {
+      const sents = splitBySentence(val);
+      if (sents.length > 1) { sents.forEach(s => { text += `${s}\n`; }); }
+      else { const parts = splitByComma(val); if (parts.length >= 3) parts.forEach((p, i) => { text += `${i + 1}. ${p}\n`; }); else text += `${val}\n`; }
+    }
     else if (val && typeof val === 'object' && !Array.isArray(val)) { Object.entries(val).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => buildCopyLines(humanizeKey(k), v, 0).forEach(l => { text += `${l}\n`; })); }
     else buildCopyLines('', val, 0).forEach(l => { text += `${l}\n`; });
     return text + '\n';
@@ -452,19 +481,30 @@ const PodiatryExaminationsDocument = ({ document: docProp, data, templateData })
     const fn = 'indicationForExam'; const val = getFieldValue(record, fn, idx);
     if (isEmptyDeep(val)) return null;
     const sentences = splitBySentence(String(val));
-    const rows = sentences.length > 1 ? sentences : [String(val)];
-    const saveSentence = (sIdx) => {
+    // Unlabeled clinical list (>=3 comma items, single sentence) → split into rows (user prefers aggressive splitting).
+    const commaMode = sentences.length <= 1 && splitByComma(String(val)).length >= 3;
+    const rows = commaMode ? splitByComma(String(val)) : (sentences.length > 1 ? sentences : [String(val)]);
+    // Stage as a DRAFT (no DB write). localStorage keeps it across refresh; Approve commits it.
+    const saveRow = (i) => {
       const id = safeId(record); if (!id) return;
-      const current = splitBySentence(String(getFieldValue(record, fn, idx) || ''));
-      const editedVal = editValue.trim();
-      const updated = [...current];
-      if (!editedVal || /^[;.,!?]+$/.test(editedVal)) updated.splice(sIdx, 1); else updated.splice(sIdx, 1, ...splitBySentence(editedVal));
-      const fullText = reconstructFullText(updated);
-      // Stage as a DRAFT (no DB write). localStorage keeps it across refresh; Approve commits it.
+      const cur = String(getFieldValue(record, fn, idx) || '');
+      const editedVal = editValue.trim().replace(/[;.]+$/, '');
+      let fullText, markKey;
+      if (commaMode) {
+        const parts = splitByComma(cur);
+        if (!editedVal) parts.splice(i, 1); else parts[i] = editedVal;
+        fullText = parts.join(', ');
+        markKey = `${fn}-${idx}-c${i}`;
+      } else {
+        const updated = splitBySentence(cur);
+        if (!editedVal) updated.splice(i, 1); else updated.splice(i, 1, ...splitBySentence(editValue.trim()));
+        fullText = reconstructFullText(updated);
+        markKey = `${fn}-${idx}-s${i}`;
+      }
       setSaveError(null);
       setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullText }));
       setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true, [`${fn}@@${idx}`]: true }));
-      setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { if (k.startsWith(`${fn}-${idx}-s`)) delete n[k]; }); n[`${fn}-${idx}-s${sIdx}`] = 'edited'; return n; });
+      setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { if (k.startsWith(`${fn}-${idx}-`)) delete n[k]; }); n[markKey] = 'edited'; return n; });
       setApprovedSections(prev => { const n = { ...prev }; delete n[`indication-${idx}`]; return n; });
       const store = readDrafts();
       if (!store[id]) store[id] = {};
@@ -475,15 +515,15 @@ const PodiatryExaminationsDocument = ({ document: docProp, data, templateData })
     return (
       <div className="rec-mini-card">
         {rows.map((sentence, sIdx) => {
-          const key = `${fn}-${idx}-s${sIdx}`; const isEditing = editingField === key; const badge = editedSentences[key];
+          const key = `${fn}-${idx}-${commaMode ? 'c' : 's'}${sIdx}`; const isEditing = editingField === key; const badge = editedSentences[key];
           return (
             <div key={sIdx}>
               <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(key); setEditValue(sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
-                    <textarea className="edit-textarea" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); saveSentence(sIdx); } }} />
+                    <textarea className="edit-textarea" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); saveRow(sIdx); } }} />
                     {saveError && <div className="save-error">{saveError}</div>}
-                    <div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSentence(sIdx); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div>
+                    <div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveRow(sIdx); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div>
                   </div>
                 ) : (
                   <>
@@ -541,7 +581,7 @@ const PodiatryExaminationsDocument = ({ document: docProp, data, templateData })
         <h2 className="document-title">Podiatry Examination</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PodiatryExaminationsDocumentPDFTemplate document={pdfData} />} fileName={`podiatry-examination-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PodiatryExaminationsDocumentPDFTemplate document={pdfData} />} fileName="Podiatry_Examinations.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

@@ -1,9 +1,10 @@
 /**
  * PneumoperitoneumDocumentPDFTemplate.jsx
- * PDF export template for pneumoperitoneum collection
- * March 2026 - Helvetica font, LETTER size, 20pt header, 12pt content, wrap={false}
+ * PDF export template for pneumoperitoneum collection.
+ * Box-free black & white: hierarchy shown via underlines only (documentTitle / sectionTitle / bare fieldLabel).
+ * Field labels are BARE (no colon) so they render as exact `>Label<` text nodes for JSX/PDF field parity.
+ * Anti-orphan: every sectionTitle is glued to its first body element inside a <View wrap={false}>.
  */
-
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
@@ -11,103 +12,180 @@ const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
+    fontSize: 14,
+    lineHeight: 1.5,
     color: '#000000',
-    size: 'LETTER',
+    backgroundColor: '#ffffff',
   },
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  documentTitle: {
+    fontSize: 26,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 20,
-    textAlign: 'center',
+    color: '#000000',
+    paddingBottom: 8,
     borderBottomWidth: 2,
-    borderBottomColor: '#606060',
-    paddingBottom: 10,
-  },
-  recordCard: {
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 4,
+    textTransform: 'none',
   },
-  recordHeader: {
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+  recordContainer: {
+    marginBottom: 24,
   },
   recordTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 19,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-  },
-  recordMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  metaItem: {
-    fontSize: 11,
-    color: '#727272',
+    color: '#000000',
+    marginBottom: 12,
   },
   section: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
+    color: '#000000',
+    paddingBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
     marginBottom: 8,
-    color: '#606060',
+    textTransform: 'none',
   },
-  fieldBlock: {
+  fieldBox: {
     marginBottom: 8,
-    paddingLeft: 8,
   },
-  fieldSubtitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
+  fieldLabel: {
+    fontSize: 13,
     fontFamily: 'Helvetica-Bold',
+    color: '#333333',
+    paddingBottom: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#999999',
+    borderBottomStyle: 'solid',
     marginBottom: 3,
-    color: '#1f2937',
+    textTransform: 'none',
   },
   fieldValue: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    color: '#404040',
+    fontSize: 14,
+    color: '#000000',
+    lineHeight: 1.5,
   },
   listItem: {
-    fontSize: 12,
-    paddingLeft: 12,
+    fontSize: 14,
+    color: '#000000',
     marginBottom: 4,
-    lineHeight: 1.4,
+    paddingLeft: 8,
+    lineHeight: 1.5,
+  },
+  separator: {
+    marginTop: 20,
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
   },
   noData: {
-    fontSize: 12,
-    color: '#666666',
+    fontSize: 14,
+    color: '#000000',
     textAlign: 'center',
     marginTop: 40,
   },
 });
 
+const FIELD_LABELS = {
+  procedureName: 'Procedure Name',
+  date: 'Date',
+  facility: 'Facility',
+  accessMethod: 'Access Method',
+  accessLocation: 'Access Location',
+  initialPressure: 'Initial Pressure',
+  targetPressure: 'Target Pressure',
+  maximumPressure: 'Maximum Pressure',
+  gasType: 'Gas Type',
+  totalGasVolume: 'Total Gas Volume',
+  flowRate: 'Flow Rate',
+  insufflationTime: 'Insufflation Time',
+  insufflationEquipment: 'Insufflation Equipment',
+  desufflationMethod: 'Desufflation Method',
+  visualInspection: 'Visual Inspection',
+  adhesions: 'Adhesions',
+  complications: 'Complications',
+  verificationTests: 'Verification Tests',
+  specialConsiderations: 'Special Considerations',
+  notes: 'Notes',
+};
+
+const SECTIONS = [
+  { title: 'Procedure Information', fields: ['procedureName', 'date', 'facility'] },
+  { title: 'Access Details', fields: ['accessMethod', 'accessLocation'] },
+  { title: 'Pressure Settings', fields: ['initialPressure', 'targetPressure', 'maximumPressure'] },
+  { title: 'Gas Settings', fields: ['gasType', 'totalGasVolume', 'flowRate', 'insufflationTime'] },
+  { title: 'Equipment', fields: ['insufflationEquipment', 'desufflationMethod'] },
+  { title: 'Findings', fields: ['visualInspection', 'adhesions', 'complications'] },
+  { title: 'Verification Tests', fields: ['verificationTests'] },
+  { title: 'Additional Information', fields: ['specialConsiderations', 'notes'] },
+];
+
+const DATE_FIELDS = ['date'];
+const ARRAY_FIELDS = ['complications', 'verificationTests'];
+
 const formatDate = (dateVal) => {
   if (!dateVal) return '';
   try {
-    if (dateVal.$date) return new Date(dateVal.$date).toLocaleDateString();
-    if (dateVal instanceof Date) return dateVal.toLocaleDateString();
-    return new Date(dateVal).toLocaleDateString();
+    const d = new Date(dateVal.$date || dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   } catch {
     return String(dateVal);
   }
 };
 
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (Array.isArray(v)) return v.filter((x) => x !== null && x !== undefined && String(x).trim() !== '').length > 0;
+  if (typeof v === 'string') return v.trim() !== '';
+  return true;
+};
+
+const fieldBody = (fn, value, keyPrefix) => {
+  const label = FIELD_LABELS[fn] || fn;
+  if (ARRAY_FIELDS.includes(fn)) {
+    const items = (Array.isArray(value) ? value : [value]).filter((x) => x !== null && x !== undefined && String(x).trim() !== '');
+    return (
+      <View key={keyPrefix} style={styles.fieldBox} wrap={false}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        {items.map((item, i) => (
+          <Text key={`${keyPrefix}-${i}`} style={styles.listItem}>{i + 1}. {String(item)}</Text>
+        ))}
+      </View>
+    );
+  }
+  const display = DATE_FIELDS.includes(fn) ? formatDate(value) : String(value);
+  return (
+    <View key={keyPrefix} style={styles.fieldBox} wrap={false}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldValue}>{display}</Text>
+    </View>
+  );
+};
+
+/* Section — glues the title to its first body element so a title never orphans at a page break. */
+const Section = ({ title, children }) => {
+  const items = React.Children.toArray(children).filter(Boolean);
+  if (items.length === 0) return null;
+  const [first, ...rest] = items;
+  return (
+    <View style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {first}
+      </View>
+      {rest}
+    </View>
+  );
+};
+
 const PneumoperitoneumDocumentPDFTemplate = ({ document: records }) => {
-  // Handle data unwrapping
   let recordsArray = [];
   if (Array.isArray(records)) {
     recordsArray = records;
@@ -126,12 +204,11 @@ const PneumoperitoneumDocumentPDFTemplate = ({ document: records }) => {
     recordsArray = [records];
   }
 
-  // Empty check
   if (recordsArray.length === 0) {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <Text style={styles.header}>Pneumoperitoneum</Text>
+          <Text style={styles.documentTitle}>Pneumoperitoneum</Text>
           <Text style={styles.noData}>No pneumoperitoneum data available</Text>
         </Page>
       </Document>
@@ -141,186 +218,20 @@ const PneumoperitoneumDocumentPDFTemplate = ({ document: records }) => {
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <Text style={styles.header}>Pneumoperitoneum</Text>
-
+        <Text style={styles.documentTitle}>Pneumoperitoneum</Text>
         {recordsArray.map((record, idx) => {
-          const hasAccessDetails = record.accessMethod || record.accessLocation;
-          const hasPressureSettings = record.initialPressure || record.targetPressure || record.maximumPressure;
-          const hasGasSettings = record.gasType || record.totalGasVolume || record.flowRate || record.insufflationTime;
-          const hasEquipment = record.insufflationEquipment || record.desufflationMethod;
-          const hasFindings = record.visualInspection || record.adhesions || (Array.isArray(record.complications) && record.complications.length > 0);
-          const hasVerificationTests = Array.isArray(record.verificationTests) && record.verificationTests.length > 0;
-
+          const p = `r${idx}`;
           return (
-            <View key={idx} style={styles.recordCard}>
-              {/* Record Header */}
-              <View style={styles.recordHeader}>
-                <Text style={styles.recordTitle}>Pneumoperitoneum {idx + 1}</Text>
-                <View style={styles.recordMeta}>
-                  {record.date && <Text style={styles.metaItem}>Date: {formatDate(record.date)}</Text>}
-                  {record.facility && <Text style={styles.metaItem}>Facility: {String(record.facility)}</Text>}
-                </View>
-                {record.procedureName && (
-                  <View style={{ marginTop: 6 }}>
-                    <Text style={styles.fieldSubtitle}>Procedure</Text>
-                    <Text style={styles.fieldValue}>{String(record.procedureName)}</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Access Details */}
-              {hasAccessDetails && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Access Details</Text>
-                  {record.accessMethod && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Access Method</Text>
-                      <Text style={styles.fieldValue}>{String(record.accessMethod)}</Text>
-                    </View>
-                  )}
-                  {record.accessLocation && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Access Location</Text>
-                      <Text style={styles.fieldValue}>{String(record.accessLocation)}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Pressure Settings */}
-              {hasPressureSettings && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Pressure Settings</Text>
-                  {record.initialPressure && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Initial Pressure</Text>
-                      <Text style={styles.fieldValue}>{String(record.initialPressure)}</Text>
-                    </View>
-                  )}
-                  {record.targetPressure && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Target Pressure</Text>
-                      <Text style={styles.fieldValue}>{String(record.targetPressure)}</Text>
-                    </View>
-                  )}
-                  {record.maximumPressure && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Maximum Pressure</Text>
-                      <Text style={styles.fieldValue}>{String(record.maximumPressure)}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Gas Settings */}
-              {hasGasSettings && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Gas Settings</Text>
-                  {record.gasType && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Gas Type</Text>
-                      <Text style={styles.fieldValue}>{String(record.gasType)}</Text>
-                    </View>
-                  )}
-                  {record.totalGasVolume && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Total Gas Volume</Text>
-                      <Text style={styles.fieldValue}>{String(record.totalGasVolume)}</Text>
-                    </View>
-                  )}
-                  {record.flowRate && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Flow Rate</Text>
-                      <Text style={styles.fieldValue}>{String(record.flowRate)}</Text>
-                    </View>
-                  )}
-                  {record.insufflationTime && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Insufflation Time</Text>
-                      <Text style={styles.fieldValue}>{String(record.insufflationTime)}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Equipment */}
-              {hasEquipment && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Equipment</Text>
-                  {record.insufflationEquipment && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Insufflation Equipment</Text>
-                      <Text style={styles.fieldValue}>{String(record.insufflationEquipment)}</Text>
-                    </View>
-                  )}
-                  {record.desufflationMethod && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Desufflation Method</Text>
-                      <Text style={styles.fieldValue}>{String(record.desufflationMethod)}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Findings */}
-              {hasFindings && (
-                <View style={styles.section}>
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Findings</Text>
-                    {record.visualInspection && (
-                      <View style={styles.fieldBlock}>
-                        <Text style={styles.fieldSubtitle}>Visual Inspection</Text>
-                        <Text style={styles.fieldValue}>{String(record.visualInspection)}</Text>
-                      </View>
-                    )}
-                  </View>
-                  {record.adhesions && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Adhesions</Text>
-                      <Text style={styles.fieldValue}>{String(record.adhesions)}</Text>
-                    </View>
-                  )}
-                  {Array.isArray(record.complications) && record.complications.length > 0 && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Complications</Text>
-                      {record.complications.map((comp, cIdx) => (
-                        <Text key={cIdx} style={styles.listItem}>{cIdx + 1}. {String(comp)}</Text>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Verification Tests */}
-              {hasVerificationTests && (
-                <View style={styles.section}>
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Verification Tests</Text>
-                    {record.verificationTests[0] && (
-                      <Text style={styles.listItem}>1. {String(record.verificationTests[0])}</Text>
-                    )}
-                  </View>
-                  {record.verificationTests.slice(1).map((test, tIdx) => (
-                    <Text key={tIdx + 1} style={styles.listItem}>{tIdx + 2}. {String(test)}</Text>
-                  ))}
-                </View>
-              )}
-
-              {/* Special Considerations */}
-              {record.specialConsiderations && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Special Considerations</Text>
-                  <Text style={styles.fieldValue}>{String(record.specialConsiderations)}</Text>
-                </View>
-              )}
-
-              {/* Notes */}
-              {record.notes && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Notes</Text>
-                  <Text style={styles.fieldValue}>{String(record.notes)}</Text>
-                </View>
-              )}
+            <View key={idx} style={styles.recordContainer}>
+              {idx > 0 && <View style={styles.separator} />}
+              <Text style={styles.recordTitle}>{record.procedureName || `Pneumoperitoneum ${idx + 1}`}</Text>
+              {SECTIONS.map((sec) => (
+                <Section key={sec.title} title={sec.title}>
+                  {sec.fields
+                    .filter((fn) => hasVal(record[fn]))
+                    .map((fn) => fieldBody(fn, record[fn], `${p}-${fn}`))}
+                </Section>
+              ))}
             </View>
           );
         })}

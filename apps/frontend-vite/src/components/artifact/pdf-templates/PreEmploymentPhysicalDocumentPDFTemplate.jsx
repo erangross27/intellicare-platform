@@ -1,26 +1,26 @@
 /**
  * PreEmploymentPhysicalDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt -- LETTER size -- US medical platform
+ * Box-free B&W — Helvetica — LETTER size — pre-employment physical
  * Collection: pre_employment_physical
+ * Date rendered in-section (Employment Information) off the real clinical record.date, never createdAt.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, backgroundColor: '#f5f5f5', padding: 12, borderWidth: 2, borderColor: '#000000', borderLeftWidth: 5, borderLeftColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 11, color: '#333333', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 20, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 20 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  separator: { marginTop: 16, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
   emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
 });
 
@@ -28,10 +28,11 @@ const styles = StyleSheet.create({
 const safeString = (val) => {
   if (val === null || val === undefined) return '';
   let str = typeof val === 'string' ? val : String(val);
-  str = str.replace(/\u00b5m/g, 'um').replace(/\u03bcm/g, 'um').replace(/\u00b0/g, ' deg')
-    .replace(/\u00b1/g, '+/-').replace(/\u2265/g, '>=').replace(/\u2264/g, '<=')
-    .replace(/\u2192/g, '->').replace(/\u201c/g, '"').replace(/\u201d/g, '"')
-    .replace(/\u2018/g, "'").replace(/\u2019/g, "'").replace(/\u2014/g, '-').replace(/\u2013/g, '-');
+  str = str.replace(/µm/g, 'um').replace(/μm/g, 'um').replace(/°/g, ' deg')
+    .replace(/±/g, '+/-').replace(/≥/g, '>=').replace(/≤/g, '<=')
+    .replace(/×/g, 'x')
+    .replace(/→/g, '->').replace(/“/g, '"').replace(/”/g, '"')
+    .replace(/‘/g, "'").replace(/’/g, "'").replace(/—/g, '-').replace(/–/g, '-');
   return str;
 };
 
@@ -46,7 +47,7 @@ const formatDate = (d) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -58,66 +59,153 @@ const parseLabel = (text) => {
 
 const splitByComma = (text) => {
   if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0; let inQuote = false; let quoteChar = '';
+  const result = []; let current = ''; let depth = 0;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    if ((ch === '"' || ch === "'") && !inQuote) { inQuote = true; quoteChar = ch; current += ch; }
-    else if (ch === quoteChar && inQuote) { inQuote = false; quoteChar = ''; current += ch; }
-    else if (ch === '(' && !inQuote) { depth++; current += ch; }
-    else if (ch === ')' && !inQuote) { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0 && !inQuote) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
 
-const renderFieldRow = (label, value) => {
-  if (!hasVal(value)) return null;
+/* ═══ FIELD-TYPE MAPS (mirror the JSX) ═══ */
+const DATE_KEYS = ['date', 'certificationExpirationDate'];
+const BOOLEAN_KEYS = ['drugScreenRequired', 'respiratorClearance', 'dotPhysicalCompliant'];
+const NUMBER_KEYS = ['bodyMassIndex'];
+const ARRAY_KEYS = ['jobPhysicalDemands', 'workRestrictions', 'immunizationStatus', 'hazardousExposureHistory', 'chronicConditionsDisclosed'];
+
+/* renderStringField: mirror JSX — single value renders plain; multi-sentence renders numbered
+   (labeled sentence with a comma-list → sub-label + numbered comma items), single running counter. */
+const renderStringField = (label, text) => {
+  if (!hasVal(text)) return null;
+  const strVal = fmtVal(text);
+  const sentences = splitBySentence(strVal);
+  if (sentences.length > 1) {
+    const rows = []; let n = 1;
+    sentences.forEach(s => {
+      const parsed = parseLabel(s);
+      if (parsed.isLabeled) {
+        const items = splitByComma(parsed.value);
+        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
+        if (items.length >= 2) {
+          items.forEach(ci => rows.push({ type: 'item', text: safeString(ci), num: n++ }));
+        } else {
+          rows.push({ type: 'item', text: safeString(parsed.value), num: n++ });
+        }
+      } else {
+        rows.push({ type: 'item', text: safeString(s), num: n++ });
+      }
+    });
+    return (
+      <View style={styles.fieldBox}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        {rows.map((row, i) => row.type === 'subtitle'
+          ? <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>
+          : <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>)}
+      </View>
+    );
+  }
   return (
-    <View style={{ marginBottom: 4 }}>
+    <View style={styles.fieldBox}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
+      <Text style={styles.fieldValue}>{safeString(strVal)}</Text>
     </View>
   );
 };
 
-/* renderSentenceField: parseLabel + comma-split for heavy text fields, with numbering */
-const renderSentenceField = (title, text) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
+/* renderField: dispatch by field type; returns a bare-label fieldBox element (or null). */
+const renderField = (record, field) => {
+  const { key, label } = field;
+  const val = record[key];
+  if (DATE_KEYS.includes(key)) {
+    if (!hasVal(val)) return null;
+    return (<View style={styles.fieldBox}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{formatDate(val)}</Text></View>);
+  }
+  if (BOOLEAN_KEYS.includes(key)) {
+    if (!hasVal(val)) return null;
+    return (<View style={styles.fieldBox}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{val ? 'Yes' : 'No'}</Text></View>);
+  }
+  if (NUMBER_KEYS.includes(key)) {
+    if (!hasVal(val)) return null;
+    return (<View style={styles.fieldBox}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{safeString(fmtVal(val))}</Text></View>);
+  }
+  if (ARRAY_KEYS.includes(key)) {
+    const items = safeArray(val);
+    if (!items.length) return null;
+    return (
+      <View style={styles.fieldBox}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        {items.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>)}
+      </View>
+    );
+  }
+  return renderStringField(label, val);
+};
 
-  const rows = [];
-  let counter = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-      commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: counter++ }); });
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: counter++ });
-    }
-  });
+/* SECTION CONFIGS — 7 sections mirroring the JSX SECTION_FIELDS */
+const SECTION_CONFIGS = [
+  { title: 'Employment Information', fields: [
+    { key: 'date', label: 'Date' },
+    { key: 'jobTitle', label: 'Job Title' },
+    { key: 'employerName', label: 'Employer Name' },
+    { key: 'examiningPhysician', label: 'Examining Physician' },
+    { key: 'certificationExpirationDate', label: 'Certification Expiration Date' },
+  ] },
+  { title: 'Clearance Status', fields: [
+    { key: 'medicalClearanceStatus', label: 'Medical Clearance Status' },
+    { key: 'workRestrictions', label: 'Work Restrictions' },
+    { key: 'accommodationsRequired', label: 'Accommodations Required' },
+    { key: 'dotPhysicalCompliant', label: 'DOT Physical Compliant' },
+  ] },
+  { title: 'Screenings', fields: [
+    { key: 'drugScreenRequired', label: 'Drug Screen Required' },
+    { key: 'drugScreenResult', label: 'Drug Screen Result' },
+    { key: 'tuberculosisScreening', label: 'Tuberculosis Screening' },
+  ] },
+  { title: 'Physical Assessment', fields: [
+    { key: 'bloodPressureReading', label: 'Blood Pressure Reading' },
+    { key: 'bodyMassIndex', label: 'Body Mass Index' },
+    { key: 'musculoskeletalExam', label: 'Musculoskeletal Exam' },
+    { key: 'liftingCapacity', label: 'Lifting Capacity' },
+    { key: 'cardiovascularFitness', label: 'Cardiovascular Fitness' },
+  ] },
+  { title: 'Sensory Evaluation', fields: [
+    { key: 'hearingAcuityTest', label: 'Hearing Acuity Test' },
+    { key: 'visionAcuityTest', label: 'Vision Acuity Test' },
+  ] },
+  { title: 'Respiratory Evaluation', fields: [
+    { key: 'respiratoryFitTest', label: 'Respiratory Fit Test' },
+    { key: 'respiratorClearance', label: 'Respirator Clearance' },
+  ] },
+  { title: 'Medical History', fields: [
+    { key: 'jobPhysicalDemands', label: 'Job Physical Demands' },
+    { key: 'chronicConditionsDisclosed', label: 'Chronic Conditions Disclosed' },
+    { key: 'hazardousExposureHistory', label: 'Hazardous Exposure History' },
+    { key: 'immunizationStatus', label: 'Immunization Status' },
+  ] },
+];
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
+/* renderSection: anti-orphan glue — section title + first visible field ride together in a
+   wrap={false} View so a title never orphans at a page break; remaining fields flow after. */
+const renderSection = (sectionConfig, record, sIdx) => {
+  const elements = sectionConfig.fields.map(f => renderField(record, f)).filter(Boolean);
+  if (!elements.length) return null;
+  const [first, ...rest] = elements;
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      <Text style={styles.fieldLabel}>{title}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
+    <View key={sIdx} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
+        {first}
+      </View>
+      {rest.map((el, i) => <React.Fragment key={i}>{el}</React.Fragment>)}
     </View>
   );
 };
 
 const PreEmploymentPhysicalDocumentPDFTemplate = ({ document: data }) => {
-  /* Handle data unwrapping */
   let records = [];
   if (Array.isArray(data)) {
     records = data;
@@ -137,128 +225,20 @@ const PreEmploymentPhysicalDocumentPDFTemplate = ({ document: data }) => {
   }
 
   if (!records || records.length === 0) {
-    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Pre-Employment Physical</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+    return (<Document><Page size="LETTER" style={styles.page}><Text style={styles.documentTitle}>Pre-Employment Physical</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>);
   }
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Pre-Employment Physical</Text></View>
+        <Text style={styles.documentTitle}>Pre-Employment Physical</Text>
         {records.map((record, idx) => (
           <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
+            {idx > 0 && <View style={styles.separator} />}
+            <View style={styles.recordHeader}>
               <Text style={styles.recordTitle}>{`Pre-Employment Physical ${idx + 1}`}</Text>
-              {record.date && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
             </View>
-
-            {/* 1. Employment Information */}
-            {(hasVal(record.date) || hasVal(record.jobTitle) || hasVal(record.employerName) || hasVal(record.examiningPhysician) || hasVal(record.certificationExpirationDate)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Employment Information</Text>
-                {hasVal(record.date) && renderFieldRow('Date', formatDate(record.date))}
-                {renderFieldRow('Job Title', record.jobTitle)}
-                {renderFieldRow('Employer Name', record.employerName)}
-                {renderFieldRow('Examining Physician', record.examiningPhysician)}
-                {hasVal(record.certificationExpirationDate) && renderFieldRow('Certification Expiration Date', formatDate(record.certificationExpirationDate))}
-              </View>
-            )}
-
-            {/* 2. Clearance Status */}
-            {(hasVal(record.medicalClearanceStatus) || hasVal(record.workRestrictions) || hasVal(record.accommodationsRequired) || hasVal(record.dotPhysicalCompliant)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Clearance Status</Text>
-                {hasVal(record.medicalClearanceStatus) && renderSentenceField('Medical Clearance Status', record.medicalClearanceStatus)}
-                {safeArray(record.workRestrictions).length > 0 && (
-                  <View style={styles.fieldBox} wrap={safeArray(record.workRestrictions).length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Work Restrictions</Text>
-                    {safeArray(record.workRestrictions).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {hasVal(record.accommodationsRequired) && renderSentenceField('Accommodations Required', record.accommodationsRequired)}
-                {hasVal(record.dotPhysicalCompliant) && renderFieldRow('DOT Physical Compliant', record.dotPhysicalCompliant)}
-              </View>
-            )}
-
-            {/* 3. Screenings */}
-            {(hasVal(record.drugScreenRequired) || hasVal(record.drugScreenResult) || hasVal(record.tuberculosisScreening)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Screenings</Text>
-                {hasVal(record.drugScreenRequired) && renderFieldRow('Drug Screen Required', record.drugScreenRequired)}
-                {renderFieldRow('Drug Screen Result', record.drugScreenResult)}
-                {hasVal(record.tuberculosisScreening) && renderSentenceField('Tuberculosis Screening', record.tuberculosisScreening)}
-              </View>
-            )}
-
-            {/* 4. Physical Assessment */}
-            {(hasVal(record.bloodPressureReading) || hasVal(record.bodyMassIndex) || hasVal(record.musculoskeletalExam) || hasVal(record.liftingCapacity) || hasVal(record.cardiovascularFitness)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Physical Assessment</Text>
-                {renderFieldRow('Blood Pressure Reading', record.bloodPressureReading)}
-                {hasVal(record.bodyMassIndex) && renderFieldRow('Body Mass Index', record.bodyMassIndex)}
-                {hasVal(record.musculoskeletalExam) && renderSentenceField('Musculoskeletal Exam', record.musculoskeletalExam)}
-                {hasVal(record.liftingCapacity) && renderSentenceField('Lifting Capacity', record.liftingCapacity)}
-                {hasVal(record.cardiovascularFitness) && renderSentenceField('Cardiovascular Fitness', record.cardiovascularFitness)}
-              </View>
-            )}
-
-            {/* 5. Sensory Evaluation */}
-            {(hasVal(record.hearingAcuityTest) || hasVal(record.visionAcuityTest)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Sensory Evaluation</Text>
-                {hasVal(record.hearingAcuityTest) && renderSentenceField('Hearing Acuity Test', record.hearingAcuityTest)}
-                {hasVal(record.visionAcuityTest) && renderSentenceField('Vision Acuity Test', record.visionAcuityTest)}
-              </View>
-            )}
-
-            {/* 6. Respiratory Evaluation */}
-            {(hasVal(record.respiratoryFitTest) || hasVal(record.respiratorClearance)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Respiratory Evaluation</Text>
-                {hasVal(record.respiratoryFitTest) && renderSentenceField('Respiratory Fit Test', record.respiratoryFitTest)}
-                {hasVal(record.respiratorClearance) && renderFieldRow('Respirator Clearance', record.respiratorClearance)}
-              </View>
-            )}
-
-            {/* 7. Medical History */}
-            {(hasVal(record.jobPhysicalDemands) || hasVal(record.chronicConditionsDisclosed) || hasVal(record.hazardousExposureHistory) || hasVal(record.immunizationStatus)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Medical History</Text>
-                {safeArray(record.jobPhysicalDemands).length > 0 && (
-                  <View style={styles.fieldBox} wrap={safeArray(record.jobPhysicalDemands).length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Job Physical Demands</Text>
-                    {safeArray(record.jobPhysicalDemands).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {safeArray(record.chronicConditionsDisclosed).length > 0 && (
-                  <View style={styles.fieldBox} wrap={safeArray(record.chronicConditionsDisclosed).length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Chronic Conditions Disclosed</Text>
-                    {safeArray(record.chronicConditionsDisclosed).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {safeArray(record.hazardousExposureHistory).length > 0 && (
-                  <View style={styles.fieldBox} wrap={safeArray(record.hazardousExposureHistory).length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Hazardous Exposure History</Text>
-                    {safeArray(record.hazardousExposureHistory).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {safeArray(record.immunizationStatus).length > 0 && (
-                  <View style={styles.fieldBox} wrap={safeArray(record.immunizationStatus).length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Immunization Status</Text>
-                    {safeArray(record.immunizationStatus).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
+            {SECTION_CONFIGS.map((sectionConfig, sIdx) => renderSection(sectionConfig, record, sIdx))}
           </View>
         ))}
       </Page>

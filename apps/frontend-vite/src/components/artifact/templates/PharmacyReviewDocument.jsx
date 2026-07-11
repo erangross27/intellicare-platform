@@ -27,6 +27,7 @@ import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PharmacyReviewDocumentPDFTemplate from '../pdf-templates/PharmacyReviewDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
+import BlueSelect from '../components/BlueSelect';
 import './PharmacyReviewDocument.css';
 
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
@@ -86,13 +87,24 @@ const SECTION_FIELDS = {
 };
 
 // Simple strings → click-to-edit textarea (renderEditableField)
-const SIMPLE_STRING_FIELDS = ['medicationName', 'activeIngredient', 'dosageStrength', 'dosageForm', 'routeOfAdministration', 'therapeuticClass', 'indicationForUse', 'allergyStatus', 'renalFunction', 'hepaticFunction', 'pregnancyCategory', 'pharmacokineticFactors'];
+const SIMPLE_STRING_FIELDS = ['medicationName', 'activeIngredient', 'dosageStrength', 'therapeuticClass', 'indicationForUse', 'allergyStatus', 'renalFunction', 'hepaticFunction', 'pharmacokineticFactors'];
 // Narrative strings → per-sentence editing (renderSentenceEditableField)
 const NARRATIVE_STRING_FIELDS = ['adherenceAssessment', 'clinicalResponse', 'costEffectivenessAnalysis', 'drugUtilizationReview'];
 // Boolean → Yes/No select (false is MEANINGFUL, only hidden when null/undefined)
 const BOOLEAN_FIELDS = ['therapeuticDuplication'];
+// Fixed-choice clinical fields → BlueSelect dropdown ("act like medical professional")
+const ENUM_FIELDS = ['dosageForm', 'routeOfAdministration', 'pregnancyCategory'];
+const ENUM_OPTIONS = {
+  dosageForm: ['Tablet', 'Capsule', 'Liquid', 'Suspension', 'Solution', 'Syrup', 'Injection', 'Cream', 'Ointment', 'Gel', 'Patch', 'Inhaler', 'Suppository', 'Drops', 'Powder', 'Spray'],
+  routeOfAdministration: ['Oral', 'Intravenous', 'Intramuscular', 'Subcutaneous', 'Topical', 'Inhalation', 'Rectal', 'Sublingual', 'Transdermal', 'Ophthalmic', 'Otic', 'Nasal', 'Vaginal'],
+  pregnancyCategory: ['A', 'B', 'C', 'D', 'X', 'N'],
+};
+const enumCanonical = (options, val) => { const cur = String(val ?? '').trim(); const hit = (options || []).find(o => o.toLowerCase() === cur.toLowerCase()); return hit || cur; };
+const enumOptionsWith = (options, val) => { const cur = String(val ?? '').trim(); if (cur && !(options || []).some(o => o.toLowerCase() === cur.toLowerCase())) return [enumCanonical(options, cur), ...options]; return options || []; };
 // Number → hide at 0 via numeric presence check
 const NUMBER_FIELDS = ['prescribedQuantity', 'daysSupply'];
+// stepFor: decimal-aware step size for the −/+ number stepper
+const stepFor = (v) => { const s = String(v); const d = s.includes('.') ? (s.split('.')[1] || '').length : 0; return d > 0 ? Math.pow(10, -d) : 1; };
 // Arrays of strings → per-item editing with arrayIndex
 const ARRAY_FIELDS = ['contraindications', 'drugInteractions', 'adverseReactions', 'monitoringParameters'];
 
@@ -112,7 +124,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -203,7 +215,7 @@ const PharmacyReviewDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -241,6 +253,7 @@ const PharmacyReviewDocument = ({ document: docProp }) => {
   /* display string for a field (booleans/arrays/numbers normalized) */
   const fieldDisplay = useCallback((fn, val) => {
     if (BOOLEAN_FIELDS.includes(fn)) { const b = (val === true || val === 'true'); return b ? 'Yes' : 'No'; }
+    if (ENUM_FIELDS.includes(fn)) return enumCanonical(ENUM_OPTIONS[fn], fmtVal(val));
     if (ARRAY_FIELDS.includes(fn)) return Array.isArray(val) ? val.join(', ') : fmtVal(val);
     return fmtVal(val);
   }, [fmtVal]);
@@ -480,7 +493,7 @@ const PharmacyReviewDocument = ({ document: docProp }) => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!fieldHasVal(f, val)) return;
-      if (NUMBER_FIELDS.includes(f) || BOOLEAN_FIELDS.includes(f)) {
+      if (NUMBER_FIELDS.includes(f) || BOOLEAN_FIELDS.includes(f) || ENUM_FIELDS.includes(f)) {
         text += `${label}\n${fieldDisplay(f, val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val.filter(x => x !== null && x !== undefined && String(x).trim() !== '') : [];
@@ -579,7 +592,11 @@ const PharmacyReviewDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) handleStartEdit(fn, idx, displayVal); }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} style={{ minHeight: 'auto', padding: '10px' }} />
+              <div className="num-stepper-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const step = stepFor(editValue); const cur = parseFloat(editValue); const base = isNaN(cur) ? 0 : cur; setEditValue(String(Math.max(0, +(base - step).toFixed(6)))); }}>&minus;</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const step = stepFor(editValue); const cur = parseFloat(editValue); const base = isNaN(cur) ? 0 : cur; setEditValue(String(Math.max(0, +(base + step).toFixed(6)))); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (String(editValue).trim() === '') { setSaveError('This field cannot be empty.'); return; } const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, 0, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -613,16 +630,49 @@ const PharmacyReviewDocument = ({ document: docProp }) => {
     return (
       <div key={fn} className="rec-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) handleStartEdit(fn, idx, boolVal ? 'true' : 'false'); }}>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) handleStartEdit(fn, idx, boolVal ? 'Yes' : 'No'); }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
+              <BlueSelect value={editValue === 'Yes' ? 'Yes' : 'No'} options={['Yes', 'No']} onChange={v => setEditValue(v)} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, 0, editValue === 'true'); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, 0, editValue === 'Yes'); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: ENUM FIELD — BlueSelect dropdown (fixed clinical choices) ═══════ */
+  const renderEnumField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!fieldHasVal(fn, val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = FIELD_LABELS[fn] || fn;
+    const options = ENUM_OPTIONS[fn] || [];
+    const displayVal = enumCanonical(options, fmtVal(val));
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) handleStartEdit(fn, idx, displayVal); }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <BlueSelect value={enumCanonical(options, editValue)} options={enumOptionsWith(options, displayVal)} onChange={v => setEditValue(v)} />
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, 0, editValue); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -779,6 +829,7 @@ const PharmacyReviewDocument = ({ document: docProp }) => {
   const renderField = (record, fn, idx, sid) => {
     if (NUMBER_FIELDS.includes(fn)) return renderNumberField(record, fn, idx, sid);
     if (BOOLEAN_FIELDS.includes(fn)) return renderBooleanField(record, fn, idx, sid);
+    if (ENUM_FIELDS.includes(fn)) return renderEnumField(record, fn, idx, sid);
     if (ARRAY_FIELDS.includes(fn)) return renderArrayField(record, fn, idx, sid);
     if (NARRATIVE_STRING_FIELDS.includes(fn)) return renderSentenceEditableField(record, fn, idx, sid);
     return renderEditableField(record, fn, idx, sid);
@@ -826,7 +877,7 @@ const PharmacyReviewDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pharmacy Review</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PharmacyReviewDocumentPDFTemplate document={pdfData} />} fileName={`pharmacy-review-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PharmacyReviewDocumentPDFTemplate document={pdfData} />} fileName="Pharmacy_Review.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

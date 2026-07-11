@@ -1,27 +1,26 @@
 /**
  * PostpartumDiabetesRiskDocumentPDFTemplate.jsx
- * March 2026 -- Helvetica 20/14/12pt -- LETTER size -- US medical platform
+ * Box-free B&W — Helvetica — LETTER size — postpartum diabetes risk
  * Collection: postpartum_diabetes_risk
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, backgroundColor: '#f5f5f5', padding: 12, borderWidth: 2, borderColor: '#000000', borderLeftWidth: 5, borderLeftColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 11, color: '#333333', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 20, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 20 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  separator: { marginTop: 16, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
+  noDataText: { fontSize: 14, color: '#666666', textAlign: 'center', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
@@ -34,13 +33,16 @@ const formatDate = (dateStr) => {
   } catch { return String(dateStr); }
 };
 
+/* Helvetica has no glyph for U+00D7 (multiplication sign) — scrub to 'x' */
 const safeString = (val) => {
+  let s;
   if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s.replace(/×/g, 'x');
 };
 
 const hasVal = (v) => {
@@ -59,9 +61,11 @@ const fmtVal = (v) => {
   return String(v || '');
 };
 
+const sameAsTitle = (label, title) => String(label || '').trim().toLowerCase() === String(title || '').trim().toLowerCase();
+
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -76,65 +80,106 @@ const splitByComma = (text) => {
   const result = []; let current = ''; let depth = 0;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    if (ch === '(' || ch === '"' || ch === "'") { depth++; current += ch; }
-    else if (ch === ')' || (depth > 0 && (ch === '"' || ch === "'"))) { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) {
+      const nextIsSpace = /\s/.test(text[i + 1] || '');
+      const nextIsYear = /^\s*\d{4}\b/.test(text.slice(i + 1));
+      if (nextIsSpace && !nextIsYear) { const t = current.trim(); if (t) result.push(t); current = ''; }
+      else { current += ch; }
+    }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
 
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
+/* ======= FIELD RENDERERS (bare Views — the section glue owns the only wrap=false) ======= */
+const renderScalarField = (label, text, showLabel) => (
+  <View style={styles.fieldBox}>
+    {showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+    <Text style={styles.fieldValue}>{safeString(text)}</Text>
+  </View>
+);
 
-/* renderSentenceField: parseLabel + comma-split with sequential counter */
-const renderSentenceField = (label, text, counterRef) => {
-  if (!hasVal(text)) return null;
-  if (typeof text !== 'string') {
-    return renderFieldRow(label, text);
+/* sentence field: split by sentence, parseLabel, comma-list (mirror of the JSX string renderer) */
+const renderSentenceField = (label, value, showLabel) => {
+  if (!hasVal(value)) return null;
+  const strVal = fmtVal(value);
+  const sentences = splitBySentence(strVal);
+  const parsedWhole = parseLabel(strVal);
+  const singleLabeledList = sentences.length === 1 && parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2;
+
+  if (sentences.length <= 1 && !singleLabeledList) {
+    return (
+      <View style={styles.fieldBox}>
+        {showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+        <Text style={styles.fieldValue}>{safeString(strVal)}</Text>
+      </View>
+    );
   }
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
 
   const rows = [];
+  let n = 1;
   sentences.forEach(s => {
     const parsed = parseLabel(s);
     if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: counterRef.n++ }); });
+      const items = splitByComma(parsed.value);
+      rows.push({ type: 'subtitle', text: safeString(parsed.label) });
+      if (items.length >= 2) {
+        items.forEach(it => { rows.push({ type: 'item', text: safeString(it), num: n++ }); });
       } else {
-        rows.push({ type: 'item', text: safeString(s), num: counterRef.n++ });
+        rows.push({ type: 'item', text: safeString(parsed.value), num: n++ });
       }
     } else {
-      rows.push({ type: 'item', text: safeString(s), num: counterRef.n++ });
+      rows.push({ type: 'item', text: safeString(s), num: n++ });
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
+    <View style={styles.fieldBox}>
+      {showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      {rows.map((r, i) => r.type === 'subtitle'
+        ? <Text key={i} style={styles.nestedSubtitle}>{r.text}</Text>
+        : <Text key={i} style={styles.listItem}>{r.num}. {r.text}</Text>)}
     </View>
   );
 };
+
+/* ======= SECTION CONFIGS (mirror JSX SECTION_FIELDS) ======= */
+const SECTION_CONFIGS = [
+  { title: 'Glucose Metrics', fields: [
+    { key: 'oralGlucoseToleranceTest', label: 'Oral Glucose Tolerance Test', isNumber: true },
+    { key: 'fastingPlasmaGlucose', label: 'Fasting Plasma Glucose', isNumber: true },
+    { key: 'hemoglobinA1c', label: 'Hemoglobin A1c', isNumber: true },
+    { key: 'postpartumScreeningDate', label: 'Postpartum Screening Date', isDate: true },
+  ] },
+  { title: 'Risk Factors', fields: [
+    { key: 'gestationalDiabetesHistory', label: 'Gestational Diabetes History', isBoolean: true },
+    { key: 'familyHistoryDiabetes', label: 'Family History of Diabetes', isBoolean: true },
+    { key: 'polycysticOvarySyndrome', label: 'Polycystic Ovary Syndrome', isBoolean: true },
+    { key: 'insulinTherapyDuringPregnancy', label: 'Insulin Therapy During Pregnancy', isBoolean: true },
+    { key: 'macrosomiaHistory', label: 'Macrosomia History', isBoolean: true },
+    { key: 'previousStillbirth', label: 'Previous Stillbirth', isBoolean: true },
+    { key: 'hypertensiveDisorders', label: 'Hypertensive Disorders', isBoolean: true },
+  ] },
+  { title: 'Metabolic Profile', fields: [
+    { key: 'prepregnancyBmi', label: 'Pre-Pregnancy BMI', isNumber: true },
+    { key: 'currentBmi', label: 'Current BMI', isNumber: true },
+    { key: 'gestationalWeightGain', label: 'Gestational Weight Gain', isNumber: true },
+    { key: 'triglycerideLevels', label: 'Triglyceride Levels', isNumber: true },
+    { key: 'hdlCholesterol', label: 'HDL Cholesterol', isNumber: true },
+    { key: 'metabolicSyndrome', label: 'Metabolic Syndrome', isBoolean: true },
+  ] },
+  { title: 'Current Status', fields: [
+    { key: 'breastfeedingStatus', label: 'Breastfeeding Status', isSentence: true },
+    { key: 'ethnicRiskGroup', label: 'Ethnic Risk Group', isSentence: true },
+    { key: 'maternalAge', label: 'Maternal Age', isNumber: true },
+    { key: 'thyroidDisorders', label: 'Thyroid Disorders', isBoolean: true },
+    { key: 'corticosteroidUse', label: 'Corticosteroid Use', isBoolean: true },
+    { key: 'contraceptiveMethod', label: 'Contraceptive Method', isSentence: true },
+  ] },
+];
 
 /* ======= COMPONENT ======= */
 const PostpartumDiabetesRiskDocumentPDFTemplate = ({ document: data }) => {
@@ -143,12 +188,7 @@ const PostpartumDiabetesRiskDocumentPDFTemplate = ({ document: data }) => {
     let arr = Array.isArray(data) ? data : [data];
     arr = arr.flatMap(r => {
       if (r?.postpartum_diabetes_risk) return Array.isArray(r.postpartum_diabetes_risk) ? r.postpartum_diabetes_risk : [r.postpartum_diabetes_risk];
-      if (r?.documentData) {
-        const dd = r.documentData;
-        if (Array.isArray(dd)) return dd;
-        if (dd?.postpartum_diabetes_risk) return Array.isArray(dd.postpartum_diabetes_risk) ? dd.postpartum_diabetes_risk : [dd.postpartum_diabetes_risk];
-        return [dd];
-      }
+      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.postpartum_diabetes_risk) return Array.isArray(dd.postpartum_diabetes_risk) ? dd.postpartum_diabetes_risk : [dd.postpartum_diabetes_risk]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
@@ -158,10 +198,8 @@ const PostpartumDiabetesRiskDocumentPDFTemplate = ({ document: data }) => {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.title}>Postpartum Diabetes Risk</Text>
-          </View>
-          <Text style={styles.emptyState}>No records available</Text>
+          <Text style={styles.documentTitle}>Postpartum Diabetes Risk</Text>
+          <Text style={styles.noDataText}>No postpartum diabetes risk records available</Text>
         </Page>
       </Document>
     );
@@ -169,74 +207,45 @@ const PostpartumDiabetesRiskDocumentPDFTemplate = ({ document: data }) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.title}>Postpartum Diabetes Risk</Text>
-        </View>
+      <Page size="LETTER" style={styles.page} wrap>
+        <Text style={styles.documentTitle}>Postpartum Diabetes Risk</Text>
 
-        {records.map((record, idx) => {
-          const ctr = { n: 1 };
+        {records.map((record, idx) => (
+          <View key={idx} style={styles.recordContainer}>
+            {idx > 0 && <View style={styles.separator} />}
 
-          return (
-            <View key={idx} style={styles.recordContainer}>
-              <View style={styles.recordHeader} wrap={false}>
-                <Text style={styles.recordTitle}>{`Postpartum Diabetes Risk ${idx + 1}`}</Text>
-                {record.createdAt && <Text style={styles.recordMeta}>{formatDate(record.createdAt)}</Text>}
-              </View>
-
-              {/* 1. Glucose Metrics */}
-              {(hasVal(record.oralGlucoseToleranceTest) || hasVal(record.fastingPlasmaGlucose) || hasVal(record.hemoglobinA1c) || hasVal(record.postpartumScreeningDate)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Glucose Metrics</Text>
-                  {renderSentenceField('Oral Glucose Tolerance Test', record.oralGlucoseToleranceTest, ctr)}
-                  {renderSentenceField('Fasting Plasma Glucose', record.fastingPlasmaGlucose, ctr)}
-                  {renderSentenceField('Hemoglobin A1c', record.hemoglobinA1c, ctr)}
-                  {hasVal(record.postpartumScreeningDate) && renderFieldRow('Postpartum Screening Date', formatDate(record.postpartumScreeningDate))}
-                </View>
-              )}
-
-              {/* 2. Risk Factors */}
-              {(hasVal(record.gestationalDiabetesHistory) || hasVal(record.familyHistoryDiabetes) || hasVal(record.polycysticOvarySyndrome) || hasVal(record.insulinTherapyDuringPregnancy) || hasVal(record.macrosomiaHistory) || hasVal(record.previousStillbirth) || hasVal(record.hypertensiveDisorders)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Risk Factors</Text>
-                  {renderSentenceField('Gestational Diabetes History', record.gestationalDiabetesHistory, ctr)}
-                  {renderSentenceField('Family History of Diabetes', record.familyHistoryDiabetes, ctr)}
-                  {renderSentenceField('Polycystic Ovary Syndrome', record.polycysticOvarySyndrome, ctr)}
-                  {renderSentenceField('Insulin Therapy During Pregnancy', record.insulinTherapyDuringPregnancy, ctr)}
-                  {renderSentenceField('Macrosomia History', record.macrosomiaHistory, ctr)}
-                  {renderSentenceField('Previous Stillbirth', record.previousStillbirth, ctr)}
-                  {renderSentenceField('Hypertensive Disorders', record.hypertensiveDisorders, ctr)}
-                </View>
-              )}
-
-              {/* 3. Metabolic Profile */}
-              {(hasVal(record.prepregnancyBmi) || hasVal(record.currentBmi) || hasVal(record.gestationalWeightGain) || hasVal(record.triglycerideLevels) || hasVal(record.hdlCholesterol) || hasVal(record.metabolicSyndrome)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Metabolic Profile</Text>
-                  {renderSentenceField('Pre-Pregnancy BMI', record.prepregnancyBmi, ctr)}
-                  {renderSentenceField('Current BMI', record.currentBmi, ctr)}
-                  {renderSentenceField('Gestational Weight Gain', record.gestationalWeightGain, ctr)}
-                  {renderSentenceField('Triglyceride Levels', record.triglycerideLevels, ctr)}
-                  {renderSentenceField('HDL Cholesterol', record.hdlCholesterol, ctr)}
-                  {renderSentenceField('Metabolic Syndrome', record.metabolicSyndrome, ctr)}
-                </View>
-              )}
-
-              {/* 4. Current Status */}
-              {(hasVal(record.breastfeedingStatus) || hasVal(record.ethnicRiskGroup) || hasVal(record.maternalAge) || hasVal(record.thyroidDisorders) || hasVal(record.corticosteroidUse) || hasVal(record.contraceptiveMethod)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Current Status</Text>
-                  {renderSentenceField('Breastfeeding Status', record.breastfeedingStatus, ctr)}
-                  {renderSentenceField('Ethnic Risk Group', record.ethnicRiskGroup, ctr)}
-                  {renderSentenceField('Maternal Age', record.maternalAge, ctr)}
-                  {renderSentenceField('Thyroid Disorders', record.thyroidDisorders, ctr)}
-                  {renderSentenceField('Corticosteroid Use', record.corticosteroidUse, ctr)}
-                  {renderSentenceField('Contraceptive Method', record.contraceptiveMethod, ctr)}
-                </View>
-              )}
+            <View style={styles.recordHeader}>
+              <Text style={styles.recordTitle}>Postpartum Diabetes Risk {idx + 1}</Text>
             </View>
-          );
-        })}
+
+            {SECTION_CONFIGS.map((cfg, sIdx) => {
+              const visible = cfg.fields.filter(f => hasVal(record[f.key]));
+              if (!visible.length) return null;
+              const elements = visible.map((f) => {
+                const showLabel = !sameAsTitle(f.label, cfg.title);
+                const val = record[f.key];
+                let el = null;
+                if (f.isDate) el = renderScalarField(f.label, formatDate(val), showLabel);
+                else if (f.isBoolean) el = renderScalarField(f.label, val ? 'Yes' : 'No', showLabel);
+                else if (f.isNumber) el = renderScalarField(f.label, String(val), showLabel);
+                else el = renderSentenceField(f.label, val, showLabel);
+                return el ? <React.Fragment key={f.key}>{el}</React.Fragment> : null;
+              }).filter(Boolean);
+              if (!elements.length) return null;
+              const [first, ...rest] = elements;
+
+              return (
+                <View key={sIdx} style={styles.section}>
+                  <View wrap={false}>
+                    <Text style={styles.sectionTitle}>{cfg.title}</Text>
+                    {first}
+                  </View>
+                  {rest}
+                </View>
+              );
+            })}
+          </View>
+        ))}
       </Page>
     </Document>
   );

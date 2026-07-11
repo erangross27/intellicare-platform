@@ -1,132 +1,220 @@
+/**
+ * PostoperativePainManagementDocumentPDFTemplate.jsx
+ * Box-free B&W — Helvetica — LETTER size — postoperative pain management
+ * Collection: postoperative_pain_management
+ */
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
-
-/* ================================================================
-   Postoperative Pain Management PDF Template
-   Helvetica font, LETTER size, 20pt title / 12pt body
-   8 sections: Provider Details, Surgery Information, Pain Assessment,
-   Medications, Regional Anesthesia, Monitoring,
-   Non-Pharmacological Interventions, Recovery Plan
-   ================================================================ */
-
-Font.register({
-  family: 'Helvetica',
-  fonts: [
-    { src: 'Helvetica' },
-    { src: 'Helvetica-Bold', fontWeight: 'bold' },
-  ],
-});
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    color: '#1a1a2e',
-    backgroundColor: '#ffffff',
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#1a1a2e',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  recordCard: {
-    marginBottom: 16,
-    borderTop: '2 solid #606060',
-    paddingTop: 10,
-  },
-  recordHeader: {
-    marginBottom: 10,
-    paddingBottom: 6,
-    borderBottom: '1 solid #e2e8f0',
-  },
-  recordTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1a1a2e',
-    marginBottom: 3,
-  },
-  fieldBox: {
-    marginBottom: 10,
-    padding: 8,
-    backgroundColor: '#f8fafc',
-    border: '1 solid #e2e8f0',
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    color: '#363636',
-  },
-  subtitleLabel: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: '#606060',
-    marginBottom: 2,
-    marginTop: 4,
-  },
-  fieldValue: {
-    fontSize: 12,
-    color: '#3f3f3f',
-    lineHeight: 1.5,
-    marginBottom: 3,
-  },
-  arrayItem: {
-    fontSize: 12,
-    color: '#3f3f3f',
-    lineHeight: 1.5,
-    marginBottom: 3,
-    paddingLeft: 8,
-  },
-  separator: {
-    borderBottom: '1 solid #e2e8f0',
-    marginVertical: 8,
-  },
-  pageNumber: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontSize: 9,
-    color: '#a1a1a1',
-  },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 20, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 20 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 10 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  separator: { marginTop: 16, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
+  noDataText: { fontSize: 14, color: '#666666', textAlign: 'center', marginTop: 40 },
 });
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  return String(val).trim();
-};
-
-const safeArray = (val) => {
-  if (!val) return [];
-  if (Array.isArray(val)) return val.filter(Boolean);
-  return [val].filter(Boolean);
-};
-
-const formatDatePDF = (dateStr) => {
+/* ======= UTILS ======= */
+const formatDate = (dateStr) => {
   if (!dateStr) return '';
   try {
-    return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const date = new Date(dateStr.$date || dateStr);
+    if (isNaN(date.getTime())) return String(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   } catch { return String(dateStr); }
 };
 
-const formatValuePDF = (val) => {
-  if (val === null || val === undefined) return null;
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'string' && val.trim() !== '') return val.trim();
-  return null;
+/* Helvetica has no glyph for U+00D7 (multiplication sign) — scrub to 'x' */
+const safeString = (val) => {
+  let s;
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s.replace(/×/g, 'x');
 };
 
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v).length > 0;
+  return true;
+};
+
+const fmtVal = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return String(v);
+  return String(v || '');
+};
+
+/* Sentinel-zero (mirror of the JSX): RR/SpO2 of 0 impossible; pain scores 0 with no scale + sedation/opioid 0 = not recorded */
+const SENTINEL_ZERO_FIELDS = ['baselinePainScore', 'currentPainScore', 'totalOpioidConsumption', 'sedationScore', 'respiratoryRate', 'oxygenSaturation'];
+const isMeaninglessZero = (fn, v) => SENTINEL_ZERO_FIELDS.includes(fn) && (v === 0 || v === '0');
+
+const sameAsTitle = (label, title) => String(label || '').trim().toLowerCase() === String(title || '').trim().toLowerCase();
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) {
+      const nextIsSpace = /\s/.test(text[i + 1] || '');
+      const nextIsYear = /^\s*\d{4}\b/.test(text.slice(i + 1));
+      if (nextIsSpace && !nextIsYear) { const t = current.trim(); if (t) result.push(t); current = ''; }
+      else { current += ch; }
+    }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+
+/* ======= FIELD RENDERERS (bare Views — the section glue owns the only wrap=false) ======= */
+const renderScalarField = (label, text, showLabel) => (
+  <View style={styles.fieldBox}>
+    {showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+    <Text style={styles.fieldValue}>{safeString(text)}</Text>
+  </View>
+);
+
+const renderArrayField = (label, items, showLabel) => {
+  const safe = Array.isArray(items) ? items.filter(Boolean) : [];
+  if (safe.length === 0) return null;
+  return (
+    <View style={styles.fieldBox}>
+      {showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      {safe.map((it, i) => <Text key={i} style={styles.listItem}>{i + 1}. {safeString(it)}</Text>)}
+    </View>
+  );
+};
+
+/* sentence field: split by sentence, parseLabel, comma-list (mirror of the JSX multi-sentence renderer) */
+const renderSentenceField = (label, value, showLabel) => {
+  if (!hasVal(value)) return null;
+  const strVal = fmtVal(value);
+  const sentences = splitBySentence(strVal);
+  const parsedWhole = parseLabel(strVal);
+  const singleLabeledList = sentences.length === 1 && parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2;
+
+  if (sentences.length <= 1 && !singleLabeledList) {
+    return (
+      <View style={styles.fieldBox}>
+        {showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+        <Text style={styles.fieldValue}>{safeString(strVal)}</Text>
+      </View>
+    );
+  }
+
+  const rows = [];
+  let n = 1;
+  sentences.forEach(s => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const items = splitByComma(parsed.value);
+      rows.push({ type: 'subtitle', text: safeString(parsed.label) });
+      if (items.length >= 2) {
+        items.forEach(it => { rows.push({ type: 'item', text: safeString(it), num: n++ }); });
+      } else {
+        rows.push({ type: 'item', text: safeString(parsed.value), num: n++ });
+      }
+    } else {
+      rows.push({ type: 'item', text: safeString(s), num: n++ });
+    }
+  });
+
+  return (
+    <View style={styles.fieldBox}>
+      {showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      {rows.map((r, i) => r.type === 'subtitle'
+        ? <Text key={i} style={styles.nestedSubtitle}>{r.text}</Text>
+        : <Text key={i} style={styles.listItem}>{r.num}. {r.text}</Text>)}
+    </View>
+  );
+};
+
+/* ======= SECTION CONFIGS (mirror JSX SECTION_FIELDS) ======= */
+const SECTION_CONFIGS = [
+  { title: 'Provider Details', fields: [
+    { key: 'date', label: 'Date', isDate: true },
+    { key: 'surgeryDate', label: 'Surgery Date', isDate: true },
+  ] },
+  { title: 'Surgery Information', fields: [
+    { key: 'surgeryPerformed', label: 'Surgery Performed', isSentence: true },
+    { key: 'anesthesiaType', label: 'Anesthesia Type', isSentence: true },
+  ] },
+  { title: 'Pain Assessment', fields: [
+    { key: 'baselinePainScore', label: 'Baseline Pain Score', isNumber: true },
+    { key: 'currentPainScore', label: 'Current Pain Score', isNumber: true },
+    { key: 'painScaleUsed', label: 'Pain Scale Used', isSentence: true },
+    { key: 'painCharacteristics', label: 'Pain Characteristics', isSentence: true },
+    { key: 'painLocation', label: 'Pain Location', isArray: true },
+  ] },
+  { title: 'Medications', fields: [
+    { key: 'opioidMedications', label: 'Opioid Medications', isArray: true },
+    { key: 'nonOpioidAnalgesics', label: 'Non-Opioid Analgesics', isArray: true },
+    { key: 'multimodalAnalgesiaProtocol', label: 'Multimodal Analgesia Protocol', isSentence: true },
+  ] },
+  { title: 'Regional Anesthesia', fields: [
+    { key: 'regionalAnesthesiaTechnique', label: 'Regional Anesthesia Technique', isSentence: true },
+    { key: 'epiduralCatheterPresent', label: 'Epidural Catheter Present', isBoolean: true },
+    { key: 'pcaDeviceActive', label: 'PCA Device Active', isBoolean: true },
+    { key: 'pcaSettings', label: 'PCA Settings', isSentence: true },
+  ] },
+  { title: 'Monitoring', fields: [
+    { key: 'totalOpioidConsumption', label: 'Total Opioid Consumption', isNumber: true },
+    { key: 'sedationScore', label: 'Sedation Score', isNumber: true },
+    { key: 'respiratoryRate', label: 'Respiratory Rate', isNumber: true },
+    { key: 'oxygenSaturation', label: 'Oxygen Saturation', isNumber: true },
+    { key: 'naloxoneAdministered', label: 'Naloxone Administered', isBoolean: true },
+    { key: 'adverseEffects', label: 'Adverse Effects', isArray: true },
+  ] },
+  { title: 'Non-Pharmacological Interventions', fields: [
+    { key: 'nonPharmacologicalInterventions', label: 'Non-Pharmacological Interventions', isArray: true },
+  ] },
+  { title: 'Recovery Plan', fields: [
+    { key: 'mobilizationStatus', label: 'Mobilization Status', isSentence: true },
+    { key: 'painManagementGoal', label: 'Pain Management Goal', isSentence: true },
+    { key: 'transitionPlan', label: 'Transition Plan', isSentence: true },
+  ] },
+];
+
+const fieldVisible = (field, val) => {
+  if (field.isArray) return Array.isArray(val) && val.filter(Boolean).length > 0;
+  if (field.isNumber) return hasVal(val) && !isMeaninglessZero(field.key, val);
+  return hasVal(val);
+};
+
+/* ======= COMPONENT ======= */
 const PostoperativePainManagementDocumentPDFTemplate = ({ document: docProp, records: recordsProp }) => {
-  /* Support both { document } and { records } props */
   const records = (() => {
     const raw = recordsProp || docProp;
     if (!raw) return [];
@@ -137,218 +225,59 @@ const PostoperativePainManagementDocumentPDFTemplate = ({ document: docProp, rec
     return [];
   })();
 
+  if (!records || records.length === 0) {
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page}>
+          <Text style={styles.documentTitle}>Postoperative Pain Management</Text>
+          <Text style={styles.noDataText}>No postoperative pain management records available</Text>
+        </Page>
+      </Document>
+    );
+  }
+
   return (
     <Document>
       <Page size="LETTER" style={styles.page} wrap>
         <Text style={styles.documentTitle}>Postoperative Pain Management</Text>
 
         {records.map((record, idx) => (
-          <View key={idx} style={styles.recordCard}>
-            {/* Record Header */}
+          <View key={idx} style={styles.recordContainer}>
+            {idx > 0 && <View style={styles.separator} />}
+
             <View style={styles.recordHeader}>
               <Text style={styles.recordTitle}>Postoperative Pain Management Record {idx + 1}</Text>
             </View>
 
-            {/* Provider Details Section */}
-            {(() => {
-              const providerFields = [
-                record.date ? ['Date', formatDatePDF(record.date)] : null,
-                record.surgeryDate ? ['Surgery Date', formatDatePDF(record.surgeryDate)] : null,
-              ].filter(Boolean);
-              if (providerFields.length === 0) return null;
+            {SECTION_CONFIGS.map((cfg, sIdx) => {
+              const visible = cfg.fields.filter(f => fieldVisible(f, record[f.key]));
+              if (!visible.length) return null;
+              const elements = visible.map((f) => {
+                const showLabel = !sameAsTitle(f.label, cfg.title);
+                const val = record[f.key];
+                let el = null;
+                if (f.isDate) el = renderScalarField(f.label, formatDate(val), showLabel);
+                else if (f.isBoolean) el = renderScalarField(f.label, val ? 'Yes' : 'No', showLabel);
+                else if (f.isNumber) el = renderScalarField(f.label, String(val), showLabel);
+                else if (f.isArray) el = renderArrayField(f.label, val, showLabel);
+                else el = renderSentenceField(f.label, val, showLabel);
+                return el ? <React.Fragment key={f.key}>{el}</React.Fragment> : null;
+              }).filter(Boolean);
+              if (!elements.length) return null;
+              const [first, ...rest] = elements;
+
               return (
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Provider Details</Text>
-                  {providerFields.map(([label, val], i) => (
-                    <View key={i}>
-                      <Text style={styles.subtitleLabel}>{label}</Text>
-                      <Text style={styles.fieldValue}>{val}</Text>
-                    </View>
-                  ))}
+                <View key={sIdx} style={styles.section}>
+                  <View wrap={false}>
+                    <Text style={styles.sectionTitle}>{cfg.title}</Text>
+                    {first}
+                  </View>
+                  {rest}
                 </View>
               );
-            })()}
-
-            {/* Surgery Information Section */}
-            {(() => {
-              const surgeryFields = [
-                formatValuePDF(record.surgeryPerformed) !== null ? ['Surgery Performed', safeString(record.surgeryPerformed)] : null,
-                formatValuePDF(record.anesthesiaType) !== null ? ['Anesthesia Type', safeString(record.anesthesiaType)] : null,
-              ].filter(Boolean);
-              if (surgeryFields.length === 0) return null;
-              return (
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Surgery Information</Text>
-                  {surgeryFields.map(([label, val], i) => (
-                    <View key={i}>
-                      <Text style={styles.subtitleLabel}>{label}</Text>
-                      <Text style={styles.fieldValue}>{val}</Text>
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Pain Assessment Section */}
-            {(() => {
-              const painFields = [
-                formatValuePDF(record.baselinePainScore) !== null ? ['Baseline Pain Score', formatValuePDF(record.baselinePainScore)] : null,
-                formatValuePDF(record.currentPainScore) !== null ? ['Current Pain Score', formatValuePDF(record.currentPainScore)] : null,
-                formatValuePDF(record.painScaleUsed) !== null ? ['Pain Scale Used', safeString(record.painScaleUsed)] : null,
-                formatValuePDF(record.painCharacteristics) !== null ? ['Pain Characteristics', safeString(record.painCharacteristics)] : null,
-              ].filter(Boolean);
-              const locations = safeArray(record.painLocation);
-              if (painFields.length === 0 && locations.length === 0) return null;
-              return (
-                <View style={styles.fieldBox} wrap={painFields.length + locations.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Pain Assessment</Text>
-                  {painFields.map(([label, val], i) => (
-                    <View key={i}>
-                      <Text style={styles.subtitleLabel}>{label}</Text>
-                      <Text style={styles.fieldValue}>{val}</Text>
-                    </View>
-                  ))}
-                  {locations.length > 0 && (
-                    <>
-                      <Text style={styles.subtitleLabel}>Pain Location</Text>
-                      {locations.map((loc, i) => (
-                        <Text key={i} style={styles.arrayItem}>{i + 1}. {safeString(loc)}</Text>
-                      ))}
-                    </>
-                  )}
-                </View>
-              );
-            })()}
-
-            {/* Medications Section */}
-            {(() => {
-              const opioids = safeArray(record.opioidMedications);
-              const nonOpioids = safeArray(record.nonOpioidAnalgesics);
-              const protocol = formatValuePDF(record.multimodalAnalgesiaProtocol);
-              if (opioids.length === 0 && nonOpioids.length === 0 && protocol === null) return null;
-              return (
-                <View style={styles.fieldBox} wrap={opioids.length + nonOpioids.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Medications</Text>
-                  {opioids.length > 0 && (
-                    <>
-                      <Text style={styles.subtitleLabel}>Opioid Medications</Text>
-                      {opioids.map((med, i) => (
-                        <Text key={i} style={styles.arrayItem}>{i + 1}. {safeString(med)}</Text>
-                      ))}
-                    </>
-                  )}
-                  {nonOpioids.length > 0 && (
-                    <>
-                      <Text style={styles.subtitleLabel}>Non-Opioid Analgesics</Text>
-                      {nonOpioids.map((med, i) => (
-                        <Text key={i} style={styles.arrayItem}>{i + 1}. {safeString(med)}</Text>
-                      ))}
-                    </>
-                  )}
-                  {protocol !== null && (
-                    <>
-                      <Text style={styles.subtitleLabel}>Multimodal Analgesia Protocol</Text>
-                      <Text style={styles.fieldValue}>{protocol}</Text>
-                    </>
-                  )}
-                </View>
-              );
-            })()}
-
-            {/* Regional Anesthesia Section */}
-            {(() => {
-              const regionalFields = [
-                formatValuePDF(record.regionalAnesthesiaTechnique) !== null ? ['Regional Anesthesia Technique', safeString(record.regionalAnesthesiaTechnique)] : null,
-                formatValuePDF(record.epiduralCatheterPresent) !== null ? ['Epidural Catheter Present', formatValuePDF(record.epiduralCatheterPresent)] : null,
-                formatValuePDF(record.pcaDeviceActive) !== null ? ['PCA Device Active', formatValuePDF(record.pcaDeviceActive)] : null,
-                formatValuePDF(record.pcaSettings) !== null ? ['PCA Settings', safeString(record.pcaSettings)] : null,
-              ].filter(Boolean);
-              if (regionalFields.length === 0) return null;
-              return (
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Regional Anesthesia</Text>
-                  {regionalFields.map(([label, val], i) => (
-                    <View key={i}>
-                      <Text style={styles.subtitleLabel}>{label}</Text>
-                      <Text style={styles.fieldValue}>{val}</Text>
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Monitoring Section */}
-            {(() => {
-              const monFields = [
-                formatValuePDF(record.totalOpioidConsumption) !== null ? ['Total Opioid Consumption', formatValuePDF(record.totalOpioidConsumption)] : null,
-                formatValuePDF(record.sedationScore) !== null ? ['Sedation Score', formatValuePDF(record.sedationScore)] : null,
-                formatValuePDF(record.respiratoryRate) !== null ? ['Respiratory Rate', formatValuePDF(record.respiratoryRate)] : null,
-                formatValuePDF(record.oxygenSaturation) !== null ? ['Oxygen Saturation', formatValuePDF(record.oxygenSaturation)] : null,
-                formatValuePDF(record.naloxoneAdministered) !== null ? ['Naloxone Administered', formatValuePDF(record.naloxoneAdministered)] : null,
-              ].filter(Boolean);
-              const effects = safeArray(record.adverseEffects);
-              if (monFields.length === 0 && effects.length === 0) return null;
-              return (
-                <View style={styles.fieldBox} wrap={monFields.length + effects.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Monitoring</Text>
-                  {monFields.map(([label, val], i) => (
-                    <View key={i}>
-                      <Text style={styles.subtitleLabel}>{label}</Text>
-                      <Text style={styles.fieldValue}>{val}</Text>
-                    </View>
-                  ))}
-                  {effects.length > 0 && (
-                    <>
-                      <Text style={styles.subtitleLabel}>Adverse Effects</Text>
-                      {effects.map((eff, i) => (
-                        <Text key={i} style={styles.arrayItem}>{i + 1}. {safeString(eff)}</Text>
-                      ))}
-                    </>
-                  )}
-                </View>
-              );
-            })()}
-
-            {/* Non-Pharmacological Interventions Section */}
-            {(() => {
-              const interventions = safeArray(record.nonPharmacologicalInterventions);
-              if (interventions.length === 0) return null;
-              return (
-                <View style={styles.fieldBox} wrap={interventions.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Non-Pharmacological Interventions</Text>
-                  {interventions.map((item, i) => (
-                    <Text key={i} style={styles.arrayItem}>{i + 1}. {safeString(item)}</Text>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Recovery Plan Section */}
-            {(() => {
-              const recoveryFields = [
-                formatValuePDF(record.mobilizationStatus) !== null ? ['Mobilization Status', safeString(record.mobilizationStatus)] : null,
-                formatValuePDF(record.painManagementGoal) !== null ? ['Pain Management Goal', safeString(record.painManagementGoal)] : null,
-                formatValuePDF(record.transitionPlan) !== null ? ['Transition Plan', safeString(record.transitionPlan)] : null,
-              ].filter(Boolean);
-              if (recoveryFields.length === 0) return null;
-              return (
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Recovery Plan</Text>
-                  {recoveryFields.map(([label, val], i) => (
-                    <View key={i}>
-                      <Text style={styles.subtitleLabel}>{label}</Text>
-                      <Text style={styles.fieldValue}>{val}</Text>
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {idx < records.length - 1 && <View style={styles.separator} />}
+            })}
           </View>
         ))}
-
-        <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} fixed />
       </Page>
     </Document>
   );

@@ -1,0 +1,977 @@
+import React from 'react';
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+
+/**
+ * AllergyImmunologyPDFTemplate
+ *
+ * CRITICAL: KEEP IT SIMPLE - Line-by-line text output, NO complex layouts
+ * Reference: FollowUpIntelligencePDFTemplate.jsx, GuidelineCompliancePDFTemplate.jsx
+ *
+ * PDF export template for Allergy & Immunology Assessment documents
+ * - Courier 11pt monospace font
+ * - Simple line-by-line text (NO flexbox rows)
+ * - Two styles only: line (regular text) and emptyLine (blank spacing)
+ * - PHI warning footer
+ * - Page numbers
+ */
+
+// Styles - KEEP IT SIMPLE
+const styles = StyleSheet.create({
+  page: {
+    padding: 40,
+    fontSize: 11,
+    fontFamily: 'Courier',
+    lineHeight: 1.4,
+  },
+  line: {
+    fontSize: 11,
+    marginBottom: 2,
+    lineHeight: 1.4,
+  },
+  emptyLine: {
+    fontSize: 11,
+    marginBottom: 6,
+  },
+  sectionHeader: {
+    fontSize: 11,
+    marginBottom: 2,
+    lineHeight: 1.4,
+    // Keep section headers with their content (prevent orphans)
+    breakInside: 'avoid',
+    keepWithNext: true,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    fontSize: 9,
+    color: '#666666',
+    borderTop: '1px solid #cccccc',
+    paddingTop: 10,
+  },
+});
+
+const AllergyImmunologyPDFTemplate = ({ documents, patientName }) => {
+  // Helper: Format date
+  const formatDate = (dateValue) => {
+    if (!dateValue) return 'Not specified';
+    try {
+      const date = new Date(dateValue);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return String(dateValue);
+    }
+  };
+
+  // Helper: Render structured data recursively
+  const renderStructuredData = (obj, indent = 2) => {
+    if (!obj) return null;
+
+    // Handle primitive values
+    if (typeof obj !== 'object') {
+      return <Text style={styles.line}>{String(obj)}</Text>;
+    }
+
+    const indentStr = ' '.repeat(indent);
+    const entries = Object.entries(obj).filter(([key]) => !key.startsWith('_'));
+
+    if (entries.length === 0) return null;
+
+    return entries.map(([key, value]) => {
+      const displayKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
+      // Handle arrays
+      if (Array.isArray(value)) {
+        if (value.length === 0) return null;
+
+        return (
+          <React.Fragment key={key}>
+            <Text style={styles.line}>{indentStr}{displayKey}:</Text>
+            {value.map((item, idx) => {
+              if (typeof item === 'object' && item !== null) {
+                return (
+                  <React.Fragment key={idx}>
+                    <Text style={styles.line}>{indentStr}  [{idx + 1}]</Text>
+                    {renderStructuredData(item, indent + 4)}
+                  </React.Fragment>
+                );
+              }
+              return <Text key={idx} style={styles.line}>{indentStr}  - {String(item)}</Text>;
+            })}
+          </React.Fragment>
+        );
+      }
+
+      // Handle nested objects
+      if (typeof value === 'object' && value !== null) {
+        return (
+          <React.Fragment key={key}>
+            <Text style={styles.line}>{indentStr}{displayKey}:</Text>
+            {renderStructuredData(value, indent + 2)}
+          </React.Fragment>
+        );
+      }
+
+      // Handle primitive values - ensure they're strings
+      if (value === null || value === undefined) {
+        return null;
+      }
+
+      return <Text key={key} style={styles.line}>{indentStr}{displayKey}: {String(value)}</Text>;
+    });
+  };
+
+  return (
+    <Document>
+      {documents && documents.map((record, docIdx) => {
+        // Unwrap data - handle both wrapped and unwrapped formats
+        const document = record?.allergy_immunology_assessment?.[0] || record;
+
+        return (
+          <Page key={docIdx} size="A4" style={styles.page}>
+            {/* Title */}
+            <Text style={styles.line}>{'='.repeat(80)}</Text>
+            <Text style={styles.line}>ALLERGY & IMMUNOLOGY ASSESSMENT</Text>
+            <Text style={styles.line}>{'='.repeat(80)}</Text>
+            <Text style={styles.emptyLine}> </Text>
+
+            {/* Patient Name */}
+            {patientName && (
+              <>
+                <Text style={styles.line}>Patient: {patientName}</Text>
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Date */}
+            {document.date && (
+              <>
+                <Text style={styles.line}>Date: {formatDate(document.date)}</Text>
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Patient Information */}
+            {document.patientDemographics && (
+              <>
+                <Text style={styles.line}>PATIENT INFORMATION</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.patientDemographics.name && (
+                  <Text style={styles.line}>Name: {document.patientDemographics.name}</Text>
+                )}
+                {document.patientDemographics.age && (
+                  <Text style={styles.line}>Age: {document.patientDemographics.age}</Text>
+                )}
+                {document.patientDemographics.gender && (
+                  <Text style={styles.line}>Gender: {document.patientDemographics.gender}</Text>
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Chief Complaint */}
+            {document.chiefComplaint && (
+              <>
+                <Text style={styles.line}>CHIEF COMPLAINT</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {typeof document.chiefComplaint === 'string' ? (
+                  <Text style={styles.line}>{document.chiefComplaint}</Text>
+                ) : (
+                  <>
+                    {document.chiefComplaint.complaint && (
+                      <Text style={styles.line}>{document.chiefComplaint.complaint}</Text>
+                    )}
+                    {document.chiefComplaint.duration && (
+                      <Text style={styles.line}>Duration: {document.chiefComplaint.duration}</Text>
+                    )}
+                  </>
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* History of Present Illness */}
+            {document.historyOfPresentIllness && (
+              <>
+                <Text style={styles.line}>HISTORY OF PRESENT ILLNESS</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {typeof document.historyOfPresentIllness === 'string' ? (
+                  <Text style={styles.line}>{document.historyOfPresentIllness}</Text>
+                ) : (
+                  renderStructuredData(document.historyOfPresentIllness)
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Vital Signs */}
+            {document.vitalSigns && (
+              <>
+                <Text style={styles.line}>VITAL SIGNS</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {renderStructuredData(document.vitalSigns)}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Physical Examination */}
+            {document.physicalExamination && (
+              <>
+                <Text style={styles.sectionHeader}>PHYSICAL EXAMINATION</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {renderStructuredData(document.physicalExamination)}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Pulmonary Function Tests */}
+            {document.pulmonaryFunctionTests && (
+              <>
+                <Text style={styles.line}>PULMONARY FUNCTION TESTS</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {renderStructuredData(document.pulmonaryFunctionTests)}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Lab Results */}
+            {document.labResults && document.labResults.length > 0 && (
+              <>
+                <Text style={styles.sectionHeader}>LAB RESULTS ({document.labResults.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.labResults.map((lab, idx) => (
+                  <View key={idx} wrap={false}>
+                    <Text style={styles.line}>{idx + 1}. {lab.testName}</Text>
+                    <Text style={styles.line}>   Value: {lab.value} {lab.unit || ''}</Text>
+                    {lab.referenceRange && (
+                      <Text style={styles.line}>   Reference: {lab.referenceRange}</Text>
+                    )}
+                    {lab.interpretation && (
+                      <Text style={styles.line}>   Interpretation: {lab.interpretation}</Text>
+                    )}
+                    {lab.flag && (
+                      <Text style={styles.line}>   Flag: {lab.flag}</Text>
+                    )}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Imaging Studies */}
+            {document.imagingStudies && document.imagingStudies.length > 0 && (
+              <>
+                <Text style={styles.line}>IMAGING STUDIES ({document.imagingStudies.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.imagingStudies.map((img, idx) => (
+                  <View key={idx}>
+                    <Text style={styles.line}>{idx + 1}. {img.type || img.study}</Text>
+                    {img.date && (
+                      <Text style={styles.line}>   Date: {formatDate(img.date)}</Text>
+                    )}
+                    {img.findings && (
+                      <Text style={styles.line}>   Findings: {img.findings}</Text>
+                    )}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Allergies */}
+            {document.allergies && document.allergies.length > 0 && (
+              <>
+                <Text style={styles.sectionHeader}>ALLERGIES ({document.allergies.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.allergies.map((allergy, idx) => (
+                  <View key={idx} wrap={false}>
+                    <Text style={styles.line}>{idx + 1}. {allergy.allergen} ({allergy.severity || 'Unknown severity'})</Text>
+                    <Text style={styles.line}>   Reaction: {allergy.reaction || 'Not specified'}</Text>
+                    {allergy.onsetDate && (
+                      <Text style={styles.line}>   Onset: {formatDate(allergy.onsetDate)}</Text>
+                    )}
+                    {allergy.notes && (
+                      <Text style={styles.line}>   Notes: {allergy.notes}</Text>
+                    )}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Medications */}
+            {document.medications && document.medications.length > 0 && (
+              <>
+                <Text style={styles.sectionHeader}>MEDICATIONS ({document.medications.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.medications.map((med, idx) => (
+                  <View key={idx} wrap={false}>
+                    <Text style={styles.line}>{idx + 1}. {med.name}</Text>
+                    <Text style={styles.line}>   Dose: {med.dose || med.dosage}</Text>
+                    <Text style={styles.line}>   Frequency: {med.frequency}</Text>
+                    {med.route && (
+                      <Text style={styles.line}>   Route: {med.route}</Text>
+                    )}
+                    {med.indication && (
+                      <Text style={styles.line}>   Indication: {med.indication}</Text>
+                    )}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Diagnoses */}
+            {document.diagnoses && document.diagnoses.length > 0 && (
+              <>
+                <Text style={styles.sectionHeader}>DIAGNOSES ({document.diagnoses.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.diagnoses.map((dx, idx) => (
+                  <View key={idx} wrap={false}>
+                    <Text style={styles.line}>{idx + 1}. {dx.diagnosis}</Text>
+                    {dx.icdCode && (
+                      <Text style={styles.line}>   ICD-10: {dx.icdCode}</Text>
+                    )}
+                    {dx.type && (
+                      <Text style={styles.line}>   Type: {dx.type}</Text>
+                    )}
+                    {dx.status && (
+                      <Text style={styles.line}>   Status: {dx.status}</Text>
+                    )}
+                    {dx.onsetDate && (
+                      <Text style={styles.line}>   Onset: {formatDate(dx.onsetDate)}</Text>
+                    )}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Medical History */}
+            {document.medicalHistory && (
+              <>
+                <Text style={styles.line}>MEDICAL HISTORY</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {typeof document.medicalHistory === 'string' ? (
+                  <Text style={styles.line}>{document.medicalHistory}</Text>
+                ) : (
+                  renderStructuredData(document.medicalHistory)
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Review of Systems */}
+            {document.reviewOfSystems && (
+              <>
+                <Text style={styles.line}>REVIEW OF SYSTEMS</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {renderStructuredData(document.reviewOfSystems)}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Asthma Assessment */}
+            {document.asthmaAssessment && (
+              <>
+                <Text style={styles.line}>ASTHMA ASSESSMENT</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {renderStructuredData(document.asthmaAssessment)}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Allergy Assessment */}
+            {document.allergyAssessment && (
+              <>
+                <Text style={styles.line}>ALLERGY ASSESSMENT</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {renderStructuredData(document.allergyAssessment)}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Allergy Immunology Assessment */}
+            {document.allergyImmunologyAssessment && (
+              <>
+                <Text style={styles.line}>ALLERGY & IMMUNOLOGY ASSESSMENT</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {renderStructuredData(document.allergyImmunologyAssessment)}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Assessment & Plan */}
+            {document.assessmentAndPlan && (
+              <>
+                <Text style={styles.line}>ASSESSMENT & PLAN</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {typeof document.assessmentAndPlan === 'string' ? (
+                  <Text style={styles.line}>{document.assessmentAndPlan}</Text>
+                ) : (
+                  renderStructuredData(document.assessmentAndPlan)
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Treatment Plan */}
+            {document.treatmentPlan && (
+              <>
+                <Text style={styles.line}>TREATMENT PLAN</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {typeof document.treatmentPlan === 'string' ? (
+                  <Text style={styles.line}>{document.treatmentPlan}</Text>
+                ) : (
+                  renderStructuredData(document.treatmentPlan)
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Medication Changes */}
+            {document.medicationChanges && (
+              <>
+                <Text style={styles.line}>MEDICATION CHANGES</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.medicationChanges.started && document.medicationChanges.started.length > 0 && (
+                  <>
+                    <Text style={styles.line}>Started Medications:</Text>
+                    {document.medicationChanges.started.map((med, idx) => (
+                      <View key={idx} wrap={false}>
+                        <Text style={styles.line}>  {idx + 1}. {med.medication || med.name}</Text>
+                        {med.dosage && <Text style={styles.line}>     Dosage: {med.dosage}</Text>}
+                        {med.reason && <Text style={styles.line}>     Reason: {med.reason}</Text>}
+                        <Text style={styles.emptyLine}> </Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+                {document.medicationChanges.stopped && document.medicationChanges.stopped.length > 0 && (
+                  <>
+                    <Text style={styles.line}>Stopped Medications:</Text>
+                    {document.medicationChanges.stopped.map((med, idx) => (
+                      <View key={idx} wrap={false}>
+                        <Text style={styles.line}>  {idx + 1}. {med.medication || med.name}</Text>
+                        {med.reason && <Text style={styles.line}>     Reason: {med.reason}</Text>}
+                        <Text style={styles.emptyLine}> </Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+                {document.medicationChanges.modified && document.medicationChanges.modified.length > 0 && (
+                  <>
+                    <Text style={styles.line}>Modified Medications:</Text>
+                    {document.medicationChanges.modified.map((med, idx) => (
+                      <View key={idx} wrap={false}>
+                        <Text style={styles.line}>  {idx + 1}. {med.medication || med.name}</Text>
+                        {med.change && <Text style={styles.line}>     Change: {med.change}</Text>}
+                        {med.reason && <Text style={styles.line}>     Reason: {med.reason}</Text>}
+                        <Text style={styles.emptyLine}> </Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Doctor's Medications Recommendations */}
+            {document.doctorsMedicationsRecommendations && document.doctorsMedicationsRecommendations.length > 0 && (
+              <>
+                <Text style={styles.line}>DOCTOR'S MEDICATIONS RECOMMENDATIONS ({document.doctorsMedicationsRecommendations.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.doctorsMedicationsRecommendations.map((rec, idx) => (
+                  <View key={idx} wrap={false}>
+                    <Text style={styles.line}>{idx + 1}. {rec.medication || rec.name}</Text>
+                    {rec.dosage && <Text style={styles.line}>   Dosage: {rec.dosage}</Text>}
+                    {rec.indication && <Text style={styles.line}>   Indication: {rec.indication}</Text>}
+                    {rec.rationale && <Text style={styles.line}>   Rationale: {rec.rationale}</Text>}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Clinical Decision Support */}
+            {document.clinicalDecisionSupport && (
+              <>
+                <Text style={styles.line}>CLINICAL DECISION SUPPORT</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+
+                {/* Drug Interactions */}
+                {document.clinicalDecisionSupport.drugInteractions && document.clinicalDecisionSupport.drugInteractions.length > 0 && (
+                  <>
+                    <Text style={styles.line}>Drug Interactions ({document.clinicalDecisionSupport.drugInteractions.length}):</Text>
+                    {document.clinicalDecisionSupport.drugInteractions.map((item, idx) => (
+                      <View key={idx} wrap={false}>
+                        <Text style={styles.line}>  {idx + 1}. {item.interaction}</Text>
+                        <Text style={styles.line}>     Severity: {item.severity}</Text>
+                        {item.recommendation && (
+                          <Text style={styles.line}>     Recommendation: {item.recommendation}</Text>
+                        )}
+                        <Text style={styles.emptyLine}> </Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                {/* Contraindications */}
+                {document.clinicalDecisionSupport.contraindications && document.clinicalDecisionSupport.contraindications.length > 0 && (
+                  <>
+                    <Text style={styles.line}>Contraindications ({document.clinicalDecisionSupport.contraindications.length}):</Text>
+                    {document.clinicalDecisionSupport.contraindications.map((item, idx) => (
+                      <View key={idx} wrap={false}>
+                        <Text style={styles.line}>  {idx + 1}. {item.contraindication}</Text>
+                        <Text style={styles.line}>     Severity: {item.severity}</Text>
+                        {item.recommendation && (
+                          <Text style={styles.line}>     Recommendation: {item.recommendation}</Text>
+                        )}
+                        <Text style={styles.emptyLine}> </Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                {/* Red Flags */}
+                {document.clinicalDecisionSupport.redFlags && document.clinicalDecisionSupport.redFlags.length > 0 && (
+                  <>
+                    <Text style={styles.line}>Red Flags ({document.clinicalDecisionSupport.redFlags.length}):</Text>
+                    {document.clinicalDecisionSupport.redFlags.map((item, idx) => (
+                      <View key={idx} wrap={false}>
+                        <Text style={styles.line}>  {idx + 1}. {item.finding}</Text>
+                        <Text style={styles.line}>     Urgency: {item.urgency}</Text>
+                        {item.recommendation && (
+                          <Text style={styles.line}>     Recommendation: {item.recommendation}</Text>
+                        )}
+                        <Text style={styles.emptyLine}> </Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Intelligent Recommendations */}
+            {document.intelligentRecommendations && (
+              <>
+                <Text style={styles.sectionHeader}>INTELLIGENT RECOMMENDATIONS</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+
+                {/* Immediate */}
+                {document.intelligentRecommendations.immediate && document.intelligentRecommendations.immediate.length > 0 && (
+                  <>
+                    <Text style={styles.sectionHeader}>Immediate Actions:</Text>
+                    {document.intelligentRecommendations.immediate.map((rec, idx) => {
+                      // Handle both string recommendations and object recommendations
+                      const recommendationText = typeof rec === 'string' ? rec : (rec.recommendation || rec.action || '');
+
+                      return (
+                        <View key={idx} wrap={false}>
+                          <Text style={styles.line}>  {idx + 1}. {recommendationText}</Text>
+                          {typeof rec === 'object' && rec !== null && (
+                            <>
+                              {rec.category && (
+                                <Text style={styles.line}>     Category: {rec.category}</Text>
+                              )}
+                              {rec.urgency && (
+                                <Text style={styles.line}>     Urgency: {rec.urgency}</Text>
+                              )}
+                              {rec.rationale && (
+                                <Text style={styles.line}>     Rationale: {rec.rationale}</Text>
+                              )}
+                            </>
+                          )}
+                        </View>
+                      );
+                    })}
+                    <Text style={styles.emptyLine}> </Text>
+                  </>
+                )}
+
+                {/* Short-term */}
+                {document.intelligentRecommendations.shortTerm && document.intelligentRecommendations.shortTerm.length > 0 && (
+                  <>
+                    <Text style={styles.sectionHeader}>Short-term Recommendations:</Text>
+                    {document.intelligentRecommendations.shortTerm.map((rec, idx) => {
+                      const recommendationText = typeof rec === 'string' ? rec : (rec.recommendation || rec.action || '');
+
+                      return (
+                        <View key={idx} wrap={false}>
+                          <Text style={styles.line}>  {idx + 1}. {recommendationText}</Text>
+                          {typeof rec === 'object' && rec !== null && rec.category && (
+                            <Text style={styles.line}>     Category: {rec.category}</Text>
+                          )}
+                        </View>
+                      );
+                    })}
+                    <Text style={styles.emptyLine}> </Text>
+                  </>
+                )}
+
+                {/* Long-term */}
+                {document.intelligentRecommendations.longTerm && document.intelligentRecommendations.longTerm.length > 0 && (
+                  <>
+                    <Text style={styles.sectionHeader}>Long-term Recommendations:</Text>
+                    {document.intelligentRecommendations.longTerm.map((rec, idx) => {
+                      const recommendationText = typeof rec === 'string' ? rec : (rec.recommendation || rec.action || '');
+
+                      return (
+                        <View key={idx} wrap={false}>
+                          <Text style={styles.line}>  {idx + 1}. {recommendationText}</Text>
+                          {typeof rec === 'object' && rec !== null && rec.category && (
+                            <Text style={styles.line}>     Category: {rec.category}</Text>
+                          )}
+                        </View>
+                      );
+                    })}
+                    <Text style={styles.emptyLine}> </Text>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Medications Optimizations */}
+            {document.medicationsOptimizations && document.medicationsOptimizations.length > 0 && (
+              <>
+                <Text style={styles.line}>MEDICATIONS OPTIMIZATIONS ({document.medicationsOptimizations.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.medicationsOptimizations.map((opt, idx) => (
+                  <View key={idx} wrap={false}>
+                    <Text style={styles.line}>{idx + 1}. {opt.medication || opt.name}</Text>
+                    {opt.currentDose && <Text style={styles.line}>   Current Dose: {opt.currentDose}</Text>}
+                    {opt.recommendedDose && <Text style={styles.line}>   Recommended Dose: {opt.recommendedDose}</Text>}
+                    {opt.rationale && <Text style={styles.line}>   Rationale: {opt.rationale}</Text>}
+                    {opt.expectedBenefit && <Text style={styles.line}>   Expected Benefit: {opt.expectedBenefit}</Text>}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Doctor's Medications Recommendations Optimizations */}
+            {document.doctorsMedicationsRecommendationsOptimizations && document.doctorsMedicationsRecommendationsOptimizations.length > 0 && (
+              <>
+                <Text style={styles.line}>DOCTOR'S MEDICATIONS RECOMMENDATIONS OPTIMIZATIONS ({document.doctorsMedicationsRecommendationsOptimizations.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.doctorsMedicationsRecommendationsOptimizations.map((opt, idx) => (
+                  <View key={idx} wrap={false}>
+                    <Text style={styles.line}>{idx + 1}. {opt.medication || opt.name}</Text>
+                    {opt.optimization && <Text style={styles.line}>   Optimization: {opt.optimization}</Text>}
+                    {opt.rationale && <Text style={styles.line}>   Rationale: {opt.rationale}</Text>}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Trending Analysis */}
+            {document.trendingAnalysis && document.trendingAnalysis.length > 0 && (
+              <>
+                <Text style={styles.line}>TRENDING ANALYSIS ({document.trendingAnalysis.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.trendingAnalysis.map((trend, idx) => (
+                  <View key={idx} wrap={false}>
+                    <Text style={styles.line}>{idx + 1}. {trend.metric || trend.parameter}</Text>
+                    {trend.trend && <Text style={styles.line}>   Trend: {trend.trend}</Text>}
+                    {trend.significance && <Text style={styles.line}>   Significance: {trend.significance}</Text>}
+                    {trend.recommendation && <Text style={styles.line}>   Recommendation: {trend.recommendation}</Text>}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Patient-Specific Care Plan */}
+            {document.patientSpecificCarePlan && document.patientSpecificCarePlan.length > 0 && (
+              <>
+                <Text style={styles.line}>PATIENT-SPECIFIC CARE PLAN ({document.patientSpecificCarePlan.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.patientSpecificCarePlan.map((intervention, idx) => (
+                  <View key={idx} wrap={false}>
+                    <Text style={styles.line}>{idx + 1}. {intervention.intervention || intervention.action}</Text>
+                    {intervention.rationale && <Text style={styles.line}>   Rationale: {intervention.rationale}</Text>}
+                    {intervention.timeline && <Text style={styles.line}>   Timeline: {intervention.timeline}</Text>}
+                    {intervention.expectedOutcome && <Text style={styles.line}>   Expected Outcome: {intervention.expectedOutcome}</Text>}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Follow-Up Intelligence */}
+            {document.followUpIntelligence && (
+              <>
+                <Text style={styles.line}>FOLLOW-UP INTELLIGENCE</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {typeof document.followUpIntelligence === 'string' ? (
+                  <Text style={styles.line}>{document.followUpIntelligence}</Text>
+                ) : (
+                  <>
+                    {document.followUpIntelligence.primaryGoal && (
+                      <>
+                        <Text style={styles.line}>Primary Goal:</Text>
+                        <Text style={styles.line}>  {document.followUpIntelligence.primaryGoal}</Text>
+                        <Text style={styles.emptyLine}> </Text>
+                      </>
+                    )}
+                    {document.followUpIntelligence.taskPrioritization && document.followUpIntelligence.taskPrioritization.length > 0 && (
+                      <>
+                        <Text style={styles.line}>Task Prioritization ({document.followUpIntelligence.taskPrioritization.length}):</Text>
+                        {document.followUpIntelligence.taskPrioritization.map((task, idx) => (
+                          <View key={idx} wrap={false}>
+                            <Text style={styles.line}>  {task.priority || (idx + 1)}. {task.task}</Text>
+                            {task.urgency && <Text style={styles.line}>     Urgency: {task.urgency}</Text>}
+                            {task.rationale && <Text style={styles.line}>     Rationale: {task.rationale}</Text>}
+                            <Text style={styles.emptyLine}> </Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+                    {document.followUpIntelligence.criticalDeadlines && document.followUpIntelligence.criticalDeadlines.length > 0 && (
+                      <>
+                        <Text style={styles.line}>Critical Deadlines ({document.followUpIntelligence.criticalDeadlines.length}):</Text>
+                        {document.followUpIntelligence.criticalDeadlines.map((deadline, idx) => (
+                          <View key={idx} wrap={false}>
+                            <Text style={styles.line}>  {idx + 1}. {deadline.task}</Text>
+                            {deadline.timeframe && <Text style={styles.line}>     Timeframe: {deadline.timeframe}</Text>}
+                            {deadline.consequence && <Text style={styles.line}>     Consequence: {deadline.consequence}</Text>}
+                            <Text style={styles.emptyLine}> </Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+                    {document.followUpIntelligence.specialistCoordination && document.followUpIntelligence.specialistCoordination.length > 0 && (
+                      <>
+                        <Text style={styles.line}>Specialist Coordination ({document.followUpIntelligence.specialistCoordination.length}):</Text>
+                        {document.followUpIntelligence.specialistCoordination.map((coord, idx) => (
+                          <View key={idx} wrap={false}>
+                            <Text style={styles.line}>  {idx + 1}. {coord.specialty}</Text>
+                            {coord.purpose && <Text style={styles.line}>     Purpose: {coord.purpose}</Text>}
+                            {coord.timing && <Text style={styles.line}>     Timing: {coord.timing}</Text>}
+                            <Text style={styles.emptyLine}> </Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Follow-up Appointments */}
+            {document.followUpAppointments && document.followUpAppointments.length > 0 && (
+              <>
+                <Text style={styles.line}>FOLLOW-UP APPOINTMENTS ({document.followUpAppointments.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.followUpAppointments.map((appt, idx) => (
+                  <View key={idx}>
+                    <Text style={styles.line}>{idx + 1}. {appt.specialty}</Text>
+                    <Text style={styles.line}>   Reason: {appt.reason}</Text>
+                    {appt.timing && (
+                      <Text style={styles.line}>   Timing: {appt.timing}</Text>
+                    )}
+                    {appt.urgency && (
+                      <Text style={styles.line}>   Urgency: {appt.urgency}</Text>
+                    )}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Referrals */}
+            {document.referrals && document.referrals.length > 0 && (
+              <>
+                <Text style={styles.line}>REFERRALS ({document.referrals.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.referrals.map((ref, idx) => (
+                  <View key={idx}>
+                    <Text style={styles.line}>{idx + 1}. {ref.specialty}</Text>
+                    <Text style={styles.line}>   Reason: {ref.reason}</Text>
+                    {ref.urgency && (
+                      <Text style={styles.line}>   Urgency: {ref.urgency}</Text>
+                    )}
+                    {ref.status && (
+                      <Text style={styles.line}>   Status: {ref.status}</Text>
+                    )}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Patient Education Context */}
+            {document.patientEducationContext && (
+              <>
+                <Text style={styles.line}>PATIENT EDUCATION CONTEXT</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {typeof document.patientEducationContext === 'string' ? (
+                  <Text style={styles.line}>{document.patientEducationContext}</Text>
+                ) : (
+                  renderStructuredData(document.patientEducationContext)
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Patient Education */}
+            {document.patientEducation && (
+              <>
+                <Text style={styles.line}>PATIENT EDUCATION</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {typeof document.patientEducation === 'string' ? (
+                  <Text style={styles.line}>{document.patientEducation}</Text>
+                ) : (
+                  <>
+                    {document.patientEducation.topics && Array.isArray(document.patientEducation.topics) && document.patientEducation.topics.length > 0 && (
+                      <>
+                        <Text style={styles.line}>Topics Discussed:</Text>
+                        {document.patientEducation.topics.map((topic, idx) => {
+                          // Handle both string topics and object topics {topic, details}
+                          if (typeof topic === 'string') {
+                            return <Text key={idx} style={styles.line}>  - {topic}</Text>;
+                          } else if (typeof topic === 'object' && topic !== null) {
+                            return (
+                              <React.Fragment key={idx}>
+                                <Text style={styles.line}>  - {topic.topic || 'Topic'}</Text>
+                                {topic.details && (
+                                  <Text style={styles.line}>    {topic.details}</Text>
+                                )}
+                              </React.Fragment>
+                            );
+                          }
+                          return null;
+                        })}
+                        <Text style={styles.emptyLine}> </Text>
+                      </>
+                    )}
+                    {document.patientEducation.resources && Array.isArray(document.patientEducation.resources) && document.patientEducation.resources.length > 0 && (
+                      <>
+                        <Text style={styles.line}>Resources Provided:</Text>
+                        {document.patientEducation.resources.map((resource, idx) => {
+                          // Handle both string resources and object resources
+                          if (typeof resource === 'string') {
+                            return <Text key={idx} style={styles.line}>  - {resource}</Text>;
+                          } else if (typeof resource === 'object' && resource !== null) {
+                            return <Text key={idx} style={styles.line}>  - {JSON.stringify(resource)}</Text>;
+                          }
+                          return null;
+                        })}
+                        <Text style={styles.emptyLine}> </Text>
+                      </>
+                    )}
+                    {/* If neither topics nor resources, use structured renderer */}
+                    {(!document.patientEducation.topics && !document.patientEducation.resources) && (
+                      renderStructuredData(document.patientEducation)
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Monitoring Plan */}
+            {document.monitoringPlan && (
+              <>
+                <Text style={styles.line}>MONITORING PLAN</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {typeof document.monitoringPlan === 'string' ? (
+                  <Text style={styles.line}>{document.monitoringPlan}</Text>
+                ) : (
+                  renderStructuredData(document.monitoringPlan)
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Prognosis */}
+            {document.prognosis && (
+              <>
+                <Text style={styles.line}>PROGNOSIS</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {typeof document.prognosis === 'string' ? (
+                  <Text style={styles.line}>{document.prognosis}</Text>
+                ) : (
+                  renderStructuredData(document.prognosis)
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Consultation Details */}
+            {document.consultationDetails && (
+              <>
+                <Text style={styles.line}>CONSULTATION DETAILS</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.consultationDetails.consultDate && (
+                  <Text style={styles.line}>Consultation Date: {formatDate(document.consultationDetails.consultDate)}</Text>
+                )}
+                {document.consultationDetails.consultingPhysician && (
+                  <Text style={styles.line}>Consulting Physician: {document.consultationDetails.consultingPhysician}</Text>
+                )}
+                {document.consultationDetails.consultingSpecialty && (
+                  <Text style={styles.line}>Specialty: {document.consultationDetails.consultingSpecialty}</Text>
+                )}
+                {document.consultationDetails.referringPhysician && (
+                  <Text style={styles.line}>Referring Physician: {document.consultationDetails.referringPhysician}</Text>
+                )}
+                {document.consultationDetails.reasonForConsult && (
+                  <Text style={styles.line}>Reason: {document.consultationDetails.reasonForConsult}</Text>
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Care Team (Providers) */}
+            {document.providers && document.providers.length > 0 && (
+              <>
+                <Text style={styles.line}>CARE TEAM ({document.providers.length})</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.providers.map((provider, idx) => (
+                  <View key={idx} wrap={false}>
+                    <Text style={styles.line}>{idx + 1}. {provider.name}</Text>
+                    {provider.role && <Text style={styles.line}>   Role: {provider.role}</Text>}
+                    {provider.specialty && <Text style={styles.line}>   Specialty: {provider.specialty}</Text>}
+                    {provider.contact && <Text style={styles.line}>   Contact: {provider.contact}</Text>}
+                    <Text style={styles.emptyLine}> </Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Administrative Data */}
+            {document.administrativeData && (
+              <>
+                <Text style={styles.line}>ADMINISTRATIVE DATA</Text>
+                <Text style={styles.line}>{'-'.repeat(80)}</Text>
+                {document.administrativeData.mrn && (
+                  <Text style={styles.line}>Medical Record Number: {document.administrativeData.mrn}</Text>
+                )}
+                {document.administrativeData.electronicSignature && (
+                  <Text style={styles.line}>Electronic Signature: {document.administrativeData.electronicSignature}</Text>
+                )}
+                <Text style={styles.emptyLine}> </Text>
+              </>
+            )}
+
+            {/* Footer */}
+            <View style={styles.footer} fixed>
+              <Text>CONFIDENTIAL - Protected Health Information (PHI)</Text>
+              <Text>Page {String.fromCharCode(160)} of {String.fromCharCode(160)}</Text>
+            </View>
+          </Page>
+        );
+      })}
+    </Document>
+  );
+};
+
+export default AllergyImmunologyPDFTemplate;

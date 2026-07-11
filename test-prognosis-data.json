@@ -1,0 +1,38 @@
+[
+  {
+    "_id": "673594c3d4e79a4c38fa5062",
+    "date": "2025-11-13T00:00:00.000Z",
+    "type": "Anticoagulation Therapy Prognosis",
+    "provider": "Dr. Thomas Chen, MD, FACC",
+    "facility": "Cardiology Clinic",
+    "shortTerm": "Expected excellent short-term outcomes with apixaban initiation. Stroke risk immediately reduced from 6.7% to 0.6% annually (91% reduction). First 3 months critical for medication adherence and monitoring bleeding events.",
+    "longTerm": "Projected 5-year stroke prevention >85% with sustained anticoagulation. Quality of life expected to remain stable with proper management. Annual reassessment of CHA2DS2-VASc score and bleeding risk warranted.",
+    "riskFactors": [
+      "Advanced age (65 years) increases bleeding risk 1.5-fold",
+      "Hypertension (controlled) - minor elevation in hemorrhagic stroke risk",
+      "Type 2 diabetes - vascular complications may affect outcomes",
+      "Prior stroke history - recurrence rate 10-15% in first year despite therapy"
+    ],
+    "protectiveFactors": [
+      "Normal renal function (eGFR >60) allows standard dosing",
+      "No history of major bleeding or intracranial hemorrhage",
+      "Strong medication adherence demonstrated in diabetes management",
+      "Regular healthcare engagement and access to specialty care"
+    ],
+    "motivationFactors": "Patient highly motivated by stroke prevention after recent TIA. Family support strong. Understands risks/benefits of anticoagulation.",
+    "previousTreatmentResponse": "Good response to antihypertensives and metformin. No adverse reactions to cardiovascular medications in past 10 years.",
+    "insightLevel": "Excellent understanding of atrial fibrillation, stroke risk, and anticoagulation rationale. Able to articulate treatment goals.",
+    "mortality": "5-year mortality estimated 15-20% (primarily cardiovascular causes). Anticoagulation reduces stroke-related mortality by 60-70%.",
+    "functionalStatus": "Independent in all ADLs. NYHA Class I. No functional limitations related to cardiac condition.",
+    "findings": "Permanent atrial fibrillation confirmed on 12-lead ECG. Echocardiogram shows preserved LVEF (55%). No valvular abnormalities.",
+    "assessment": "65-year-old male with permanent AF, CHA2DS2-VASc score 5, HAS-BLED score 2. High stroke risk, moderate bleeding risk. Optimal candidate for oral anticoagulation.",
+    "plan": "Initiate apixaban 5mg BID. Follow-up in 2 weeks for bleeding assessment. CBC and renal function at 1 month. Patient education on bleeding precautions.",
+    "recommendations": [
+      {"recommendation": "Continue apixaban indefinitely unless contraindications develop", "date": "2025-11-13"},
+      {"recommendation": "Annual reassessment of CHA2DS2-VASc and HAS-BLED scores", "date": "2025-11-13"},
+      {"recommendation": "Immediate evaluation for any unexplained bleeding or bruising", "date": "2025-11-13"}
+    ],
+    "notes": "Patient counseled on importance of medication adherence and bleeding precautions. Will monitor INR if switched to warfarin in future.",
+    "status": "Active anticoagulation therapy"
+  }
+]

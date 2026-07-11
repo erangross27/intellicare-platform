@@ -1,0 +1,59 @@
+/* NutritionSupportConsultationDocument.css — March 2026 Dark theme, NO blue */
+.nutrition-support-consultation-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; text-align: left; }
+.nutrition-support-consultation-document * { direction: ltr; }
+.nutrition-support-consultation-document .document-header { display: block; border-bottom: 3px solid #565869; padding-bottom: 20px; margin-bottom: 24px; }
+.nutrition-support-consultation-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
+.nutrition-support-consultation-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
+.nutrition-support-consultation-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+.nutrition-support-consultation-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(86, 88, 105, 0.4); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
+.nutrition-support-consultation-document .record-card:hover { border-color: rgba(86, 88, 105, 0.7); }
+.nutrition-support-consultation-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(86, 88, 105, 0.5); }
+.nutrition-support-consultation-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
+.nutrition-support-consultation-document .record-date { font-size: 14px; color: #c4c4cf; background: rgba(86, 88, 105, 0.3); padding: 4px 12px; border-radius: 20px; }
+.nutrition-support-consultation-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
+.nutrition-support-consultation-document .section { margin-top: 16px; }
+.nutrition-support-consultation-document .mini-cards-container { border: 2px solid rgba(86, 88, 105, 0.5); border-radius: 8px; padding: 16px; background: rgba(42, 43, 54, 0.5); }
+.nutrition-support-consultation-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(86, 88, 105, 0.6); padding-bottom: 10px; margin-bottom: 12px; }
+.nutrition-support-consultation-document .section-title { font-size: 19px; font-weight: 700; color: #c4c4cf; margin: 0; text-transform: none !important; }
+.nutrition-support-consultation-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+.nutrition-support-consultation-document .rec-mini-card { background: rgba(86, 88, 105, 0.15); border: 2px solid rgba(86, 88, 105, 0.4); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.nutrition-support-consultation-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #b0b0c0; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(86, 88, 105, 0.3); margin-bottom: 6px; }
+.nutrition-support-consultation-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(86, 88, 105, 0.4); transition: all 0.2s ease; }
+.nutrition-support-consultation-document .numbered-row:hover { background: rgba(86, 88, 105, 0.15); border-color: rgba(86, 88, 105, 0.7); }
+.nutrition-support-consultation-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
+.nutrition-support-consultation-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
+.nutrition-support-consultation-document .copy-btn { background: rgba(86, 88, 105, 0.25); color: #b0b0c0; border: 1px solid rgba(86, 88, 105, 0.5); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
+.nutrition-support-consultation-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
+.nutrition-support-consultation-document .copy-btn:hover { background: rgba(86, 88, 105, 0.4); border-color: rgba(86, 88, 105, 0.8); }
+.nutrition-support-consultation-document .copy-btn.copied { background: #565869; border-color: #565869; color: white; }
+.nutrition-support-consultation-document .editable-row { cursor: pointer; }
+.nutrition-support-consultation-document .editable-row:hover .edit-indicator { opacity: 1; }
+.nutrition-support-consultation-document .edit-indicator { opacity: 0; color: #b0b0c0; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.nutrition-support-consultation-document .numbered-row.modified { border-color: rgba(86, 88, 105, 0.8); box-shadow: 0 0 8px rgba(86, 88, 105, 0.25); }
+.nutrition-support-consultation-document .modified-badge { display: block; font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.nutrition-support-consultation-document .modified-badge.added { color: #4ade80; }
+.nutrition-support-consultation-document .edit-field-container { width: 100%; }
+.nutrition-support-consultation-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #565869; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.nutrition-support-consultation-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #565869; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
+.nutrition-support-consultation-document .edit-select option { background: #0F1B33; color: #ececf1; }
+.nutrition-support-consultation-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #565869; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
+.nutrition-support-consultation-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+.nutrition-support-consultation-document .num-stepper-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.nutrition-support-consultation-document .num-step { width: 44px; flex-shrink: 0; background: #565869; color: #fff; border: none; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; font-family: 'Comfortaa', sans-serif; display: flex; align-items: center; justify-content: center; }
+.nutrition-support-consultation-document .num-step:disabled { opacity: 0.5; cursor: not-allowed; }
+.nutrition-support-consultation-document .edit-number { flex: 1; width: auto; min-width: 0; padding: 10px; background: #0F1B33; border: 2px solid #565869; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; text-align: center; }
+.nutrition-support-consultation-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
+.nutrition-support-consultation-document .save-btn { padding: 6px 16px; background: #565869; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.nutrition-support-consultation-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.nutrition-support-consultation-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.nutrition-support-consultation-document .approve-btn { text-transform: capitalize; }
+.nutrition-support-consultation-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.nutrition-support-consultation-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.nutrition-support-consultation-document .search-container { margin-bottom: 20px; }
+.nutrition-support-consultation-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(86, 88, 105, 0.5); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.nutrition-support-consultation-document .search-input:focus { border-color: #565869; box-shadow: 0 0 0 3px rgba(86, 88, 105, 0.25); }
+.nutrition-support-consultation-document .search-input::placeholder { color: #9ca3af; }
+.nutrition-support-consultation-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #b0b0c0; }
+.nutrition-support-consultation-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
+.nutrition-support-consultation-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
+@media (max-width: 768px) { .nutrition-support-consultation-document .document-header { padding-bottom: 12px; } .nutrition-support-consultation-document .document-title { font-size: 24px; } .nutrition-support-consultation-document .header-actions { flex-direction: column; } }

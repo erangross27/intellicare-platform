@@ -1,0 +1,5126 @@
+{
+  "model": "claude-sonnet-4-20250514",
+  "max_tokens": 2048,
+  "temperature": 0.3,
+  "system": [
+    {
+      "type": "text",
+      "text": "אתה רופא במרפאת Test Practice.\n\nכללים פשוטים:\n1. דבר טבעי כמו רופא\n2. אל תזכיר שמות פונקציות\n3. בצע את כל השלבים אוטומטית\n\nזרימת עבודה:\n\nכשמישהו אומר \"הוסף רשומה לערן גרוס\":\n1. חפש את ערן (searchPatients)\n2. אם מצאת - שאל \"מה לרשום?\"\n3. כשיענו - הוסף את הרשומה (addMedicalHistory)\n\nזכור: אתה מבצע פעולות, לא מדריך טכני.\nהשלם משימות מתחילה עד סוף.",
+      "cache_control": {
+        "type": "ephemeral"
+      }
+    }
+  ],
+  "messages": [
+    {
+      "role": "user",
+      "content": "הוסף רשומה לערן גרוס שהוא סובל מכאבי ראש"
+    }
+  ],
+  "tools": [
+    {
+      "name": "addPatient",
+      "description": "הוסף מטופל חדש למערכת - חובה לאסוף את כל השדות הנדרשים לפני הקריאה לפונקציה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "description": "שם פרטי (חובה)"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "שם משפחה (חובה)"
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "description": "תאריך לידה (חובה)"
+          },
+          "country": {
+            "type": "string",
+            "description": "מדינה (חובה)",
+            "enum": [
+              "Israel",
+              "USA",
+              "Other"
+            ]
+          },
+          "nationalId": {
+            "type": "string",
+            "description": "תעודת זהות 9 ספרות (חובה)"
+          },
+          "phone": {
+            "type": "string",
+            "description": "טלפון (חובה)"
+          },
+          "email": {
+            "type": "string",
+            "description": "אימייל (חובה)"
+          },
+          "street": {
+            "type": "string",
+            "description": "רחוב ומספר בית (חובה)"
+          },
+          "city": {
+            "type": "string",
+            "description": "עיר (חובה)"
+          },
+          "zipCode": {
+            "type": "string",
+            "description": "מיקוד (חובה)"
+          },
+          "healthFund": {
+            "type": "string",
+            "description": "קופת חולים (חובה)",
+            "enum": [
+              "כללית",
+              "מכבי",
+              "מאוחדת",
+              "לאומית"
+            ]
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "dateOfBirth",
+          "country",
+          "nationalId",
+          "phone",
+          "email",
+          "street",
+          "city",
+          "zipCode",
+          "healthFund"
+        ]
+      }
+    },
+    {
+      "name": "updatePatient",
+      "description": "עדכן פרטי מטופל. יכול להשתמש ב-nationalId (עדיף) או patientId מתוצאות חיפוש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "nationalId": {
+            "type": "string",
+            "description": "תעודת זהות של המטופל - השתמש בזה! המערכת תמצא את המטופל אוטומטית"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל - אופציונלי, עדיף להשתמש ב-nationalId"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "שם פרטי"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "שם משפחה"
+          },
+          "phone": {
+            "type": "string",
+            "description": "טלפון"
+          },
+          "email": {
+            "type": "string",
+            "description": "אימייל"
+          },
+          "street": {
+            "type": "string",
+            "description": "רחוב כולל מספר בית"
+          },
+          "city": {
+            "type": "string",
+            "description": "עיר"
+          },
+          "zipCode": {
+            "type": "string",
+            "description": "מיקוד"
+          },
+          "healthFund": {
+            "type": "string",
+            "description": "קופת חולים",
+            "enum": [
+              "כללית",
+              "מכבי",
+              "מאוחדת",
+              "לאומית"
+            ]
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "description": "תאריך לידה"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "deletePatientBySearch",
+      "description": "מחוק מטופל לפי שם או תעודת זהות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "searchQuery": {
+            "type": "string",
+            "description": "שם המטופל או תעודת הזהות שלו"
+          }
+        },
+        "required": [
+          "searchQuery"
+        ]
+      }
+    },
+    {
+      "name": "searchPatients",
+      "description": "חפש מטופלים במערכת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "מילות חיפוש"
+          },
+          "filter": {
+            "type": "string",
+            "description": "סינון (אופציונלי)"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "countPatients",
+      "description": "ספור כמה מטופלים יש במערכת",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "getPatientDetails",
+      "description": "קבל פרטים מלאים של מטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "addMedicalHistory",
+      "description": "הוסף רשומה להיסטוריה רפואית",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "date": {
+            "type": "string",
+            "description": "תאריך ביקור"
+          },
+          "diagnosis": {
+            "type": "string",
+            "description": "אבחנה"
+          },
+          "treatment": {
+            "type": "string",
+            "description": "טיפול"
+          },
+          "medications": {
+            "type": "string",
+            "description": "תרופות"
+          },
+          "notes": {
+            "type": "string",
+            "description": "הערות"
+          }
+        },
+        "required": [
+          "patientId",
+          "date",
+          "diagnosis"
+        ]
+      }
+    },
+    {
+      "name": "getMedicalHistory",
+      "description": "קבל היסטוריה רפואית של מטופל. השתמש בשם המטופל או תעודת זהות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "nationalId": {
+            "type": "string",
+            "description": "תעודת זהות של המטופל - השתמש בזה! המערכת תמצא את המטופל אוטומטית"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל - אופציונלי, עדיף להשתמש ב-nationalId או שם"
+          },
+          "patientName": {
+            "type": "string",
+            "description": "שם המטופל - אם לא יודע תעודת זהות, חפש קודם עם searchPatients"
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך (אופציונלי)"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך (אופציונלי)"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "updateMedicalHistory",
+      "description": "עדכן רשומה בהיסטוריה רפואית",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "nationalId": {
+            "type": "string",
+            "description": "תעודת זהות של המטופל"
+          },
+          "entryId": {
+            "type": "string",
+            "description": "מזהה הרשומה לעדכון"
+          },
+          "date": {
+            "type": "string",
+            "description": "תאריך מעודכן"
+          },
+          "diagnosis": {
+            "type": "string",
+            "description": "אבחנה מעודכנת"
+          },
+          "treatment": {
+            "type": "string",
+            "description": "טיפול מעודכן"
+          },
+          "medications": {
+            "type": "string",
+            "description": "תרופות מעודכנות"
+          },
+          "notes": {
+            "type": "string",
+            "description": "הערות מעודכנות"
+          }
+        },
+        "required": [
+          "nationalId",
+          "entryId"
+        ]
+      }
+    },
+    {
+      "name": "deleteMedicalHistory",
+      "description": "מחק רשומה מההיסטוריה הרפואית",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "nationalId": {
+            "type": "string",
+            "description": "תעודת זהות של המטופל"
+          },
+          "entryId": {
+            "type": "string",
+            "description": "מזהה הרשומה למחיקה"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבת המחיקה (לביקורת)"
+          }
+        },
+        "required": [
+          "nationalId",
+          "entryId"
+        ]
+      }
+    },
+    {
+      "name": "uploadDocument",
+      "description": "⚠️ DEPRECATED - השתמש ב-analyzeDocument במקום. פונקציה זו לא בשימוש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "documentName": {
+            "type": "string",
+            "description": "שם הקובץ שהועלה - חלץ מההודעה אחרי 'העלאת קובץ:' (למשל: אם ההודעה היא 'העלאת קובץ: מרשם תרופות.pdf' אז documentName='מרשם תרופות.pdf')"
+          },
+          "documentType": {
+            "type": "string",
+            "description": "סוג המסמך - קבע לפי תוכן שם הקובץ: אם מכיל 'מרשם' או 'תרופות'='prescription', אם מכיל 'בדיקות' או 'דם'='lab_result', אם מכיל 'צילום' או 'רנטגן'='imaging', אם מכיל 'הפניה'='referral', אחרת='consultation_notes'",
+            "enum": [
+              "lab_result",
+              "prescription",
+              "imaging",
+              "report",
+              "referral",
+              "consultation_notes"
+            ]
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה המטופל - אם יש הקשר נוכחי (currentContext.patientId) השתמש בו, אחרת שאל"
+          },
+          "fileSize": {
+            "type": "string",
+            "description": "גודל הקובץ - חלץ מההודעה את הערך בסוגריים, למשל אם ההודעה מכילה '(0.11MB)' אז fileSize='0.11MB'"
+          },
+          "content": {
+            "type": "string",
+            "description": "תוכן המסמך - השאר ריק כרגע, יתמלא מאוחר יותר"
+          }
+        },
+        "required": [
+          "documentName"
+        ]
+      }
+    },
+    {
+      "name": "getDocuments",
+      "description": "הצג מסמכים של מטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "documentType": {
+            "type": "string",
+            "description": "סוג מסמך (אופציונלי)"
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך (אופציונלי)"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך (אופציונלי)"
+          },
+          "limit": {
+            "type": "number",
+            "description": "מספר תוצאות"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "analyzeDocument",
+      "description": "נתח מסמך שהועלה. כשמקבלים [UPLOAD_ID:xxx] השתמש ב-documentId עם ה-nationalId של המטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "description": "מזהה המסמך או ההעלאה - חלץ מ-[UPLOAD_ID:xxx] או [DOCUMENT_ID:xxx]"
+          },
+          "documentPath": {
+            "type": "string",
+            "description": "שם הקובץ שהועלה (אופציונלי)"
+          },
+          "nationalId": {
+            "type": "string",
+            "description": "תעודת זהות של המטופל - חובה! המערכת תמצא את המטופל אוטומטית"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל - אופציונלי, עדיף להשתמש ב-nationalId"
+          },
+          "documentType": {
+            "type": "string",
+            "description": "סוג מסמך - קבע לפי תוכן: מרשם='prescription', בדיקות='lab_result', הפניה='referral'",
+            "enum": [
+              "prescription",
+              "lab_result",
+              "imaging",
+              "referral",
+              "report",
+              "consultation_notes"
+            ]
+          }
+        },
+        "required": [
+          "documentPath"
+        ]
+      }
+    },
+    {
+      "name": "deleteDocument",
+      "description": "מחק מסמך",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "description": "מזהה מסמך"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבת המחיקה"
+          }
+        },
+        "required": [
+          "documentId"
+        ]
+      }
+    },
+    {
+      "name": "searchDocuments",
+      "description": "חפש במסמכים רפואיים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "מילות חיפוש"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל (אופציונלי)"
+          },
+          "documentType": {
+            "type": "string",
+            "description": "סוג מסמך (אופציונלי)"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "analyzeSymptoms",
+      "description": "נתח סימפטומים והצע אבחנות אפשריות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "symptoms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "רשימת סימפטומים"
+          },
+          "duration": {
+            "type": "string",
+            "description": "משך הסימפטומים"
+          },
+          "severity": {
+            "type": "number",
+            "description": "חומרה (1-10)"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל (אופציונלי)"
+          }
+        },
+        "required": [
+          "symptoms"
+        ]
+      }
+    },
+    {
+      "name": "recommendTreatment",
+      "description": "המלץ על טיפול מתאים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "diagnosis": {
+            "type": "string",
+            "description": "אבחנה"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "allergies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "אלרגיות"
+          },
+          "currentMedications": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "תרופות נוכחיות"
+          }
+        },
+        "required": [
+          "diagnosis"
+        ]
+      }
+    },
+    {
+      "name": "checkDrugInteractions",
+      "description": "בדוק אינטראקציות בין תרופות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "medications": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "רשימת תרופות"
+          },
+          "patientConditions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "מצבים רפואיים"
+          }
+        },
+        "required": [
+          "medications"
+        ]
+      }
+    },
+    {
+      "name": "getDifferentialDiagnosis",
+      "description": "קבל אבחנה מבדלת על סמך תסמינים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "symptoms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "רשימת תסמינים"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל (אופציונלי)"
+          },
+          "urgency": {
+            "type": "string",
+            "description": "דחיפות",
+            "enum": [
+              "routine",
+              "urgent",
+              "emergency"
+            ]
+          }
+        },
+        "required": [
+          "symptoms"
+        ]
+      }
+    },
+    {
+      "name": "recommendTests",
+      "description": "המלץ על בדיקות רפואיות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "symptoms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "רשימת תסמינים"
+          },
+          "diagnosis": {
+            "type": "string",
+            "description": "אבחנה"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל (אופציונלי)"
+          },
+          "urgency": {
+            "type": "string",
+            "description": "דחיפות",
+            "enum": [
+              "routine",
+              "urgent",
+              "emergency"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "scheduleAppointment",
+      "description": "קבע תור למטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "date": {
+            "type": "string",
+            "description": "תאריך"
+          },
+          "time": {
+            "type": "string",
+            "description": "שעה"
+          },
+          "duration": {
+            "type": "number",
+            "description": "משך בדקות"
+          },
+          "type": {
+            "type": "string",
+            "description": "סוג תור"
+          },
+          "doctor": {
+            "type": "string",
+            "description": "רופא"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבת ביקור"
+          }
+        },
+        "required": [
+          "patientId",
+          "date",
+          "time"
+        ]
+      }
+    },
+    {
+      "name": "findAvailableSlots",
+      "description": "מצא זמנים פנויים לתור",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "doctor": {
+            "type": "string",
+            "description": "רופא"
+          },
+          "dateRange": {
+            "type": "string",
+            "description": "טווח תאריכים"
+          },
+          "duration": {
+            "type": "number",
+            "description": "משך נדרש"
+          },
+          "preferredTime": {
+            "type": "string",
+            "description": "זמן מועדף"
+          }
+        },
+        "required": [
+          "doctor",
+          "dateRange"
+        ]
+      }
+    },
+    {
+      "name": "createChatSession",
+      "description": "התחל שיחת ייעוץ חדשה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "title": {
+            "type": "string",
+            "description": "כותרת"
+          },
+          "type": {
+            "type": "string",
+            "description": "סוג ייעוץ"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    },
+    {
+      "name": "searchChatHistory",
+      "description": "חפש בהיסטוריית שיחות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "מילות חיפוש"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל (אופציונלי)"
+          },
+          "dateRange": {
+            "type": "string",
+            "description": "טווח תאריכים (אופציונלי)"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "createUser",
+      "description": "צור משתמש חדש במערכת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "אימייל"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "שם פרטי"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "שם משפחה"
+          },
+          "role": {
+            "type": "string",
+            "description": "תפקיד"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "הרשאות"
+          }
+        },
+        "required": [
+          "email",
+          "firstName",
+          "lastName",
+          "role"
+        ]
+      }
+    },
+    {
+      "name": "updateUserRole",
+      "description": "עדכן תפקיד משתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "newRole": {
+            "type": "string",
+            "description": "תפקיד חדש"
+          }
+        },
+        "required": [
+          "userId",
+          "newRole"
+        ]
+      }
+    },
+    {
+      "name": "generatePatientReport",
+      "description": "צור דוח מטופל מפורט",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "reportType": {
+            "type": "string",
+            "description": "סוג דוח"
+          },
+          "dateRange": {
+            "type": "string",
+            "description": "טווח תאריכים"
+          },
+          "includeSections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "חלקים לכלול"
+          }
+        },
+        "required": [
+          "patientId",
+          "reportType"
+        ]
+      }
+    },
+    {
+      "name": "generateClinicReport",
+      "description": "צור דוח סטטיסטיקות מרפאה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "reportType": {
+            "type": "string",
+            "description": "סוג דוח"
+          },
+          "dateRange": {
+            "type": "string",
+            "description": "טווח תאריכים"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "מטריקות"
+          }
+        },
+        "required": [
+          "reportType",
+          "dateRange"
+        ]
+      }
+    },
+    {
+      "name": "generateComplianceReport",
+      "description": "צור דוח ציות לרגולציה (HIPAA/GDPR)",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "complianceType": {
+            "type": "string",
+            "description": "סוג רגולציה",
+            "enum": [
+              "HIPAA",
+              "GDPR",
+              "Both"
+            ]
+          },
+          "period": {
+            "type": "string",
+            "description": "תקופה"
+          }
+        },
+        "required": [
+          "complianceType",
+          "period"
+        ]
+      }
+    },
+    {
+      "name": "runBackup",
+      "description": "הרץ גיבוי של המערכת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "backupType": {
+            "type": "string",
+            "description": "סוג גיבוי",
+            "enum": [
+              "full",
+              "incremental",
+              "differential"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "תיאור"
+          }
+        },
+        "required": [
+          "backupType"
+        ]
+      }
+    },
+    {
+      "name": "getSystemHealth",
+      "description": "קבל מצב בריאות המערכת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "includeDetails": {
+            "type": "boolean",
+            "description": "כלול פרטים"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "exportAuditLogs",
+      "description": "ייצא יומני ביקורת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך"
+          },
+          "userFilter": {
+            "type": "string",
+            "description": "סינון לפי משתמש"
+          },
+          "actionFilter": {
+            "type": "string",
+            "description": "סינון לפי פעולה"
+          }
+        },
+        "required": [
+          "dateFrom",
+          "dateTo"
+        ]
+      }
+    },
+    {
+      "name": "addLabResult",
+      "description": "הוסף תוצאות בדיקת מעבדה למטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "testType": {
+            "type": "string",
+            "description": "סוג הבדיקה"
+          },
+          "testDate": {
+            "type": "string",
+            "description": "תאריך הבדיקה"
+          },
+          "results": {
+            "type": "object",
+            "description": "תוצאות הבדיקה"
+          },
+          "labName": {
+            "type": "string",
+            "description": "שם המעבדה"
+          }
+        },
+        "required": [
+          "patientId",
+          "testType",
+          "results"
+        ]
+      }
+    },
+    {
+      "name": "getLabResults",
+      "description": "הצג תוצאות מעבדה של מטופל. השתמש ב-nationalId או patientId",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "nationalId": {
+            "type": "string",
+            "description": "תעודת זהות של המטופל - השתמש בזה! המערכת תמצא את המטופל אוטומטית"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל - אופציונלי, עדיף להשתמש ב-nationalId"
+          },
+          "testType": {
+            "type": "string",
+            "description": "סוג בדיקה (אופציונלי)"
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך (אופציונלי)"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך (אופציונלי)"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "addMedication",
+      "description": "הוסף תרופה למטופל. השתמש ב-nationalId או patientId",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "nationalId": {
+            "type": "string",
+            "description": "תעודת זהות של המטופל - השתמש בזה! המערכת תמצא את המטופל אוטומטית"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל - אופציונלי, עדיף להשתמש ב-nationalId"
+          },
+          "medicationName": {
+            "type": "string",
+            "description": "שם התרופה"
+          },
+          "dosage": {
+            "type": "string",
+            "description": "מינון"
+          },
+          "frequency": {
+            "type": "string",
+            "description": "תדירות"
+          },
+          "duration": {
+            "type": "string",
+            "description": "משך הטיפול"
+          },
+          "instructions": {
+            "type": "string",
+            "description": "הוראות נטילה"
+          }
+        },
+        "required": [
+          "medicationName",
+          "dosage",
+          "frequency"
+        ]
+      }
+    },
+    {
+      "name": "getMedications",
+      "description": "הצג תרופות של מטופל. השתמש ב-nationalId או patientId",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "nationalId": {
+            "type": "string",
+            "description": "תעודת זהות של המטופל - השתמש בזה! המערכת תמצא את המטופל אוטומטית"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל - אופציונלי, עדיף להשתמש ב-nationalId"
+          },
+          "status": {
+            "type": "string",
+            "description": "סטטוס (active/all)",
+            "enum": [
+              "active",
+              "all"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "addVitalSigns",
+      "description": "הוסף סימנים חיוניים למטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "bloodPressure": {
+            "type": "string",
+            "description": "לחץ דם"
+          },
+          "pulse": {
+            "type": "number",
+            "description": "דופק"
+          },
+          "temperature": {
+            "type": "number",
+            "description": "חום"
+          },
+          "weight": {
+            "type": "number",
+            "description": "משקל"
+          },
+          "oxygenSaturation": {
+            "type": "number",
+            "description": "סטורציה"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "getVitalSigns",
+      "description": "הצג סימנים חיוניים של מטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "limit": {
+            "type": "number",
+            "description": "מספר תוצאות"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "addAllergy",
+      "description": "הוסף אלרגיה למטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "allergen": {
+            "type": "string",
+            "description": "אלרגן"
+          },
+          "severity": {
+            "type": "string",
+            "description": "חומרה",
+            "enum": [
+              "mild",
+              "moderate",
+              "severe",
+              "life-threatening"
+            ]
+          },
+          "reaction": {
+            "type": "string",
+            "description": "תגובה"
+          },
+          "notes": {
+            "type": "string",
+            "description": "הערות"
+          }
+        },
+        "required": [
+          "patientId",
+          "allergen",
+          "severity"
+        ]
+      }
+    },
+    {
+      "name": "getAllergies",
+      "description": "הצג אלרגיות של מטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "addVaccination",
+      "description": "הוסף חיסון למטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "vaccineName": {
+            "type": "string",
+            "description": "שם החיסון"
+          },
+          "dateAdministered": {
+            "type": "string",
+            "description": "תאריך מתן החיסון"
+          },
+          "manufacturer": {
+            "type": "string",
+            "description": "יצרן"
+          },
+          "lotNumber": {
+            "type": "string",
+            "description": "מספר אצווה"
+          },
+          "site": {
+            "type": "string",
+            "description": "מקום ההזרקה"
+          },
+          "nextDoseDate": {
+            "type": "string",
+            "description": "תאריך מנה הבאה"
+          }
+        },
+        "required": [
+          "patientId",
+          "vaccineName",
+          "dateAdministered"
+        ]
+      }
+    },
+    {
+      "name": "getVaccinations",
+      "description": "הצג חיסונים של מטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "includeScheduled": {
+            "type": "boolean",
+            "description": "כלול חיסונים מתוכננים"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "createPrescription",
+      "description": "צור מרשם חדש למטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "medications": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "רשימת תרופות"
+          },
+          "instructions": {
+            "type": "string",
+            "description": "הוראות כלליות"
+          },
+          "validUntil": {
+            "type": "string",
+            "description": "תוקף עד"
+          },
+          "refills": {
+            "type": "number",
+            "description": "מספר חזרות"
+          }
+        },
+        "required": [
+          "patientId",
+          "medications"
+        ]
+      }
+    },
+    {
+      "name": "getPrescriptions",
+      "description": "הצג מרשמים של מטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "status": {
+            "type": "string",
+            "description": "סטטוס (active/expired/all)",
+            "enum": [
+              "active",
+              "expired",
+              "all"
+            ]
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "createReferral",
+      "description": "צור הפניה למומחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "specialistType": {
+            "type": "string",
+            "description": "סוג מומחה"
+          },
+          "specialistName": {
+            "type": "string",
+            "description": "שם המומחה"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבת ההפניה"
+          },
+          "urgency": {
+            "type": "string",
+            "description": "דחיפות",
+            "enum": [
+              "routine",
+              "urgent",
+              "emergency"
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "description": "הערות"
+          }
+        },
+        "required": [
+          "patientId",
+          "specialistType",
+          "reason"
+        ]
+      }
+    },
+    {
+      "name": "getReferrals",
+      "description": "הצג הפניות של מטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "status": {
+            "type": "string",
+            "description": "סטטוס",
+            "enum": [
+              "pending",
+              "completed",
+              "cancelled",
+              "all"
+            ]
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "addImagingResult",
+      "description": "הוסף תוצאות הדמיה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "imagingType": {
+            "type": "string",
+            "description": "סוג הדמיה",
+            "enum": [
+              "xray",
+              "ct",
+              "mri",
+              "ultrasound",
+              "pet",
+              "other"
+            ]
+          },
+          "bodyPart": {
+            "type": "string",
+            "description": "איבר/אזור"
+          },
+          "date": {
+            "type": "string",
+            "description": "תאריך"
+          },
+          "findings": {
+            "type": "string",
+            "description": "ממצאים"
+          },
+          "radiologistNotes": {
+            "type": "string",
+            "description": "הערות רדיולוג"
+          },
+          "urgentFindings": {
+            "type": "boolean",
+            "description": "ממצאים דחופים"
+          }
+        },
+        "required": [
+          "patientId",
+          "imagingType",
+          "date"
+        ]
+      }
+    },
+    {
+      "name": "getImagingResults",
+      "description": "הצג תוצאות הדמיה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "imagingType": {
+            "type": "string",
+            "description": "סוג הדמיה"
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "getClinicInfo",
+      "description": "הצג פרטי מרפאה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "includeStats": {
+            "type": "boolean",
+            "description": "כלול סטטיסטיקות"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "updateClinicSettings",
+      "description": "עדכן הגדרות מרפאה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workingHours": {
+            "type": "object",
+            "description": "שעות פעילות"
+          },
+          "appointmentDuration": {
+            "type": "number",
+            "description": "משך תור ברירת מחדל"
+          },
+          "autoReminders": {
+            "type": "boolean",
+            "description": "תזכורות אוטומטיות"
+          },
+          "language": {
+            "type": "string",
+            "description": "שפת ברירת מחדל"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getClinicStatistics",
+      "description": "הצג סטטיסטיקות מרפאה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "description": "תקופה",
+            "enum": [
+              "today",
+              "week",
+              "month",
+              "quarter",
+              "year"
+            ]
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "מטריקות"
+          }
+        },
+        "required": [
+          "period"
+        ]
+      }
+    },
+    {
+      "name": "verifyInsurance",
+      "description": "אמת ביטוח רפואי",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "insuranceProvider": {
+            "type": "string",
+            "description": "חברת ביטוח"
+          },
+          "policyNumber": {
+            "type": "string",
+            "description": "מספר פוליסה"
+          },
+          "serviceType": {
+            "type": "string",
+            "description": "סוג שירות"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "submitInsuranceClaim",
+      "description": "הגש תביעת ביטוח",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "serviceDate": {
+            "type": "string",
+            "description": "תאריך שירות"
+          },
+          "serviceType": {
+            "type": "string",
+            "description": "סוג שירות"
+          },
+          "amount": {
+            "type": "number",
+            "description": "סכום"
+          },
+          "diagnosisCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "קודי אבחנה"
+          }
+        },
+        "required": [
+          "patientId",
+          "serviceDate",
+          "serviceType",
+          "amount"
+        ]
+      }
+    },
+    {
+      "name": "createAppointment",
+      "description": "צור תור חדש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "appointmentType": {
+            "type": "string",
+            "description": "סוג התור"
+          },
+          "appointmentReason": {
+            "type": "string",
+            "description": "סיבת התור"
+          },
+          "scheduledDate": {
+            "type": "string",
+            "description": "תאריך"
+          },
+          "scheduledTime": {
+            "type": "string",
+            "description": "שעה"
+          },
+          "providerName": {
+            "type": "string",
+            "description": "שם הרופא"
+          },
+          "duration": {
+            "type": "number",
+            "description": "משך בדקות"
+          },
+          "notes": {
+            "type": "string",
+            "description": "הערות"
+          }
+        },
+        "required": [
+          "patientId",
+          "appointmentType",
+          "scheduledDate",
+          "scheduledTime",
+          "providerName"
+        ]
+      }
+    },
+    {
+      "name": "getAppointments",
+      "description": "הצג תורים של מטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "status": {
+            "type": "string",
+            "description": "סטטוס",
+            "enum": [
+              "scheduled",
+              "completed",
+              "cancelled",
+              "no-show"
+            ]
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "rescheduleAppointment",
+      "description": "שנה זמן תור",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "string",
+            "description": "מזהה תור"
+          },
+          "newDate": {
+            "type": "string",
+            "description": "תאריך חדש"
+          },
+          "newTime": {
+            "type": "string",
+            "description": "שעה חדשה"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          }
+        },
+        "required": [
+          "appointmentId",
+          "newDate",
+          "newTime"
+        ]
+      }
+    },
+    {
+      "name": "cancelAppointment",
+      "description": "בטל תור",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "string",
+            "description": "מזהה תור"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבת ביטול"
+          }
+        },
+        "required": [
+          "appointmentId"
+        ]
+      }
+    },
+    {
+      "name": "getTodayAppointments",
+      "description": "הצג תורים להיום",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "providerId": {
+            "type": "string",
+            "description": "מזהה רופא"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getOverdueAppointments",
+      "description": "הצג תורים שעברו",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "getInsuranceDetails",
+      "description": "הצג פרטי ביטוח",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "updateInsurance",
+      "description": "עדכן פרטי ביטוח",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "provider": {
+            "type": "string",
+            "description": "חברת ביטוח"
+          },
+          "policyNumber": {
+            "type": "string",
+            "description": "מספר פוליסה"
+          },
+          "groupNumber": {
+            "type": "string",
+            "description": "מספר קבוצה"
+          },
+          "validFrom": {
+            "type": "string",
+            "description": "תקף מתאריך"
+          },
+          "validTo": {
+            "type": "string",
+            "description": "תקף עד"
+          }
+        },
+        "required": [
+          "patientId",
+          "provider",
+          "policyNumber"
+        ]
+      }
+    },
+    {
+      "name": "checkCoverage",
+      "description": "בדוק כיסוי ביטוחי",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "procedureCode": {
+            "type": "string",
+            "description": "קוד פרוצדורה"
+          },
+          "serviceDate": {
+            "type": "string",
+            "description": "תאריך שירות"
+          }
+        },
+        "required": [
+          "patientId",
+          "procedureCode"
+        ]
+      }
+    },
+    {
+      "name": "submitPreAuthorization",
+      "description": "הגש בקשת אישור מראש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "procedureCode": {
+            "type": "string",
+            "description": "קוד פרוצדורה"
+          },
+          "diagnosis": {
+            "type": "string",
+            "description": "אבחנה"
+          },
+          "justification": {
+            "type": "string",
+            "description": "נימוק"
+          }
+        },
+        "required": [
+          "patientId",
+          "procedureCode",
+          "diagnosis"
+        ]
+      }
+    },
+    {
+      "name": "orderImaging",
+      "description": "הזמן בדיקת דימות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "imagingType": {
+            "type": "string",
+            "description": "סוג דימות",
+            "enum": [
+              "X-Ray",
+              "CT",
+              "MRI",
+              "Ultrasound",
+              "PET"
+            ]
+          },
+          "bodyPart": {
+            "type": "string",
+            "description": "איבר"
+          },
+          "indication": {
+            "type": "string",
+            "description": "אינדיקציה"
+          },
+          "urgency": {
+            "type": "string",
+            "description": "דחיפות",
+            "enum": [
+              "routine",
+              "urgent",
+              "stat"
+            ]
+          }
+        },
+        "required": [
+          "patientId",
+          "imagingType",
+          "bodyPart",
+          "indication"
+        ]
+      }
+    },
+    {
+      "name": "uploadImagingResult",
+      "description": "העלה תוצאת דימות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "imagingType": {
+            "type": "string",
+            "description": "סוג דימות"
+          },
+          "performedDate": {
+            "type": "string",
+            "description": "תאריך ביצוע"
+          },
+          "findings": {
+            "type": "string",
+            "description": "ממצאים"
+          },
+          "impression": {
+            "type": "string",
+            "description": "רושם"
+          },
+          "radiologist": {
+            "type": "string",
+            "description": "רדיולוג"
+          }
+        },
+        "required": [
+          "patientId",
+          "imagingType",
+          "performedDate",
+          "findings"
+        ]
+      }
+    },
+    {
+      "name": "refillPrescription",
+      "description": "חדש מרשם",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "prescriptionId": {
+            "type": "string",
+            "description": "מזהה מרשם"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "כמות"
+          }
+        },
+        "required": [
+          "prescriptionId"
+        ]
+      }
+    },
+    {
+      "name": "cancelPrescription",
+      "description": "בטל מרשם",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "prescriptionId": {
+            "type": "string",
+            "description": "מזהה מרשם"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          }
+        },
+        "required": [
+          "prescriptionId",
+          "reason"
+        ]
+      }
+    },
+    {
+      "name": "updateReferralStatus",
+      "description": "עדכן סטטוס הפניה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "referralId": {
+            "type": "string",
+            "description": "מזהה הפניה"
+          },
+          "status": {
+            "type": "string",
+            "description": "סטטוס חדש",
+            "enum": [
+              "pending",
+              "approved",
+              "completed",
+              "expired"
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "description": "הערות"
+          }
+        },
+        "required": [
+          "referralId",
+          "status"
+        ]
+      }
+    },
+    {
+      "name": "searchAddress",
+      "description": "חפש כתובת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "טקסט חיפוש"
+          },
+          "city": {
+            "type": "string",
+            "description": "עיר"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "getCities",
+      "description": "הצג רשימת ערים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "description": "חיפוש"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "validateAddress",
+      "description": "אמת כתובת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string",
+            "description": "רחוב"
+          },
+          "city": {
+            "type": "string",
+            "description": "עיר"
+          },
+          "zipCode": {
+            "type": "string",
+            "description": "מיקוד"
+          }
+        },
+        "required": [
+          "street",
+          "city"
+        ]
+      }
+    },
+    {
+      "name": "getAuditLogs",
+      "description": "הצג יומני ביקורת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "action": {
+            "type": "string",
+            "description": "פעולה"
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getSecurityEvents",
+      "description": "הצג אירועי אבטחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "description": "חומרה",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "exportAuditReport",
+      "description": "ייצא דוח ביקורת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "description": "פורמט",
+            "enum": [
+              "pdf",
+              "csv",
+              "json"
+            ]
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך"
+          }
+        },
+        "required": [
+          "format"
+        ]
+      }
+    },
+    {
+      "name": "createBackup",
+      "description": "צור גיבוי",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "backupType": {
+            "type": "string",
+            "description": "סוג גיבוי",
+            "enum": [
+              "full",
+              "incremental",
+              "differential"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "תיאור"
+          }
+        },
+        "required": [
+          "backupType"
+        ]
+      }
+    },
+    {
+      "name": "listBackups",
+      "description": "הצג גיבויים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "description": "מגבלה"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "restoreBackup",
+      "description": "שחזר מגיבוי",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "backupId": {
+            "type": "string",
+            "description": "מזהה גיבוי"
+          },
+          "targetEnvironment": {
+            "type": "string",
+            "description": "סביבת יעד"
+          }
+        },
+        "required": [
+          "backupId"
+        ]
+      }
+    },
+    {
+      "name": "testDisasterRecovery",
+      "description": "בדוק התאוששות מאסון",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "description": "תרחיש",
+            "enum": [
+              "database_failure",
+              "service_outage",
+              "data_corruption"
+            ]
+          }
+        },
+        "required": [
+          "scenario"
+        ]
+      }
+    },
+    {
+      "name": "getSystemMetrics",
+      "description": "הצג מדדי מערכת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "metricType": {
+            "type": "string",
+            "description": "סוג מדד",
+            "enum": [
+              "cpu",
+              "memory",
+              "disk",
+              "network",
+              "all"
+            ]
+          },
+          "period": {
+            "type": "string",
+            "description": "תקופה"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getAPIPerformance",
+      "description": "הצג ביצועי API",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "description": "נקודת קצה"
+          },
+          "period": {
+            "type": "string",
+            "description": "תקופה"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getCircuitBreakerStatus",
+      "description": "הצג סטטוס מפסק זרם",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "serviceName": {
+            "type": "string",
+            "description": "שם שירות"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "resetCircuitBreaker",
+      "description": "אפס מפסק זרם",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "serviceName": {
+            "type": "string",
+            "description": "שם שירות"
+          }
+        },
+        "required": [
+          "serviceName"
+        ]
+      }
+    },
+    {
+      "name": "optimizeDatabase",
+      "description": "בצע אופטימיזציה למסד נתונים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "description": "פעולה",
+            "enum": [
+              "reindex",
+              "compact",
+              "analyze",
+              "vacuum"
+            ]
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      }
+    },
+    {
+      "name": "getDatabaseStats",
+      "description": "הצג סטטיסטיקות מסד נתונים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "אוסף"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "clearCache",
+      "description": "נקה מטמון",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "cacheType": {
+            "type": "string",
+            "description": "סוג מטמון",
+            "enum": [
+              "query",
+              "session",
+              "api",
+              "all"
+            ]
+          }
+        },
+        "required": [
+          "cacheType"
+        ]
+      }
+    },
+    {
+      "name": "updateUserPermissions",
+      "description": "עדכן הרשאות משתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "permissions": {
+            "type": "array",
+            "description": "הרשאות",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "permissions"
+        ]
+      }
+    },
+    {
+      "name": "deactivateUser",
+      "description": "השבת משתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      }
+    },
+    {
+      "name": "resetUserPassword",
+      "description": "אפס סיסמת משתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "temporaryPassword": {
+            "type": "string",
+            "description": "סיסמה זמנית"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      }
+    },
+    {
+      "name": "createInvoice",
+      "description": "צור חשבונית",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "items": {
+            "type": "array",
+            "description": "פריטים",
+            "items": {
+              "type": "object"
+            }
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "תאריך תשלום"
+          }
+        },
+        "required": [
+          "patientId",
+          "items"
+        ]
+      }
+    },
+    {
+      "name": "recordPayment",
+      "description": "רשום תשלום",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "invoiceId": {
+            "type": "string",
+            "description": "מזהה חשבונית"
+          },
+          "amount": {
+            "type": "number",
+            "description": "סכום"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "description": "אמצעי תשלום",
+            "enum": [
+              "cash",
+              "credit",
+              "check",
+              "insurance"
+            ]
+          }
+        },
+        "required": [
+          "invoiceId",
+          "amount",
+          "paymentMethod"
+        ]
+      }
+    },
+    {
+      "name": "getOutstandingBalances",
+      "description": "הצג חובות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "sendSMS",
+      "description": "שלח SMS",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "message": {
+            "type": "string",
+            "description": "הודעה"
+          },
+          "type": {
+            "type": "string",
+            "description": "סוג",
+            "enum": [
+              "reminder",
+              "notification",
+              "alert"
+            ]
+          }
+        },
+        "required": [
+          "patientId",
+          "message"
+        ]
+      }
+    },
+    {
+      "name": "sendEmail",
+      "description": "שלח אימייל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "subject": {
+            "type": "string",
+            "description": "נושא"
+          },
+          "body": {
+            "type": "string",
+            "description": "תוכן"
+          },
+          "attachments": {
+            "type": "array",
+            "description": "קבצים מצורפים",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "patientId",
+          "subject",
+          "body"
+        ]
+      }
+    },
+    {
+      "name": "scheduleReminder",
+      "description": "תזמן תזכורת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "reminderType": {
+            "type": "string",
+            "description": "סוג תזכורת",
+            "enum": [
+              "appointment",
+              "medication",
+              "follow-up"
+            ]
+          },
+          "dateTime": {
+            "type": "string",
+            "description": "תאריך ושעה"
+          },
+          "message": {
+            "type": "string",
+            "description": "הודעה"
+          }
+        },
+        "required": [
+          "patientId",
+          "reminderType",
+          "dateTime"
+        ]
+      }
+    },
+    {
+      "name": "parseTreatment",
+      "description": "נתח תיאור טיפול",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "תיאור טיפול"
+          },
+          "language": {
+            "type": "string",
+            "description": "שפה",
+            "enum": [
+              "he",
+              "en"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "parseSymptoms",
+      "description": "נתח סימפטומים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "תיאור סימפטומים"
+          },
+          "language": {
+            "type": "string",
+            "description": "שפה",
+            "enum": [
+              "he",
+              "en"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "parseLabResults",
+      "description": "נתח תוצאות מעבדה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "תוצאות מעבדה"
+          },
+          "format": {
+            "type": "string",
+            "description": "פורמט",
+            "enum": [
+              "text",
+              "table",
+              "pdf"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "categorizeDocument",
+      "description": "סווג מסמך רפואי",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "תוכן מסמך"
+          },
+          "fileName": {
+            "type": "string",
+            "description": "שם קובץ"
+          }
+        },
+        "required": [
+          "content"
+        ]
+      }
+    },
+    {
+      "name": "getMFAStatus",
+      "description": "בדוק סטטוס אימות דו-שלבי",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "setupMFA",
+      "description": "הגדר אימות דו-שלבי",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "method": {
+            "type": "string",
+            "description": "שיטה",
+            "enum": [
+              "totp",
+              "sms",
+              "email"
+            ]
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      }
+    },
+    {
+      "name": "disableMFA",
+      "description": "בטל אימות דו-שלבי",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          }
+        },
+        "required": [
+          "userId",
+          "reason"
+        ]
+      }
+    },
+    {
+      "name": "getTranslations",
+      "description": "קבל תרגומים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "description": "שפה",
+            "enum": [
+              "he",
+              "en"
+            ]
+          },
+          "keys": {
+            "type": "array",
+            "description": "מפתחות",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "language"
+        ]
+      }
+    },
+    {
+      "name": "updateTranslations",
+      "description": "עדכן תרגומים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "description": "שפה",
+            "enum": [
+              "he",
+              "en"
+            ]
+          },
+          "translations": {
+            "type": "object",
+            "description": "תרגומים"
+          }
+        },
+        "required": [
+          "language",
+          "translations"
+        ]
+      }
+    },
+    {
+      "name": "getRoles",
+      "description": "קבל רשימת תפקידים",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "getUserPermissions",
+      "description": "קבל הרשאות משתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      }
+    },
+    {
+      "name": "assignRole",
+      "description": "הקצה תפקיד למשתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "roleId": {
+            "type": "string",
+            "description": "מזהה תפקיד"
+          }
+        },
+        "required": [
+          "userId",
+          "roleId"
+        ]
+      }
+    },
+    {
+      "name": "getThreatLevel",
+      "description": "בדוק רמת איום",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "ipAddress": {
+            "type": "string",
+            "description": "כתובת IP"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "blockIP",
+      "description": "חסום כתובת IP",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "ipAddress": {
+            "type": "string",
+            "description": "כתובת IP"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          },
+          "duration": {
+            "type": "string",
+            "description": "משך זמן"
+          }
+        },
+        "required": [
+          "ipAddress",
+          "reason"
+        ]
+      }
+    },
+    {
+      "name": "unblockIP",
+      "description": "בטל חסימת IP",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "ipAddress": {
+            "type": "string",
+            "description": "כתובת IP"
+          }
+        },
+        "required": [
+          "ipAddress"
+        ]
+      }
+    },
+    {
+      "name": "getEncryptionKeys",
+      "description": "קבל מפתחות הצפנה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "rotateEncryptionKeys",
+      "description": "החלף מפתחות הצפנה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      }
+    },
+    {
+      "name": "getDeletedPatients",
+      "description": "הצג מטופלים שנמחקו",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "עד תאריך"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "restorePatient",
+      "description": "שחזר מטופל",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          }
+        },
+        "required": [
+          "patientId",
+          "reason"
+        ]
+      }
+    },
+    {
+      "name": "permanentlyDeletePatient",
+      "description": "מחק מטופל לצמיתות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "confirmation": {
+            "type": "string",
+            "description": "אישור (הקלד 'מחק לצמיתות')"
+          }
+        },
+        "required": [
+          "patientId",
+          "confirmation"
+        ]
+      }
+    },
+    {
+      "name": "searchPostalCode",
+      "description": "חפש מיקוד",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "עיר"
+          },
+          "street": {
+            "type": "string",
+            "description": "רחוב"
+          }
+        },
+        "required": [
+          "city"
+        ]
+      }
+    },
+    {
+      "name": "getPostalCodeDetails",
+      "description": "קבל פרטי מיקוד",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "postalCode": {
+            "type": "string",
+            "description": "מיקוד"
+          }
+        },
+        "required": [
+          "postalCode"
+        ]
+      }
+    },
+    {
+      "name": "searchStreets",
+      "description": "חפש רחובות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "עיר"
+          },
+          "query": {
+            "type": "string",
+            "description": "חיפוש"
+          }
+        },
+        "required": [
+          "city"
+        ]
+      }
+    },
+    {
+      "name": "getStreetDetails",
+      "description": "קבל פרטי רחוב",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "streetId": {
+            "type": "string",
+            "description": "מזהה רחוב"
+          }
+        },
+        "required": [
+          "streetId"
+        ]
+      }
+    },
+    {
+      "name": "getGraphQLStats",
+      "description": "קבל סטטיסטיקות GraphQL",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "getGraphQLHealth",
+      "description": "בדוק תקינות GraphQL",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "configureGraphQL",
+      "description": "הגדר GraphQL",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "maxQueryDepth": {
+            "type": "number",
+            "description": "עומק מקסימלי"
+          },
+          "maxComplexity": {
+            "type": "number",
+            "description": "מורכבות מקסימלית"
+          },
+          "timeout": {
+            "type": "number",
+            "description": "זמן קצוב"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "testGraphQLQuery",
+      "description": "בדוק שאילתת GraphQL",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "שאילתה"
+          },
+          "variables": {
+            "type": "object",
+            "description": "משתנים"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "createSecret",
+      "description": "צור סוד חדש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "secretName": {
+            "type": "string",
+            "description": "שם הסוד"
+          },
+          "value": {
+            "type": "string",
+            "description": "ערך"
+          },
+          "description": {
+            "type": "string",
+            "description": "תיאור"
+          },
+          "tags": {
+            "type": "array",
+            "description": "תגיות",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "secretName",
+          "value"
+        ]
+      }
+    },
+    {
+      "name": "getSecret",
+      "description": "קבל סוד",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "secretName": {
+            "type": "string",
+            "description": "שם הסוד"
+          }
+        },
+        "required": [
+          "secretName"
+        ]
+      }
+    },
+    {
+      "name": "rotateSecret",
+      "description": "החלף סוד",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "secretName": {
+            "type": "string",
+            "description": "שם הסוד"
+          }
+        },
+        "required": [
+          "secretName"
+        ]
+      }
+    },
+    {
+      "name": "deleteSecret",
+      "description": "מחק סוד",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "secretName": {
+            "type": "string",
+            "description": "שם הסוד"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "מחיקה כפויה"
+          }
+        },
+        "required": [
+          "secretName"
+        ]
+      }
+    },
+    {
+      "name": "listSecrets",
+      "description": "רשימת סודות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array",
+            "description": "סנן לפי תגיות",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getTraces",
+      "description": "קבל עקבות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "startTime": {
+            "type": "string",
+            "description": "זמן התחלה"
+          },
+          "endTime": {
+            "type": "string",
+            "description": "זמן סיום"
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "שם שירות"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getMetrics",
+      "description": "קבל מטריקות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "metricName": {
+            "type": "string",
+            "description": "שם מטריקה"
+          },
+          "period": {
+            "type": "string",
+            "description": "תקופה",
+            "enum": [
+              "1h",
+              "6h",
+              "24h",
+              "7d",
+              "30d"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "createAlert",
+      "description": "צור התראה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "alertName": {
+            "type": "string",
+            "description": "שם התראה"
+          },
+          "condition": {
+            "type": "string",
+            "description": "תנאי"
+          },
+          "threshold": {
+            "type": "number",
+            "description": "סף"
+          },
+          "action": {
+            "type": "string",
+            "description": "פעולה",
+            "enum": [
+              "email",
+              "sms",
+              "webhook"
+            ]
+          }
+        },
+        "required": [
+          "alertName",
+          "condition",
+          "threshold"
+        ]
+      }
+    },
+    {
+      "name": "initiatePasswordlessLogin",
+      "description": "התחל כניסה ללא סיסמה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "דוא\"ל"
+          },
+          "method": {
+            "type": "string",
+            "description": "שיטה",
+            "enum": [
+              "magic-link",
+              "otp"
+            ]
+          }
+        },
+        "required": [
+          "email"
+        ]
+      }
+    },
+    {
+      "name": "verifyPasswordlessCode",
+      "description": "אמת קוד ללא סיסמה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "דוא\"ל"
+          },
+          "code": {
+            "type": "string",
+            "description": "קוד"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ]
+      }
+    },
+    {
+      "name": "getCSPViolations",
+      "description": "קבל הפרות CSP",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "עד תאריך"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "updateCSPPolicy",
+      "description": "עדכן מדיניות CSP",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "directive": {
+            "type": "string",
+            "description": "הנחיה"
+          },
+          "sources": {
+            "type": "array",
+            "description": "מקורות",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "directive",
+          "sources"
+        ]
+      }
+    },
+    {
+      "name": "getSecurityHeaders",
+      "description": "קבל כותרות אבטחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "updateSecurityHeader",
+      "description": "עדכן כותרת אבטחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "headerName": {
+            "type": "string",
+            "description": "שם כותרת"
+          },
+          "value": {
+            "type": "string",
+            "description": "ערך"
+          }
+        },
+        "required": [
+          "headerName",
+          "value"
+        ]
+      }
+    },
+    {
+      "name": "getAIEvents",
+      "description": "קבל אירועי AI",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "eventType": {
+            "type": "string",
+            "description": "סוג אירוע"
+          },
+          "limit": {
+            "type": "number",
+            "description": "מגבלה"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getLoadBalancerStatus",
+      "description": "קבל סטטוס איזון עומסים",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "updateLoadBalancerConfig",
+      "description": "עדכן הגדרות איזון עומסים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "description": "אלגוריתם",
+            "enum": [
+              "round-robin",
+              "least-connections",
+              "ip-hash"
+            ]
+          },
+          "healthCheckInterval": {
+            "type": "number",
+            "description": "תדירות בדיקה"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "initZKAuth",
+      "description": "התחל אימות ללא ידע",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "שם משתמש"
+          }
+        },
+        "required": [
+          "username"
+        ]
+      }
+    },
+    {
+      "name": "verifyZKProof",
+      "description": "אמת הוכחת ללא ידע",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "שם משתמש"
+          },
+          "proof": {
+            "type": "string",
+            "description": "הוכחה"
+          }
+        },
+        "required": [
+          "username",
+          "proof"
+        ]
+      }
+    },
+    {
+      "name": "getChatSessions",
+      "description": "קבל שיחות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "limit": {
+            "type": "number",
+            "description": "מגבלה"
+          },
+          "offset": {
+            "type": "number",
+            "description": "הזזה"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getChatMessages",
+      "description": "קבל הודעות שיחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "מזהה שיחה"
+          }
+        },
+        "required": [
+          "sessionId"
+        ]
+      }
+    },
+    {
+      "name": "sendChatMessage",
+      "description": "שלח הודעת צ'אט",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "מזהה שיחה"
+          },
+          "message": {
+            "type": "string",
+            "description": "הודעה"
+          },
+          "attachments": {
+            "type": "array",
+            "description": "קבצים מצורפים",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "sessionId",
+          "message"
+        ]
+      }
+    },
+    {
+      "name": "updateChatSessionTitle",
+      "description": "עדכן כותרת שיחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "מזהה שיחה"
+          },
+          "title": {
+            "type": "string",
+            "description": "כותרת"
+          }
+        },
+        "required": [
+          "sessionId",
+          "title"
+        ]
+      }
+    },
+    {
+      "name": "deleteChatSession",
+      "description": "מחק שיחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "מזהה שיחה"
+          }
+        },
+        "required": [
+          "sessionId"
+        ]
+      }
+    },
+    {
+      "name": "searchChatSessions",
+      "description": "חפש בשיחות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "חיפוש"
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "getChatAnalytics",
+      "description": "קבל אנליטיקות שיחות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "description": "תקופה",
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
+          },
+          "groupBy": {
+            "type": "string",
+            "description": "קבץ לפי",
+            "enum": [
+              "user",
+              "patient",
+              "topic"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "exportChatHistory",
+      "description": "יצא היסטוריית שיחות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "format": {
+            "type": "string",
+            "description": "פורמט",
+            "enum": [
+              "json",
+              "csv",
+              "pdf"
+            ]
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "עד תאריך"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getDiagnosisModels",
+      "description": "קבל מודלי אבחון",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "stopDiagnosis",
+      "description": "עצור אבחון",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "description": "מזהה משימה"
+          }
+        },
+        "required": [
+          "taskId"
+        ]
+      }
+    },
+    {
+      "name": "getDiagnosisStatus",
+      "description": "קבל סטטוס אבחון",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "description": "מזהה משימה"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getAPIVersions",
+      "description": "קבל גרסאות API",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "getAPIChangelog",
+      "description": "קבל יומן שינויים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "גרסה"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "deprecateAPI",
+      "description": "הכרז על API מיושן",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "גרסה"
+          },
+          "sunsetDate": {
+            "type": "string",
+            "description": "תאריך סיום"
+          },
+          "migrationGuide": {
+            "type": "string",
+            "description": "מדריך הגירה"
+          }
+        },
+        "required": [
+          "version",
+          "sunsetDate"
+        ]
+      }
+    },
+    {
+      "name": "getComplianceStatus",
+      "description": "קבל סטטוס ציות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "standard": {
+            "type": "string",
+            "description": "תקן",
+            "enum": [
+              "HIPAA",
+              "GDPR",
+              "PCI-DSS",
+              "SOC2"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "generateComplianceReportDetailed",
+      "description": "צור דוח ציות מפורט",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "standard": {
+            "type": "string",
+            "description": "תקן",
+            "enum": [
+              "HIPAA",
+              "GDPR",
+              "PCI-DSS",
+              "SOC2"
+            ]
+          },
+          "includeEvidence": {
+            "type": "boolean",
+            "description": "כלול ראיות"
+          },
+          "format": {
+            "type": "string",
+            "description": "פורמט",
+            "enum": [
+              "pdf",
+              "html",
+              "json"
+            ]
+          }
+        },
+        "required": [
+          "standard"
+        ]
+      }
+    },
+    {
+      "name": "scheduleComplianceAudit",
+      "description": "תזמן ביקורת ציות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "auditType": {
+            "type": "string",
+            "description": "סוג ביקורת"
+          },
+          "scheduledDate": {
+            "type": "string",
+            "description": "תאריך מתוזמן"
+          },
+          "scope": {
+            "type": "array",
+            "description": "היקף",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "auditType",
+          "scheduledDate"
+        ]
+      }
+    },
+    {
+      "name": "batchUpdatePatients",
+      "description": "עדכן מטופלים באצווה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientIds": {
+            "type": "array",
+            "description": "מזהי מטופלים",
+            "items": {
+              "type": "string"
+            }
+          },
+          "updates": {
+            "type": "object",
+            "description": "עדכונים"
+          }
+        },
+        "required": [
+          "patientIds",
+          "updates"
+        ]
+      }
+    },
+    {
+      "name": "batchDeleteSessions",
+      "description": "מחק שיחות באצווה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "sessionIds": {
+            "type": "array",
+            "description": "מזהי שיחות",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          }
+        },
+        "required": [
+          "sessionIds"
+        ]
+      }
+    },
+    {
+      "name": "batchAnalyzeDocuments",
+      "description": "נתח מסמכים באצווה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "documentIds": {
+            "type": "array",
+            "description": "מזהי מסמכים",
+            "items": {
+              "type": "string"
+            }
+          },
+          "analysisType": {
+            "type": "string",
+            "description": "סוג ניתוח",
+            "enum": [
+              "ocr",
+              "medical",
+              "summary"
+            ]
+          }
+        },
+        "required": [
+          "documentIds"
+        ]
+      }
+    },
+    {
+      "name": "createWebhook",
+      "description": "צור webhook",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "כתובת URL"
+          },
+          "events": {
+            "type": "array",
+            "description": "אירועים",
+            "items": {
+              "type": "string"
+            }
+          },
+          "secret": {
+            "type": "string",
+            "description": "סוד"
+          }
+        },
+        "required": [
+          "url",
+          "events"
+        ]
+      }
+    },
+    {
+      "name": "listWebhooks",
+      "description": "רשימת webhooks",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "deleteWebhook",
+      "description": "מחק webhook",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "webhookId": {
+            "type": "string",
+            "description": "מזהה webhook"
+          }
+        },
+        "required": [
+          "webhookId"
+        ]
+      }
+    },
+    {
+      "name": "testWebhook",
+      "description": "בדוק webhook",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "webhookId": {
+            "type": "string",
+            "description": "מזהה webhook"
+          },
+          "payload": {
+            "type": "object",
+            "description": "מטען"
+          }
+        },
+        "required": [
+          "webhookId"
+        ]
+      }
+    },
+    {
+      "name": "getAllUsers",
+      "description": "קבל כל המשתמשים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "includeInactive": {
+            "type": "boolean",
+            "description": "כלול לא פעילים"
+          },
+          "role": {
+            "type": "string",
+            "description": "תפקיד"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getUserDetails",
+      "description": "קבל פרטי משתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      }
+    },
+    {
+      "name": "updateUserProfile",
+      "description": "עדכן פרופיל משתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "profileData": {
+            "type": "object",
+            "description": "נתוני פרופיל"
+          }
+        },
+        "required": [
+          "userId",
+          "profileData"
+        ]
+      }
+    },
+    {
+      "name": "getUserActivity",
+      "description": "קבל פעילות משתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "מתאריך"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "עד תאריך"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      }
+    },
+    {
+      "name": "suspendUser",
+      "description": "השעה משתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          },
+          "duration": {
+            "type": "string",
+            "description": "משך זמן"
+          }
+        },
+        "required": [
+          "userId",
+          "reason"
+        ]
+      }
+    },
+    {
+      "name": "reactivateUser",
+      "description": "הפעל מחדש משתמש",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "מזהה משתמש"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      }
+    },
+    {
+      "name": "getAllClinics",
+      "description": "קבל כל המרפאות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "סטטוס",
+            "enum": [
+              "active",
+              "inactive",
+              "trial"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "createClinic",
+      "description": "צור מרפאה חדשה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "שם מרפאה"
+          },
+          "subdomain": {
+            "type": "string",
+            "description": "תת-דומיין"
+          },
+          "country": {
+            "type": "string",
+            "description": "מדינה"
+          },
+          "plan": {
+            "type": "string",
+            "description": "תוכנית",
+            "enum": [
+              "basic",
+              "professional",
+              "enterprise"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "subdomain",
+          "country"
+        ]
+      }
+    },
+    {
+      "name": "updateClinic",
+      "description": "עדכן מרפאה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "practiceId": {
+            "type": "string",
+            "description": "מזהה מרפאה"
+          },
+          "updates": {
+            "type": "object",
+            "description": "עדכונים"
+          }
+        },
+        "required": [
+          "practiceId",
+          "updates"
+        ]
+      }
+    },
+    {
+      "name": "getClinicUsage",
+      "description": "קבל שימוש מרפאה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "practiceId": {
+            "type": "string",
+            "description": "מזהה מרפאה"
+          },
+          "period": {
+            "type": "string",
+            "description": "תקופה",
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getSecurityDashboard",
+      "description": "קבל לוח בקרת אבטחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "getSecurityAlerts",
+      "description": "קבל התראות אבטחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "description": "חומרה",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "סטטוס",
+            "enum": [
+              "open",
+              "acknowledged",
+              "resolved"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "acknowledgeSecurityAlert",
+      "description": "אשר התראת אבטחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "alertId": {
+            "type": "string",
+            "description": "מזהה התראה"
+          },
+          "notes": {
+            "type": "string",
+            "description": "הערות"
+          }
+        },
+        "required": [
+          "alertId"
+        ]
+      }
+    },
+    {
+      "name": "getSecurityMetrics",
+      "description": "קבל מטריקות אבטחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "metricType": {
+            "type": "string",
+            "description": "סוג מטריקה"
+          },
+          "timeRange": {
+            "type": "string",
+            "description": "טווח זמן",
+            "enum": [
+              "1h",
+              "6h",
+              "24h",
+              "7d",
+              "30d"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "analyzeDatabase",
+      "description": "נתח מסד נתונים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "deep": {
+            "type": "boolean",
+            "description": "ניתוח עמוק"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "rebuildIndexes",
+      "description": "בנה מחדש אינדקסים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "אוסף"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getCacheStatistics",
+      "description": "קבל סטטיסטיקות מטמון",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "warmupCache",
+      "description": "חמם מטמון",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "cacheType": {
+            "type": "string",
+            "description": "סוג מטמון",
+            "enum": [
+              "patient",
+              "document",
+              "query"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getAllCircuitBreakers",
+      "description": "קבל כל מנתקי הזרם",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "forceOpenCircuitBreaker",
+      "description": "פתח מנתק זרם",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "serviceName": {
+            "type": "string",
+            "description": "שם שירות"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          }
+        },
+        "required": [
+          "serviceName",
+          "reason"
+        ]
+      }
+    },
+    {
+      "name": "getCircuitBreakerHistory",
+      "description": "קבל היסטוריית מנתק זרם",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "serviceName": {
+            "type": "string",
+            "description": "שם שירות"
+          },
+          "limit": {
+            "type": "number",
+            "description": "מגבלה"
+          }
+        },
+        "required": [
+          "serviceName"
+        ]
+      }
+    },
+    {
+      "name": "performFailover",
+      "description": "בצע מעבר חירום",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "targetRegion": {
+            "type": "string",
+            "description": "אזור יעד"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          },
+          "confirmation": {
+            "type": "string",
+            "description": "אישור"
+          }
+        },
+        "required": [
+          "targetRegion",
+          "reason",
+          "confirmation"
+        ]
+      }
+    },
+    {
+      "name": "getDisasterRecoveryStatus",
+      "description": "קבל סטטוס התאוששות",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "scheduleBackup",
+      "description": "תזמן גיבוי",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "backupType": {
+            "type": "string",
+            "description": "סוג גיבוי",
+            "enum": [
+              "full",
+              "incremental",
+              "differential"
+            ]
+          },
+          "schedule": {
+            "type": "string",
+            "description": "תזמון"
+          },
+          "retention": {
+            "type": "number",
+            "description": "שמירה (ימים)"
+          }
+        },
+        "required": [
+          "backupType",
+          "schedule"
+        ]
+      }
+    },
+    {
+      "name": "restoreFromBackup",
+      "description": "שחזר מגיבוי",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "backupId": {
+            "type": "string",
+            "description": "מזהה גיבוי"
+          },
+          "targetEnvironment": {
+            "type": "string",
+            "description": "סביבת יעד"
+          },
+          "confirmation": {
+            "type": "string",
+            "description": "אישור"
+          }
+        },
+        "required": [
+          "backupId",
+          "confirmation"
+        ]
+      }
+    },
+    {
+      "name": "addServer",
+      "description": "הוסף שרת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "description": "שם מארח"
+          },
+          "port": {
+            "type": "number",
+            "description": "פורט"
+          },
+          "weight": {
+            "type": "number",
+            "description": "משקל"
+          }
+        },
+        "required": [
+          "hostname",
+          "port"
+        ]
+      }
+    },
+    {
+      "name": "removeServer",
+      "description": "הסר שרת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "serverId": {
+            "type": "string",
+            "description": "מזהה שרת"
+          },
+          "graceful": {
+            "type": "boolean",
+            "description": "הסרה מבוקרת"
+          }
+        },
+        "required": [
+          "serverId"
+        ]
+      }
+    },
+    {
+      "name": "drainServer",
+      "description": "רוקן שרת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "serverId": {
+            "type": "string",
+            "description": "מזהה שרת"
+          }
+        },
+        "required": [
+          "serverId"
+        ]
+      }
+    },
+    {
+      "name": "getServerHealth",
+      "description": "קבל תקינות שרת",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "serverId": {
+            "type": "string",
+            "description": "מזהה שרת"
+          }
+        },
+        "required": [
+          "serverId"
+        ]
+      }
+    },
+    {
+      "name": "getLoadDistribution",
+      "description": "קבל חלוקת עומס",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "getDetailedSecurityMetrics",
+      "description": "קבל מטריקות אבטחה מפורטות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "includeHistory": {
+            "type": "boolean",
+            "description": "כלול היסטוריה"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getThreatReport",
+      "description": "קבל דוח איומים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "timeRange": {
+            "type": "string",
+            "description": "טווח זמן",
+            "enum": [
+              "24h",
+              "7d",
+              "30d"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "emitSecurityEvent",
+      "description": "שלח אירוע אבטחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "eventType": {
+            "type": "string",
+            "description": "סוג אירוע"
+          },
+          "severity": {
+            "type": "string",
+            "description": "חומרה",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "details": {
+            "type": "object",
+            "description": "פרטים"
+          }
+        },
+        "required": [
+          "eventType",
+          "severity"
+        ]
+      }
+    },
+    {
+      "name": "blacklistIP",
+      "description": "הוסף IP לרשימה שחורה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "ipAddress": {
+            "type": "string",
+            "description": "כתובת IP"
+          },
+          "reason": {
+            "type": "string",
+            "description": "סיבה"
+          },
+          "duration": {
+            "type": "string",
+            "description": "משך זמן"
+          }
+        },
+        "required": [
+          "ipAddress",
+          "reason"
+        ]
+      }
+    },
+    {
+      "name": "checkIPReputation",
+      "description": "בדוק מוניטין IP",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "ipAddress": {
+            "type": "string",
+            "description": "כתובת IP"
+          }
+        },
+        "required": [
+          "ipAddress"
+        ]
+      }
+    },
+    {
+      "name": "getActiveAlerts",
+      "description": "קבל התראות פעילות",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "description": "חומרה",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "getSystemHealthDetailed",
+      "description": "קבל תקינות מערכת מפורטת",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "updateSecurityThresholds",
+      "description": "עדכן ספי אבטחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "thresholds": {
+            "type": "object",
+            "description": "ספים"
+          }
+        },
+        "required": [
+          "thresholds"
+        ]
+      }
+    },
+    {
+      "name": "getSecurityEventTypes",
+      "description": "קבל סוגי אירועי אבטחה",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "getRecentSecurityEvents",
+      "description": "קבל אירועי אבטחה אחרונים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "description": "מגבלה"
+          },
+          "eventType": {
+            "type": "string",
+            "description": "סוג אירוע"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "updateVitalSigns",
+      "description": "עדכן סימנים חיוניים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "description": "מזהה מטופל"
+          },
+          "bloodPressure": {
+            "type": "string",
+            "description": "לחץ דם"
+          },
+          "pulse": {
+            "type": "number",
+            "description": "דופק"
+          },
+          "temperature": {
+            "type": "number",
+            "description": "חום"
+          },
+          "weight": {
+            "type": "number",
+            "description": "משקל"
+          },
+          "height": {
+            "type": "number",
+            "description": "גובה"
+          },
+          "respiratoryRate": {
+            "type": "number",
+            "description": "קצב נשימה"
+          },
+          "oxygenSaturation": {
+            "type": "number",
+            "description": "רוויון חמצן"
+          }
+        },
+        "required": [
+          "patientId"
+        ]
+      }
+    },
+    {
+      "name": "validateClinicToken",
+      "description": "אמת טוקן מרפאה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "טוקן"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      }
+    },
+    {
+      "name": "rotateClinicToken",
+      "description": "החלף טוקן מרפאה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "practiceId": {
+            "type": "string",
+            "description": "מזהה מרפאה"
+          }
+        },
+        "required": [
+          "practiceId"
+        ]
+      }
+    },
+    {
+      "name": "getClinicPermissions",
+      "description": "קבל הרשאות מרפאה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "practiceId": {
+            "type": "string",
+            "description": "מזהה מרפאה"
+          }
+        },
+        "required": [
+          "practiceId"
+        ]
+      }
+    },
+    {
+      "name": "getMigrationGuide",
+      "description": "קבל מדריך הגירה",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "fromVersion": {
+            "type": "string",
+            "description": "מגרסה"
+          },
+          "toVersion": {
+            "type": "string",
+            "description": "לגרסה"
+          }
+        },
+        "required": [
+          "fromVersion",
+          "toVersion"
+        ]
+      }
+    },
+    {
+      "name": "getAPIUsageStats",
+      "description": "קבל סטטיסטיקות שימוש API",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "description": "נקודת קצה"
+          },
+          "timeRange": {
+            "type": "string",
+            "description": "טווח זמן",
+            "enum": [
+              "1h",
+              "24h",
+              "7d",
+              "30d"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "testAPIEndpoint",
+      "description": "בדוק נקודת קצה API",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "description": "נקודת קצה"
+          },
+          "method": {
+            "type": "string",
+            "description": "שיטה",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE",
+              "PATCH"
+            ]
+          },
+          "payload": {
+            "type": "object",
+            "description": "מטען"
+          }
+        },
+        "required": [
+          "endpoint",
+          "method"
+        ]
+      }
+    },
+    {
+      "name": "getSpanDetails",
+      "description": "קבל פרטי Span",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "spanId": {
+            "type": "string",
+            "description": "מזהה Span"
+          }
+        },
+        "required": [
+          "spanId"
+        ]
+      }
+    },
+    {
+      "name": "getServiceMap",
+      "description": "קבל מפת שירותים",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "getPerformanceTrace",
+      "description": "קבל עקבות ביצועים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "traceId": {
+            "type": "string",
+            "description": "מזהה עקבה"
+          }
+        },
+        "required": [
+          "traceId"
+        ]
+      }
+    },
+    {
+      "name": "encryptData",
+      "description": "הצפן נתונים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "description": "נתונים"
+          },
+          "recipientId": {
+            "type": "string",
+            "description": "מזהה מקבל"
+          }
+        },
+        "required": [
+          "data",
+          "recipientId"
+        ]
+      }
+    },
+    {
+      "name": "decryptData",
+      "description": "פענח נתונים",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "encryptedData": {
+            "type": "string",
+            "description": "נתונים מוצפנים"
+          },
+          "keyId": {
+            "type": "string",
+            "description": "מזהה מפתח"
+          }
+        },
+        "required": [
+          "encryptedData"
+        ]
+      }
+    },
+    {
+      "name": "shareEncryptedDocument",
+      "description": "שתף מסמך מוצפן",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "description": "מזהה מסמך"
+          },
+          "recipientIds": {
+            "type": "array",
+            "description": "מזהי מקבלים",
+            "items": {
+              "type": "string"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "description": "הרשאות",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "documentId",
+          "recipientIds"
+        ]
+      }
+    }
+  ],
+  "tool_choice": {
+    "type": "auto"
+  }
+}

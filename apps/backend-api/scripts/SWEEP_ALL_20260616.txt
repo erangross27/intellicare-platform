@@ -1,0 +1,883 @@
+❌ appointments                           NO TEMPLATE MATCH — build a template
+❌ medical_images                         NO TEMPLATE MATCH — build a template
+❌ monitoring_reports                     NO TEMPLATE MATCH — build a template
+❌ communication_preferences              NO TEMPLATE MATCH — build a template
+❌ data_management_instructions           NO TEMPLATE MATCH — build a template
+❌ specialty_fields                       NO TEMPLATE MATCH — build a template
+❌ glucometer_download_schedule           NO TEMPLATE MATCH — build a template
+❌ department                             NO TEMPLATE MATCH — build a template
+❌ headers                                NO TEMPLATE MATCH — build a template
+❌ download_glucometer                    NO TEMPLATE MATCH — build a template
+❌ lab_schedule                           NO TEMPLATE MATCH — build a template
+❌ source                                 NO TEMPLATE MATCH — build a template
+❌ care_team_info                         NO TEMPLATE MATCH — build a template
+❌ optimization_stats                     NO TEMPLATE MATCH — build a template
+?? patient_visits                         NO_SCHEMA → Patient Visits 
+❌ allergy_assessments                     14% (1/7) → Allergies Assessments — WRONG/EMPTY template; inspect real docs. Missing: environmentalAllergens, totalIge, eosinophilCount, skinTestResults, specificIgE, provider   PDF-missing: environmentalAllergens, totalIge, eosinophilCount, skinTestResults, specificIgE, provider
+⚠️  biologic_therapy                        41% (7/17) → Biologic Therapy Records — partial gap. Missing: medicationName, startDate, baselineAssessment, monitoringLabs, sideEffects, infusionReactions, continuationPlan, provider…   PDF-missing: medicationName, startDate, baselineAssessment, monitoringLabs, sideEffects, infusionReactions, continuationPlan, provider…
+⚠️  outcomes_prediction                     47% (7/15) → Outcomes Predictions — partial gap. Missing: provider, facility, findings, assessment, plan, recommendations, notes, status
+⚠️  trending_analysis                       50% (7/14) → Trending Analysis — partial gap. Missing: provider, facility, findings, plan, recommendations, notes, status
+⚠️  continuous_glucose_monitor              53% (8/15) → CGM Data — partial gap. Missing: offered, accepted, deviceInfo, instructions, findings, results, status   PDF-missing: offered, accepted, deviceInfo, instructions, findings, results, status
+⚠️  patient_specific_care_plan              53% (8/15) → Patient-Specific Care Plan — partial gap. Missing: provider, facility, findings, recommendations, notes, status, longTerm   PDF-missing: date, provider, facility, findings, assessment, recommendations, results, notes…
+⚠️  medication_dosing_recommendation        58% (15/26) → Medication Dosing Recommendation — partial gap. Missing: pediatricDosingWeight, maximumDailyDose, creatinineClearanceThreshold, infusionRateRecommendation, loadingDoseAmount, targetPeakLevel, aucTargetRange, halfLifeHours…   PDF-missing: pediatricDosingWeight, maximumDailyDose, creatinineClearanceThreshold, infusionRateRecommendation, loadingDoseAmount, targetPeakLevel, aucTargetRange, halfLifeHours…
+⚠️  consultation_requests                   58% (15/26) → Consultation Requests — partial gap. Missing: requestingProviderId, consultingProviderId, requestedDateTime, desiredCompletionDateTime, appointmentScheduledDateTime, locationOfService, priorityReason, supportingDocuments…   PDF-missing: requestingProviderId, consultingProviderId, requestedDateTime, desiredCompletionDateTime, appointmentScheduledDateTime, locationOfService, priorityReason, supportingDocuments…
+⚠️  care_gaps                               58% (7/12) → Care Gaps — partial gap. Missing: screenings, findings, assessment, plan, recommendations
+⚠️  variant_interpretation_guidelines       64% (14/22) → Variant Interpretation Guidelines — partial gap. Missing: genomicCoordinates, functionalImpactPrediction, segregationAnalysis, functionalStudiesEvidence, spliceImpactAssessment, proteinDomainImpact, reviewerConsensus, clinicalValidationStatus   PDF-missing: genomicCoordinates, functionalImpactPrediction, segregationAnalysis, functionalStudiesEvidence, spliceImpactAssessment, proteinDomainImpact, reviewerConsensus, clinicalValidationStatus
+⚠️  pregnancy_course                        64% (9/14) → Pregnancy Course — partial gap. Missing: findings, assessment, plan, recommendations, notes   PDF-missing: findings, assessment, plan, recommendations, results, notes
+⚠️  vital_signs_monitoring                  64% (18/28) → Hourly Vital Signs — partial gap. Missing: bloodPressurePosition, bloodPressureSite, pulseQuality, glasgowComaScore, bloodGlucoseLevel, pupilResponseLeft, pupilResponseRight, pupilSizeLeft…   PDF-missing: bloodPressurePosition, bloodPressureSite, pulseQuality, glasgowComaScore, bloodGlucoseLevel, pupilResponseLeft, pupilResponseRight, pupilSizeLeft…
+⚠️  secondary_prophylaxis                   67% (10/15) → Secondary Prophylaxis — partial gap. Missing: facility, findings, assessment, plan, recommendations   PDF-missing: facility, findings, assessment, plan, recommendations, results
+⚠️  behavioral_assessment                   68% (15/22) → Behavioral Assessment — partial gap. Missing: anxietySymptoms, panicAttackFrequency, weightChange, adhdSymptoms, autismRedFlags, recommendations, results
+⚠️  cardiac_device_interrogations           68% (15/22) → Cardiac Device Interrogations — partial gap. Missing: implantDate, interrogationDate, leads, arrhythmiaEpisodes, alerts, programmingChanges, deviceAlerts   PDF-missing: implantDate, interrogationDate, interrogationReason, leads, arrhythmiaEpisodes, alerts, programmingChanges, deviceAlerts
+✅ current_dialysis                        71% (12/17) → Current Dialysis   JSX-missing: pdDetails, findings, recommendations, notes, status   PDF-missing: pdDetails, findings, recommendations, results, notes, status
+✅ dermatology_consultations               71% (17/24) → Dermatology Consultations   JSX-missing: fitzpatrickSkinType, scoradIndex, melanomaBreslow, melanomaClark, patchTestResults, woodsLampFindings, kOHTest   PDF-missing: fitzpatrickSkinType, scoradIndex, melanomaBreslow, melanomaClark, patchTestResults, woodsLampFindings, kOHTest
+✅ care_coordination_notes                 71% (17/24) → Care Coordination Notes   JSX-missing: allergiesContraindications, glasgowComaScale, nyhaClassification, imagingStudies, dischargeInstructions, transitionOfCare, advanceDirectives   PDF-missing: allergiesContraindications, glasgowComaScale, nyhaClassification, imagingStudies, dischargeInstructions, transitionOfCare, advanceDirectives
+✅ hospital_course                         71% (20/28) → Hospital Course   JSX-missing: dietaryInstructions, electronicSignature, facility, findings, assessment, plan, recommendations, notes   PDF-missing: dietaryInstructions, electronicSignature, facility, findings, assessment, plan, recommendations, results…
+✅ acmg_guidelines_reference               73% (8/11) → ACMG Guidelines Reference   JSX-missing: screeningGuidelines, referenceUrl, applicability   PDF-missing: screeningGuidelines, referenceUrl, applicability
+✅ plastic_surgery_assessment              73% (16/22) → Plastic Surgery Assessment   JSX-missing: preoperativePhotography, skinAnalysis, flapAssessment, implantData, aestheticGoals, facility   PDF-missing: preoperativePhotography, skinAnalysis, flapAssessment, implantData, aestheticGoals, facility, results
+✅ consultation_timeline                   73% (11/15) → Consultation Timeline   JSX-missing: specialty, requestedTime, responseTime, consultant   PDF-missing: specialty, requestedTime, responseTime, consultant, results
+✅ renal_protection_plan                   73% (11/15) → Renal Protection Plan   JSX-missing: findings, recommendations, notes, status   PDF-missing: findings, recommendations, results, notes, status
+✅ cultural_considerations                 73% (11/15) → Cultural Considerations   JSX-missing: findings, assessment, plan, recommendations   PDF-missing: findings, assessment, plan, recommendations, results
+✅ rheumatologic_monitoring                73% (11/15) → Rheumatologic Monitoring   JSX-missing: findings, assessment, recommendations, notes   PDF-missing: findings, assessment, recommendations, results, notes
+✅ dermatology_assessment                  75% (15/20) → Dermatology Assessment   JSX-missing: scoradIndex, dlqi, phototherapy, recommendations, notes   PDF-missing: scoradIndex, dlqi, phototherapy, recommendations, results, notes
+✅ medications                             76% (19/25) → Medications   JSX-missing: originalDosage, usage, maxDailyDose, taperInstructions, durationDays, durationUnit   PDF-missing: originalDosage, usage, maxDailyDose, taperInstructions, durationDays, durationUnit
+✅ wound_care_notes                        76% (19/25) → Wound Care Notes   JSX-missing: woundDimensions, exudateAmount, exudateType, undermining, tunneling, photographicDocumentation   PDF-missing: woundDimensions, exudateAmount, exudateType, undermining, tunneling, photographicDocumentation
+✅ care_coordination                       76% (19/25) → Care Coordination   JSX-missing: activeMedications, dischargeMedications, homeHealthServices, caregiverInformation, advanceDirectives, socialDeterminants
+✅ thoracic_surgery_assessment             77% (24/31) → Thoracic Surgery Assessment   JSX-missing: mediastinoscopy, bronchoscopy, provider, facility, findings, notes, status   PDF-missing: mediastinoscopy, bronchoscopy, provider, facility, findings, results, notes, status
+✅ obstetric_ultrasound_reports            78% (14/18) → Ultrasound OB Reports   JSX-missing: fetalPresentation, amnioticFluidVolume, cervicalLength, dopplerStudies   PDF-missing: fetalPresentation, amnioticFluidVolume, cervicalLength, dopplerStudies
+✅ caregiver_assessment                    78% (14/18) → Caregiver Assessment   JSX-missing: findings, recommendations, results, notes   PDF-missing: findings, recommendations, results, notes
+✅ cancer_related_side_effects             78% (14/18) → Cancer Related Side Effects   JSX-missing: fertilityImpact, recommendations, results, notes   PDF-missing: fertilityImpact, recommendations, results, notes
+✅ current_pregnancy                       78% (21/27) → Current Pregnancy   JSX-missing: multipleGestation, findings, assessment, plan, recommendations, notes   PDF-missing: multipleGestation, findings, assessment, plan, recommendations, results, notes
+✅ doctors_medication_recommendations      78% (7/9) → Doctors Medication Recommendations   JSX-missing: frequency, priority   PDF-missing: frequency, priority
+✅ insurance_authorizations                78% (18/23) → Insurance Authorizations   JSX-missing: secondaryDiagnosisCodes, authorizationExpirationDate, authorizedUnits, appealSubmissionDate, estimatedCostAmount
+✅ prenatal_screening                      78% (18/23) → Prenatal Screening   JSX-missing: cellFreeDna, quadScreen, amniocentesis, cvs, status   PDF-missing: cellFreeDna, quadScreen, amniocentesis, cvs, status
+✅ birth_plan                              79% (15/19) → Birth Plan   JSX-missing: findings, assessment, recommendations, results   PDF-missing: findings, assessment, recommendations, results
+✅ birth_history                           80% (16/20) → Birth History   JSX-missing: assessment, plan, recommendations, results   PDF-missing: assessment, plan, recommendations, results
+✅ preventive_medicine_assessments         80% (20/25) → Preventive Medicine Assessments   JSX-missing: immunizationStatus, functionalStatusAssessment, fallRiskAssessment, cognitiveScreening, advanceDirectivesDiscussion   PDF-missing: immunizationStatus, functionalStatusAssessment, fallRiskAssessment, cognitiveScreening, advanceDirectivesDiscussion
+✅ intraoperative_monitoring               81% (21/26) → Intraoperative Monitoring   JSX-missing: vitalSignsLog, fluidBalance, neuromuscularBlockade, bisValue, temperatureManagement   PDF-missing: airwayManagement, ventilationMode, bisValue
+✅ nt_scan_result                          81% (17/21) → NT Scan Result   JSX-missing: chorionicityDetermination, amnionicityDetermination, placentalLocation, uterineArteryDoppler   PDF-missing: chorionicityDetermination, amnionicityDetermination, placentalLocation, uterineArteryDoppler
+✅ advance_directives                      81% (13/16) → Advance Directives   JSX-missing: organDonation, witnessSignatures, documentLocation   PDF-missing: organDonation, witnessSignatures, documentLocation
+✅ dental_examination_reports              83% (19/23) → Dental Examination Reports   JSX-missing: periodontalPocketDepths, clinicalAttachmentLevel, salivaryFlowRate, fluorosisScore   PDF-missing: periodontalPocketDepths, clinicalAttachmentLevel, salivaryFlowRate, fluorosisScore
+✅ chemotherapy_records                    83% (10/12) → Chemotherapy Records   JSX-missing: labValues, vitals
+✅ chemotherapy_regimen                    83% (15/18) → Chemotherapy Regimen   JSX-missing: findings, results, status   PDF-missing: findings, results, status
+✅ pregnancy_complications                 83% (15/18) → Pregnancy Complications   JSX-missing: placentalComplications, infections, recommendations   PDF-missing: placentalComplications, infections, recommendations, results
+✅ detailed_family_pedigree                83% (20/24) → Detailed Family Pedigree   JSX-missing: autoimmuneFamilialConditions, pregnancyComplications, ageOfOnsetPatterns, carrierStatusKnown   PDF-missing: autoimmuneFamilialConditions, pregnancyComplications, ageOfOnsetPatterns, carrierStatusKnown
+✅ cardiology_followup_reports             84% (21/25) → Cardiology Follow-Up Reports   JSX-missing: edemaLocation, lipidPanel, inrValue, deviceInterrogation
+✅ insurance_forms                         84% (21/25) → Insurance Forms   JSX-missing: nyhaClassification, rutherfordClassification, ankleBrachialIndex, estimatedGlomerularFiltrationRate   PDF-missing: nyhaClassification, rutherfordClassification, ankleBrachialIndex, estimatedGlomerularFiltrationRate
+✅ dental_implant_surgery                  84% (21/25) → Dental Implant Surgery   JSX-missing: boneQuantityLekholmZarb, sinusLiftApproach, softTissueAugmentation, papillaIndexScore
+✅ neuromuscular_disorder                  84% (16/19) → Neuromuscular Disorder   JSX-missing: findings, recommendations, notes   PDF-missing: findings, recommendations, results, notes
+✅ nuclear_medicine_assessment             84% (16/19) → Nuclear Medicine Assessment   JSX-missing: petScan, boneScan, ventilationPerfusion   PDF-missing: petScan, boneScan, ventilationPerfusion, results
+✅ dialysis_planning                       85% (22/26) → Dialysis Planning   JSX-missing: urgentStartCriteria, contraindications, homeAssessment, recommendations   PDF-missing: accessStatus, urgentStartCriteria, contraindications, homeAssessment, recommendations, results
+✅ occupational_medicine_evaluations       85% (11/13) → Occupational Medicine Evaluations   JSX-missing: occupationalExposure, impairmRating   PDF-missing: occupationalExposure, impairmRating
+✅ suicide_risk_assessment                 85% (17/20) → Suicide Risk Assessment   JSX-missing: findings, recommendations, status   PDF-missing: findings, recommendations, results, status
+✅ pmr_assessment                          85% (23/27) → PMR Assessment   JSX-missing: emgStudies, orthotic, facility, notes   PDF-missing: emgStudies, orthotic, facility, findings, recommendations, results, notes
+✅ hematology_assessment                   85% (23/27) → Hematology Assessment   JSX-missing: coagulation, boneMarrow, findings, recommendations   PDF-missing: coagulation, boneMarrow, growthFactors, findings, recommendations, results
+✅ treatment_courses                       86% (6/7) → Treatment Courses   JSX-missing: reportDate
+✅ appetite_stimulants                     86% (12/14) → Appetite Stimulants   JSX-missing: findings, recommendations   PDF-missing: findings, recommendations, results, notes
+✅ biologic_therapy_records                86% (12/14) → Biologic Therapy Records   JSX-missing: responseAssessment, switchingBiologics   PDF-missing: responseAssessment, switchingBiologics
+✅ cgm_data                                86% (18/21) → CGM Data   JSX-missing: findings, results, status   PDF-missing: findings, results, status
+✅ epilepsy_assessment                     86% (18/21) → EpilepsyAssessmentDocument   JSX-missing: seizureDiary, vagusNerveStimulator, recommendations   PDF-missing: seizureDiary, vagusNerveStimulator, recommendations, results
+✅ school_performance                      86% (18/21) → School Performance   JSX-missing: findings, plan, recommendations
+✅ asthma_action_plan                      86% (12/14) → Asthma Action Plan   JSX-missing: recommendations, results
+✅ indian_diet_exchange_lists              86% (12/14) → Indian Diet Exchange Lists   JSX-missing: findings, recommendations   PDF-missing: findings, recommendations, results
+✅ chronic_disease_management              86% (19/22) → Chronic Disease Management   JSX-missing: managedBy, findings, results   PDF-missing: managedBy, findings, recommendations, results, status
+✅ acute_kidney_injury                     86% (19/22) → Acute Kidney Injury   JSX-missing: fenA, feUrea, urinaryIndices   PDF-missing: fenA, feUrea, urinaryIndices, results
+✅ respiratory_medications                 86% (19/22) → Respiratory Medications   JSX-missing: durationDays, durationUnit, refills   PDF-missing: durationDays, durationUnit, refills
+✅ bolus_adjustments                       87% (13/15) → Bolus Adjustments   JSX-missing: recommendations, results
+✅ fetal_surveillance                      87% (13/15) → Fetal Surveillance   JSX-missing: cst, recommendations   PDF-missing: cst, recommendations, results, status
+✅ contraction_monitoring                  87% (13/15) → Contraction Monitoring   JSX-missing: braxtonHicks, recommendations   PDF-missing: braxtonHicks, recommendations, results
+✅ connective_tissue_disease_assessment    87% (13/15) → Connective Tissue Disease Assessment   JSX-missing: findings, recommendations   PDF-missing: findings, recommendations, results
+✅ work_accommodations                     87% (13/15) → Work Accommodations   JSX-missing: recommendations, status   PDF-missing: recommendations, results, status
+✅ psychosocial_factors                    87% (13/15) → Psychosocial Factors   JSX-missing: recommendations, status   PDF-missing: recommendations, results, status
+✅ headache_assessment                     87% (20/23) → HeadacheAssessmentDocument   JSX-missing: headacheDiary, findings, recommendations   PDF-missing: headacheDiary, findings, recommendations, results, status
+✅ hospital_transfer_notes                 88% (7/8) → Hospital Transfer Notes   JSX-missing: recommendations   PDF-missing: recommendations
+✅ autoimmune_panels                       88% (14/16) → Autoimmune Panels   JSX-missing: enaPanel, antiphospholipid   PDF-missing: enaPanel, antiphospholipid
+✅ radiation_oncology                      88% (21/24) → Radiation Therapy   JSX-missing: completionStatus, boostDose, complications   PDF-missing: completionStatus, boostDose, complications, results
+✅ early_childhood_development             88% (14/16) → Early Childhood Development   JSX-missing: toiletTraining, notes   PDF-missing: toiletTraining, results, notes
+✅ colorectal_surgery_assessment           88% (14/16) → Colorectal Surgery Assessment   JSX-missing: anorectalManometry, defecography   PDF-missing: anorectalManometry, defecography, results
+✅ cardiology_admission_notes              88% (22/25) → Cardiology Admission Notes   JSX-missing: hemodynamicParameters, inotropicSupport, anticoagulationStatus
+✅ cardiac_monitoring                      88% (22/25) → Cardiac Monitoring   JSX-missing: arrhythmiaEvents, icdTherapies, telemetryAlarms   PDF-missing: arrhythmiaEvents, icdTherapies, telemetryAlarms
+✅ asthma_assessments                      88% (15/17) → Asthma Assessments   JSX-missing: symptomFrequency, nighttimeAwakenings
+✅ insulin_regimen                         88% (15/17) → Insulin Regimen   JSX-missing: findings, recommendations
+✅ disease_activity_scores                 88% (15/17) → Disease Activity Scores   JSX-missing: recommendations, status   PDF-missing: recommendations, results, status
+✅ surgical_oncology                       88% (15/17) → Surgical Oncology   JSX-missing: reconstruction, recommendations   PDF-missing: reconstruction, recommendations, results
+✅ pregnancy_risk_assessment               88% (15/17) → Pregnancy Risk Assessment   JSX-missing: recommendations, status   PDF-missing: recommendations, results, status
+✅ deep_brain_stimulation                  88% (15/17) → Deep Brain Stimulation   JSX-missing: findings, recommendations   PDF-missing: findings, recommendations, results
+✅ surgical_approach                       88% (15/17) → Surgical Approach   JSX-missing: pneumoperitoneum, portPlacement   PDF-missing: pneumoperitoneum, portPlacement, results
+✅ interventional_pain_procedures          88% (23/26) → Interventional Pain Procedures   JSX-missing: medicationVolumes, numberOfAttempts, neurolysisPerformed   PDF-missing: medicationVolumes, fluoroscopyTime, contrastSpreadPattern, technicalDifficulty, numberOfAttempts, neurolysisPerformed, proceduralDuration, postProcedureMonitoringTime
+✅ exercise_prescription                   88% (23/26) → Exercise Prescription   JSX-missing: secondaryDiagnoses, functionalLimitations, returnToPlayCriteria   PDF-missing: secondaryDiagnoses, functionalLimitations, returnToPlayCriteria
+✅ home_health_orders                      88% (23/26) → Home Health Orders   JSX-missing: certificationPeriodStartDate, certificationPeriodEndDate, priorHospitalizationDate
+✅ ibd_consultation_details                89% (16/18) → IBD Consultation Details   JSX-missing: findings, recommendations   PDF-missing: recommendations, results
+✅ cancer_staging                          89% (16/18) → Cancer Staging   JSX-missing: recommendations, results   PDF-missing: otherStaging, recommendations, results
+✅ survivorship_care_plan                  89% (16/18) → Survivorship Care Plan   JSX-missing: findings, recommendations   PDF-missing: findings, recommendations, results
+✅ fetal_ultrasound                        89% (16/18) → Fetal Ultrasound   JSX-missing: fetalEcho, recommendations   PDF-missing: fetalEcho, results, status
+✅ return_to_sport                         89% (16/18) → Return to Sport   JSX-missing: findings, recommendations   PDF-missing: findings, results
+✅ athlete_specific_data                   89% (16/18) → Athlete Specific Data   JSX-missing: recommendations, results   PDF-missing: recommendations, results
+✅ developmental_milestones                89% (16/18) → Developmental Milestones   JSX-missing: plan, recommendations   PDF-missing: plan, recommendations, results
+✅ cardiology_assessment                   89% (16/18) → Cardiology Assessment   JSX-missing: stressTest, additionalTestingOrdered   PDF-missing: stressTest, additionalTestingOrdered, results
+✅ immunization_status                     89% (16/18) → Immunization Status   JSX-missing: findings, results
+✅ psychiatric_treatment_plan              89% (16/18) → Psychiatric Treatment Plan   JSX-missing: findings, recommendations   PDF-missing: findings, recommendations, results
+✅ social_determinants_of_health           89% (16/18) → Social Determinants of Health   JSX-missing: assessmentDate, utilities   PDF-missing: assessmentDate, utilities, language, employment, educationLevel, interventions
+✅ brain_tumor_molecular_markers           89% (17/19) → Brain Tumor Molecular Markers   JSX-missing: ngsPanel, specimen   PDF-missing: mgmtStatus, tertPromoterStatus, atrxStatus, tp53Status, ki67ProliferationIndex, egfrStatus, cdkn2aStatus, brafStatus…
+✅ prognosis_discussion                    89% (17/19) → Prognosis Discussion   JSX-missing: brotherVerySupportive, recommendations   PDF-missing: brotherVerySupportive, recommendations, results
+✅ fetal_assessment                        89% (17/19) → Fetal Assessment   JSX-missing: leopoldManeuvers, recommendations   PDF-missing: fundalHeightPercentile, leopoldManeuvers, recommendations, results, status
+✅ dementia_assessment                     89% (17/19) → Dementia Assessment   JSX-missing: recommendations, notes
+✅ adhd_assessment                         89% (17/19) → ADHD Assessment   JSX-missing: findings, results   PDF-missing: findings, results, status
+✅ biopsychosocial_formulation             89% (17/19) → Biopsychosocial Formulation   JSX-missing: results, status   PDF-missing: results, status
+✅ lupus_assessment                        89% (17/19) → Lupus Assessment   JSX-missing: findings, recommendations   PDF-missing: results, status
+✅ patient_education_records               90% (26/29) → Patient Education Records   JSX-missing: findings, recommendations, educatorRole   PDF-missing: findings, assessment, plan, recommendations, results, status, educatorRole
+✅ insulin_pump_settings                   90% (18/20) → Insulin Pump Settings   JSX-missing: findings, recommendations   PDF-missing: maxBolus, maxBasalRate
+✅ geriatric_cognitive_assessment          90% (18/20) → Geriatric Cognitive Assessment   JSX-missing: findings, recommendations
+✅ delivery_planning                       90% (18/20) → Delivery Planning   JSX-missing: recommendations, notes   PDF-missing: recommendations, results, notes
+✅ psychotropic_medications                90% (19/21) → Psychotropic Medications   JSX-missing: durationDays, durationUnit   PDF-missing: durationDays, durationUnit
+✅ ophthalmology_exam                      91% (20/22) → Ophthalmology Exam   JSX-missing: recommendations, notes
+✅ inflammatory_bowel_reports              91% (21/23) → Inflammatory Bowel Reports   JSX-missing: ileocolonicAnatomy, parisClassification   PDF-missing: crohnsDiseasesActivityIndex, mayoEndoscopicScore, simpleEndoscopicScore, fecalCalprotectinLevel, fecalLactoferrinLevel, ileocolonicAnatomy, montrealClassification, parisClassification…
+✅ cancer_diagnosis                        91% (21/23) → Cancer Diagnosis   JSX-missing: recommendations, results   PDF-missing: recommendations, results
+✅ pregnancy_symptoms                      92% (22/24) → Pregnancy Symptoms   JSX-missing: recommendations, status   PDF-missing: recommendations, results, status
+✅ autoantibody_profile                    92% (22/24) → Autoantibody Profile   JSX-missing: recommendations, results   PDF-missing: recommendations, results
+✅ wound_care_documentation                92% (23/25) → Wound Care Documentation   JSX-missing: exudateAmount, exudateType   PDF-missing: exudateAmount, exudateType
+✅ gestational_diabetes                    92% (23/25) → Gestational Diabetes   JSX-missing: findings, recommendations   PDF-missing: insulinStorageInstructions, recommendations, results
+✅ postpartum_planning                     92% (23/25) → Postpartum Planning   JSX-missing: maternityLeave, recommendations   PDF-missing: maternityLeave, recommendations, results
+✅ pharmacogenomic_testing                 92% (23/25) → Pharmacogenomic Testing   JSX-missing: factorVLeidenStatus, prothrombinG20210AStatus   PDF-missing: factorVLeidenStatus, prothrombinG20210AStatus
+✅ well_child_examinations                 92% (12/13) → Well Child Examinations   JSX-missing: headCircumference
+✅ pathology_reports                       92% (12/13) → Pathology Reports   JSX-missing: margins
+✅ basal_rate_adjustments                  92% (12/13) → Basal Rate Adjustments   JSX-missing: effectiveDate
+✅ social_history                          92% (49/53) → Social History   JSX-missing: findings, assessment, plan, recommendations   PDF-missing: findings, assessment, plan, recommendations, results, status
+✅ therapy_requests                        93% (25/27) → Therapy Requests   JSX-missing: requesterId, performerId   PDF-missing: requesterId, performerId
+✅ immune_reconstitution_planning          93% (13/14) → Immune Reconstitution Planning   JSX-missing: recommendations   PDF-missing: facility, findings, results
+✅ ed_course                               93% (13/14) → ED Course   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ flare_management                        93% (13/14) → Flare Management   JSX-missing: recommendations   PDF-missing: results
+✅ ketone_monitoring_instructions          93% (13/14) → Ketone Monitoring Instructions   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ hypertensive_nephropathy                93% (13/14) → Hypertensive Nephropathy   JSX-missing: bloodPressureControl   PDF-missing: status
+✅ intraoperative_imaging                  93% (13/14) → Intraoperative Imaging   JSX-missing: recommendations   PDF-missing: results, status
+✅ estimated_blood_loss                    93% (13/14) → Estimated Blood Loss   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ rehabilitation_protocol                 93% (13/14) → Rehabilitation Protocol   JSX-missing: cpmProtocol   PDF-missing: cpmProtocol, results
+✅ estimated_delivery_date                 93% (13/14) → Estimated Delivery Date   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ sports_medicine_evaluations             93% (13/14) → Sports Medicine Evaluations   JSX-missing: rehabilitationPlan
+✅ critical_view_of_safety                 93% (14/15) → Critical View of Safety   JSX-missing: recommendations   PDF-missing: recommendations
+✅ bone_health                             93% (14/15) → Bone Health   JSX-missing: results   PDF-missing: results, status
+✅ glomerular_disease                      93% (14/15) → GlomerularDiseaseDocument   JSX-missing: recommendations
+✅ parkinsonian_features                   93% (14/15) → Parkinsonian Features   JSX-missing: recommendations   PDF-missing: recommendations, results, status
+✅ tourniquet_data                         93% (14/15) → Tourniquet Data   JSX-missing: used   PDF-missing: used, results
+✅ umbilical_artery_doppler                93% (14/15) → Umbilical Artery Doppler   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ insulin_adjustment_protocol             93% (14/15) → Insulin Adjustment Protocol   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ amniotic_fluid_assessment               93% (14/15) → Amniotic Fluid Assessment   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ exercise_program                        93% (14/15) → Exercise Program   JSX-missing: findings   PDF-missing: findings, results
+✅ growth_ultrasound_schedule              93% (14/15) → Growth Ultrasound Schedule   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ glucose_monitoring_frequency            93% (14/15) → Glucose Monitoring Frequency   JSX-missing: recommendations   PDF-missing: findings, assessment, plan, recommendations, results, status
+✅ glaucoma_management                     93% (14/15) → Glaucoma Management   JSX-missing: recommendations   PDF-missing: facility, recommendations, results, notes
+✅ prenatal_visits                         94% (15/16) → Prenatal Visits   JSX-missing: cervicalExam   PDF-missing: cervicalExam
+✅ diabetes_education                      94% (15/16) → Diabetes Education   JSX-missing: dateProvided   PDF-missing: dateProvided, results
+✅ functional_status                       94% (15/16) → Functional Status   JSX-missing: recommendations   PDF-missing: results
+✅ motor_complications                     94% (15/16) → Motor Complications   JSX-missing: status   PDF-missing: results, status
+✅ parental_concerns                       94% (15/16) → Parental Concerns   JSX-missing: findings   PDF-missing: findings, results, status
+✅ endocrinology_assessment                94% (15/16) → Endocrinology Assessment   JSX-missing: metabolicPanel   PDF-missing: metabolicPanel, results
+✅ family_meeting_notes                    94% (15/16) → Family Meeting Notes   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ infectious_disease_assessment           94% (15/16) → Infectious Disease Assessment   JSX-missing: recommendations
+✅ inflammatory_markers                    94% (15/16) → Inflammatory Markers   JSX-missing: recommendations
+✅ first_trimester_bleeding                94% (15/16) → First Trimester Bleeding   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ rheumatologic_assessment                94% (15/16) → Rheumatologic Assessment   JSX-missing: recommendations   PDF-missing: recommendations, results, notes
+✅ family_medicine_assessment              94% (15/16) → Family Medicine Assessment   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ symptom_progression                     94% (15/16) → Symptom Progression   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ nuclear_medicine_studies                94% (15/16) → Nuclear Medicine Studies   JSX-missing: tnmStaging   PDF-missing: tnmStaging
+✅ endoscopy_findings                      94% (16/17) → Endoscopy Findings   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ oncologic_emergencies                   94% (16/17) → Oncologic Emergencies   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ renal_anemia                            94% (16/17) → Renal Anemia   JSX-missing: recommendations   PDF-missing: results, status
+✅ operative_technique                     94% (16/17) → Operative Technique   JSX-missing: results   PDF-missing: results
+✅ mechanism_of_injury                     94% (16/17) → Mechanism of Injury   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ ligament_reconstruction                 94% (16/17) → Ligament Reconstruction   JSX-missing: recommendations   PDF-missing: results
+✅ growth_parameters                       94% (16/17) → Growth Parameters   JSX-missing: recommendations   PDF-missing: findings, recommendations, results, notes, status
+✅ home_monitoring                         94% (16/17) → Home Monitoring   JSX-missing: recommendations   PDF-missing: glucose, symptoms, type, facility, findings, assessment, plan, recommendations…
+✅ fluid_intake                            94% (16/17) → Fluid Intake   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ geriatric_care_planning                 94% (17/18) → Geriatric Care Planning   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ cervical_assessment                     94% (17/18) → Cervical Assessment   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ discharge_planning                      94% (17/18) → Discharge Planning   JSX-missing: findings   PDF-missing: findings, results
+✅ emergency_assessment                    94% (17/18) → Emergency Assessment   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ fluid_output                            94% (17/18) → Fluid Output   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ health_maintenance                      94% (17/18) → Health Maintenance   JSX-missing: recommendations
+✅ hiv_history                             95% (18/19) → HIV History   JSX-missing: recommendations   PDF-missing: findings, plan, recommendations, results, notes
+✅ intraoperative_cholangiography          95% (18/19) → Intraoperative Cholangiography   JSX-missing: recommendations   PDF-missing: recommendations
+✅ pulmonary_function_tests                95% (18/19) → Pulmonary Function Tests   JSX-missing: predictedPostoperativeFev1   PDF-missing: predictedPostoperativeFev1
+✅ triage_data                             95% (18/19) → Triage Data   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ hypoglycemia_management                 95% (18/19) → Hypoglycemia Management   JSX-missing: recommendations
+✅ foot_exam                               95% (18/19) → Foot Exam   JSX-missing: recommendations   PDF-missing: results
+✅ ibd_assessment                          95% (18/19) → IBD Assessment   JSX-missing: recommendations   PDF-missing: diseaseLocation, recommendations, results
+✅ ibd_surgical_planning                   95% (18/19) → IBD Surgical Planning   JSX-missing: recommendations   PDF-missing: results
+✅ tumor_markers                           95% (18/19) → Tumor Markers   JSX-missing: recommendations   PDF-missing: recommendations
+✅ movement_disorder_assessment            95% (18/19) → Movement Disorder Assessment   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ rheumatoid_arthritis_assessment         95% (18/19) → Rheumatoid Arthritis Assessment   JSX-missing: jointCounts
+✅ surgical_consent_forms                  95% (19/20) → Surgical Consent Form   JSX-missing: alternativeName   PDF-missing: alternativeName
+✅ ed_disposition                          95% (19/20) → ED Disposition   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ injury_details                          95% (19/20) → Injury Details   JSX-missing: recommendations   PDF-missing: recommendations, results, status
+✅ proteinuria_assessment                  95% (19/20) → Proteinuria Assessment   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ intraoperative_findings                 95% (19/20) → Intraoperative Findings   JSX-missing: recommendations   PDF-missing: results, status
+✅ anticipatory_guidance                   95% (19/20) → Anticipatory Guidance   JSX-missing: results   PDF-missing: results, status
+✅ psychiatric_assessment_scales           95% (19/20) → Psychiatric Assessment Scales   JSX-missing: results   PDF-missing: results, status
+✅ imaging_orders                          95% (20/21) → Imaging Orders   JSX-missing: recommendations
+✅ maternal_labs                           95% (20/21) → Maternal Labs   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ prenatal_education                      95% (20/21) → Prenatal Education   JSX-missing: recommendations   PDF-missing: recommendations, results, status
+✅ post_operative_reports                  95% (21/22) → Post-Operative Reports   JSX-missing: recommendations   PDF-missing: recommendations
+✅ cardiology_consultations                95% (21/22) → Cardiology Consultations   JSX-missing: referringProvider   PDF-missing: referringProvider, cardiacExamFindings
+✅ chief_complaints                        95% (21/22) → Chief Complaints   JSX-missing: symptomOnsetDateTime   PDF-missing: symptomOnsetDateTime
+✅ diabetes_management                     95% (42/44) → Diabetes Management   JSX-missing: targetPostprandialGlucose, cgmData   PDF-missing: targetFastingGlucose, targetPostprandialGlucose, cgmData
+✅ endocrine_therapy                       95% (21/22) → Endocrine Therapy   JSX-missing: recommendations   PDF-missing: recommendations, results
+✅ ckd_assessment                          95% (21/22) → CKD Assessment   JSX-missing: chronicity   PDF-missing: chronicity, results
+✅ renal_nutrition                         95% (21/22) → Renal Nutrition   JSX-missing: status   PDF-missing: results, status
+✅ gait_analysis                           95% (21/22) → Gait Analysis   JSX-missing: recommendations   PDF-missing: results, status
+✅ sleep_study_reports                     96% (22/23) → Sleep Study Reports   JSX-missing: sleepStageDistribution   PDF-missing: sleepStageDistribution
+✅ bone_scan_reports                       96% (22/23) → Bone Scan Reports   JSX-missing: bloodPoolImaging   PDF-missing: bloodPoolImaging, arthriticChanges, pageticChanges, osteoporosisEvidence, renalClearance, softtissueUptake, prostheticDevices, spinalAlignment…
+✅ medication_deprescribing                96% (22/23) → Medication Deprescribing   JSX-missing: patientMedicalRecordNumber   PDF-missing: patientMedicalRecordNumber
+✅ hepatitis_c_history                     96% (23/24) → Hepatitis C History   JSX-missing: coinfections   PDF-missing: coinfections
+✅ surgical_steps                          96% (23/24) → Surgical Steps   JSX-missing: images   PDF-missing: images
+✅ endoscopy_reports                       96% (23/24) → Endoscopy Reports   JSX-missing: photodocumentation   PDF-missing: photodocumentation
+✅ gastroenterology_consultations          96% (23/24) → Gastroenterology Consultations   JSX-missing: crohnsDiseaseName   PDF-missing: chiefComplaint, bowelMovementFrequency, abdominalPainScore, crohnsDiseaseName, ulcerativeColitisMayoScore, endoscopyFindings, colonoscopyPrepQuality, liverEnzymeLevels…
+✅ toxicology_reports                      96% (23/24) → Toxicology Reports   JSX-missing: patientAge   PDF-missing: patientAge
+✅ prognosis_records                       96% (23/24) → Prognosis Records   JSX-missing: performanceStatusScore   PDF-missing: performanceStatusScore
+✅ medical_geneticist                      96% (23/24) → Medical Geneticist   JSX-missing: cmaResolution   PDF-missing: cmaResolution
+✅ parkinson_medications                   96% (24/25) → Parkinson Medications   JSX-missing: anticholinergics   PDF-missing: anticholinergics
+✅ day_programs                            96% (24/25) → DayProgramsDocument   JSX-missing: procedureCptCode   PDF-missing: procedureCptCode
+✅ chiropractic_treatment_plan             96% (24/25) → Chiropractic Treatment Plan   JSX-missing: maximumMedicalImprovementDate   PDF-missing: maximumMedicalImprovementDate
+✅ bone_marrow_studies                     96% (24/25) → Bone Marrow Studies   JSX-missing: previousStudyDate   PDF-missing: previousStudyDate
+✅ workers_compensation_evaluation         96% (24/25) → Workers' Compensation Evaluation   JSX-missing: dateReportedToEmployer   PDF-missing: dateReportedToEmployer
+✅ review_of_systems                       96% (25/26) → Review of Systems   JSX-missing: recommendations   PDF-missing: findings, assessment, plan, recommendations, results
+✅ care_team                               96% (25/26) → Care Team   JSX-missing: teamFormationDate   PDF-missing: teamFormationDate
+✅ emergency_observation_unit              96% (25/26) → Emergency Observation Unit   JSX-missing: fluidBalance   PDF-missing: fluidBalance
+✅ durable_medical_equipment_orders        96% (25/26) → Durable Medical Equipment Orders   JSX-missing: prescribingProviderId   PDF-missing: prescribingProviderId
+✅ liver_transplant_follow_up              97% (33/34) → Liver Transplant Follow-Up   JSX-missing: patientId   PDF-missing: patientId
+✅ clinical_scores                         97% (34/35) → Clinical Scores   JSX-missing: recommendations   PDF-missing: CHA2DS2VASc, HASBLED, ASA, STOPBANG, Apfel, RCRI, NSQIP, findings…
+✅ abnormal_results                       100% (7/7) → Abnormal Results
+✅ admission_assessments                  100% (8/8) → Admission Assessments
+✅ goals_of_care_discussions              100% (8/8) → Goals of Care Discussions
+✅ allergies                              100% (9/9) → Allergies
+✅ consultation_notes                     100% (11/11) → Consultation Notes
+✅ diagnoses                              100% (16/16) → Diagnoses
+✅ discharge_summaries                    100% (19/19) → Discharge Summary
+✅ follow_ups                             100% (7/7) → Follow-Up Recommendations
+✅ imaging_reports                        100% (12/12) → Imaging Reports
+✅ lab_results                            100% (24/24) → Laboratory Results
+✅ lab_orders                             100% (18/18) → Laboratory Orders
+✅ medical_alerts                         100% (20/20) → Medical Alerts
+✅ medical_certificates                   100% (7/7) → Medical Certificates
+✅ medical_procedures                     100% (15/15) → Medical Procedures
+✅ medication_recommendations             100% (25/25) → Medication Recommendations
+✅ medication_safety                      100% (15/15) → Medication Safety
+✅ medication_safety_alerts               100% (24/24) → Medication Safety Alerts
+✅ prescriptions                          100% (10/10) → Prescriptions
+✅ referrals                              100% (8/8) → Referrals
+✅ vaccination_records                    100% (10/10) → Pediatric Vaccination Records
+✅ vital_signs                            100% (16/16) → Vital Signs
+✅ emergency_discharge_summaries          100% (23/23) → Emergency Discharge Summaries
+✅ emergency_reports                      100% (7/7) → Emergency Reports
+✅ hospital_admission_notes               100% (15/15) → Hospital Admission Notes
+✅ hospital_discharge_summaries           100% (23/23) → Hospital Discharge Summaries
+✅ icu_flow_sheets                        100% (14/14) → ICU Flow Sheets
+✅ hourly_vital_signs                     100% (25/25) → Hourly Vital Signs
+✅ arterial_blood_gases                   100% (8/8) → Arterial Blood Gases
+✅ continuous_infusions                   100% (8/8) → Continuous Infusions
+✅ neurological_assessment                100% (8/8) → Neurological Assessment
+✅ glasgow_coma_scale                     100% (8/8) → Glasgow Coma Scale
+✅ cam_icu                                100% (8/8) → CAM-ICU Assessment
+✅ procedures_interventions               100% (8/8) → Procedures Interventions
+✅ nursing_notes                          100% (8/8) → Nursing Notes
+✅ transfer_summaries                     100% (7/7) → Transfer Summaries
+✅ admission_recommendations              100% (7/7) → Admission Recommendations
+✅ addiction_medicine_consultations       100% (13/13) → Addiction Medicine Consultations
+✅ case_management                        100% (11/11) → Case Management
+✅ proposed_art_switch                    100% (24/24) → Proposed ART Switch
+✅ hepatitis_c_management                 100% (23/23) → Hepatitis C Management   PDF-missing: results
+✅ food_insecurity                        100% (7/7) → Food Insecurity
+✅ primary_prophylaxis                    100% (14/14) → Primary Prophylaxis   PDF-missing: results
+✅ cmv_monitoring_plan                    100% (25/25) → CMV Monitoring Plan
+✅ anesthesia_records                     100% (42/42) → Anesthesia Records   PDF-missing: asaClassification, chiefComplaint, reviewOfSystems, physicalExamination, providers, administrativeData, followUpAppointments, procedureDate…
+✅ operative_reports                      100% (23/23) → Operative Reports   PDF-missing: cptCodes
+✅ operative_report_details               100% (16/16) → Operative Report Details
+✅ patient_positioning                    100% (18/18) → Patient Positioning
+✅ prep_and_drape                         100% (15/15) → Prep and Drape
+✅ pneumoperitoneum                       100% (20/20) → Pneumoperitoneum
+✅ port_placement                         100% (18/18) → Port Placement
+✅ pathology_gross_description            100% (20/20) → Pathology Gross Description
+✅ closure_technique                      100% (16/16) → Closure Technique
+✅ sponge_instrument_counts               100% (12/12) → Sponge/Instrument Counts
+✅ operative_time                         100% (25/25) → Operative Time
+✅ pre_operative_assessments              100% (23/23) → Pre-Operative Assessment
+✅ cardiac_catheterization_reports        100% (10/10) → Cardiac Catheterization Reports
+✅ cardiac_rehabilitation_reports         100% (7/7) → Cardiac Rehabilitation Reports
+✅ ecg_reports                            100% (12/12) → ECG Reports
+✅ echo_reports                           100% (12/12) → Echocardiogram Reports
+✅ stress_test_reports                    100% (12/12) → Stress Test Reports
+✅ diagnostic_studies                     100% (12/12) → Diagnostic Studies
+✅ eeg_reports                            100% (9/9) → EEG Reports
+✅ emg_reports                            100% (8/8) → EMG Reports
+✅ functional_mri_studies                 100% (7/7) → Functional MRI Studies
+✅ interval_history                       100% (12/12) → Interval History   PDF-missing: speechTherapy, urgency
+✅ neurology_consultations                100% (24/24) → Neurology Consultations
+✅ neurology_progress_notes               100% (8/8) → Neurology Progress Notes
+✅ neuropsychological_assessments         100% (12/12) → Neuropsychological Assessments
+✅ neurosurgery_consultations             100% (8/8) → Neurosurgery Consultations
+✅ tractography_studies                   100% (7/7) → Tractography Studies (exact)
+✅ mental_health_assessments              100% (15/15) → Mental Health Assessments   PDF-missing: recommendations
+✅ psychiatric_discharge_summaries        100% (24/24) → Psychiatric Discharge Summaries
+✅ psychiatric_evaluations                100% (11/11) → Psychiatric Evaluations
+✅ psychiatric_progress_notes             100% (8/8) → Psychiatric Progress Notes
+✅ psychosocial_assessments               100% (20/20) → Psychosocial Assessment   PDF-missing: results
+✅ therapy_session_notes                  100% (10/10) → Therapy Session Notes
+✅ apgar_scores                           100% (13/13) → APGAR Scores
+✅ developmental_assessments              100% (7/7) → Developmental Assessments
+✅ newborn_screening_results              100% (7/7) → Newborn Screening Results
+✅ pediatric_growth_charts                100% (7/7) → Pediatric Growth Charts
+✅ pediatric_vaccination_records          100% (10/10) → Pediatric Vaccination Records
+✅ pediatric_visits                       100% (10/10) → Pediatric Visits
+✅ amniocentesis_reports                  100% (7/7) → Amniocentesis Reports
+✅ gynecology_consultations               100% (8/8) → Gynecology Consultations
+✅ labor_delivery_records                 100% (13/13) → Labor & Delivery Records
+✅ maternal_fetal_reports                 100% (25/25) → Maternal Fetal Reports
+✅ postpartum_notes                       100% (24/24) → Postpartum Notes
+✅ prenatal_testing_reports               100% (27/27) → Prenatal Testing Reports
+✅ ultrasound_ob_reports                  100% (16/16) → Ultrasound OB Reports
+✅ brain_tumor_characteristics            100% (21/21) → Brain Tumor Characteristics
+✅ oncology_consultations                 100% (24/24) → Oncology Consultations
+✅ oncology_followup_reports              100% (25/25) → Oncology Follow-up Reports
+✅ oncology_treatment_plans               100% (8/8) → Oncology Treatment Plans
+✅ radiation_therapy_records              100% (9/9) → Radiation Therapy Records
+✅ tumor_board_notes                      100% (24/24) → Tumor Board Notes
+✅ tumor_marker_panels                    100% (23/23) → Tumor Marker Panels
+✅ diabetes_management_notes              100% (37/37) → Diabetes Management Notes   PDF-missing: results
+✅ endocrinology_consultations            100% (25/25) → Endocrinology Consultations
+✅ hormone_panels                         100% (25/25) → Hormone Panels   PDF-missing: thyroidStimulatingHormone, freeThyroxine, freeTriiodothyronine, totalTestosterone, freeTestosterone, bioavailableTestosterone, sexHormoneBindingGlobulin, estradiol…
+✅ hormone_therapy_records                100% (25/25) → Hormone Therapy Records
+✅ thyroid_evaluations                    100% (24/24) → Thyroid Evaluations
+✅ colonoscopy_reports                    100% (22/22) → Colonoscopy Reports
+✅ mayo_score                             100% (23/23) → Mayo Score
+✅ symptom_progression_timeline           100% (23/23) → Symptom Progression Timeline
+✅ infliximab_drug_monitoring             100% (20/20) → Infliximab Drug Monitoring   PDF-missing: infliximabDoseAdministered, infliximabSerumLevel, antiDrugAntibodies, crohnsDiseaseActivityIndex, harveyBradshawIndex, mayoClinicScore, cReactiveProtein, erythrocyteSedimentationRate…
+✅ fecal_calprotectin                     100% (20/20) → Fecal Calprotectin
+✅ rescue_therapy_options                 100% (23/23) → Rescue Therapy Options
+✅ barriers_psychosocial_issues           100% (18/18) → Barriers Psychosocial Issues
+✅ liver_function_assessments             100% (23/23) → Liver Function Assessments
+✅ asthma_management_notes                100% (16/16) → Asthma Management Notes
+✅ copd_assessments                       100% (23/23) → COPD Assessments
+✅ pulmonary_rehabilitation_notes         100% (24/24) → Pulmonary Rehabilitation Notes
+✅ pulmonology_consultations              100% (35/35) → Pulmonology Consultations   PDF-missing: results
+✅ allergies_assessments                  100% (7/7) → Allergies Assessments
+✅ allergy_skin_testing                   100% (14/14) → Allergy Skin Testing
+✅ specific_ige_tests                     100% (20/20) → Specific IgE Tests
+✅ component_allergen_testing             100% (20/20) → Component Allergen Testing
+✅ immune_function_tests                  100% (23/23) → Immune Function Tests
+✅ challenge_tests                        100% (10/10) → Challenge Tests
+✅ dialysis_records                       100% (24/24) → Dialysis Records
+✅ dialysis_run_sheets                    100% (25/25) → Dialysis Run Sheets
+✅ pre_dialysis_assessment                100% (25/25) → Pre-Dialysis Assessment
+✅ dialysis_prescription                  100% (23/23) → Dialysis Prescription
+✅ dialyzer                               100% (22/22) → Dialyzer
+✅ dialysate_composition                  100% (25/25) → Dialysate Composition
+✅ intradialytic_monitoring               100% (25/25) → Intradialytic Monitoring
+✅ medications_administered               100% (17/17) → Medications Administered
+✅ post_dialysis_assessment               100% (25/25) → Post Dialysis Assessment
+✅ kidney_function_reports                100% (23/23) → Kidney Function Reports   PDF-missing: serumCreatinine, estimatedGFR, bloodUreaNitrogen, creatinineClearance, urinalysisProtein, albuminCreatinineRatio, sodiumLevel, potassiumLevel…
+✅ nephrology_consultations               100% (21/21) → Nephrology Consultations
+✅ nephrology_consultation_details        100% (17/17) → Nephrology Consultation Details   PDF-missing: results
+✅ kidney_disease_progression_timeline    100% (23/23) → Kidney Disease Progression Timeline   PDF-missing: estimatedGlomerularFiltrationRate, serumCreatinine, bloodUreaNitrogen, chronicKidneyDiseaseStage, albuminCreatinineRatio, proteinCreatinineRatio, albuminuriaCategory, renalUltrasoundFindings…
+✅ estimated_time_to_dialysis             100% (25/25) → Estimated Time to Dialysis
+✅ education_initiated                    100% (24/24) → Education Initiated
+✅ access_planning                        100% (15/15) → Access Planning
+✅ depression_screening                   100% (25/25) → Depression Screening
+✅ advance_directive_discussion           100% (13/13) → Advance Directive Discussion
+✅ transplant_evaluations                 100% (21/21) → Transplant Evaluations
+✅ arthritis_assessments                  100% (20/20) → Arthritis Assessments
+✅ autoimmune_evaluations                 100% (16/16) → Autoimmune Evaluations
+✅ rheumatology_consultations             100% (25/25) → Rheumatology Consultations
+✅ blood_disorder_reports                 100% (17/17) → Blood Disorder Reports
+✅ bone_marrow_reports                    100% (22/22) → Bone Marrow Report
+✅ coagulation_studies                    100% (23/23) → Coagulation Studies
+✅ hematology_consultations               100% (32/32) → Hematology Consultations   PDF-missing: referringPhysician, chiefComplaint, hemoglobinLevel, hematocritValue, whiteBloodCellCount, plateletCount, meanCorpuscularVolume, reticulocyteCount…
+✅ orthopedic_consultations               100% (23/23) → Orthopedic Consultations
+✅ orthopedic_followup_notes              100% (21/21) → Orthopedic Follow-Up Notes   PDF-missing: previousSurgeryDate
+✅ orthopedic_operative_reports           100% (17/17) → Orthopedic Operative Reports
+✅ glaucoma_assessments                   100% (19/19) → Glaucoma Assessments
+✅ ophthalmology_examinations             100% (24/24) → Ophthalmology Examinations
+✅ retinal_examinations                   100% (27/27) → Retinal Examinations
+✅ visual_acuity_reports                  100% (24/24) → Visual Acuity Reports
+✅ audiometry_reports                     100% (15/15) → Audiometry Reports
+✅ ent_consultations                      100% (24/24) → ENT Consultations
+✅ laryngoscopy_reports                   100% (20/20) → Laryngoscopy Reports   PDF-missing: vocalCordMobility, glotticClosurePattern, arytenoidMobility, epiglottisAppearance, supraglotticStructures, subglotticVisualization, laryngealEdema, vocalFoldLesions…
+✅ dermatology_procedure_notes            100% (25/25) → Dermatology Procedure Notes
+✅ podiatry_examinations                  100% (11/11) → Podiatry Examinations
+✅ skin_biopsy_reports                    100% (25/25) → Skin Biopsy Reports
+✅ wound_care_assessments                 100% (17/17) → Wound Care Assessments
+✅ cystoscopy_reports                     100% (24/24) → Cystoscopy Reports
+✅ urodynamic_studies                     100% (22/22) → Urodynamic Studies
+✅ urology_consultations                  100% (24/24) → Urology Consultations
+✅ cognitive_evaluations                  100% (23/23) → Cognitive Evaluations
+✅ fall_risk_assessments                  100% (23/23) → Fall Risk Assessments
+✅ functional_assessments                 100% (25/25) → Functional Assessments
+✅ geriatric_assessments                  100% (24/24) → Geriatric Assessments   PDF-missing: cognitiveFunctionScore, montrealCognitiveAssessment, activitiesOfDailyLivingScore, instrumentalAdlScore, geriatricDepressionScale, timedUpAndGoTest, bergBalanceScore, fallsRiskAssessment…
+✅ gi_risk_assessment                     100% (14/14) → GI Risk Assessment (exact)
+✅ polypharmacy_reviews                   100% (20/20) → Polypharmacy Reviews
+✅ autopsy_reports                        100% (19/19) → Autopsy Reports
+✅ biopsy_reports                         100% (9/9) → Biopsy Reports
+✅ cytology_reports                       100% (8/8) → Cytology Reports
+✅ dexa_scan_reports                      100% (24/24) → DEXA Scan Reports
+✅ interventional_radiology_notes         100% (16/16) → Interventional Radiology Notes
+✅ mammography_reports                    100% (23/23) → Mammography Reports
+✅ mri_reports                            100% (14/14) → MRI Reports
+✅ pet_scan_reports                       100% (24/24) → PET Scan Reports
+✅ radiology_reports                      100% (13/13) → Radiology Reports
+✅ antibiogram_reports                    100% (12/12) → Antibiogram Reports
+✅ blood_glucose_logs                     100% (11/11) → Blood Glucose Logs
+✅ flow_cytometry_reports                 100% (23/23) → Flow Cytometry Reports
+✅ genetic_testing_reports                100% (20/20) → Genetic Testing Reports   PDF-missing: genesTested, testingMethodology, pathogenicVariants, variantsOfUncertainSignificance, acmgClassification, inheritancePattern, penetrance, chromosomalLocation…
+✅ microbiology_culture_reports           100% (23/23) → Microbiology Culture Reports
+✅ oral_surgery_reports                   100% (25/25) → Oral Surgery Reports
+✅ orthodontic_treatment_plans            100% (8/8) → Orthodontic Treatment Plans
+✅ periodontal_charts                     100% (19/19) → Periodontal Charts
+✅ cognitive_rehabilitation_reports       100% (23/23) → Cognitive Rehabilitation Reports
+✅ occupational_therapy_reports           100% (11/11) → Occupational Therapy Reports
+✅ physical_therapy_evaluations           100% (12/12) → Physical Therapy Evaluations
+✅ physical_therapy_notes                 100% (21/21) → Physical Therapy Notes
+✅ rehabilitation_progress_notes          100% (23/23) → Rehabilitation Progress Notes
+✅ speech_therapy_assessments             100% (10/10) → Speech Therapy Assessments
+✅ intake_output_records                  100% (23/23) → Intake/Output Records
+✅ medication_administration_records      100% (25/25) → Medication Administration Records
+✅ scheduled_medications                  100% (17/17) → Scheduled Medications
+✅ prn_medications                        100% (17/17) → PRN Medications
+✅ iv_infusions                           100% (25/25) → IV Infusions
+✅ blood_glucose_monitoring               100% (17/17) → Blood Glucose Monitoring
+✅ omissions_refusals                     100% (22/22) → Omissions & Refusals
+✅ nurse_signatures                       100% (24/24) → Nurse Signatures
+✅ pharmacy_review                        100% (23/23) → Pharmacy Review
+✅ nicu_progress_notes                    100% (25/25) → NICU Progress Notes
+✅ nursing_assessments                    100% (20/20) → Nursing Assessments
+✅ pain_assessment_forms                  100% (25/25) → Pain Assessment Forms
+✅ progress_notes                         100% (24/24) → Progress Notes
+✅ shift_handoff_notes                    100% (23/23) → Shift Handoff Notes
+✅ soap_notes                             100% (23/23) → SOAP Notes
+✅ therapy_progress_notes                 100% (20/20) → Therapy Progress Notes
+✅ vital_signs_logs                       100% (24/24) → Vital Signs Logs
+✅ code_blue_summaries                    100% (25/25) → CodeBlueSummariesDocument
+✅ ems_run_reports                        100% (25/25) → EMS Run Reports
+✅ poison_control_reports                 100% (24/24) → Poison Control Reports
+✅ rapid_response_summaries               100% (24/24) → RapidResponseSummariesDocument
+✅ trauma_flow_sheets                     100% (25/25) → Trauma Flow Sheets
+✅ administrative_data                    100% (38/38) → Administrative Data
+✅ disability_evaluations                 100% (25/25) → Disability Evaluations
+✅ dnr_orders                             100% (19/19) → DNR Orders
+✅ fitness_for_duty_evaluations           100% (25/25) → Fitness for Duty Evaluations
+✅ medical_power_of_attorney              100% (23/23) → Medical Power of Attorney
+✅ medical_reconciliation_forms           100% (23/23) → Medical Reconciliation Forms
+✅ prior_authorization_forms              100% (25/25) → Prior Authorization Forms
+✅ school_health_forms                    100% (20/20) → School Health Forms
+✅ travel_health_certificates             100% (24/24) → Travel Health Certificates
+✅ workers_comp_evaluations               100% (22/22) → Workers Comp Evaluations
+✅ document_metadata                      100% (25/25) → Document Metadata
+✅ workplace_accommodations               100% (22/22) → Workplace Accommodations
+✅ employment_counseling                  100% (20/20) → Employment Counseling
+✅ home_health_notes                      100% (20/20) → Home Health Notes
+✅ hospice_notes                          100% (21/21) → Hospice Notes
+✅ pain_management_notes                  100% (24/24) → Pain Management Notes
+✅ social_work_notes                      100% (20/20) → Social Work Notes
+✅ mental_health_resources                100% (23/23) → Mental Health Resources
+✅ stress_management_referrals            100% (7/7) → Stress Management Referrals
+✅ exercise_recommendations               100% (24/24) → Exercise Recommendations
+✅ case_summaries                         100% (25/25) → Case Summaries
+✅ second_opinion_reports                 100% (24/24) → Second Opinion Reports
+✅ telemedicine_encounters                100% (23/23) → Telemedicine Encounters   PDF-missing: interpretationServices
+✅ clinical_trial_documents               100% (22/22) → Clinical Trial Documents
+✅ research_consent_forms                 100% (23/23) → Research Consent Forms
+✅ past_medical_history                   100% (9/9) → Past Medical History
+✅ surgical_history                       100% (8/8) → Surgical History
+✅ family_history                         100% (23/23) → Family History
+✅ history_present_illness                100% (23/23) → History of Present Illness
+✅ physical_examinations                  100% (23/23) → Physical Examinations
+✅ assessment_plans                       100% (14/14) → Assessment Plans
+✅ risk_factors                           100% (14/14) → Risk Factors
+✅ follow_up_appointments                 100% (18/18) → Follow-Up Appointments
+✅ follow_up_enhanced                     100% (24/24) → Follow-Up Enhanced
+✅ disease_severity                       100% (16/16) → Disease Severity   PDF-missing: results
+✅ emergency_information                  100% (16/16) → Emergency Information
+✅ preoperative_preparation               100% (13/13) → Preoperative Preparation
+✅ pre_operative_preparation              100% (20/20) → Pre-Operative Preparation
+✅ blood_products_ordered                 100% (23/23) → Blood Products Ordered
+✅ procedural_sedation                    100% (16/16) → Procedural Sedation   PDF-missing: plan, recommendations, results
+✅ work_restrictions                      100% (17/17) → Work Restrictions   PDF-missing: results
+✅ diabetes_educator                      100% (25/25) → Diabetes Educator
+✅ endocrine_lab_results                  100% (25/25) → Endocrine Lab Results
+✅ preconception_counseling               100% (18/18) → Preconception Counseling   PDF-missing: results
+✅ diabetes_quality_metrics               100% (25/25) → Diabetes Quality Metrics
+✅ pump_download_analysis                 100% (17/17) → Pump Download Analysis   PDF-missing: results
+✅ diabetes_supplies                      100% (25/25) → Diabetes Supplies
+✅ fertility_tracking                     100% (23/23) → Fertility Tracking
+✅ pump_advanced_settings                 100% (25/25) → Pump Advanced Settings
+✅ insulin_timing_instructions            100% (23/23) → Insulin Timing Instructions
+✅ hypoglycemia_protocol                  100% (25/25) → Hypoglycemia Protocol
+✅ ibd_biomarkers                         100% (20/20) → IBD Biomarkers
+✅ extraintestinal_manifestations         100% (18/18) → Extraintestinal Manifestations   PDF-missing: results
+✅ cancer_surveillance                    100% (15/15) → Cancer Surveillance   PDF-missing: facility
+✅ falls_prevention_program_assessment    100% (15/15) → Falls Prevention Program Assessment
+✅ quality_assurance                      100% (14/14) → Quality Assurance   PDF-missing: results
+✅ lymph_node_cytomorphology              100% (23/23) → Lymph Node Cytomorphology
+✅ cytogenetics                           100% (16/16) → Cytogenetics
+✅ staging_summary                        100% (15/15) → Staging Summary
+✅ geriatric_nutritional_assessment       100% (20/20) → Geriatric Nutritional Assessment
+✅ mood_psychological_assessment          100% (17/17) → Mood & Psychological Assessment   PDF-missing: results
+✅ social_functional_assessment           100% (18/18) → Social & Functional Assessment
+✅ frailty_assessment                     100% (19/19) → Frailty Assessment
+✅ myeloma_specific_data                  100% (18/18) → Myeloma Specific Data   PDF-missing: results
+✅ radiation_therapy                      100% (12/12) → Radiation Therapy
+✅ transplant_assessment                  100% (19/19) → Transplant Assessment   PDF-missing: results, status
+✅ performance_status                     100% (15/15) → Performance Status   PDF-missing: results
+✅ clinical_trials                        100% (16/16) → Clinical Trials   PDF-missing: findings, plan, results, status
+✅ response_assessment                    100% (18/18) → Response Assessment   PDF-missing: results
+✅ toxicity_assessment                    100% (16/16) → Toxicity Assessment   PDF-missing: ctcaeGrade, results
+✅ palliative_care_needs                  100% (17/17) → Palliative Care Needs   PDF-missing: recommendations, results
+✅ treatment_summary                      100% (15/15) → Treatment Summary   PDF-missing: results
+✅ psychosocial_oncology                  100% (19/19) → Psychosocial Oncology   PDF-missing: results
+✅ genetic_oncology                       100% (16/16) → Genetic Oncology   PDF-missing: riskAssessmentTools
+✅ prognostic_factors                     100% (18/18) → Prognostic Factors   PDF-missing: recommendations, results
+✅ integrative_oncology                   100% (17/17) → Integrative Oncology   PDF-missing: results
+✅ prophylactic_medications               100% (21/21) → Prophylactic Medications
+✅ pre_chemotherapy_workup                100% (15/15) → Pre-Chemotherapy Workup   PDF-missing: results
+✅ pain_management_plan                   100% (16/16) → Pain Management Plan   PDF-missing: results
+✅ supportive_care                        100% (24/24) → Supportive Care
+✅ oncology_team                          100% (15/15) → Oncology Team
+✅ obstetric_history                      100% (17/17) → Obstetric History   PDF-missing: results
+✅ reproductive_history                   100% (17/17) → Reproductive History   PDF-missing: results
+✅ cell_free_dna_result                   100% (24/24) → Cell-Free DNA Result
+✅ first_trimester_screen_result          100% (23/23) → First Trimester Screen Result
+✅ anatomy_scan_result                    100% (20/20) → Anatomy Scan Result
+✅ cervical_length_measurement            100% (21/21) → Cervical Length Measurement
+✅ fetal_echo_results                     100% (23/23) → Fetal Echocardiography Results
+✅ perinatal_mental_health_referral       100% (21/21) → Perinatal Mental Health Referral
+✅ maternal_weight_monitoring             100% (18/18) → Maternal Weight Monitoring   PDF-missing: results
+✅ risk_counseling                        100% (20/20) → Risk Counseling
+✅ carbohydrate_counting_education        100% (24/24) → Carbohydrate Counting Education
+✅ amniotic_fluid_index_current           100% (13/13) → Amniotic Fluid Index
+✅ breastfeeding_recommendation           100% (23/23) → Breastfeeding Recommendation
+✅ partner_involvement                    100% (21/21) → Partner Involvement Assessment
+✅ diabetes_management_plan               100% (17/17) → Diabetes Management Plan   PDF-missing: results
+✅ single_embryo_transfer_details         100% (23/23) → Single Embryo Transfer Details
+✅ single_embryo_transfer                 100% (25/25) → Single Embryo Transfer
+✅ preeclampsia_monitoring                100% (24/24) → Preeclampsia Monitoring
+✅ infection_risk_monitoring              100% (25/25) → Infection Risk Monitoring
+✅ partner_involvement_diabetes_management 100% (20/20) → Partner Involvement Diabetes Management
+✅ excessive_glucose_monitoring           100% (23/23) → Excessive Glucose Monitoring
+✅ macrosomia_threshold                   100% (22/22) → Macrosomia Threshold
+✅ postpartum_diabetes_risk               100% (23/23) → Postpartum Diabetes Risk
+✅ gdm_recurrence_risk                    100% (20/20) → GDM Recurrence Risk
+✅ mineral_bone_disease                   100% (21/21) → Mineral Bone Disease
+✅ fluid_electrolyte_management           100% (22/22) → Fluid Electrolyte Management (exact)
+✅ medication_renal_dosing                100% (15/15) → Medication Renal Dosing
+✅ polycystic_kidney_disease              100% (17/17) → Polycystic Kidney Disease
+✅ diabetic_nephropathy                   100% (17/17) → Diabetic Nephropathy
+✅ non_motor_symptoms                     100% (16/16) → Non-Motor Symptoms   PDF-missing: results, status
+✅ neurological_exam                      100% (20/20) → Neurological Exam   PDF-missing: results
+✅ multiple_sclerosis_assessment          100% (17/17) → Multiple Sclerosis Assessment
+✅ stroke_assessment                      100% (20/20) → Stroke Assessment   PDF-missing: results
+✅ peripheral_neuropathy                  100% (20/20) → Peripheral Neuropathy   PDF-missing: results
+✅ surgical_team                          100% (18/18) → Surgical Team   PDF-missing: results
+✅ operative_details                      100% (29/29) → Operative Details
+✅ specimens                              100% (16/16) → Specimens   PDF-missing: results
+✅ complications                          100% (14/14) → Complications   PDF-missing: results
+✅ postoperative_orders                   100% (19/19) → Postoperative Orders   PDF-missing: results
+✅ postoperative_condition                100% (14/14) → Postoperative Condition
+✅ orthopedic_imaging                     100% (16/16) → Orthopedic Imaging   PDF-missing: results
+✅ orthopedic_assessment                  100% (16/16) → Orthopedic Assessment   PDF-missing: results
+✅ orthopedic_procedures                  100% (18/18) → Orthopedic Procedures   PDF-missing: results
+✅ meniscus_repair                        100% (17/17) → Meniscus Repair   PDF-missing: results
+✅ articular_cartilage                    100% (15/15) → Articular Cartilage   PDF-missing: results
+✅ postop_testing                         100% (20/20) → Post-Operative Testing
+✅ dvt_prophylaxis                        100% (15/15) → DVT Prophylaxis   PDF-missing: results
+✅ neurovascular_exam                     100% (15/15) → Neurovascular Exam   PDF-missing: results
+✅ pediatric_screening                    100% (19/19) → Pediatric Screening   PDF-missing: results
+✅ well_child_summary                     100% (25/25) → Well Child Summary
+✅ consultation_details                   100% (25/25) → Consultation Details
+✅ medication_reconciliation              100% (18/18) → Medication Reconciliation
+✅ supplementation_plans                  100% (15/15) → Supplementation Plans   PDF-missing: results
+✅ trend_analysis                         100% (15/15) → Trend Analysis (exact)
+✅ prognosis                              100% (20/20) → Prognosis   PDF-missing: mortality, findings, plan, recommendations, results
+✅ allergy_immunology_assessment          100% (16/16) → Allergy & Immunology Assessment
+✅ anesthesiology_assessment              100% (15/15) → Anesthesiology Assessment   PDF-missing: results
+✅ diagnostic_impression                  100% (16/16) → Diagnostic Impression   PDF-missing: results
+✅ document_type                          100% (25/25) → Document Classification
+✅ ent_assessment                         100% (15/15) → ENT Assessment   PDF-missing: results
+✅ environmental_exposures                100% (15/15) → Environmental Exposures
+✅ facility                               100% (24/24) → Facility
+✅ gout_assessment                        100% (18/18) → Gout Assessment   PDF-missing: recommendations, results, notes
+✅ homicide_risk_assessment               100% (17/17) → Homicide Risk Assessment   PDF-missing: results
+✅ immunization_record                    100% (18/18) → Immunization Record
+✅ fetal_echo                             100% (25/25) → Fetal Echocardiography
+✅ postpartum_glucose_monitoring          100% (14/14) → Postpartum Glucose Monitoring   PDF-missing: results
+✅ weekly_virtual_check_ins               100% (15/15) → Weekly Virtual Check-Ins   PDF-missing: results
+✅ south_asian_nutritionist               100% (15/15) → South Asian Nutritionist   PDF-missing: findings, results
+✅ thyroid_management                     100% (16/16) → Thyroid Management   PDF-missing: results
+✅ total_weight_gain                      100% (14/14) → Total Weight Gain   PDF-missing: results, status
+✅ pre_pregnancy_weight                   100% (22/22) → Pre-Pregnancy Weight
+✅ diabetes_educator_training             100% (24/24) → Diabetes Education & Self-Management
+✅ early_maternity_leave                  100% (14/14) → Early Maternity Leave   PDF-missing: recommendations, results
+✅ support_group_referral                 100% (16/16) → Support Group Referral
+✅ continuous_glucose_monitor_discussion  100% (25/25) → Continuous Glucose Monitor Discussion
+✅ glucose_monitoring_goals               100% (23/23) → Glucose Monitoring Goals   PDF-missing: targetFastingGlucose, targetPostprandialGlucose, targetHbA1c, timeInRangeGoal, timeAboveRangeLimit, timeBelowRangeLimit, coefficientOfVariation, meanAmplitudeGlycemicExcursions…
+✅ insulin_storage_instructions           100% (20/20) → Insulin Storage Instructions
+✅ cesarean_threshold                     100% (25/25) → Cesarean Threshold Assessment
+✅ glucose_testing_weeks                  100% (13/13) → Glucose Tolerance Test
+✅ point_of_care_ultrasound_heart_rate    100% (14/14) → Point-of-Care Ultrasound Heart Rate
+✅ inter_pregnancy_weight_management      100% (25/25) → Inter-Pregnancy Weight Management
+✅ sleep_disturbances                     100% (15/15) → Sleep Disturbances   PDF-missing: results
+✅ patient_emotional_response             100% (15/15) → Patient Emotional Response
+✅ comprehensive_cardiomyopathy_panel     100% (24/24) → Comprehensive Cardiomyopathy Panel
+✅ inheritance_pattern_details            100% (23/23) → Inheritance Pattern Details
+✅ children_specific_risk                 100% (23/23) → Children Specific Risk
+✅ cascade_testing_protocol               100% (24/24) → Cascade Testing Protocol
+✅ potential_testing_outcomes             100% (23/23) → Potential Testing Outcomes
+✅ psychosocial_support_services          100% (21/21) → Psychosocial Support Services
+✅ reason_for_referral                    100% (25/25) → Reason for Referral
+✅ extended_family_history                100% (25/25) → Extended Family History
+✅ genetics_psychosocial_assessment       100% (25/25) → Genetics Psychosocial Assessment
+✅ immediate_recommendations              100% (23/23) → Immediate Recommendations
+✅ prior_authorization_status             100% (22/22) → Prior Authorization Status
+✅ blood_sample_collection_status         100% (23/23) → Blood Sample Collection Status
+✅ fmla_documentation_note                100% (20/20) → FMLA Documentation Note
+✅ mental_status_exams                    100% (25/25) → Mental Status Exam
+✅ myositis_assessment                    100% (17/17) → Myositis Assessment
+✅ neurosurgery_assessment                100% (21/21) → Neurosurgery Assessment   PDF-missing: results
+✅ nutritional_assessment                 100% (19/19) → Nutritional Assessment   PDF-missing: breastfeedingHistory, formulaFeeding, solidFoods, results
+✅ past_ocular_history                    100% (16/16) → Past Ocular History
+✅ post_op_testing                        100% (19/19) → Post-Operative Testing (Orthopedic)
+✅ pain_management                        100% (24/24) → Pain Management
+✅ patient_provider                       100% (25/25) → Patient Provider
+✅ provider_info                          100% (24/24) → Provider Info
+✅ psychiatric_history                    100% (17/17) → Psychiatric History   PDF-missing: results
+✅ psychiatric_review                     100% (19/19) → Psychiatric Review   PDF-missing: results
+✅ pulmonary_imaging                      100% (15/15) → Pulmonary Imaging   PDF-missing: status
+✅ pulmonary_rehabilitation               100% (25/25) → Pulmonary Rehabilitation
+✅ radiology_findings                     100% (19/19) → Radiology Findings   PDF-missing: results
+✅ respiratory_devices                    100% (18/18) → Respiratory Devices   PDF-missing: results
+✅ respiratory_infections                 100% (16/16) → Respiratory Infections
+✅ rheumatologic_treatment                100% (16/16) → Rheumatologic Treatment
+✅ scleroderma_assessment                 100% (14/14) → Scleroderma Assessment   PDF-missing: results
+✅ sjogrens_syndrome_assessment           100% (17/17) → Sjogrens Syndrome Assessment   PDF-missing: results
+✅ spondyloarthritis_assessment           100% (19/19) → Spondyloarthritis Assessment   PDF-missing: recommendations, results, notes
+✅ substance_use_assessment               100% (17/17) → Substance Use Assessment   PDF-missing: recommendations, results, status
+✅ treatment_goals                        100% (16/16) → Treatment Goals   PDF-missing: results
+✅ urology_assessment                     100% (16/16) → Urology Assessment
+✅ vasculitis_assessment                  100% (16/16) → Vasculitis Assessment   PDF-missing: results
+✅ vital_signs_table                      100% (28/28) → Vital Signs Table
+✅ pressure_injury                        100% (17/17) → Pressure Injury
+✅ blood_products                         100% (15/15) → Blood Products / Transfusion
+✅ ventilator_settings                    100% (20/20) → Ventilator Settings   PDF-missing: results
+✅ lifestyle_counseling                   100% (18/18) → Lifestyle Counseling   PDF-missing: results
+✅ patient_instructions                   100% (14/14) → Patient Instructions   PDF-missing: results
+✅ referrals_placed                       100% (8/8) → Referrals Placed
+✅ preventive_care                        100% (20/20) → Preventive Care
+✅ family_medicine_visits                 100% (16/16) → Family Medicine Visits
+✅ monitoring_plans                       100% (8/8) → Monitoring Plans
+✅ nutritional_support                    100% (22/22) → Nutritional Support
+✅ psc_management                         100% (15/15) → PSC Management   PDF-missing: results
+✅ infusion_therapy                       100% (25/25) → Infusion Therapy
+✅ admission_decisions                    100% (14/14) → Admission Decision
+✅ advance_care_planning                  100% (15/15) → Advance Care Planning
+✅ medication_changes_new                 100% (23/23) → Medication Changes New
+✅ medication_changes_dose                100% (20/20) → Medication Changes & Dose
+✅ medication_changes_discontinued        100% (24/24) → Medication Changes Discontinued
+✅ social_support                         100% (19/19) → Social Support
+✅ geriatric_medications                  100% (17/17) → Geriatric Medications   PDF-missing: durationDays, durationUnit, refills
+✅ polypharmacy                           100% (21/21) → Polypharmacy
+✅ nutritional_status                     100% (23/23) → Nutritional Status
+✅ home_safety                            100% (22/22) → Home Safety
+✅ assistive_devices                      100% (16/16) → Assistive Devices
+✅ palliative_care                        100% (13/13) → Palliative Care
+✅ compression_therapy                    100% (23/23) → Compression Therapy
+✅ dietary_interventions                  100% (24/24) → Dietary Interventions
+✅ respite_care                           100% (20/20) → Respite Care
+✅ caregiver_support_groups               100% (21/21) → Caregiver Support Groups
+✅ neuropsych_testing                     100% (25/25) → Neuropsych Testing
+✅ dementia_education                     100% (23/23) → Dementia Education
+✅ safety_planning                        100% (21/21) → Safety Planning   PDF-missing: substanceUseScreening
+✅ fall_prevention_education              100% (21/21) → Fall Prevention Education
+✅ hydration_management                   100% (25/25) → Hydration Management
+✅ weight_monitoring                      100% (23/23) → Weight Monitoring
+✅ anticoagulation_management             100% (18/18) → Anticoagulation Management
+✅ neurological_findings                  100% (20/20) → Neurological Findings
+✅ adult_day_program_info                 100% (14/14) → Adult Day Program Info
+✅ weight_measurements                    100% (24/24) → Weight Measurements
+✅ blood_pressure_readings                100% (24/24) → Blood Pressure Readings
+✅ neurological_examination               100% (24/24) → Neurological Examination
+✅ family_meeting_decisions               100% (23/23) → Family Meeting Decisions
+✅ height_measurements                    100% (23/23) → Height Measurements
+✅ nutritional_supplementation            100% (25/25) → Nutritional Supplementation
+✅ caregiver_support                      100% (26/26) → Caregiver Support
+✅ follow_up_plan                         100% (28/28) → Follow-Up Plan
+✅ immediate_interventions                100% (25/25) → Immediate Interventions   PDF-missing: interventionType, timeToIntervention, glasgowComaScale, apacheIIScore, sofaScore, oxygenationStatus, systolicBloodPressure, diastolicBloodPressure…
+✅ ckd_management                         100% (24/24) → CKD Management
+✅ cardiovascular_risk_reduction          100% (25/25) → Cardiovascular Risk Reduction
+✅ clinical_decision_support              100% (5/5) → Clinical Decision Support
+✅ intelligent_recommendations            100% (16/16) → Intelligent Recommendations
+✅ medication_optimization                100% (23/23) → Medication Optimization
+✅ doctors_medications_recommendations    100% (28/28) → Doctors Medication Recommendations
+✅ doctors_medications_recommendations_optimizations 100% (28/28) → Doctors Medications Recommendations Optimizations
+✅ follow_up_intelligence                 100% (26/26) → Follow-Up Intelligence
+✅ patient_education_context              100% (28/28) → Patient Education Context
+✅ guideline_compliance                   100% (12/12) → Guideline Compliance
+✅ vascular_surgery_assessment            100% (23/23) → Vascular Surgery Assessment
+✅ vascular_bypass_surgery                100% (24/24) → Vascular Bypass Surgery
+✅ venous_insufficiency_assessment        100% (25/25) → Venous Insufficiency Assessment
+✅ aortic_aneurysm_surveillance           100% (28/28) → Aortic Aneurysm Surveillance
+✅ peripheral_artery_disease              100% (25/25) → Peripheral Artery Disease
+✅ varicose_vein_treatment                100% (24/24) → Varicose Vein Treatment
+✅ liver_transplant_evaluation            100% (25/25) → Liver Transplant Evaluation
+✅ heart_transplant_evaluation            100% (31/31) → Heart Transplant Evaluation
+✅ heart_transplant_follow_up             100% (31/31) → Heart Transplant Follow-Up
+✅ lung_transplant_evaluation             100% (25/25) → Lung Transplant Evaluation
+✅ lung_transplant_follow_up              100% (25/25) → Lung Transplant Follow-Up
+✅ kidney_transplant_follow_up            100% (25/25) → Kidney Transplant Follow-Up
+✅ pancreas_transplant_evaluation         100% (23/23) → Pancreas Transplant Evaluation
+✅ pancreas_transplant_follow_up          100% (25/25) → Pancreas Transplant Follow-Up
+✅ bone_marrow_transplant_evaluation      100% (25/25) → Bone Marrow Transplant Evaluation
+✅ bone_marrow_transplant_follow_up       100% (25/25) → Bone Marrow Transplant Follow-Up
+✅ stem_cell_transplant_assessment        100% (25/25) → Stem Cell Transplant Assessment
+✅ podiatry_consultations                 100% (25/25) → Podiatry Consultations
+✅ diabetic_foot_assessment               100% (26/26) → Diabetic Foot Assessment
+✅ bunion_surgery_evaluation              100% (23/23) → Bunion Surgery Evaluation
+✅ foot_reconstruction                    100% (25/25) → Foot Reconstruction
+✅ heel_pain_assessment                   100% (25/25) → Heel Pain Assessment
+✅ ingrown_toenail_treatment              100% (25/25) → Ingrown Toenail Treatment
+✅ plantar_fasciitis_management           100% (24/24) → Plantar Fasciitis Management
+✅ foot_orthotics_assessment              100% (25/25) → Foot Orthotics Assessment
+✅ tmj_assessment                         100% (25/25) → TMJ Assessment
+✅ facial_trauma_assessment               100% (25/25) → Facial Trauma Assessment
+✅ jaw_reconstruction                     100% (25/25) → Jaw Reconstruction
+✅ orthognathic_surgery_evaluation        100% (25/25) → Orthognathic Surgery Evaluation
+✅ oral_pathology_biopsy                  100% (25/25) → Oral Pathology Biopsy
+✅ ivf_cycle_monitoring                   100% (25/25) → IVF Cycle Monitoring
+✅ egg_retrieval_procedure                100% (25/25) → Egg Retrieval Procedure
+✅ embryo_transfer_procedure              100% (30/30) → Embryo Transfer Procedure
+✅ sperm_analysis                         100% (30/30) → Sperm Analysis
+✅ ovarian_stimulation_protocol           100% (25/25) → Ovarian Stimulation Protocol
+✅ fertility_medication_management        100% (25/25) → Fertility Medication Management
+✅ intrauterine_insemination              100% (25/25) → Intrauterine Insemination
+✅ donor_egg_cycle                        100% (25/25) → Donor Egg Cycle
+✅ surrogacy_evaluation                   100% (25/25) → Surrogacy Evaluation
+✅ fertility_preservation                 100% (25/25) → Fertility Preservation
+✅ sti_screening_panel                    100% (25/25) → STI Screening Panel
+✅ hiv_pep_prophylaxis                    100% (29/29) → HIV PEP Prophylaxis
+✅ hiv_prep_management                    100% (25/25) → HIV PrEP Management
+✅ sexual_health_counseling               100% (24/24) → Sexual Health Counseling
+✅ partner_notification                   100% (25/25) → Partner Notification
+✅ syphilis_treatment_follow_up           100% (25/25) → Syphilis Treatment Follow-Up
+✅ cyp450_panel_results                   100% (25/25) → CYP450 Panel Results
+✅ drug_gene_interaction_report           100% (24/24) → Drug Gene Interaction Report
+✅ tpn_management                         100% (26/26) → TPN Management
+✅ enteral_feeding_assessment             100% (25/25) → Enteral Feeding Assessment
+✅ nutrition_support_consultation         100% (26/26) → Nutrition Support Consultation
+✅ tube_feeding_order                     100% (25/25) → Tube Feeding Order
+✅ parenteral_nutrition_monitoring        100% (25/25) → Parenteral Nutrition Monitoring
+✅ nutrition_lab_monitoring               100% (25/25) → Nutrition Lab Monitoring
+✅ respiratory_therapy_assessment         100% (29/29) → Respiratory Therapy Assessment
+✅ oxygen_titration_protocol              100% (25/25) → Oxygen Titration Protocol
+✅ ventilator_weaning_protocol            100% (25/25) → Ventilator Weaning Protocol
+✅ airway_clearance_therapy               100% (25/25) → Airway Clearance Therapy
+✅ bronchial_hygiene_therapy              100% (26/26) → Bronchial Hygiene Therapy
+✅ cpap_bipap_management                  100% (25/25) → CPAP/BiPAP Management
+✅ chiropractic_consultation              100% (25/25) → Chiropractic Consultation
+✅ spinal_manipulation_record             100% (25/25) → Spinal Manipulation Record
+✅ chiropractic_x_ray_review              100% (24/24) → Chiropractic X-Ray Review
+✅ optometry_examination                  100% (47/47) → Optometry Examination
+✅ contact_lens_fitting                   100% (25/25) → Contact Lens Fitting
+✅ low_vision_evaluation                  100% (25/25) → Low Vision Evaluation
+✅ vision_therapy_assessment              100% (25/25) → Vision Therapy Assessment
+✅ medication_therapy_management          100% (23/23) → Medication Therapy Management
+✅ comprehensive_medication_review        100% (25/25) → Comprehensive Medication Review
+✅ medication_action_plan                 100% (25/25) → Medication Action Plan
+✅ pharmacist_consultation                100% (25/25) → Pharmacist Consultation
+✅ hyperbaric_oxygen_therapy              100% (24/24) → Hyperbaric Oxygen Therapy
+✅ wound_healing_hyperbaric               100% (25/25) → Wound Healing Hyperbaric
+✅ decompression_sickness_treatment       100% (24/24) → Decompression Sickness Treatment
+✅ burn_assessment                        100% (25/25) → Burn Assessment
+✅ burn_wound_care                        100% (25/25) → Burn Wound Care
+✅ skin_grafting_evaluation               100% (25/25) → Skin Grafting Evaluation
+✅ burn_rehabilitation                    100% (25/25) → Burn Rehabilitation
+✅ burn_fluid_resuscitation               100% (25/25) → Burn Fluid Resuscitation
+✅ medication_access_programs             100% (8/8) → Medication Access Programs
+✅ clinical_risk_scores                   100% (26/26) → Clinical Risk Scores
+✅ quality_metrics                        100% (12/12) → Quality Metrics
+✅ treatment_plans                        100% (8/8) → Treatment Plans
+✅ social_work                            100% (26/26) → Social Work
+✅ colorectal_colonoscopies               100% (24/24) → Colorectal Colonoscopies
+✅ colorectal_surgery_consultations       100% (25/25) → Colorectal Surgery Consultations
+✅ plastic_surgery_consultations          100% (25/25) → Plastic Surgery Consultations
+✅ blood_smears                           100% (23/23) → Blood Smears   PDF-missing: whiteBloodCellDifferential, parasiteIdentification, microorganisms
+✅ lifestyle_assessments                  100% (25/25) → Lifestyle Assessments   PDF-missing: provider, facility, smokingStatus, tobaccoUseFrequency, alcoholConsumption, substanceUseHistory, physicalActivityLevel, exerciseFrequency…
+✅ risk_calculators                       100% (25/25) → Risk Calculators
+✅ preventive_biomarkers                  100% (25/25) → Preventive Biomarkers
+✅ screening_compliance                   100% (25/25) → Screening Compliance
+✅ ed_triage_assessment                   100% (26/26) → ED Triage Assessment
+✅ trauma_assessment                      100% (26/26) → Trauma Assessment
+✅ trauma_scoring                         100% (26/26) → Trauma Scoring
+✅ emergency_airway_management            100% (26/26) → Emergency Airway Management
+✅ resuscitation_records                  100% (26/26) → ResuscitationRecordsDocument
+✅ emergency_procedures                   100% (26/26) → Emergency Procedures
+✅ emergency_disposition                  100% (26/26) → Emergency Disposition
+✅ antibiotic_stewardship                 100% (26/26) → Antibiotic Stewardship
+✅ infection_control_records              100% (26/26) → Infection Control Records
+✅ sepsis_management                      100% (26/26) → Sepsis Management
+✅ opportunistic_infections               100% (26/26) → Opportunistic Infections
+✅ antimicrobial_susceptibility           100% (24/24) → Antimicrobial Susceptibility
+✅ isolation_precautions                  100% (26/26) → Isolation Precautions
+✅ infection_surveillance                 100% (26/26) → Infection Surveillance
+✅ travel_medicine_assessment             100% (24/24) → Travel Medicine Assessment
+✅ tropical_disease_assessment            100% (26/26) → Tropical Disease Assessment
+✅ preoperative_evaluation                100% (26/26) → Preoperative Evaluation
+✅ anesthesia_consent                     100% (26/26) → Anesthesia Consent   PDF-missing: anesthesiologistLicenseNumber
+✅ postoperative_pain_management          100% (26/26) → Postoperative Pain Management
+✅ regional_anesthesia_records            100% (26/26) → Regional Anesthesia
+✅ airway_management_records              100% (26/26) → Airway Management
+✅ sedation_records                       100% (25/25) → Sedation Records
+✅ anesthesia_complications               100% (26/26) → Anesthesia Complications
+✅ chronic_pain_assessment                100% (26/26) → Chronic Pain Assessment
+✅ opioid_risk_assessment                 100% (26/26) → Opioid Risk Assessment
+✅ pain_medication_agreements             100% (26/26) → Pain Medication Agreements
+✅ pain_functional_assessment             100% (26/26) → Pain Functional Assessment
+✅ multimodal_pain_therapy                100% (26/26) → Multimodal Pain Therapy
+✅ occupational_health_assessment         100% (25/25) → Occupational Health Assessment
+✅ workplace_injury_report                100% (26/26) → Workplace Injury Report
+✅ occupational_exposure_records          100% (26/26) → Occupational Exposure Records
+✅ return_to_work_plan                    100% (26/26) → Return to Work Plan
+✅ job_hazard_analysis                    100% (26/26) → Job Hazard Analysis
+✅ ergonomic_assessment                   100% (26/26) → Ergonomic Assessment
+✅ pre_employment_physical                100% (25/25) → Pre-Employment Physical
+✅ cognitive_screening                    100% (26/26) → Cognitive Screening
+✅ elder_abuse_screening                  100% (26/26) → Elder Abuse Screening
+✅ goals_of_care_discussion               100% (26/26) → Goals of Care Discussion
+✅ cpap_management                        100% (26/26) → CPAP Management
+✅ sleep_disorder_assessment              100% (26/26) → Sleep Disorder Assessment
+✅ insomnia_assessment                    100% (26/26) → Insomnia Assessment
+✅ narcolepsy_assessment                  100% (25/25) → Narcolepsy Assessment
+✅ sleep_apnea_management                 100% (25/25) → Sleep Apnea Management
+✅ sleep_hygiene_education                100% (26/26) → Sleep Hygiene Education
+✅ daytime_sleepiness_assessment          100% (24/24) → Daytime Sleepiness Assessment
+✅ sports_physical_examination            100% (25/25) → Sports Physical Examination
+✅ concussion_assessment                  100% (28/28) → Concussion Assessment
+✅ return_to_play_protocol                100% (26/26) → Return To Play Protocol   PDF-missing: sportSpecificDrillsTolerated
+✅ athletic_injury_assessment             100% (26/26) → Athletic Injury Assessment
+✅ performance_assessment                 100% (25/25) → Performance Assessment
+✅ sports_nutrition_plan                  100% (26/26) → Sports Nutrition Plan
+✅ overtraining_assessment                100% (26/26) → Overtraining Assessment
+✅ cancer_screening_records               100% (26/26) → Cancer Screening Records
+✅ cardiovascular_risk_screening          100% (26/26) → Cardiovascular Risk Screening
+✅ lifestyle_risk_assessment              100% (26/26) → Lifestyle Risk Assessment
+✅ health_coaching_notes                  100% (26/26) → Health Coaching Notes
+✅ wellness_visit_documentation           100% (26/26) → Wellness Visit Documentation
+✅ immunization_schedule                  100% (26/26) → Immunization Schedule
+✅ travel_vaccination_records             100% (31/31) → Travel Vaccination Records
+✅ annual_physical_examination            100% (31/31) → Annual Physical Examination
+✅ pressure_ulcer_risk                    100% (26/26) → Pressure Ulcer Risk
+✅ venous_thromboembolism_risk            100% (25/25) → Venous Thromboembolism Risk
+✅ readmission_risk_assessment            100% (26/26) → Readmission Risk Assessment
+✅ mortality_risk_assessment              100% (26/26) → Mortality Risk Assessment
+✅ malnutrition_risk_assessment           100% (26/26) → Malnutrition Risk Assessment
+✅ bleeding_risk_assessment               100% (26/26) → Bleeding Risk Assessment
+✅ patient_care_goals                     100% (24/24) → Patient Care Goals
+✅ rehabilitation_goals                   100% (26/26) → Rehabilitation Goals
+✅ behavioral_health_goals                100% (26/26) → Behavioral Health Goals
+✅ chronic_disease_goals                  100% (26/26) → Chronic Disease Goals
+✅ procedure_requests                     100% (26/26) → Procedure Requests
+
+881 collections [schema-only]: 837 ok, 14 partial (⚠️), 15 broken (❌), 0 no-data (➖), 0 agent-blind (🤖)

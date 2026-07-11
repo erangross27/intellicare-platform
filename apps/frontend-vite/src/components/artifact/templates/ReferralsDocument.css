@@ -1,0 +1,593 @@
+/**
+ * ReferralsDocument.css - February 2026
+ *
+ * Blue glow mini-card pattern with inline editing.
+ * Font sizes: section-title 19px > nested-subtitle 17px > content-value 14px
+ */
+
+/* ========== DOCUMENT CONTAINER ========== */
+.referrals-document {
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  background: #0F1B33;
+  color: #ececf1;
+  padding: 24px;
+  min-height: 100%;
+}
+
+/* ========== DOCUMENT HEADER ========== */
+.referrals-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #565869;
+}
+
+.referrals-document .document-title {
+  margin: 0;
+  font-size: 31px;
+  font-weight: 700;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+.referrals-document .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+/* Action Buttons (Copy All, PDF) */
+.referrals-document .header-actions .copy-btn,
+.referrals-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.referrals-document .header-actions .copy-btn:hover,
+.referrals-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.referrals-document .header-actions .copy-btn.copied,
+.referrals-document .header-actions .pdf-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.referrals-document .header-actions .pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========== SEARCH ========== */
+.referrals-document .search-results-count {
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: right;
+}
+
+/* ========== RECORDS CONTAINER ========== */
+.referrals-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ========== STATUS GROUP ========== */
+.referrals-document .status-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.referrals-document .group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.referrals-document .group-header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.referrals-document .group-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+.referrals-document .group-count {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Status-specific group colors */
+.referrals-document .status-group.pending .group-title {
+  color: #ea580c;
+}
+.referrals-document .status-group.pending .group-count {
+  background: rgba(234, 88, 12, 0.2);
+  color: #ea580c;
+  border-color: rgba(234, 88, 12, 0.4);
+}
+
+.referrals-document .status-group.referred .group-title {
+  color: #8b5cf6;
+}
+.referrals-document .status-group.referred .group-count {
+  background: rgba(139, 92, 246, 0.2);
+  color: #8b5cf6;
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.referrals-document .status-group.scheduled .group-title {
+  color: #10b981;
+}
+.referrals-document .status-group.scheduled .group-count {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.referrals-document .status-group.completed .group-title {
+  color: #60a5fa;
+}
+
+.referrals-document .status-group.cancelled .group-title {
+  color: #dc2626;
+}
+.referrals-document .status-group.cancelled .group-count {
+  background: rgba(220, 38, 38, 0.2);
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.referrals-document .status-group.unknown .group-title {
+  color: #9ca3af;
+}
+.referrals-document .status-group.unknown .group-count {
+  background: rgba(156, 163, 175, 0.2);
+  color: #9ca3af;
+  border-color: rgba(156, 163, 175, 0.4);
+}
+
+.referrals-document .referrals-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ========== REFERRAL RECORD (Main Card - Blue Glow) ========== */
+.referrals-document .referral-record {
+  background: rgba(96, 165, 250, 0.05);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* ========== RECORD HEADER ========== */
+.referrals-document .record-header {
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.referrals-document .header-top-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.referrals-document .copy-referral-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.referrals-document .copy-referral-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+.referrals-document .copy-referral-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.referrals-document .record-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  line-height: 1.4;
+}
+
+/* ========== SECTION ========== */
+.referrals-document .section {
+  margin-bottom: 16px;
+}
+
+/* ========== MINI-CARDS CONTAINER (Outer Blue Glow Box) ========== */
+.referrals-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ========== SECTION HEADER (Inside mini-cards-container) ========== */
+.referrals-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.referrals-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== REC-MINI-CARD ========== */
+.referrals-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Nested Subtitle - LIGHT BRIGHT BLUE */
+.referrals-document .nested-subtitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* ========== NUMBERED ROW (Very Dark Blue Background) ========== */
+.referrals-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.referrals-document .row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Content Value */
+.referrals-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* ========== COPY BUTTONS ========== */
+.referrals-document .copy-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.referrals-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+.referrals-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========== SEARCH HIGHLIGHT ========== */
+.referrals-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+  display: inline !important;
+}
+
+/* ========== NO DATA STATE ========== */
+.referrals-document .no-data {
+  text-align: center;
+  padding: 48px 24px;
+  color: #9ca3af;
+  font-size: 16px;
+  background: rgba(96, 165, 250, 0.05);
+  border: 2px dashed rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+}
+
+/* ========== HEADER RIGHT ACTIONS ========== */
+.referrals-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ========== EDITING STYLES ========== */
+
+/* Editable row hover */
+.referrals-document .row-content.editable {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+.referrals-document .row-content.editable:hover {
+  background-color: rgba(59, 130, 246, 0.06);
+}
+
+/* Edit indicator */
+.referrals-document .edit-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  color: #3b82f6;
+  font-size: 11px;
+}
+.referrals-document .row-content.editable:hover .edit-indicator {
+  opacity: 0.7;
+}
+.referrals-document .edit-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Modified badge */
+.referrals-document .modified-badge {
+  font-size: 11px;
+  color: #f59e0b;
+  padding: 2px 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 4px;
+  margin-top: 4px;
+}
+.referrals-document .numbered-row.modified {
+  border-left: 3px solid #f59e0b;
+  padding-left: 8px;
+}
+
+/* Edit row (textarea mode) */
+.referrals-document .edit-row {
+  flex-direction: column;
+  gap: 8px;
+}
+.referrals-document .edit-field-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.referrals-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 10px;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  background: #0f172a;
+  color: #e2e8f0;
+  outline: none;
+  box-sizing: border-box;
+}
+.referrals-document .edit-textarea:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+.referrals-document .edit-date {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  font-size: 16px;
+  font-family: inherit;
+  background: #0f172a;
+  color: #e2e8f0;
+  outline: none;
+  box-sizing: border-box;
+  color-scheme: dark;
+}
+.referrals-document .edit-date:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+.referrals-document .edit-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.referrals-document .edit-save-btn {
+  padding: 4px 14px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.referrals-document .edit-save-btn:hover {
+  background: #2563eb;
+}
+.referrals-document .edit-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.referrals-document .edit-cancel-btn {
+  padding: 4px 14px;
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.referrals-document .edit-cancel-btn:hover {
+  background: #1e293b;
+}
+
+/* Approve button — yellow when pending edits */
+.referrals-document .approve-btn {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+.referrals-document .approve-btn:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.6);
+}
+.referrals-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* After approval — green */
+.referrals-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+.referrals-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .referrals-document {
+    padding: 16px;
+  }
+
+  .referrals-document .document-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .referrals-document .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .referrals-document .section-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .referrals-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .referrals-document .copy-btn {
+    align-self: flex-end;
+  }
+
+  .referrals-document .header-top-row {
+    justify-content: flex-start;
+  }
+
+  .referrals-document .group-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+}

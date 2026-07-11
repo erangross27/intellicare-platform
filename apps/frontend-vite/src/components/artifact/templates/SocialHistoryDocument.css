@@ -1,0 +1,770 @@
+/* Social History Document - December 2025 */
+/* Blue theme with mini-card pattern */
+
+.social-history-document {
+  background: #0F1B33;
+  color: #ececf1;
+  padding: 24px;
+  font-family: 'Comfortaa', sans-serif;
+  border-radius: 8px;
+}
+
+/* ========== DOCUMENT HEADER - Column Layout ========== */
+.social-history-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.social-history-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== HEADER ACTIONS - Row Layout, Right-Aligned ========== */
+.social-history-document .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.social-history-document .header-actions .copy-btn,
+.social-history-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.social-history-document .header-actions .copy-btn:hover,
+.social-history-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: #3b82f6;
+}
+
+.social-history-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========== SEARCH CONTAINER ========== */
+.social-history-document .search-container {
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.social-history-document .search-input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  padding: 10px 36px 10px 14px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 14px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.social-history-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.social-history-document .search-input::placeholder {
+  color: #8e8ea0;
+}
+
+.social-history-document .clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #8e8ea0;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.social-history-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* ========== RECORDS CONTAINER ========== */
+.social-history-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ========== INDIVIDUAL RECORD ========== */
+.social-history-document .social-history-record {
+  background: rgba(96, 165, 250, 0.05);
+  border: 2px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* ========== RECORD HEADER ========== */
+.social-history-document .record-header {
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.social-history-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.social-history-document .date-badge {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.social-history-document .record-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.social-history-document .record-meta {
+  margin-top: 8px;
+  color: #8e8ea0;
+  font-size: 14px;
+}
+
+/* ========== SECTION ========== */
+.social-history-document .section {
+  margin-bottom: 20px;
+}
+
+/* ========== MINI CARDS CONTAINER - Outer blue glow box ========== */
+.social-history-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ========== SECTION HEADER - Inside mini-cards-container with blue separator ========== */
+.social-history-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* ========== SECTION TITLE - Level 1: BIGGEST (19px) ========== */
+.social-history-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== REC MINI CARD - Individual item box ========== */
+.social-history-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ========== NESTED SUBTITLE - Level 2: MEDIUM (17px) ========== */
+.social-history-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* ========== NESTED OBJECT (results) ========== */
+.social-history-document .nested-mini-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.social-history-document .nested-subtitle.sub-label {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.social-history-document .nested-group {
+  margin-top: 6px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(96, 165, 250, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ========== NUMBERED ROW - Very dark blue background ========== */
+.social-history-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* ========== ROW CONTENT ========== */
+.social-history-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ========== ROW LABEL - For family support embedded labels ========== */
+.social-history-document .row-label {
+  color: #93c5fd;
+  font-size: 15px;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+/* ========== CONTENT VALUE - Level 3: READABLE (16px per the font hierarchy) ========== */
+.social-history-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ========== COPY BUTTONS - Row/Section level ========== */
+.social-history-document .copy-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.social-history-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+/* ========== SOLID BLUE for copied state - NOT GREEN! ========== */
+.social-history-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========== SEARCH HIGHLIGHT ========== */
+.social-history-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* ========== NO DATA / NO RESULTS ========== */
+.social-history-document .no-data,
+.social-history-document .no-results {
+  text-align: center;
+  color: #8e8ea0;
+  font-size: 16px;
+  padding: 40px 20px;
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+@media (max-width: 768px) {
+  .social-history-document {
+    padding: 16px;
+  }
+
+  .social-history-document .document-title {
+    font-size: 24px;
+  }
+
+  .social-history-document .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .social-history-document .header-actions .copy-btn,
+  .social-history-document .header-actions .pdf-btn {
+    width: 100%;
+  }
+
+  .social-history-document .social-history-record {
+    padding: 16px;
+  }
+
+  .social-history-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .social-history-document .copy-btn {
+    align-self: flex-start;
+  }
+}
+
+/* ========== EDITING STYLES ========== */
+
+/* Edit indicator icon */
+.social-history-document .edit-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.social-history-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+.social-history-document .edit-indicator svg {
+  width: 14px;
+  height: 14px;
+  color: #60a5fa;
+}
+
+.social-history-document .edit-indicator .edit-tag {
+  font-size: 11px;
+  color: #60a5fa;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Editable row hover */
+.social-history-document .row-content.editable {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.social-history-document .row-content.editable:hover {
+  background-color: rgba(96, 165, 250, 0.08);
+}
+
+/* Edit mode row */
+.social-history-document .numbered-row.edit-row {
+  background: rgba(96, 165, 250, 0.05);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+/* Edit field container */
+.social-history-document .edit-field-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.social-history-document .edit-field-container textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 10px;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.social-history-document .edit-field-container textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.15);
+}
+
+/* Edit actions */
+.social-history-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.social-history-document .save-btn {
+  padding: 4px 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.social-history-document .save-btn:hover:not(:disabled) {
+  background: rgba(96, 165, 250, 0.25);
+}
+
+.social-history-document .save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.social-history-document .cancel-btn {
+  padding: 4px 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.social-history-document .cancel-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+/* Modified badge */
+.social-history-document .modified-badge {
+  font-size: 10px;
+  color: #f59e0b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 3px;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+/* Approve button */
+.social-history-document .approve-btn {
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.08);
+  color: #10b981;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.social-history-document .approve-btn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.social-history-document .approve-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Header right actions */
+.social-history-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Status badges */
+.social-history-document .status-badge.amended {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.social-history-document .status-badge.approved {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Editable row cursor */
+.social-history-document .row-content.editable {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.social-history-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+/* Edit row state */
+.social-history-document .numbered-row.edit-row {
+  background: rgba(96, 165, 250, 0.12);
+  border-color: #60a5fa;
+}
+
+/* Edit field container */
+.social-history-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.social-history-document .edit-field-container textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  background: #1e1f2e;
+  border: 1px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 14px;
+  font-family: 'Comfortaa', sans-serif;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.social-history-document .edit-field-container textarea:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+/* Edit actions (Save/Cancel buttons) */
+.social-history-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.social-history-document .save-btn {
+  padding: 6px 16px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.social-history-document .save-btn:hover {
+  background: #3b82f6;
+}
+
+.social-history-document .save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.social-history-document .cancel-btn {
+  padding: 6px 16px;
+  background: transparent;
+  color: #8e8ea0;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.social-history-document .cancel-btn:hover {
+  color: #ececf1;
+  border-color: #8e8ea0;
+}
+
+/* Modified badge */
+.social-history-document .modified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #fbbf24;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Modified row — amber border */
+.social-history-document .numbered-row.modified {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+/* Added row — green border for newly created sentences */
+.social-history-document .numbered-row.added {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+/* Added badge */
+.social-history-document .added-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #22c55e;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Approve button - subtle green outline */
+.social-history-document .approve-btn {
+  padding: 6px 14px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.social-history-document .approve-btn:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+}
+
+.social-history-document .approve-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Pending state — YELLOW (edits awaiting approval) */
+.social-history-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.social-history-document .approve-btn.pending:hover:not(:disabled) {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+}
+
+/* Approved state — GREEN */
+.social-history-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.social-history-document .approve-btn.approved:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+}
+
+/* Header right actions container */
+.social-history-document .header-right-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Status badge for approved/amended */
+.social-history-document .status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.social-history-document .status-badge.amended {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.social-history-document .status-badge.approved {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}

@@ -1,0 +1,71 @@
+{
+  "serviceId": "compliance-scorecard",
+  "serviceName": "Compliance Scorecard Service",
+  "description": "Real-time HIPAA, GDPR, and security compliance monitoring and reporting",
+  "permissions": [
+    "audit:read",
+    "compliance:write",
+    "compliance:read",
+    "security:read",
+    "metrics:write",
+    "alert:send",
+    "config:read"
+  ],
+  "allowedClinics": [
+    "*"
+  ],
+  "dataAccessPatterns": [
+    "auditLogs.find({ type: \"compliance_check\" })",
+    "complianceScores.update(scores)",
+    "complianceReports.insert(report)",
+    "securityRequirements.find(criteria)",
+    "alerts.send({ type: \"compliance\", priority: \"high\" })"
+  ],
+  "schedules": [
+    {
+      "cron": "0 * * * *",
+      "description": "Hourly compliance score calculation"
+    },
+    {
+      "cron": "realtime",
+      "description": "Real-time compliance monitoring"
+    }
+  ],
+  "criticality": "critical",
+  "requiresMFA": true,
+  "allowedOperations": [
+    "calculateScore",
+    "calculateHIPAA",
+    "calculateGDPR", 
+    "calculateSecurity",
+    "getDetailedReport",
+    "exportReport",
+    "logComplianceIssue",
+    "startAutoCheck",
+    "stopAutoCheck"
+  ],
+  "securityRequirements": {
+    "encryption": true,
+    "audit": true,
+    "accessControl": "strict",
+    "dataRetention": "7_years"
+  },
+  "dependencies": [
+    "immutableAuditService",
+    "securityMonitoringService", 
+    "secureConfigService",
+    "serviceAccountManager"
+  ],
+  "integrations": [
+    {
+      "service": "immutableAuditService",
+      "purpose": "Compliance audit logging",
+      "permissions": ["audit:write", "audit:read"]
+    },
+    {
+      "service": "securityMonitoringService",
+      "purpose": "Security alert notifications", 
+      "permissions": ["alert:send"]
+    }
+  ]
+}

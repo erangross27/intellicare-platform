@@ -1,0 +1,601 @@
+/**
+ * StressManagementReferralsDocument.css
+ * February 2026 Standard Template
+ * Blue theme: #0d1929, #93c5fd, rgba(96, 165, 250, 0.3)
+ * Font hierarchy: section-title 19px > nested-subtitle 17px > content-value 16px
+ * COPIED STATE: SOLID BLUE #2563eb (NOT green!)
+ */
+
+.stress-management-referrals-document {
+  padding: 24px;
+  margin: -24px;
+  background-color: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  min-height: 100%;
+}
+
+/* ========== DOCUMENT HEADER ========== */
+.stress-management-referrals-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.stress-management-referrals-document .document-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Header Actions - Row 2 */
+.stress-management-referrals-document .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.stress-management-referrals-document .header-actions .copy-btn,
+.stress-management-referrals-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stress-management-referrals-document .header-actions .copy-btn:hover,
+.stress-management-referrals-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #3b82f6;
+}
+
+.stress-management-referrals-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Search Container - Row 3 */
+.stress-management-referrals-document .search-container {
+  position: relative;
+  width: 100%;
+}
+
+.stress-management-referrals-document .search-input {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  background: rgba(96, 165, 250, 0.08);
+  color: #ececf1;
+  font-size: 16px;
+  font-family: 'Comfortaa', sans-serif;
+  box-sizing: border-box;
+}
+
+.stress-management-referrals-document .search-input::placeholder {
+  color: #9ca3af;
+}
+
+.stress-management-referrals-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.stress-management-referrals-document .clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.stress-management-referrals-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* ========== RECORD CARD ========== */
+.stress-management-referrals-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid #565869;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.stress-management-referrals-document .record-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.stress-management-referrals-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.stress-management-referrals-document .date-badge {
+  font-size: 14px;
+  color: #9ca3af;
+  font-weight: 500;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.stress-management-referrals-document .record-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== SECTION ========== */
+.stress-management-referrals-document .section {
+  margin-bottom: 20px;
+}
+
+/* Mini Cards Container - OUTER wrapper with blue glow */
+.stress-management-referrals-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Section Header - INSIDE mini-cards-container */
+.stress-management-referrals-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Section Title - Level 1 (19px) */
+.stress-management-referrals-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== REC MINI CARD ========== */
+.stress-management-referrals-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Subsection Header - inside rec-mini-card */
+.stress-management-referrals-document .subsection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.stress-management-referrals-document .subsection-header .nested-subtitle {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* Nested Subtitle - Level 2 (17px) - #93c5fd LIGHT BRIGHT BLUE */
+.stress-management-referrals-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* ========== NUMBERED ROW - VERY DARK BLUE (#0d1929) ========== */
+.stress-management-referrals-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.stress-management-referrals-document .row-content {
+  flex: 1;
+}
+
+/* Content Value - Level 3 (16px) */
+.stress-management-referrals-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-break: break-word;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Field Label Inline */
+.stress-management-referrals-document .field-label-inline {
+  font-size: 15px;
+  font-weight: 700;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== COPY BUTTON - SOLID BLUE #2563eb ========== */
+.stress-management-referrals-document .copy-btn {
+  background: transparent;
+  border: 1px solid #4b5563;
+  color: #9ca3af;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-family: 'Comfortaa', sans-serif;
+  flex-shrink: 0;
+}
+
+.stress-management-referrals-document .copy-btn:hover {
+  background: #0d1929;
+  color: #ececf1;
+}
+
+/* COPIED STATE - SOLID BLUE (NOT GREEN!) */
+.stress-management-referrals-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========== SEARCH HIGHLIGHTING ========== */
+.stress-management-referrals-document mark {
+  background-color: #fef08a;
+  color: #000000;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+/* ========== EMPTY & NO RESULTS ========== */
+.stress-management-referrals-document .empty-state,
+.stress-management-referrals-document .no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: #9ca3af;
+  text-align: center;
+  font-size: 18px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== EDITING — Inline Edit UI ========== */
+
+/* Header right actions — Copy Section + Approve */
+.stress-management-referrals-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Editable row content — hover effect */
+.stress-management-referrals-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stress-management-referrals-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.06);
+}
+
+.stress-management-referrals-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Edit indicator (pencil + tag) — appears on hover */
+.stress-management-referrals-document .edit-indicator {
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #60a5fa;
+  margin-top: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.stress-management-referrals-document .edit-tag {
+  font-size: 10px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Modified row — amber border for pending approval */
+.stress-management-referrals-document .numbered-row.modified {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+/* Added row — green border for newly created sentences */
+.stress-management-referrals-document .numbered-row.added {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.stress-management-referrals-document .modified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+/* Added badge — green for newly created sentences */
+.stress-management-referrals-document .added-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #22c55e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+/* Inline edit row */
+.stress-management-referrals-document .numbered-row.edit-row {
+  flex-direction: column;
+  padding: 12px 16px;
+}
+
+.stress-management-referrals-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.stress-management-referrals-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid rgba(96, 165, 250, 0.5);
+  border-radius: 8px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.stress-management-referrals-document .edit-textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+.stress-management-referrals-document .edit-textarea:disabled {
+  opacity: 0.6;
+}
+
+.stress-management-referrals-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.stress-management-referrals-document .edit-save-btn {
+  background: linear-gradient(135deg, #667eea 0%, #2563eb 100%);
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 7px 20px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stress-management-referrals-document .edit-save-btn:hover {
+  background: linear-gradient(135deg, #5a6fe8 0%, #1d4ed8 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.stress-management-referrals-document .edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.stress-management-referrals-document .edit-cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  color: #94a3b8;
+  padding: 7px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stress-management-referrals-document .edit-cancel-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #cbd5e1;
+}
+
+.stress-management-referrals-document .edit-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Approve button — yellow default, green when approved */
+.stress-management-referrals-document .approve-btn {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 6px;
+  color: #fbbf24;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.stress-management-referrals-document .approve-btn:hover {
+  background: rgba(251, 191, 36, 0.25);
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.15);
+}
+
+.stress-management-referrals-document .approve-btn.approved {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+.stress-management-referrals-document .approve-btn.approved:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+}
+
+.stress-management-referrals-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .stress-management-referrals-document {
+    padding: 16px;
+    margin: -16px;
+  }
+
+  .stress-management-referrals-document .document-header {
+    gap: 12px;
+  }
+
+  .stress-management-referrals-document .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stress-management-referrals-document .header-actions .copy-btn,
+  .stress-management-referrals-document .header-actions .pdf-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stress-management-referrals-document .record-card {
+    padding: 16px;
+  }
+
+  .stress-management-referrals-document .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .stress-management-referrals-document .subsection-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .stress-management-referrals-document .numbered-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stress-management-referrals-document .copy-btn {
+    align-self: flex-end;
+  }
+}

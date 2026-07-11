@@ -1,0 +1,381 @@
+/**
+ * SepsisManagementDocument.css
+ * March 2026 — Blue glow theme with inline editing
+ * Colors: #0F1B33 / #2a2b36 / #0d1929 / #60a5fa / #93c5fd
+ * Fonts: 35 / 23 / 19 / 17 / 16px
+ */
+
+.sepsis-management-document {
+  padding: 24px;
+  background: #0F1B33;
+  min-height: 100%;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========================
+   Document Header
+   ======================== */
+.sepsis-management-document .document-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+.sepsis-management-document .document-title {
+  margin: 0;
+  font-size: 35px;
+  font-weight: 700;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+}
+.sepsis-management-document .header-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* ========================
+   Search
+   ======================== */
+.sepsis-management-document .search-container {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sepsis-management-document .search-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0d1929;
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 16px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  transition: border-color 0.2s ease;
+}
+.sepsis-management-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+.sepsis-management-document .search-input::placeholder { color: #9ca3af; }
+.sepsis-management-document .search-results { font-size: 13px; color: #9ca3af; font-family: 'Comfortaa', sans-serif; }
+
+/* ========================
+   Records Container
+   ======================== */
+.sepsis-management-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ========================
+   Record Card
+   ======================== */
+.sepsis-management-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.15);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+/* ========================
+   Record Header
+   ======================== */
+.sepsis-management-document .record-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.15);
+}
+.sepsis-management-document .record-meta-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+.sepsis-management-document .record-date {
+  font-size: 16px;
+  color: #9ca3af;
+  padding: 4px 10px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 4px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+}
+.sepsis-management-document .record-severity {
+  font-size: 16px;
+  color: #ef4444;
+  padding: 4px 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  align-self: flex-start;
+  margin-bottom: 8px;
+}
+.sepsis-management-document .record-name {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 600;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========================
+   Section
+   ======================== */
+.sepsis-management-document .section {
+  margin-bottom: 16px;
+}
+.sepsis-management-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.25);
+}
+.sepsis-management-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none;
+}
+.sepsis-management-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ========================
+   Mini-Cards Container
+   ======================== */
+.sepsis-management-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.04);
+  border: 2px solid rgba(96, 165, 250, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ========================
+   Rec Mini Card
+   ======================== */
+.sepsis-management-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ========================
+   Nested Subtitle
+   ======================== */
+.sepsis-management-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #60a5fa;
+  text-transform: none;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* ========================
+   Numbered Row
+   ======================== */
+.sepsis-management-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.sepsis-management-document .row-content { flex: 1; }
+.sepsis-management-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.6;
+  text-align: left;
+}
+
+/* ========================
+   Copy Button
+   ======================== */
+.sepsis-management-document .copy-btn {
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+.sepsis-management-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+}
+.sepsis-management-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========================
+   Bar Chart - Laboratory Values
+   ======================== */
+.sepsis-management-document .lab-chart-container {
+  width: 100%;
+  padding: 8px 0;
+}
+.sepsis-management-document .lab-chart-legend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(96, 165, 250, 0.05);
+  border-radius: 6px;
+}
+.sepsis-management-document .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+}
+.sepsis-management-document .legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.sepsis-management-document .lab-bar-chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.15);
+}
+.sepsis-management-document .lab-bar-chart-row:last-child { border-bottom: none; }
+.sepsis-management-document .lab-bar-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none;
+}
+.sepsis-management-document .lab-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sepsis-management-document .lab-bar-background {
+  flex: 1;
+  height: 20px;
+  background: #1a1b2e;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}
+.sepsis-management-document .lab-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.sepsis-management-document .lab-bar-value {
+  font-size: 13px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  min-width: 100px;
+}
+.sepsis-management-document .lab-bar-copy-btn {
+  font-size: 10px !important;
+  padding: 2px 8px !important;
+}
+.sepsis-management-document .lab-bar-interpretation {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========================
+   Search Highlight
+   ======================== */
+.sepsis-management-document mark {
+  background-color: #fef08a;
+  color: #000;
+  padding: 0;
+  margin: 0;
+  border-radius: 2px;
+}
+
+/* ========================
+   Empty State
+   ======================== */
+.sepsis-management-document .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 19px;
+}
+
+/* ========================
+   Editing — inline edit styles
+   ======================== */
+.sepsis-management-document .editable-row { cursor: pointer; }
+.sepsis-management-document .editable-row:hover .edit-indicator { opacity: 1; }
+.sepsis-management-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.sepsis-management-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.sepsis-management-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.sepsis-management-document .modified-badge.added { color: #4ade80; }
+.sepsis-management-document .edit-field-container { width: 100%; }
+.sepsis-management-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.sepsis-management-document .edit-number { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.sepsis-management-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
+.sepsis-management-document .edit-select option { background: #0F1B33; color: #ececf1; }
+.sepsis-management-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
+.sepsis-management-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+.sepsis-management-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.sepsis-management-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.sepsis-management-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.sepsis-management-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.sepsis-management-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.sepsis-management-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }

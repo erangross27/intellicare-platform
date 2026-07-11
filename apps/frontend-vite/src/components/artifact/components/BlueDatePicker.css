@@ -1,0 +1,46 @@
+/* BlueDatePicker — compact single-row date control, blue-glow theme (matches BlueTimePicker + the −/+ num-stepper).
+   Self-scoped under .blue-date-picker so it drops into any template's edit container.
+   One low row that fills the edit-row width:  [−] Mon [+]  [−] DD [+]  [−] YYYY [+]   Today  */
+.blue-date-picker {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px;
+  width: 100%; box-sizing: border-box;
+  background: #0F1B33; border: 1px solid rgba(96, 165, 250, 0.4); border-radius: 10px;
+  padding: 8px 12px;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; user-select: none;
+}
+
+/* Mon / DD / YYYY stepper cells — each a typeable input */
+.blue-date-picker .bdp-unit { display: flex; align-items: center; gap: 8px; }
+.blue-date-picker .bdp-num {
+  min-width: 34px; text-align: center; color: #ececf1; font-size: 22px; font-weight: 700;
+  letter-spacing: 1px; font-variant-numeric: tabular-nums;
+}
+.blue-date-picker .bdp-mon { min-width: 52px; letter-spacing: 0.5px; }
+.blue-date-picker .bdp-year { min-width: 62px; }
+
+/* typeable cell: reads as plain text until hovered/focused, then shows an editable field */
+.blue-date-picker .bdp-input {
+  width: 44px; padding: 3px 4px; background: transparent; border: 1px solid transparent; border-radius: 6px;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; cursor: text; outline: none; box-sizing: border-box;
+}
+.blue-date-picker .bdp-input.bdp-mon { width: 58px; }
+.blue-date-picker .bdp-input.bdp-year { width: 66px; }
+.blue-date-picker .bdp-input:hover { border-color: rgba(96, 165, 250, 0.4); }
+.blue-date-picker .bdp-input:focus { border-color: #60a5fa; background: rgba(96, 165, 250, 0.1); box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2); }
+
+/* −/+ step buttons (mirror BlueTimePicker .btp-step / the template num-stepper) */
+.blue-date-picker .bdp-step {
+  width: 30px; height: 30px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+  background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.45); border-radius: 8px;
+  color: #93c5fd; font-size: 18px; font-weight: 700; line-height: 1; cursor: pointer; transition: all 0.15s ease;
+}
+.blue-date-picker .bdp-step:hover { background: rgba(96, 165, 250, 0.28); border-color: #60a5fa; color: #dbeafe; }
+.blue-date-picker .bdp-step:active { transform: scale(0.92); }
+
+/* Today — quiet ghost button (mirror BlueTimePicker .btp-now-btn) */
+.blue-date-picker .bdp-today-btn {
+  padding: 7px 14px; background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 8px; color: #93c5fd; font-family: 'Comfortaa', sans-serif; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.blue-date-picker .bdp-today-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: #60a5fa; color: #dbeafe; }

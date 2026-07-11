@@ -1,0 +1,17 @@
+{
+  "name": "intellicare-mcp-mongodb",
+  "version": "1.0.0",
+  "description": "MCP Server for MongoDB access in IntelliCare",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test-connection.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "mongodb": "^6.0.0"
+  },
+  "keywords": ["mcp", "mongodb", "intellicare"],
+  "author": "IntelliCare Team"
+}

@@ -1,0 +1,89 @@
+{
+  "serviceId": "batch-results-worker",
+  "serviceName": "Batch Results Processing Worker",
+  "description": "Processes completed batch analysis jobs and updates documents",
+  "version": "1.0.0",
+  "owner": "Data Processing Team",
+  "contactEmail": "data-team@intellicare.com",
+  
+  "authentication": {
+    "requireApiKey": true,
+    "requireMFA": false,
+    "tokenRotationDays": 90
+  },
+  
+  "permissions": {
+    "allowedClinics": ["*"],
+    "allowedCollections": [
+      "patients",
+      "documents",
+      "batchjobs",
+      "analysisresults"
+    ],
+    "operations": {
+      "patients": ["query", "update"],
+      "documents": ["query", "update"],
+      "batchjobs": ["query", "update", "delete"],
+      "analysisresults": ["query", "insert", "update"]
+    },
+    "fieldAccess": {
+      "patients": {
+        "allowed": ["_id", "documents", "analysisStatus"],
+        "denied": ["ssn", "creditCard", "insurance"]
+      },
+      "documents": {
+        "allowed": ["*"],
+        "denied": []
+      }
+    }
+  },
+  
+  "dataGovernance": {
+    "dataClassification": "confidential",
+    "piiAccess": false,
+    "phiAccess": true,
+    "financialDataAccess": false,
+    "auditLevel": "detailed",
+    "dataRetentionDays": 180
+  },
+  
+  "rateLimits": {
+    "queriesPerMinute": 200,
+    "queriesPerHour": 10000,
+    "maxRecordsPerQuery": 5000,
+    "maxConcurrentQueries": 20,
+    "burstAllowance": 50
+  },
+  
+  "security": {
+    "requireEncryption": true,
+    "ipWhitelist": [],
+    "ipBlacklist": [],
+    "allowedTimeWindows": [],
+    "geoRestrictions": {
+      "allowedCountries": ["US", "IL"],
+      "blockedCountries": []
+    }
+  },
+  
+  "criticality": "medium",
+  "tags": ["batch-processing", "document-analysis", "background-worker"],
+  
+  "monitoring": {
+    "enableMetrics": true,
+    "enableAlerting": true,
+    "alertThresholds": {
+      "errorRate": 0.1,
+      "latencyP95": 5000,
+      "violationCount": 10
+    }
+  },
+  
+  "compliance": {
+    "hipaaCompliant": true,
+    "gdprCompliant": true,
+    "encryptionRequired": true,
+    "rightToErasure": true,
+    "dataPortability": false
+  }
+}

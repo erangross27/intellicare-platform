@@ -1,0 +1,69 @@
+/* RehabilitationProtocolDocument.css -- March 2026 Blue glow editing theme */
+.rehabilitation-protocol-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.rehabilitation-protocol-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
+.rehabilitation-protocol-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
+.rehabilitation-protocol-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
+.rehabilitation-protocol-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+.rehabilitation-protocol-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
+.rehabilitation-protocol-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
+.rehabilitation-protocol-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
+.rehabilitation-protocol-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
+.rehabilitation-protocol-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
+.rehabilitation-protocol-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
+.rehabilitation-protocol-document .status-badge { display: inline-block; font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 14px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px; }
+.rehabilitation-protocol-document .status-badge.active { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); }
+.rehabilitation-protocol-document .status-badge.completed { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); }
+.rehabilitation-protocol-document .status-badge.pending { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+.rehabilitation-protocol-document .status-badge.planned { background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.4); }
+.rehabilitation-protocol-document .section { margin-top: 16px; }
+.rehabilitation-protocol-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
+.rehabilitation-protocol-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
+.rehabilitation-protocol-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
+.rehabilitation-protocol-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+.rehabilitation-protocol-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.rehabilitation-protocol-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
+.rehabilitation-protocol-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
+.rehabilitation-protocol-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
+.rehabilitation-protocol-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
+.rehabilitation-protocol-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
+.rehabilitation-protocol-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
+.rehabilitation-protocol-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
+.rehabilitation-protocol-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
+.rehabilitation-protocol-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: white; }
+.rehabilitation-protocol-document .editable-row { cursor: pointer; }
+.rehabilitation-protocol-document .editable-row:hover .edit-indicator { opacity: 1; }
+.rehabilitation-protocol-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.rehabilitation-protocol-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.rehabilitation-protocol-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.rehabilitation-protocol-document .modified-badge.added { color: #4ade80; }
+.rehabilitation-protocol-document .edit-field-container { width: 100%; }
+.rehabilitation-protocol-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.rehabilitation-protocol-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
+.rehabilitation-protocol-document .edit-select option { background: #0F1B33; color: #ececf1; }
+/* nested OBJECT field rendering */
+.rehabilitation-protocol-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.rehabilitation-protocol-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.rehabilitation-protocol-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.rehabilitation-protocol-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.rehabilitation-protocol-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.rehabilitation-protocol-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
+.rehabilitation-protocol-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
+.rehabilitation-protocol-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+.rehabilitation-protocol-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.rehabilitation-protocol-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.rehabilitation-protocol-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.rehabilitation-protocol-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.rehabilitation-protocol-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.rehabilitation-protocol-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.rehabilitation-protocol-document .phase-card { background: rgba(96, 165, 250, 0.06); border: 2px solid rgba(96, 165, 250, 0.25); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+.rehabilitation-protocol-document .phase-card:last-child { margin-bottom: 0; }
+.rehabilitation-protocol-document .phase-card-header { font-size: 17px; font-weight: 700; color: #60a5fa; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(96, 165, 250, 0.2); }
+.rehabilitation-protocol-document .phase-nested-section { margin-bottom: 8px; }
+.rehabilitation-protocol-document .search-container { margin-bottom: 20px; }
+.rehabilitation-protocol-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.rehabilitation-protocol-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.rehabilitation-protocol-document .search-input::placeholder { color: #9ca3af; }
+.rehabilitation-protocol-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
+.rehabilitation-protocol-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
+.rehabilitation-protocol-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
+@media (max-width: 768px) { .rehabilitation-protocol-document .document-header { padding-bottom: 12px; } .rehabilitation-protocol-document .document-title { font-size: 24px; } .rehabilitation-protocol-document .header-actions { flex-direction: column; } }

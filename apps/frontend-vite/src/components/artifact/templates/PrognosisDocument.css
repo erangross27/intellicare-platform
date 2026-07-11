@@ -1,0 +1,580 @@
+/* PrognosisDocument.css - December 2025 Complete Rebuild */
+/* Blue theme only - NO cyan, NO purple */
+/* Font hierarchy: section-title 19px > nested-subtitle 17px > content-value 16px */
+
+/* Parent container */
+.prognosis-document {
+  padding: 24px;
+  margin: -24px;
+  background-color: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  min-height: 100%;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Document Header - Column Layout */
+.prognosis-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.prognosis-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Header Actions - Row Layout, Right-Aligned */
+.prognosis-document .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.prognosis-document .header-actions .copy-btn,
+.prognosis-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prognosis-document .header-actions .copy-btn:hover,
+.prognosis-document .header-actions .pdf-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+.prognosis-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Search Container */
+.prognosis-document .search-container {
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.prognosis-document .search-input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  padding: 10px 36px 10px 14px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 14px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.prognosis-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.prognosis-document .clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.prognosis-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* Records Container */
+.prognosis-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.prognosis-document .record-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 2px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* Record Header */
+.prognosis-document .record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.prognosis-document .record-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.prognosis-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.prognosis-document .date-badge {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Section */
+.prognosis-document .section {
+  margin-bottom: 16px;
+}
+
+/* Mini Cards Container - OUTER wrapper with blue glow */
+.prognosis-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Section Header - INSIDE mini-cards-container with blue separator */
+.prognosis-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Section Title - Level 1: BIGGEST (19px) */
+.prognosis-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Rec Mini Card - Individual item box */
+.prognosis-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Nested Subtitle - Level 2: MEDIUM (17px) */
+.prognosis-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* Numbered Row - VERY DARK BLUE background */
+.prognosis-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Risk Row - with red tint */
+.prognosis-document .numbered-row.risk-row {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.prognosis-document .risk-badge {
+  color: #f87171;
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+/* Protective Row - with green tint */
+.prognosis-document .numbered-row.protective-row {
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.prognosis-document .protective-badge {
+  color: #34d399;
+  font-size: 16px;
+  margin-right: 8px;
+  font-weight: 700;
+}
+
+/* Row Content */
+.prognosis-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Content Value - Level 3: READABLE (16px) */
+.prognosis-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* Copy Buttons - Transparent bg, blue border */
+.prognosis-document .copy-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.prognosis-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+/* SOLID BLUE for copied state - NOT GREEN! */
+.prognosis-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Search Highlight - Yellow on black */
+.prognosis-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* Empty State */
+.prognosis-document .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.prognosis-document .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.prognosis-document .empty-text {
+  font-size: 18px;
+  color: #9ca3af;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========================= EDITING — Inline Edit UI ========================= */
+
+/* Editable row content — hover effect */
+.prognosis-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prognosis-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.06);
+}
+
+.prognosis-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Edit indicator (pencil + tag) — appears on hover */
+.prognosis-document .edit-indicator {
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #60a5fa;
+  margin-top: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.prognosis-document .edit-tag {
+  font-size: 10px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Modified row — amber border for pending approval */
+.prognosis-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+.prognosis-document .modified-badge {
+  font-size: 11px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* Inline edit row */
+.prognosis-document .numbered-row.edit-row {
+  flex-direction: column;
+  padding: 12px 16px;
+}
+
+.prognosis-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.prognosis-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid rgba(96, 165, 250, 0.5);
+  border-radius: 8px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.prognosis-document .edit-textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+.prognosis-document .edit-textarea:disabled {
+  opacity: 0.6;
+}
+
+.prognosis-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.prognosis-document .edit-save-btn {
+  background: linear-gradient(135deg, #667eea 0%, #2563eb 100%);
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 7px 20px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prognosis-document .edit-save-btn:hover {
+  background: linear-gradient(135deg, #5a6fe8 0%, #1d4ed8 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.prognosis-document .edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.prognosis-document .edit-cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  color: #94a3b8;
+  padding: 7px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prognosis-document .edit-cancel-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #cbd5e1;
+}
+
+.prognosis-document .edit-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Approve button — yellow pending, green approved */
+.prognosis-document .approve-btn {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  border-radius: 6px;
+  color: #eab308;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.prognosis-document .approve-btn:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.6);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.15);
+}
+
+.prognosis-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.prognosis-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+.prognosis-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Header right actions — copy + approve */
+.prognosis-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .prognosis-document {
+    padding: 16px;
+  }
+
+  .prognosis-document .document-title {
+    font-size: 24px;
+  }
+
+  .prognosis-document .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .prognosis-document .header-actions .copy-btn,
+  .prognosis-document .header-actions .pdf-btn {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .prognosis-document .record-title {
+    font-size: 18px;
+  }
+
+  .prognosis-document .numbered-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .prognosis-document .copy-btn {
+    width: 100%;
+  }
+}

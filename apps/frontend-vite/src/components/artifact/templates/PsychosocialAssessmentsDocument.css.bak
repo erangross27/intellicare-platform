@@ -1,0 +1,458 @@
+.psychosocial-assessments-document {
+  padding: 24px;
+  background: #2d2e38;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.psychosocial-assessments-document .document-header {
+  border-bottom: 3px solid #7b1fa2;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.psychosocial-assessments-document .document-header h1 {
+  font-size: 28px;
+  color: #7b1fa2;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.psychosocial-assessments-document .document-date {
+  color: #c5c5d2;
+  font-size: 14px;
+}
+
+/* Patient Demographics */
+.psychosocial-assessments-document .patient-demographics {
+  background: #ececf1;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.psychosocial-assessments-document .patient-demographics h2 {
+  font-size: 18px;
+  color: #ececf1;
+  margin: 0 0 12px 0;
+  font-weight: 600;
+}
+
+.psychosocial-assessments-document .demographics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.psychosocial-assessments-document .demographic-item {
+  display: flex;
+  gap: 8px;
+}
+
+.psychosocial-assessments-document .demographic-item .label {
+  font-weight: 600;
+  color: #555;
+}
+
+.psychosocial-assessments-document .demographic-item .value {
+  color: #ececf1;
+}
+
+/* Sections */
+.psychosocial-assessments-document .section {
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  background: #3e3f4b;
+}
+
+.psychosocial-assessments-document .section h2 {
+  font-size: 20px;
+  color: #7b1fa2;
+  margin: 0 0 16px 0;
+  font-weight: 600;
+  border-bottom: 2px solid #7b1fa2;
+  padding-bottom: 8px;
+}
+
+/* Mental Status Grid */
+.psychosocial-assessments-document .mental-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.psychosocial-assessments-document .status-card {
+  background: #2d2e38;
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 4px solid #7b1fa2;
+}
+
+.psychosocial-assessments-document .status-card h3 {
+  font-size: 14px;
+  color: #7b1fa2;
+  margin: 0 0 12px 0;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.psychosocial-assessments-document .status-card p {
+  margin: 0;
+}
+
+.psychosocial-assessments-document .status-card .description {
+  margin-top: 8px;
+  color: #c5c5d2;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Cognitive Grid */
+.psychosocial-assessments-document .cognitive-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.psychosocial-assessments-document .cognitive-item {
+  background: #2d2e38;
+  padding: 12px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.psychosocial-assessments-document .cognitive-item strong {
+  color: #7b1fa2;
+  min-width: 150px;
+}
+
+/* Risk Assessment - CRITICAL SECTION */
+.psychosocial-assessments-document .risk-assessment {
+  background: #ffebee !important;
+  border: 2px solid #d32f2f !important;
+}
+
+.psychosocial-assessments-document .risk-header {
+  color: #d32f2f !important;
+  border-bottom-color: #d32f2f !important;
+}
+
+.psychosocial-assessments-document .risk-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.psychosocial-assessments-document .risk-item {
+  background: #2d2e38;
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 4px solid #ff9800;
+}
+
+.psychosocial-assessments-document .risk-item.critical {
+  border-left: 4px solid #d32f2f;
+  background: #ffebee;
+}
+
+.psychosocial-assessments-document .risk-item strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #d32f2f;
+  font-size: 16px;
+}
+
+.psychosocial-assessments-document .risk-details {
+  margin-top: 8px;
+  color: #ececf1;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 8px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+/* Safety Plan */
+.psychosocial-assessments-document .safety-box {
+  background: #e8f5e9;
+  border-left: 4px solid #388e3c;
+}
+
+.psychosocial-assessments-document .plan-item {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+}
+
+.psychosocial-assessments-document .plan-item:last-child {
+  margin-bottom: 0;
+}
+
+.psychosocial-assessments-document .plan-item strong {
+  display: block;
+  color: #388e3c;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.psychosocial-assessments-document .plan-item p {
+  margin: 0;
+  color: #ececf1;
+  line-height: 1.5;
+}
+
+.psychosocial-assessments-document .plan-item ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #ececf1;
+}
+
+.psychosocial-assessments-document .plan-item li {
+  margin-bottom: 6px;
+}
+
+/* Social Support */
+.psychosocial-assessments-document .social-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.psychosocial-assessments-document .social-item {
+  background: #2d2e38;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #1976d2;
+}
+
+.psychosocial-assessments-document .social-item strong {
+  display: block;
+  color: #1976d2;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.psychosocial-assessments-document .social-item p {
+  margin: 0;
+  color: #ececf1;
+  line-height: 1.5;
+}
+
+/* Substance Use */
+.psychosocial-assessments-document .substance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.psychosocial-assessments-document .substance-item {
+  background: #2d2e38;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #ff9800;
+}
+
+.psychosocial-assessments-document .substance-item strong {
+  display: block;
+  color: #ff9800;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.psychosocial-assessments-document .substance-item p {
+  margin: 0;
+  color: #ececf1;
+  line-height: 1.5;
+}
+
+/* Content Boxes */
+.psychosocial-assessments-document .content-box {
+  background: #2d2e38;
+  padding: 16px;
+  border-radius: 6px;
+  line-height: 1.6;
+}
+
+.psychosocial-assessments-document .content-box p {
+  margin: 0;
+  color: #ececf1;
+}
+
+.psychosocial-assessments-document .content-box ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.psychosocial-assessments-document .content-box li {
+  margin-bottom: 8px;
+  color: #ececf1;
+}
+
+/* Stressors */
+.psychosocial-assessments-document .stressors-list {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.psychosocial-assessments-document .stressors-list li {
+  padding: 8px 12px;
+  background: #fff3e0;
+  border-left: 3px solid #ff9800;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+/* Recommendations */
+.psychosocial-assessments-document .recommendations-box {
+  border-left: 4px solid #4caf50;
+  background: #e8f5e9;
+}
+
+.psychosocial-assessments-document .recommendations-box ul {
+  padding-left: 20px;
+}
+
+.psychosocial-assessments-document .recommendations-box li {
+  color: #ececf1;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+/* Assessor Info */
+.psychosocial-assessments-document .assessor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.psychosocial-assessments-document .assessor-item {
+  background: #2d2e38;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.psychosocial-assessments-document .assessor-item strong {
+  color: #7b1fa2;
+  margin-right: 8px;
+}
+
+/* Badges */
+.psychosocial-assessments-document .risk-badge,
+.psychosocial-assessments-document .assessment-badge,
+.psychosocial-assessments-document .boolean-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Risk Badges */
+.psychosocial-assessments-document .risk-badge.risk-high {
+  background-color: #ffebee;
+  color: #d32f2f;
+  border: 1px solid #d32f2f;
+}
+
+.psychosocial-assessments-document .risk-badge.risk-moderate {
+  background-color: #fff3e0;
+  color: #f57c00;
+  border: 1px solid #f57c00;
+}
+
+.psychosocial-assessments-document .risk-badge.risk-low {
+  background-color: #fff9c4;
+  color: #f57f17;
+  border: 1px solid #f57f17;
+}
+
+.psychosocial-assessments-document .risk-badge.risk-none {
+  background-color: #e8f5e9;
+  color: #388e3c;
+  border: 1px solid #388e3c;
+}
+
+/* Assessment Badges */
+.psychosocial-assessments-document .assessment-badge.assessment-good {
+  background-color: #e8f5e9;
+  color: #388e3c;
+  border: 1px solid #388e3c;
+}
+
+.psychosocial-assessments-document .assessment-badge.assessment-moderate {
+  background-color: #fff3e0;
+  color: #f57c00;
+  border: 1px solid #f57c00;
+}
+
+.psychosocial-assessments-document .assessment-badge.assessment-poor {
+  background-color: #ffebee;
+  color: #d32f2f;
+  border: 1px solid #d32f2f;
+}
+
+/* Boolean Badges (Yes/No for suicidal/homicidal ideation) */
+.psychosocial-assessments-document .boolean-badge.boolean-yes {
+  background-color: #ffebee;
+  color: #d32f2f;
+  border: 2px solid #d32f2f;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 6px 16px;
+}
+
+.psychosocial-assessments-document .boolean-badge.boolean-no {
+  background-color: #e8f5e9;
+  color: #388e3c;
+  border: 1px solid #388e3c;
+}
+
+/* Footer */
+.psychosocial-assessments-document .document-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #565869;
+}
+
+.psychosocial-assessments-document .source-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #c5c5d2;
+}
+
+.psychosocial-assessments-document .ai-badge {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .psychosocial-assessments-document {
+    padding: 16px;
+  }
+
+  .psychosocial-assessments-document .document-header h1 {
+    font-size: 24px;
+  }
+
+  .psychosocial-assessments-document .mental-status-grid,
+  .psychosocial-assessments-document .social-grid,
+  .psychosocial-assessments-document .substance-grid,
+  .psychosocial-assessments-document .assessor-grid {
+    grid-template-columns: 1fr;
+  }
+}

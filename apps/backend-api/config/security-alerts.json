@@ -1,0 +1,222 @@
+{
+  "alerts": {
+    "violations": {
+      "threshold": 5,
+      "window": 300000,
+      "severity": "high",
+      "actions": ["email", "slack", "block"],
+      "description": "Multiple security violations detected"
+    },
+    "failed_auth": {
+      "threshold": 10,
+      "window": 600000,
+      "severity": "medium",
+      "actions": ["email", "log"],
+      "description": "Excessive failed authentication attempts"
+    },
+    "direct_db_access": {
+      "threshold": 1,
+      "window": 60000,
+      "severity": "critical",
+      "actions": ["email", "slack", "block", "page", "emergency_rotation"],
+      "description": "Direct database access attempted - CRITICAL BREACH"
+    },
+    "ai_violation": {
+      "threshold": 3,
+      "window": 300000,
+      "severity": "high",
+      "actions": ["email", "block", "suspend_service"],
+      "description": "AI service security violation"
+    },
+    "unauthorized_api": {
+      "threshold": 5,
+      "window": 180000,
+      "severity": "high",
+      "actions": ["email", "block"],
+      "description": "Unauthorized API access attempts"
+    },
+    "rate_limit_abuse": {
+      "threshold": 20,
+      "window": 60000,
+      "severity": "medium",
+      "actions": ["throttle", "log", "email"],
+      "description": "Rate limit abuse detected"
+    },
+    "injection_attempt": {
+      "threshold": 1,
+      "window": 60000,
+      "severity": "critical",
+      "actions": ["block", "email", "slack", "page"],
+      "description": "SQL/NoSQL injection attempt detected"
+    },
+    "xss_attempt": {
+      "threshold": 1,
+      "window": 60000,
+      "severity": "critical",
+      "actions": ["block", "email", "slack"],
+      "description": "Cross-site scripting attempt detected"
+    },
+    "service_compromise": {
+      "threshold": 1,
+      "window": 60000,
+      "severity": "critical",
+      "actions": ["suspend_service", "emergency_rotation", "email", "page"],
+      "description": "Service account compromise detected"
+    },
+    "data_exfiltration": {
+      "threshold": 1,
+      "window": 300000,
+      "severity": "critical",
+      "actions": ["block", "suspend_user", "email", "slack", "page"],
+      "description": "Potential data exfiltration detected"
+    }
+  },
+  "channels": {
+    "email": {
+      "enabled": true,
+      "recipients": ["security@intellicare.health", "admin@intellicare.health"],
+      "rateLimit": 10,
+      "cooldown": 300000,
+      "smtp": {
+        "host": "smtp.sendgrid.net",
+        "port": 587,
+        "secure": false,
+        "from": "security-alerts@intellicare.health"
+      }
+    },
+    "slack": {
+      "enabled": true,
+      "webhook": "https://hooks.slack.com/services/YOUR_WEBHOOK_HERE",
+      "channel": "#security-alerts",
+      "username": "IntelliCare Security",
+      "icon": ":shield:",
+      "mentionOnCritical": ["@channel"],
+      "rateLimit": 20
+    },
+    "pager": {
+      "enabled": false,
+      "service": "pagerduty",
+      "apiKey": "YOUR_PAGERDUTY_KEY",
+      "serviceId": "YOUR_SERVICE_ID",
+      "escalationPolicy": "security-critical",
+      "criticalOnly": true
+    },
+    "sms": {
+      "enabled": false,
+      "provider": "twilio",
+      "accountSid": "YOUR_TWILIO_SID",
+      "authToken": "YOUR_TWILIO_TOKEN",
+      "from": "+1234567890",
+      "recipients": ["+1234567890"],
+      "criticalOnly": true
+    },
+    "webhook": {
+      "enabled": true,
+      "endpoints": [
+        {
+          "url": "http://localhost:5000/api/security/webhook",
+          "method": "POST",
+          "headers": {
+            "X-Security-Token": "YOUR_WEBHOOK_TOKEN"
+          },
+          "retries": 3,
+          "timeout": 5000
+        }
+      ]
+    }
+  },
+  "escalation": {
+    "levels": [
+      {
+        "severity": "low",
+        "channels": ["log"],
+        "delay": 0
+      },
+      {
+        "severity": "medium",
+        "channels": ["log", "email"],
+        "delay": 0
+      },
+      {
+        "severity": "high",
+        "channels": ["log", "email", "slack"],
+        "delay": 0
+      },
+      {
+        "severity": "critical",
+        "channels": ["log", "email", "slack", "pager", "sms"],
+        "delay": 0,
+        "escalate": true
+      }
+    ],
+    "autoEscalate": {
+      "enabled": true,
+      "unacknowledgedTimeout": 300000,
+      "repeatInterval": 600000,
+      "maxEscalations": 3
+    }
+  },
+  "actions": {
+    "block": {
+      "duration": 86400000,
+      "permanent": false,
+      "notifyUser": true
+    },
+    "suspend_user": {
+      "duration": 604800000,
+      "requireManualReview": true,
+      "notifyUser": true
+    },
+    "suspend_service": {
+      "immediate": true,
+      "requireManualRestart": true,
+      "rotateCredentials": true
+    },
+    "emergency_rotation": {
+      "immediate": true,
+      "scope": "affected",
+      "notifyServices": true
+    },
+    "throttle": {
+      "factor": 0.1,
+      "duration": 300000,
+      "progressive": true
+    }
+  },
+  "monitoring": {
+    "checkInterval": 60000,
+    "retentionDays": 90,
+    "aggregation": {
+      "enabled": true,
+      "interval": 300000,
+      "metrics": ["count", "rate", "severity", "source"]
+    },
+    "reporting": {
+      "daily": {
+        "enabled": true,
+        "time": "09:00",
+        "recipients": ["security@intellicare.health"]
+      },
+      "weekly": {
+        "enabled": true,
+        "day": "monday",
+        "time": "09:00",
+        "recipients": ["admin@intellicare.health"]
+      }
+    }
+  },
+  "whitelist": {
+    "ips": [],
+    "services": ["health-check", "monitoring"],
+    "users": []
+  },
+  "blacklist": {
+    "ips": [],
+    "patterns": [
+      ".*<script.*>.*</script>.*",
+      ".*union.*select.*",
+      ".*exec\\(.*\\).*",
+      ".*eval\\(.*\\).*"
+    ]
+  }
+}

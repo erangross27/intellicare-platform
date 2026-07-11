@@ -1,0 +1,367 @@
+other: 214 collections
+  access_planning
+  acmg_guidelines_reference
+  adult_day_program_info
+  advance_care_planning
+  advance_directive_discussion
+  advance_directives
+  allergy_assessment
+  amniotic_fluid_index_current
+  anesthesia_record
+  antibiogram_reports
+  anticoagulation_management
+  assessment_plans
+  assistive_devices
+  audiometry_reports
+  autoimmune_evaluations
+  autopsy_reports
+  basal_rate_adjustments
+  biologic_therapy
+  blood_disorder_reports
+  blood_pressure_readings
+  blood_products
+  blood_products_ordered
+  blood_sample_collection_status
+  breastfeeding_recommendation
+  carbohydrate_counting_education
+  care_coordination
+  care_coordination_notes
+  care_team
+  care_team_info
+  caregiver_support
+  caregiver_support_groups
+  cascade_testing_protocol
+  case_summaries
+  cell_free_dna_result
+  cesarean_threshold
+  chief_complaints
+  children_specific_risk
+  ckd_management
+  clinical_risk_scores
+  clinical_trial_documents
+  cmv_monitoring_plan
+  coagulation_studies
+  code_blue_summaries
+  communication_preferences
+  component_allergen_testing
+  compression_therapy
+  consultation_details
+  cystoscopy_reports
+  data_management_instructions
+  day_programs
+  dementia_education
+  dental_examination_reports
+  department
+  depression_screening
+  detailed_family_pedigree
+  dialysate_composition
+  dialyzer
+  dietary_interventions
+  disability_evaluations
+  dnr_orders
+  doctors_medications_recommendations
+  doctors_medications_recommendations_optimizations
+  document_metadata
+  document_type
+  download_glucometer
+  education_initiated
+  employment_counseling
+  ems_run_reports
+  endoscopy_reports
+  ent_consultations
+  exercise_recommendations
+  extended_family_history
+  facility
+  fall_prevention_education
+  fall_risk_assessments
+  family_history
+  family_meeting_decisions
+  fecal_calprotectin
+  fertility_tracking
+  first_trimester_screen_result
+  fitness_for_duty_evaluations
+  flow_cytometry_reports
+  fmla_documentation_note
+  follow_up_enhanced
+  follow_up_intelligence
+  follow_up_plan
+  functional_assessment
+  functional_assessments
+  gdm_recurrence_risk
+  genetic_testing_reports
+  geriatric_assessments
+  glaucoma_assessments
+  glucometer_download_schedule
+  headers
+  height_measurements
+  hematology_consultations
+  history_of_present_illness
+  history_present_illness
+  home_health_notes
+  home_safety
+  hospice_notes
+  hospital_discharge_summaries
+  hourly_vital_signs
+  hydration_management
+  hypoglycemia_protocol
+  icu_flow_sheet
+  immediate_interventions
+  immediate_recommendations
+  immune_function_tests
+  inflammatory_bowel_reports
+  infliximab_drug_monitoring
+  infusion_therapy
+  inheritance_pattern_details
+  insulin_storage_instructions
+  insulin_timing_instructions
+  intake_output_records
+  intradialytic_monitoring
+  iv_infusions
+  laryngoscopy_reports
+  lymph_node_cytomorphology
+  macrosomia_threshold
+  mayo_score
+  medical_geneticist
+  medical_power_of_attorney
+  medical_reconciliation_forms
+  medication_administration_record
+  medication_administration_records
+  medication_changes_discontinued
+  medication_changes_dose
+  medication_changes_new
+  medication_deprescribing
+  medication_optimization
+  medication_recommendations
+  medication_safety_alerts
+  monitoring_plan
+  monitoring_reports
+  nicu_progress_notes
+  nurse_signatures
+  nursing_assessments
+  nutrition_assessments
+  nutritional_status
+  nutritional_supplementation
+  nutritional_support
+  omissions_refusals
+  ophthalmology_examinations
+  pain_assessment_forms
+  pain_management
+  pain_management_notes
+  partner_involvement
+  patient_education_context
+  patient_provider
+  periodontal_charts
+  pharmacy_review
+  physical_examination
+  physical_examinations
+  physical_therapy_notes
+  poison_control_reports
+  polypharmacy
+  polypharmacy_review
+  polypharmacy_reviews
+  postop_testing
+  potential_testing_outcomes
+  preeclampsia_monitoring
+  prognosis_records
+  progress_notes
+  proposed_art_switch
+  provider_info
+  pump_advanced_settings
+  rapid_response_summaries
+  reason_for_referral
+  rehabilitation_progress_notes
+  rescue_therapy_options
+  research_consent_forms
+  respite_care
+  retinal_examinations
+  risk_counseling
+  safety_planning
+  school_health_forms
+  second_opinion_reports
+  shift_handoff_notes
+  single_embryo_transfer
+  single_embryo_transfer_details
+  sleep_study
+  sleep_study_reports
+  soap_notes
+  social_support
+  social_work
+  social_work_notes
+  source
+  specific_ige_tests
+  supportive_care
+  symptom_progression_timeline
+  telemedicine_encounters
+  therapy_progress_notes
+  toxicology_reports
+  transplant_evaluation
+  transplant_evaluations
+  travel_health_certificates
+  treatment_course
+  treatment_plan
+  urodynamic_studies
+  urology_consultations
+  variant_interpretation_guidelines
+  visual_acuity_reports
+  vital_signs_logs
+  vital_signs_monitoring
+  vital_signs_table
+  weight_measurements
+  weight_monitoring
+  well_child_summary
+  workers_comp_evaluations
+  workplace_accommodations
+  wound_care_documentation
+  wound_care_notes
+
+surgical: 15 collections
+  closure_technique
+  dermatology_procedure_notes
+  operative_report_details
+  operative_time
+  oral_surgery_reports
+  orthopedic_operative_reports
+  patient_positioning
+  pneumoperitoneum
+  port_placement
+  preoperative_preparation
+  prep_and_drape
+  procedures
+  sponge_instrument_counts
+  surgical_history
+  surgical_steps
+
+imaging-radiology: 14 collections
+  anatomy_scan_result
+  bone_scan_reports
+  dexa_scan_reports
+  fetal_echo_result
+  fetal_echo_results
+  imaging
+  interventional_radiology_notes
+  mammography_reports
+  mri_reports
+  nt_scan_result
+  obstetric_ultrasound_reports
+  pet_scan_reports
+  radiology_reports
+  ultrasound_ob_reports
+
+endocrinology: 14 collections
+  blood_glucose_logs
+  blood_glucose_monitoring
+  continuous_glucose_monitor_discussion
+  diabetes_educator
+  diabetes_educator_training
+  diabetes_management
+  diabetes_quality_metrics
+  diabetes_supplies
+  endocrinology_consultations
+  excessive_glucose_monitoring
+  glucose_monitoring_goals
+  hormone_therapy_records
+  partner_involvement_diabetes_management
+  thyroid_evaluations
+
+laboratory: 10 collections
+  autoimmune_panels
+  comprehensive_cardiomyopathy_panel
+  endocrine_lab_results
+  hormone_panels
+  laboratory_results
+  microbiology_culture_reports
+  pathology_gross_description
+  pathology_report
+  skin_biopsy_reports
+  tumor_marker_panels
+
+nephrology: 10 collections
+  dialysis_prescription
+  dialysis_records
+  dialysis_run_sheet
+  dialysis_run_sheets
+  estimated_time_to_dialysis
+  kidney_disease_progression_timeline
+  kidney_function_reports
+  nephrology_consultations
+  post_dialysis_assessment
+  pre_dialysis_assessment
+
+obstetrics-gynecology: 9 collections
+  cervical_length_measurement
+  fetal_echo
+  inter_pregnancy_weight_management
+  maternal_fetal_reports
+  postpartum_diabetes_risk
+  postpartum_notes
+  pre_pregnancy_weight
+  prenatal_testing_reports
+  prenatal_visit
+
+psychiatry: 7 collections
+  barriers_psychosocial_issues
+  genetics_psychosocial_assessment
+  mental_health_resources
+  mental_status_exams
+  perinatal_mental_health_referral
+  psychiatric_discharge_summaries
+  psychosocial_support_services
+
+pulmonology: 6 collections
+  asthma_assessment
+  asthma_management_notes
+  copd_assessment
+  copd_assessments
+  pulmonary_rehabilitation
+  pulmonary_rehabilitation_notes
+
+neurology: 5 collections
+  cognitive_evaluations
+  cognitive_rehabilitation_reports
+  neurological_examination
+  neurological_findings
+  neuropsych_testing
+
+administrative: 5 collections
+  insurance_authorization
+  insurance_authorizations
+  insurance_forms
+  prior_authorization_forms
+  prior_authorization_status
+
+oncology: 4 collections
+  brain_tumor_characteristics
+  oncology_consultations
+  oncology_followup_reports
+  tumor_board_notes
+
+cardiology: 4 collections
+  cardiac_monitoring
+  cardiology_admission_notes
+  cardiology_followup_reports
+  cardiovascular_risk_reduction
+
+gastroenterology: 3 collections
+  colonoscopy_reports
+  gastroenterology_consultations
+  liver_function_assessments
+
+orthopedics: 3 collections
+  bone_marrow_reports
+  orthopedic_consultations
+  orthopedic_followup_notes
+
+rheumatology: 2 collections
+  arthritis_assessments
+  rheumatology_consultations
+
+dermatology: 2 collections
+  allergy_skin_testing
+  dermatology_consultations
+
+emergency-medicine: 2 collections
+  emergency_discharge_summaries
+  trauma_flow_sheets
+
+infectious-disease: 1 collections
+  infection_risk_monitoring

@@ -1,0 +1,174 @@
+/* DocumentListItem - Individual document card styling */
+
+.document-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #1A2A4A; /* lifted blue-slate row, lighter than the #0A1426 navy field */
+  border: 1px solid #2C4470;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.document-list-item:hover {
+  background: #223358;
+  border-color: #3D8BFF;
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.document-list-item:active {
+  transform: translateX(2px);
+}
+
+.document-list-item:focus {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+/* Latest document highlight - subtle enhancement */
+.document-list-item.latest {
+  background: linear-gradient(135deg, #1E3052 0%, #284679 100%);
+  border-color: #3D8BFF;
+  position: relative;
+}
+
+.document-list-item.latest:hover {
+  background: linear-gradient(135deg, #284679 0%, #335691 100%);
+  border-color: #60a5fa;
+}
+
+/* Document icon section */
+.document-item-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  background: linear-gradient(135deg, #243B66 0%, #2E4F86 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  transition: all 0.2s ease;
+}
+
+.document-list-item:hover .document-item-icon {
+  background: linear-gradient(135deg, #2E4F86 0%, #3D8BFF 100%);
+  transform: scale(1.05);
+}
+
+/* Document info section */
+.document-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0; /* Allow text truncation */
+}
+
+.document-item-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ececf1;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Preview text */
+.document-item-preview {
+  font-size: 14px;
+  color: #9ca3af;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Meta information (date and badge) */
+.document-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.document-item-date {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.latest-badge {
+  padding: 3px 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+/* Arrow indicator */
+.document-item-arrow {
+  font-size: 24px;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.document-list-item:hover .document-item-arrow {
+  color: #ececf1;
+  transform: translateX(4px);
+}
+
+/* Special styling for latest document arrow */
+.document-list-item.latest .document-item-arrow {
+  color: #9ca3af;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .document-list-item {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .document-item-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    font-size: 20px;
+  }
+
+  .document-item-title {
+    font-size: 15px;
+  }
+
+  .document-item-preview {
+    font-size: 13px;
+    -webkit-line-clamp: 1;
+  }
+
+  .document-item-date {
+    font-size: 11px;
+  }
+
+  .latest-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  .document-item-arrow {
+    font-size: 20px;
+  }
+}

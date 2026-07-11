@@ -1,0 +1,104 @@
+{
+  "authentication": {
+    "tokenExpiry": {
+      "access": "8h",
+      "refresh": "7d",
+      "rememberMe": "30d",
+      "passwordless": "15m",
+      "emailVerification": "24h"
+    },
+    "security": {
+      "bcryptRounds": 12,
+      "maxLoginAttempts": 5,
+      "lockoutDuration": "30m",
+      "sessionTimeout": "8h",
+      "requireHttps": true,
+      "sameSiteCookie": "strict",
+      "secureCookie": true,
+      "httpOnlyCookie": true
+    },
+    "passwordPolicy": {
+      "minLength": 8,
+      "requireUppercase": true,
+      "requireLowercase": true,
+      "requireNumbers": true,
+      "requireSpecialChars": true,
+      "preventCommonPasswords": true,
+      "preventUserInfo": true,
+      "passwordHistory": 5,
+      "maxAge": "90d"
+    },
+    "mfa": {
+      "enabled": false,
+      "required": false,
+      "methods": ["totp", "email"],
+      "backupCodes": 10
+    },
+    "sessionManagement": {
+      "maxConcurrentSessions": 3,
+      "sessionInactivityTimeout": "30m",
+      "absoluteSessionTimeout": "12h",
+      "regenerateSessionId": true,
+      "destroyOnLogout": true
+    },
+    "cors": {
+      "allowedOrigins": [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://*.localhost:3000",
+        "https://*.intellicare.health",
+        "https://intellicare.health"
+      ],
+      "credentials": true,
+      "maxAge": 86400
+    },
+    "rateLimit": {
+      "login": {
+        "windowMs": 900000,
+        "max": 5,
+        "message": "Too many login attempts, please try again later"
+      },
+      "passwordReset": {
+        "windowMs": 3600000,
+        "max": 3,
+        "message": "Too many password reset requests"
+      },
+      "emailVerification": {
+        "windowMs": 3600000,
+        "max": 5,
+        "message": "Too many verification requests"
+      }
+    }
+  },
+  "dataProtection": {
+    "encryption": {
+      "algorithm": "aes-256-gcm",
+      "keyDerivation": "pbkdf2",
+      "iterations": 100000
+    },
+    "pii": {
+      "maskInLogs": true,
+      "encryptAtRest": true,
+      "auditAccess": true
+    },
+    "retention": {
+      "auditLogs": "2y",
+      "sessionData": "30d",
+      "tempFiles": "24h"
+    }
+  },
+  "compliance": {
+    "hipaa": {
+      "enabled": true,
+      "auditLogging": true,
+      "encryptionRequired": true,
+      "accessControls": true
+    },
+    "gdpr": {
+      "enabled": true,
+      "consentRequired": true,
+      "rightToErasure": true,
+      "dataPortability": true
+    }
+  }
+}

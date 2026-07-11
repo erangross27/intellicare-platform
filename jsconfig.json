@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@intellicare/patient-management": ["libs/patient-management/index.js"],
+      "@intellicare/clinical-care": ["libs/clinical-care/index.js"],
+      "@intellicare/medical-records": ["libs/medical-records/index.js"],
+      "@intellicare/billing-insurance": ["libs/billing-insurance/index.js"],
+      "@intellicare/compliance-security": ["libs/compliance-security/index.js"],
+      "@intellicare/communication": ["libs/communication/index.js"],
+      "@intellicare/ai-analytics": ["libs/ai-analytics/index.js"],
+      "@intellicare/infrastructure": ["libs/infrastructure/index.js"],
+      "@intellicare/integration": ["libs/integration/index.js"],
+      "@intellicare/learning-training": ["libs/learning-training/index.js"],
+      "@intellicare/operations": ["libs/operations/index.js"],
+      "@intellicare/shared": ["libs/shared/index.js"]
+    },
+    "target": "es2020",
+    "module": "commonjs"
+  },
+  "include": [
+    "backend/**/*",
+    "frontend-vite/**/*",
+    "libs/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build"
+  ]
+}

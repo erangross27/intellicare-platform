@@ -1,0 +1,116 @@
+/* PatientSpecificCarePlanDocument.css — July 2026 Blue glow editing theme (canonical one-pass) */
+
+.patient-specific-care-plan-document { padding: 24px; background: #0F1B33; color: #ececf1; font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; line-height: 1.7; direction: ltr; text-align: left; }
+.patient-specific-care-plan-document * { direction: ltr; }
+
+/* ── Header ── */
+.patient-specific-care-plan-document .document-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
+.patient-specific-care-plan-document .document-title { font-size: 28px; font-weight: 700; color: #60a5fa; margin: 0; }
+.patient-specific-care-plan-document .header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ── Search ── */
+.patient-specific-care-plan-document .search-container { margin-bottom: 20px; }
+.patient-specific-care-plan-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.patient-specific-care-plan-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.patient-specific-care-plan-document .search-input::placeholder { color: #9ca3af; }
+.patient-specific-care-plan-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
+
+/* ── Records ── */
+.patient-specific-care-plan-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+.patient-specific-care-plan-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
+.patient-specific-care-plan-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
+.patient-specific-care-plan-document .record-header { margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
+.patient-specific-care-plan-document .record-name { font-size: 20px; font-weight: 700; color: #ececf1; margin: 0; }
+
+/* ── Section ── */
+.patient-specific-care-plan-document .section { margin-bottom: 16px; }
+.patient-specific-care-plan-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
+.patient-specific-care-plan-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
+.patient-specific-care-plan-document .section-title { font-size: 17px; font-weight: 700; color: #93c5fd; margin: 0; }
+.patient-specific-care-plan-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+
+/* ── Mini Cards ── */
+.patient-specific-care-plan-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.patient-specific-care-plan-document .nested-subtitle { font-size: 15px; font-weight: 700; color: #93c5fd; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
+
+/* ── TI Card ── */
+.patient-specific-care-plan-document .ti-card { border-left: 3px solid #60a5fa; }
+.patient-specific-care-plan-document .ti-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.patient-specific-care-plan-document .ti-card-title { font-size: 16px; font-weight: 700; color: #ececf1; flex: 1; }
+
+/* ── Barrier Card ── */
+.patient-specific-care-plan-document .barrier-card-inner { border-left: 3px solid #f97316; }
+.patient-specific-care-plan-document .barrier-title { color: #fb923c; }
+
+/* ── Rows ── */
+.patient-specific-care-plan-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
+.patient-specific-care-plan-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
+.patient-specific-care-plan-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
+.patient-specific-care-plan-document .content-value { color: #ececf1; font-size: 15px; line-height: 1.6; }
+.patient-specific-care-plan-document .editable-row { cursor: pointer; }
+.patient-specific-care-plan-document .editable-row:hover .edit-indicator { opacity: 1; }
+.patient-specific-care-plan-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.patient-specific-care-plan-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.patient-specific-care-plan-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.patient-specific-care-plan-document .modified-badge.added { color: #4ade80; }
+
+/* ── Edit Fields ── */
+.patient-specific-care-plan-document .edit-field-container { width: 100%; }
+.patient-specific-care-plan-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.patient-specific-care-plan-document .edit-textarea:focus { box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2); }
+.patient-specific-care-plan-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
+.patient-specific-care-plan-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.patient-specific-care-plan-document .save-btn:hover { background: #1d4ed8; }
+.patient-specific-care-plan-document .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.patient-specific-care-plan-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.patient-specific-care-plan-document .cancel-btn:hover { border-color: #60a5fa; }
+.patient-specific-care-plan-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+
+/* ── Approve ── */
+.patient-specific-care-plan-document .approve-btn { text-transform: capitalize; letter-spacing: 0.3px; margin-top: 4px; }
+.patient-specific-care-plan-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.patient-specific-care-plan-document .approve-btn.pending:hover { background: rgba(234, 179, 8, 0.25); }
+.patient-specific-care-plan-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+
+/* ── Copy Buttons ── */
+.patient-specific-care-plan-document .copy-btn { background: transparent; color: #9ca3af; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 6px; padding: 5px 12px; font-size: 13px; font-weight: 600; font-family: 'Comfortaa', sans-serif; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0; text-decoration: none; display: inline-flex; align-items: center; }
+.patient-specific-care-plan-document .copy-btn:hover { background: rgba(96, 165, 250, 0.1); color: #ececf1; border-color: #60a5fa; }
+.patient-specific-care-plan-document .copy-btn.copied { color: #4ade80; border-color: #4ade80; }
+
+/* ── Goals ── */
+.patient-specific-care-plan-document .goal-row-wrapper { margin-bottom: 4px; }
+.patient-specific-care-plan-document .goal-row { background: #0d1929; }
+.patient-specific-care-plan-document .goal-number-badge { flex-shrink: 0; width: 24px; height: 24px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+
+/* ── Search Highlighting ── */
+.patient-specific-care-plan-document mark { background-color: #fef08a; color: #000; padding: 1px 0; border-radius: 2px; }
+
+/* ── Empty State ── */
+.patient-specific-care-plan-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 16px; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .patient-specific-care-plan-document .document-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+  .patient-specific-care-plan-document .section-header { flex-direction: column; gap: 8px; }
+}
+
+/* ═══════ June 2026 Full-Standard upgrade — typed/nested/date editing (donor: PointOfCareUltrasoundHeartRate) ═══════ */
+.patient-specific-care-plan-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.patient-specific-care-plan-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.patient-specific-care-plan-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.patient-specific-care-plan-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.patient-specific-care-plan-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
+.patient-specific-care-plan-document .edit-select option { background: #0F1B33; color: #ececf1; }
+.patient-specific-care-plan-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.patient-specific-care-plan-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.patient-specific-care-plan-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
+.patient-specific-care-plan-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
+.patient-specific-care-plan-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
+/* ── Num Stepper (replaces native type=number) ── */
+.patient-specific-care-plan-document .num-stepper-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.patient-specific-care-plan-document .num-stepper-row .edit-number { flex: 1; min-width: 0; text-align: center; -moz-appearance: textfield; appearance: textfield; }
+.patient-specific-care-plan-document .edit-number::-webkit-outer-spin-button, .patient-specific-care-plan-document .edit-number::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.patient-specific-care-plan-document .num-step { width: 46px; flex-shrink: 0; background: rgba(96, 165, 250, 0.15); border: 2px solid #60a5fa; border-radius: 6px; color: #93c5fd; font-size: 22px; font-weight: bold; line-height: 1; cursor: pointer; user-select: none; transition: background 0.15s; }
+.patient-specific-care-plan-document .num-step:hover { background: rgba(96, 165, 250, 0.35); }
+.patient-specific-care-plan-document .num-step:active { background: rgba(96, 165, 250, 0.5); }

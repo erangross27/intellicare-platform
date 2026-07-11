@@ -1,0 +1,85 @@
+{
+  "serviceId": "incident-response-service",
+  "serviceName": "Incident Response Service",
+  "description": "Manages security incidents and response workflows",
+  "version": "1.0.0",
+  "owner": "Security Team",
+  "contactEmail": "security@intellicare.com",
+  
+  "authentication": {
+    "requireApiKey": true,
+    "requireMFA": true,
+    "tokenRotationDays": 30
+  },
+  
+  "permissions": {
+    "allowedClinics": ["*"],
+    "allowedCollections": [
+      "incidents",
+      "users",
+      "audit_logs",
+      "securityevents"
+    ],
+    "operations": {
+      "incidents": ["query", "insert", "update"],
+      "users": ["query"],
+      "audit_logs": ["query", "insert"],
+      "securityevents": ["query", "insert"]
+    },
+    "fieldAccess": {
+      "users": {
+        "allowed": ["_id", "email", "name", "role"],
+        "denied": ["password", "ssn", "medicalHistory"]
+      }
+    }
+  },
+  
+  "dataGovernance": {
+    "dataClassification": "restricted",
+    "piiAccess": true,
+    "phiAccess": false,
+    "financialDataAccess": false,
+    "auditLevel": "full",
+    "dataRetentionDays": 2555
+  },
+  
+  "rateLimits": {
+    "queriesPerMinute": 200,
+    "queriesPerHour": 10000,
+    "maxRecordsPerQuery": 5000,
+    "maxConcurrentQueries": 20,
+    "burstAllowance": 50
+  },
+  
+  "security": {
+    "requireEncryption": true,
+    "ipWhitelist": [],
+    "ipBlacklist": [],
+    "allowedTimeWindows": [],
+    "geoRestrictions": {
+      "allowedCountries": ["US", "IL"],
+      "blockedCountries": []
+    }
+  },
+  
+  "criticality": "critical",
+  "tags": ["security", "incident-response", "critical"],
+  
+  "monitoring": {
+    "enableMetrics": true,
+    "enableAlerting": true,
+    "alertThresholds": {
+      "errorRate": 0.01,
+      "latencyP95": 500,
+      "violationCount": 1
+    }
+  },
+  
+  "compliance": {
+    "hipaaCompliant": true,
+    "gdprCompliant": true,
+    "encryptionRequired": true,
+    "rightToErasure": false,
+    "dataPortability": false
+  }
+}

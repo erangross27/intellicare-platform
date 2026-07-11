@@ -1,0 +1,502 @@
+{
+  "summary": {
+    "totalGenericCollections": 214,
+    "totalExistingTemplates": 463,
+    "withTemplates": 93,
+    "withoutTemplates": 118
+  },
+  "collectionsWithTemplates": [
+    {
+      "collection": "blood_pressure_readings",
+      "template": "BloodPressureReadingsDocument.jsx"
+    },
+    {
+      "collection": "blood_products_ordered",
+      "template": "BloodProductsOrderedDocument.jsx"
+    },
+    {
+      "collection": "bone_scan_reports",
+      "template": "BoneScanReportsDocument.jsx"
+    },
+    {
+      "collection": "brain_tumor_characteristics",
+      "template": "BrainTumorCharacteristicsDocument.jsx"
+    },
+    {
+      "collection": "cardiac_monitoring",
+      "template": "CardiacMonitoringDocument.jsx"
+    },
+    {
+      "collection": "cardiovascular_risk_reduction",
+      "template": "CardiovascularRiskReductionDocument.jsx"
+    },
+    {
+      "collection": "care_coordination_notes",
+      "template": "CareCoordinationNotesDocument.jsx"
+    },
+    {
+      "collection": "cascade_testing_protocol",
+      "template": "CascadeTestingProtocolDocument.jsx"
+    },
+    {
+      "collection": "coagulation_studies",
+      "template": "CoagulationStudiesDocument.jsx"
+    },
+    {
+      "collection": "cognitive_evaluations",
+      "template": "CognitiveEvaluationsDocument.jsx"
+    },
+    {
+      "collection": "cognitive_rehabilitation_reports",
+      "template": "CognitiveRehabilitationReportsDocument.jsx"
+    },
+    {
+      "collection": "colonoscopy_reports",
+      "template": "ColonoscopyReportsDocument.jsx"
+    },
+    {
+      "collection": "component_allergen_testing",
+      "template": "ComponentAllergenTestingDocument.jsx"
+    },
+    {
+      "collection": "dental_examination_reports",
+      "template": "DentalExaminationReportsDocument.jsx"
+    },
+    {
+      "collection": "depression_screening",
+      "template": "DepressionScreeningDocument.jsx"
+    },
+    {
+      "collection": "dermatology_consultations",
+      "template": "DermatologyConsultationsDocument.jsx"
+    },
+    {
+      "collection": "dermatology_procedure_notes",
+      "template": "DermatologyProcedureNotesDocument.jsx"
+    },
+    {
+      "collection": "dexa_scan_reports",
+      "template": "DexaScanReportsDocument.jsx"
+    },
+    {
+      "collection": "dietary_interventions",
+      "template": "DietaryInterventionsDocument.jsx"
+    },
+    {
+      "collection": "disability_evaluations",
+      "template": "DisabilityEvaluationsDocument.jsx"
+    },
+    {
+      "collection": "education_initiated",
+      "template": "EducationInitiatedDocument.jsx"
+    },
+    {
+      "collection": "endocrinology_consultations",
+      "template": "EndocrinologyConsultationsDocument.jsx"
+    },
+    {
+      "collection": "ent_consultations",
+      "template": "EntConsultationsDocument.jsx"
+    },
+    {
+      "collection": "estimated_time_to_dialysis",
+      "template": "EstimatedTimeToDialysisDocument.jsx"
+    },
+    {
+      "collection": "exercise_recommendations",
+      "template": "ExerciseRecommendationsDocument.jsx"
+    },
+    {
+      "collection": "fall_risk_assessments",
+      "template": "FallRiskAssessmentsDocument.jsx"
+    },
+    {
+      "collection": "family_history",
+      "template": "FamilyHistoryDocument.jsx"
+    },
+    {
+      "collection": "fecal_calprotectin",
+      "template": "FecalCalprotectinDocument.jsx"
+    },
+    {
+      "collection": "flow_cytometry_reports",
+      "template": "FlowCytometryReportsDocument.jsx"
+    },
+    {
+      "collection": "functional_assessments",
+      "template": "FunctionalAssessmentsDocument.jsx"
+    },
+    {
+      "collection": "gastroenterology_consultations",
+      "template": "GastroenterologyConsultationsDocument.jsx"
+    },
+    {
+      "collection": "genetic_testing_reports",
+      "template": "GeneticTestingReportsDocument.jsx"
+    },
+    {
+      "collection": "geriatric_assessments",
+      "template": "GeriatricAssessmentsDocument.jsx"
+    },
+    {
+      "collection": "glucose_monitoring_goals",
+      "template": "GlucoseMonitoringGoalsDocument.jsx"
+    },
+    {
+      "collection": "hematology_consultations",
+      "template": "HematologyConsultationsDocument.jsx"
+    },
+    {
+      "collection": "home_health_notes",
+      "template": "HomeHealthNotesDocument.jsx"
+    },
+    {
+      "collection": "hormone_panels",
+      "template": "HormonePanelsDocument.jsx"
+    },
+    {
+      "collection": "hospice_notes",
+      "template": "HospiceNotesDocument.jsx"
+    },
+    {
+      "collection": "immediate_interventions",
+      "template": "ImmediateInterventionsDocument.jsx"
+    },
+    {
+      "collection": "inflammatory_bowel_reports",
+      "template": "InflammatoryBowelReportsDocument.jsx"
+    },
+    {
+      "collection": "infliximab_drug_monitoring",
+      "template": "InfliximabDrugMonitoringDocument.jsx"
+    },
+    {
+      "collection": "infusion_therapy",
+      "template": "InfusionTherapyDocument.jsx"
+    },
+    {
+      "collection": "insurance_authorizations",
+      "template": "InsuranceAuthorizationsDocument.jsx"
+    },
+    {
+      "collection": "insurance_forms",
+      "template": "InsuranceFormsDocument.jsx"
+    },
+    {
+      "collection": "intake_output_records",
+      "template": "IntakeOutputRecordsDocument.jsx"
+    },
+    {
+      "collection": "kidney_disease_progression_timeline",
+      "template": "KidneyDiseaseProgressionTimelineDocument.jsx"
+    },
+    {
+      "collection": "kidney_function_reports",
+      "template": "KidneyFunctionReportsDocument.jsx"
+    },
+    {
+      "collection": "laryngoscopy_reports",
+      "template": "LaryngoscopyReportsDocument.jsx"
+    },
+    {
+      "collection": "liver_function_assessments",
+      "template": "LiverFunctionAssessmentsDocument.jsx"
+    },
+    {
+      "collection": "lymph_node_cytomorphology",
+      "template": "LymphNodeCytomorphologyDocument.jsx"
+    },
+    {
+      "collection": "mammography_reports",
+      "template": "MammographyReportsDocument.jsx"
+    },
+    {
+      "collection": "mayo_score",
+      "template": "MayoScoreDocument.jsx"
+    },
+    {
+      "collection": "medical_geneticist",
+      "template": "MedicalGeneticistDocument.jsx"
+    },
+    {
+      "collection": "medication_administration_records",
+      "template": "MedicationAdministrationRecordsDocument.jsx"
+    },
+    {
+      "collection": "medication_changes_dose",
+      "template": "MedicationChangesDoseDocument.jsx"
+    },
+    {
+      "collection": "medication_optimization",
+      "template": "MedicationOptimizationDocument.jsx"
+    },
+    {
+      "collection": "mental_health_resources",
+      "template": "MentalHealthResourcesDocument.jsx"
+    },
+    {
+      "collection": "mental_status_exams",
+      "template": "MentalStatusExamsDocument.jsx"
+    },
+    {
+      "collection": "microbiology_culture_reports",
+      "template": "MicrobiologyCultureReportsDocument.jsx"
+    },
+    {
+      "collection": "nephrology_consultations",
+      "template": "NephrologyConsultationsDocument.jsx"
+    },
+    {
+      "collection": "neurological_examination",
+      "template": "NeurologicalExaminationDocument.jsx"
+    },
+    {
+      "collection": "neurological_findings",
+      "template": "NeurologicalFindingsDocument.jsx"
+    },
+    {
+      "collection": "nursing_assessments",
+      "template": "NursingAssessmentsDocument.jsx"
+    },
+    {
+      "collection": "nutritional_support",
+      "template": "NutritionalSupportDocument.jsx"
+    },
+    {
+      "collection": "oncology_consultations",
+      "template": "OncologyConsultationsDocument.jsx"
+    },
+    {
+      "collection": "ophthalmology_examinations",
+      "template": "OphthalmologyExaminationsDocument.jsx"
+    },
+    {
+      "collection": "oral_surgery_reports",
+      "template": "OralSurgeryReportsDocument.jsx"
+    },
+    {
+      "collection": "orthopedic_consultations",
+      "template": "OrthopedicConsultationsDocument.jsx"
+    },
+    {
+      "collection": "pain_assessment_forms",
+      "template": "PainAssessmentFormsDocument.jsx"
+    },
+    {
+      "collection": "pain_management_notes",
+      "template": "PainManagementNotesDocument.jsx"
+    },
+    {
+      "collection": "physical_examinations",
+      "template": "PhysicalExaminationsDocument.jsx"
+    },
+    {
+      "collection": "physical_therapy_notes",
+      "template": "PhysicalTherapyNotesDocument.jsx"
+    },
+    {
+      "collection": "polypharmacy_reviews",
+      "template": "PolypharmacyReviewsDocument.jsx"
+    },
+    {
+      "collection": "potential_testing_outcomes",
+      "template": "PotentialTestingOutcomesDocument.jsx"
+    },
+    {
+      "collection": "prior_authorization_forms",
+      "template": "PriorAuthorizationFormsDocument.jsx"
+    },
+    {
+      "collection": "proposed_art_switch",
+      "template": "ProposedArtSwitchDocument.jsx"
+    },
+    {
+      "collection": "reason_for_referral",
+      "template": "ReasonForReferralDocument.jsx"
+    },
+    {
+      "collection": "rescue_therapy_options",
+      "template": "RescueTherapyOptionsDocument.jsx"
+    },
+    {
+      "collection": "research_consent_forms",
+      "template": "ResearchConsentFormsDocument.jsx"
+    },
+    {
+      "collection": "retinal_examinations",
+      "template": "RetinalExaminationsDocument.jsx"
+    },
+    {
+      "collection": "rheumatology_consultations",
+      "template": "RheumatologyConsultationsDocument.jsx"
+    },
+    {
+      "collection": "risk_counseling",
+      "template": "RiskCounselingDocument.jsx"
+    },
+    {
+      "collection": "sleep_study_reports",
+      "template": "SleepStudyReportsDocument.jsx"
+    },
+    {
+      "collection": "social_work_notes",
+      "template": "SocialWorkNotesDocument.jsx"
+    },
+    {
+      "collection": "specific_ige_tests",
+      "template": "SpecificIgeTestsDocument.jsx"
+    },
+    {
+      "collection": "supportive_care",
+      "template": "SupportiveCareDocument.jsx"
+    },
+    {
+      "collection": "symptom_progression_timeline",
+      "template": "SymptomProgressionTimelineDocument.jsx"
+    },
+    {
+      "collection": "thyroid_evaluations",
+      "template": "ThyroidEvaluationsDocument.jsx"
+    },
+    {
+      "collection": "transplant_evaluations",
+      "template": "TransplantEvaluationsDocument.jsx"
+    },
+    {
+      "collection": "tumor_board_notes",
+      "template": "TumorBoardNotesDocument.jsx"
+    },
+    {
+      "collection": "tumor_marker_panels",
+      "template": "TumorMarkerPanelsDocument.jsx"
+    },
+    {
+      "collection": "visual_acuity_reports",
+      "template": "VisualAcuityReportsDocument.jsx"
+    },
+    {
+      "collection": "weight_measurements",
+      "template": "WeightMeasurementsDocument.jsx"
+    }
+  ],
+  "collectionsWithoutTemplates": [
+    "blood_sample_collection_status",
+    "bone_marrow_reports",
+    "breastfeeding_recommendation",
+    "carbohydrate_counting_education",
+    "caregiver_support_groups",
+    "case_summaries",
+    "cell_free_dna_result",
+    "cervical_length_measurement",
+    "cesarean_threshold",
+    "children_specific_risk",
+    "ckd_management",
+    "clinical_trial_documents",
+    "code_blue_summaries",
+    "communication_preferences",
+    "comprehensive_cardiomyopathy_panel",
+    "compression_therapy",
+    "cystoscopy_reports",
+    "data_management_instructions",
+    "day_programs",
+    "dementia_education",
+    "department",
+    "detailed_family_pedigree",
+    "diabetes_educator_training",
+    "diabetes_supplies",
+    "dialysate_composition",
+    "dialysis_prescription",
+    "dialysis_records",
+    "dialysis_run_sheets",
+    "dialyzer",
+    "dnr_orders",
+    "document_metadata",
+    "document_type",
+    "employment_counseling",
+    "ems_run_reports",
+    "endoscopy_reports",
+    "facility",
+    "fall_prevention_education",
+    "fertility_tracking",
+    "fetal_echo_results",
+    "first_trimester_screen_result",
+    "fitness_for_duty_evaluations",
+    "fmla_documentation_note",
+    "gdm_recurrence_risk",
+    "glucometer_download_schedule",
+    "headers",
+    "height_measurements",
+    "home_safety",
+    "hormone_therapy_records",
+    "hydration_management",
+    "hypoglycemia_protocol",
+    "immediate_recommendations",
+    "immune_function_tests",
+    "infection_risk_monitoring",
+    "inheritance_pattern_details",
+    "insulin_storage_instructions",
+    "insulin_timing_instructions",
+    "intradialytic_monitoring",
+    "iv_infusions",
+    "laboratory_results",
+    "macrosomia_threshold",
+    "maternal_fetal_reports",
+    "medical_power_of_attorney",
+    "medical_reconciliation_forms",
+    "medication_changes_discontinued",
+    "medication_changes_new",
+    "medication_deprescribing",
+    "medication_safety_alerts",
+    "monitoring_reports",
+    "neuropsych_testing",
+    "nicu_progress_notes",
+    "nt_scan_result",
+    "nurse_signatures",
+    "nutritional_status",
+    "nutritional_supplementation",
+    "omissions_refusals",
+    "operative_time",
+    "partner_involvement",
+    "partner_involvement_diabetes_management",
+    "perinatal_mental_health_referral",
+    "periodontal_charts",
+    "pet_scan_reports",
+    "pharmacy_review",
+    "poison_control_reports",
+    "polypharmacy",
+    "post_dialysis_assessment",
+    "postop_testing",
+    "postpartum_diabetes_risk",
+    "postpartum_notes",
+    "pre_dialysis_assessment",
+    "pre_pregnancy_weight",
+    "preeclampsia_monitoring",
+    "prior_authorization_status",
+    "progress_notes",
+    "provider_info",
+    "psychosocial_support_services",
+    "pulmonary_rehabilitation_notes",
+    "rapid_response_summaries",
+    "rehabilitation_progress_notes",
+    "respite_care",
+    "safety_planning",
+    "school_health_forms",
+    "second_opinion_reports",
+    "shift_handoff_notes",
+    "single_embryo_transfer_details",
+    "soap_notes",
+    "social_support",
+    "source",
+    "telemedicine_encounters",
+    "therapy_progress_notes",
+    "toxicology_reports",
+    "trauma_flow_sheets",
+    "travel_health_certificates",
+    "urodynamic_studies",
+    "urology_consultations",
+    "variant_interpretation_guidelines",
+    "weight_monitoring",
+    "workers_comp_evaluations",
+    "workplace_accommodations"
+  ]
+}

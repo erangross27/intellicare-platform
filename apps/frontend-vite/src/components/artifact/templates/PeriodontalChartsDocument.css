@@ -1,0 +1,435 @@
+/* PeriodontalChartsDocument.css - Blue Glow Theme - March 2026 */
+
+.periodontal-charts-document {
+  padding: 0;
+  color: #e2e8f0;
+  font-family: 'Comfortaa', sans-serif;
+  max-width: 100%;
+  direction: ltr;
+  text-align: left;
+}
+
+.periodontal-charts-document * { direction: ltr; }
+
+/* Document Header */
+.periodontal-charts-document .document-header {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #565869;
+}
+
+.periodontal-charts-document .document-title {
+  font-size: 35px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Header Actions (Copy All + Export PDF buttons) */
+.periodontal-charts-document .header-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.periodontal-charts-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+
+/* Search */
+.periodontal-charts-document .search-container {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.periodontal-charts-document .search-input {
+  width: 100%;
+  padding: 10px 36px 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 16px;
+  font-family: 'Comfortaa', sans-serif;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.periodontal-charts-document .search-input:focus {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.15);
+}
+
+.periodontal-charts-document .search-input::placeholder {
+  color: #64748b;
+}
+
+.periodontal-charts-document .search-results {
+  font-size: 13px;
+  color: #93c5fd;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Records Container */
+.periodontal-charts-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Record Card */
+.periodontal-charts-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* Record Header */
+.periodontal-charts-document .record-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.periodontal-charts-document .record-name {
+  font-size: 23px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Sections */
+.periodontal-charts-document .section {
+  margin-top: 14px;
+}
+
+/* Mini Cards Container (Blue Glow Box) */
+.periodontal-charts-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Section Header (INSIDE mini-cards-container) */
+.periodontal-charts-document .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+  margin-bottom: 4px;
+}
+
+.periodontal-charts-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Rec Mini Card */
+.periodontal-charts-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Nested Subtitle */
+.periodontal-charts-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 600;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.15);
+  margin-bottom: 4px;
+  text-transform: none !important;
+}
+
+/* Numbered Row (Very Dark Blue Background) */
+.periodontal-charts-document .numbered-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0d1929;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.1);
+}
+
+.periodontal-charts-document .row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.periodontal-charts-document .content-value {
+  font-size: 16px;
+  color: #e2e8f0;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Copy Buttons */
+.periodontal-charts-document .copy-btn {
+  background-color: transparent;
+  color: white;
+  border: 1px solid #2563eb;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.periodontal-charts-document .copy-btn:hover {
+  background-color: #2563eb;
+  color: white;
+}
+
+.periodontal-charts-document .copy-btn.copied {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+/* ═══════ EDITING STYLES ═══════ */
+.periodontal-charts-document .editable-row { cursor: pointer; }
+.periodontal-charts-document .editable-row:hover .edit-indicator { opacity: 1; }
+.periodontal-charts-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.periodontal-charts-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.periodontal-charts-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.periodontal-charts-document .modified-badge.added { color: #4ade80; }
+.periodontal-charts-document .edit-field-container { width: 100%; }
+.periodontal-charts-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.periodontal-charts-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
+/* −/+ number stepper */
+.periodontal-charts-document .num-stepper-row { display: flex; align-items: center; gap: 10px; flex: 1; }
+.periodontal-charts-document .num-step { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 700; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-family: 'Comfortaa', sans-serif; transition: all 0.2s; flex-shrink: 0; }
+.periodontal-charts-document .num-step:hover { background: rgba(96, 165, 250, 0.25); border-color: #60a5fa; }
+.periodontal-charts-document .num-step:disabled { opacity: 0.5; cursor: not-allowed; }
+.periodontal-charts-document .num-stepper-input { flex: 1; padding: 8px 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; min-width: 0; text-align: center; }
+.periodontal-charts-document .num-stepper-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.periodontal-charts-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.periodontal-charts-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.periodontal-charts-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.periodontal-charts-document .approve-btn { text-transform: capitalize; letter-spacing: 0.3px; margin-top: 4px; }
+.periodontal-charts-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.periodontal-charts-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+
+/* Pocket Depths Bar Chart */
+.periodontal-charts-document .perio-chart-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.periodontal-charts-document .perio-chart-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #c5c5d2;
+}
+
+.periodontal-charts-document .perio-chart-legend .legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.periodontal-charts-document .perio-tooth-group {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(96, 165, 250, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+
+.periodontal-charts-document .perio-tooth-group:last-child {
+  margin-bottom: 0;
+}
+
+.periodontal-charts-document .perio-tooth-group.modified {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.15);
+}
+
+.periodontal-charts-document .perio-tooth-header {
+  font-size: 16px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 8px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.periodontal-charts-document .perio-bar-chart-row {
+  margin-bottom: 6px;
+}
+
+.periodontal-charts-document .perio-bar-chart-row:last-child {
+  margin-bottom: 0;
+}
+
+.periodontal-charts-document .perio-bar-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.periodontal-charts-document .perio-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.periodontal-charts-document .perio-bar-background {
+  flex: 1;
+  height: 24px;
+  background: #0d1929;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.periodontal-charts-document .perio-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+  min-width: 4px;
+}
+
+.periodontal-charts-document .perio-bar-value {
+  min-width: 55px;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.periodontal-charts-document .perio-bar-interpretation {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Tooth Finding Tags */
+.periodontal-charts-document .perio-tooth-findings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(96, 165, 250, 0.2);
+}
+
+.periodontal-charts-document .perio-finding-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.periodontal-charts-document .perio-finding-label {
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  opacity: 0.85;
+}
+
+.periodontal-charts-document .perio-finding-value {
+  font-weight: 700;
+}
+
+/* Finding type colors */
+.periodontal-charts-document .perio-finding-cal {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
+
+.periodontal-charts-document .perio-finding-bop {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.periodontal-charts-document .perio-finding-recession {
+  background: rgba(249, 115, 22, 0.15);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  color: #fdba74;
+}
+
+.periodontal-charts-document .perio-finding-mobility {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: #d8b4fe;
+}
+
+.periodontal-charts-document .perio-finding-furcation {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+.periodontal-charts-document .perio-finding-bone-loss {
+  background: rgba(217, 119, 6, 0.15);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  color: #fbbf24;
+}
+
+/* Empty State */
+.periodontal-charts-document .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+  font-size: 16px;
+}
+
+/* No Results */
+.periodontal-charts-document .no-results {
+  text-align: center;
+  padding: 30px 20px;
+  color: #64748b;
+  font-size: 15px;
+}
+
+/* Mark (Search Highlight) Override */
+.periodontal-charts-document mark {
+  background-color: #fbbf24;
+  color: #000000;
+  padding: 0;
+  border-radius: 2px;
+}

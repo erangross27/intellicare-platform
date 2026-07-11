@@ -1,0 +1,793 @@
+/* Anesthesia Records Document - November 2025 Standards */
+/* Blue theme (#2563eb primary), numbered-rows pattern, cyan wireframes for nested objects */
+
+.anesthesia-records-document {
+  background: #0F1B33;
+  color: #ececf1;
+  padding: 24px;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  font-size: 19px;
+  line-height: 1.6;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ===== HEADER ===== */
+.anesthesia-records-document .document-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #565869;
+}
+
+.anesthesia-records-document .document-title {
+  font-size: 31px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.anesthesia-records-document .header-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end !important;
+}
+
+/* Copy All Button - Blue Theme */
+.anesthesia-records-document .copy-all-btn {
+  background: transparent;
+  color: #ececf1;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 17px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 110px;
+}
+
+.anesthesia-records-document .copy-all-btn:hover {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: #60a5fa;
+}
+
+.anesthesia-records-document .copy-all-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Export PDF Button - Blue Theme */
+.anesthesia-records-document .export-pdf-btn {
+  background: transparent;
+  color: #ececf1;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 17px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.anesthesia-records-document .export-pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: #60a5fa;
+}
+
+.anesthesia-records-document .export-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.anesthesia-records-document .export-pdf-btn.success {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ===== SEARCH CONTAINER ===== */
+.anesthesia-records-document .search-container {
+  margin-bottom: 24px;
+}
+
+.anesthesia-records-document .search-container input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* ===== SUMMARY SECTION ===== */
+.anesthesia-records-document .summary-section {
+  background: rgba(96, 165, 250, 0.12);
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 32px;
+  border: 1px solid #565869;
+}
+
+.anesthesia-records-document .summary-stat {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.anesthesia-records-document .stat-label {
+  color: #9ca3af;
+  font-size: 17px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.anesthesia-records-document .stat-value {
+  color: #60a5fa;
+  font-size: 19px;
+  font-weight: 700;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ===== EMPTY STATE ===== */
+.anesthesia-records-document .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+}
+
+.anesthesia-records-document .empty-text {
+  font-size: 21px;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ===== RECORDS CONTAINER ===== */
+.anesthesia-records-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ===== RECORD CARD ===== */
+.anesthesia-records-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid #565869;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.anesthesia-records-document .record-card:hover {
+  border-color: #60a5fa;
+}
+
+/* Card Header - Date top right, Title below left */
+.anesthesia-records-document .card-header {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #565869;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.anesthesia-records-document .date-row {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.anesthesia-records-document .title-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.anesthesia-records-document .record-title {
+  font-size: 23px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.anesthesia-records-document .record-date {
+  color: #60a5fa;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ===== SECTION CONTAINER ===== */
+.anesthesia-records-document .section-container {
+  margin-top: 24px;
+  margin-bottom: 8px;
+  padding-top: 4px;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Section Title (WHITE text for readability - November 2025 Update) */
+.anesthesia-records-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #ececf1;
+  text-transform: none !important;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ===== OUTER BLUE WRAPPER (Glowing effect - December 2025) ===== */
+.anesthesia-records-document .numbered-rows-wrapper {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ===== DOMAIN GROUPS WRAPPER (Flex container for mini-cards) ===== */
+.anesthesia-records-document .domain-groups-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== REC-MINI-CARD (Individual item box with blue border) ===== */
+.anesthesia-records-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anesthesia-records-document .rec-mini-card:hover {
+  border-color: #60a5fa;
+}
+
+/* ===== NESTED SUBTITLE (Blue label at top of mini-card) ===== */
+.anesthesia-records-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* ===== NUMBERED ROW ===== */
+.anesthesia-records-document .numbered-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.anesthesia-records-document .numbered-row:hover {
+  border-color: #60a5fa;
+}
+
+.anesthesia-records-document .numbered-row-content {
+  flex: 1;
+  display: block !important;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #ececf1;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Content Subtitle - Soft blue labels */
+.anesthesia-records-document .content-subtitle {
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 4px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Nested label within content */
+.anesthesia-records-document .nested-label {
+  font-weight: 600;
+  color: #9ca3af;
+  margin-right: 4px;
+}
+
+/* ===== COPY BUTTONS ===== */
+.anesthesia-records-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.anesthesia-records-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  color: #ececf1;
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+/* Blue "Copied!" animation */
+.anesthesia-records-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ===== SEARCH HIGHLIGHTING ===== */
+.anesthesia-records-document .search-highlight,
+.anesthesia-records-document mark {
+  background-color: #fef08a !important;
+  color: #000000 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  font-weight: inherit !important;
+  border-radius: 0 !important;
+  display: inline !important;
+}
+
+/* ===== BAR CHART VISUALIZATION - December 2025 ===== */
+
+.anesthesia-records-document .chart-section {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.anesthesia-records-document .chart-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Legend */
+.anesthesia-records-document .chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  padding: 10px 16px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.anesthesia-records-document .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.anesthesia-records-document .legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.anesthesia-records-document .legend-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Bar Chart Row */
+.anesthesia-records-document .bar-chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+}
+
+.anesthesia-records-document .bar-chart-row:hover {
+  border-color: #60a5fa;
+}
+
+.anesthesia-records-document .bar-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.anesthesia-records-document .bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.anesthesia-records-document .bar-background {
+  flex: 1;
+  height: 24px;
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #565869;
+}
+
+.anesthesia-records-document .bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.anesthesia-records-document .bar-value {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.anesthesia-records-document .bar-interpretation {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ===== CATEGORY GROUPINGS - Mini-Card Style - December 2025 ===== */
+
+/* Each category is now a mini-card with blue glow */
+.anesthesia-records-document .chart-category {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anesthesia-records-document .chart-category:hover {
+  border-color: #60a5fa;
+}
+
+/* Category header acts as nested-subtitle */
+.anesthesia-records-document .category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+.anesthesia-records-document .category-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.anesthesia-records-document .category-description {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+  text-align: right;
+}
+
+/* Bar chart rows inside category - numbered-row style */
+.anesthesia-records-document .chart-category .bar-chart-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0;
+}
+
+.anesthesia-records-document .chart-category .bar-chart-row:hover {
+  border-color: #60a5fa;
+}
+
+/* ===== SECTION HEADER WITH ACTIONS ===== */
+.anesthesia-records-document .section-header-row,
+.anesthesia-records-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+  margin-bottom: 8px;
+}
+
+.anesthesia-records-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* ===== EDIT INDICATOR PENCIL ===== */
+.anesthesia-records-document .row-content {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.anesthesia-records-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+}
+
+.anesthesia-records-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.05);
+  border-radius: 4px;
+}
+
+.anesthesia-records-document .edit-indicator {
+  margin-left: 8px;
+  color: rgba(96, 165, 250, 0.4);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.anesthesia-records-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* ===== EDIT FIELD CONTAINER ===== */
+.anesthesia-records-document .edit-field-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anesthesia-records-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 14px;
+  background: #1a1b26;
+  color: #ececf1;
+  border: 2px solid #60a5fa;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: 'Comfortaa', sans-serif;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.anesthesia-records-document .edit-textarea:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+/* ===== EDIT DATE PICKER ===== */
+.anesthesia-records-document .edit-date {
+  width: 100%;
+  padding: 10px 14px;
+  background: #1a1b26;
+  color: #ececf1;
+  border: 2px solid #60a5fa;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: 'Comfortaa', sans-serif;
+  line-height: 1.5;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.anesthesia-records-document .edit-date:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+/* Make the native date-picker indicator visible on the dark field */
+.anesthesia-records-document .edit-date::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+/* ===== EDIT TIME PICKER ===== */
+.anesthesia-records-document .edit-time {
+  width: 100%;
+  padding: 10px 14px;
+  background: #1a1b26;
+  color: #ececf1;
+  border: 2px solid #60a5fa;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: 'Comfortaa', sans-serif;
+  line-height: 1.5;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.anesthesia-records-document .edit-time:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+.anesthesia-records-document .edit-time::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.anesthesia-records-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.anesthesia-records-document .save-btn {
+  padding: 6px 16px;
+  background: #60a5fa;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.anesthesia-records-document .save-btn:hover {
+  background: #93c5fd;
+}
+
+.anesthesia-records-document .save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.anesthesia-records-document .cancel-btn {
+  padding: 6px 16px;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.anesthesia-records-document .cancel-btn:hover {
+  color: #ececf1;
+  border-color: #60a5fa;
+}
+
+/* ===== MODIFIED ROW (Yellow border) ===== */
+.anesthesia-records-document .numbered-row.modified {
+  border-color: #eab308;
+  border-width: 2px;
+}
+
+.anesthesia-records-document .modified-badge {
+  font-size: 11px;
+  color: #eab308;
+  font-family: 'Comfortaa', sans-serif;
+  padding: 2px 8px;
+  font-weight: 600;
+}
+
+/* ===== APPROVE BUTTON ===== */
+.anesthesia-records-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+.anesthesia-records-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.anesthesia-records-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+.anesthesia-records-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.anesthesia-records-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .anesthesia-records-document {
+    padding: 16px;
+  }
+
+  .anesthesia-records-document .document-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .anesthesia-records-document .document-title {
+    font-size: 25px;
+  }
+
+  .anesthesia-records-document .header-actions {
+    width: 100%;
+    justify-content: flex-start !important;
+  }
+
+  .anesthesia-records-document .summary-section {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .anesthesia-records-document .card-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .anesthesia-records-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+    background: #0d1929;
+    border: 1px solid rgba(96, 165, 250, 0.3);
+  }
+
+  .anesthesia-records-document .copy-btn {
+    align-self: flex-end;
+  }
+}

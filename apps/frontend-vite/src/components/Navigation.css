@@ -1,0 +1,244 @@
+/* 🎯 MODERN PROFESSIONAL NAVIGATION SYSTEM */
+
+/* Base Navigation Button - Clean Text Only */
+.nav-button-base {
+  padding: 8px 12px;
+  border-radius: 0;
+  text-decoration: none;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  transition: all 0.2s ease;
+
+  /* Clean Text Only - No Background, No Borders */
+  background: transparent;
+  border: none;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+/* Hover State - Clean Text Only */
+.nav-button-base:hover {
+  background: transparent;
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+/* Active/Focus State */
+.nav-button-base:active {
+  background: transparent;
+  color: #2563eb;
+  transform: translateY(0);
+  transition: transform 0.1s ease;
+}
+
+.nav-button-base:focus {
+  outline: none;
+  background: transparent;
+  color: #3b82f6;
+}
+
+/* Primary Navigation Buttons (Home, Diagnosis, Patients) - Clean Style */
+.nav-button-primary {
+  background: transparent;
+  color: #6b7280;
+}
+
+.nav-button-primary:hover {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.nav-button-primary.active {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+/* Auth Buttons (Login, Signup) - Minimal Style */
+.nav-button-auth {
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.nav-button-auth:hover {
+  background: #f9fafb;
+  color: #374151;
+  border-color: #9ca3af;
+}
+
+/* Professional Logout Button - Clean Style */
+.nav-button-logout {
+  background: transparent;
+  color: #6b7280;
+  position: relative;
+}
+
+.nav-button-logout:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Company Dropdown Button - Minimal Style */
+.nav-button-dropdown {
+  background: transparent;
+  color: #6b7280;
+  gap: 6px;
+}
+
+.nav-button-dropdown:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.nav-button-dropdown.active {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Dropdown Arrow - Clean Animation */
+.dropdown-arrow {
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+  opacity: 0.6;
+  display: inline-block;
+}
+
+.nav-button-dropdown.active .dropdown-arrow {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+/* Language Switcher Button - Clean Style */
+.nav-button-language {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  min-width: 60px;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.nav-button-language:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+/* User Info Container - Clean Professional */
+.user-info-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.user-info-name {
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+/* Modern Clean Dropdown Menu */
+.dropdown-menu {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+
+  /* No Background - Just Text */
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+
+  /* No Shadow */
+  box-shadow: none !important;
+
+  min-width: 180px;
+  z-index: 1000 !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* RTL/LTR positioning for dropdown */
+[dir="rtl"] .dropdown-menu {
+  right: 0;
+  left: auto;
+}
+
+[dir="ltr"] .dropdown-menu {
+  left: 0;
+  right: auto;
+}
+
+/* Clean Slide-in Animation */
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Clean Dropdown Links - FORCE VISIBLE */
+.dropdown-link {
+  display: block !important;
+  padding: 12px 16px !important;
+  color: #374151 !important;
+  text-decoration: none !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  position: relative !important;
+  background: #f0f9ff !important; /* Light blue background */
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.dropdown-link:hover {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+}
+
+.dropdown-link:first-child {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.dropdown-link:last-child {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .nav-button-base {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+  }
+
+  .user-info-container {
+    padding: 8px 16px;
+  }
+
+  .dropdown-menu {
+    min-width: 160px;
+  }
+}

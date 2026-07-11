@@ -1,0 +1,773 @@
+/* DermatologyConsultationsDocument - Blue Glow Theme */
+/* March 2026 IntelliCare Document Template Standards */
+
+.dermatology-consultations-document {
+  background: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  line-height: 1.8;
+  padding: 24px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ===============================================================
+   DOCUMENT HEADER - Title on top, buttons below
+   =============================================================== */
+
+.dermatology-consultations-document .document-header {
+  display: block;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 3px solid #2563eb;
+}
+
+.dermatology-consultations-document .document-title {
+  font-size: 35px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.dermatology-consultations-document .document-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.dermatology-consultations-document .copy-all-button,
+.dermatology-consultations-document .export-pdf-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 2px solid rgba(96, 165, 250, 0.5);
+  border-radius: 8px;
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dermatology-consultations-document .copy-all-button:hover,
+.dermatology-consultations-document .export-pdf-button:hover {
+  background: rgba(96, 165, 250, 0.3);
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.4);
+  transform: translateY(-1px);
+  color: #bfdbfe;
+}
+
+.dermatology-consultations-document .copy-all-button.copied,
+.dermatology-consultations-document .export-pdf-button.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
+}
+
+/* ===============================================================
+   SEARCH CONTAINER
+   =============================================================== */
+
+.dermatology-consultations-document .search-container {
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.dermatology-consultations-document .search-container .search-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+.dermatology-consultations-document .search-container input.search-input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* ===============================================================
+   RECORDS CONTAINER
+   =============================================================== */
+
+.dermatology-consultations-document .record-container {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.dermatology-consultations-document .record-container:last-child {
+  margin-bottom: 0;
+}
+
+/* ===============================================================
+   RECORD HEADER - Two Row Layout
+   =============================================================== */
+
+.dermatology-consultations-document .record-header {
+  background: rgba(96, 165, 250, 0.1);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-left: 4px solid #60a5fa;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.dermatology-consultations-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dermatology-consultations-document .date-badge {
+  background: rgba(96, 165, 250, 0.2);
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #93c5fd;
+}
+
+.dermatology-consultations-document .status-badge {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #22c55e;
+  text-transform: capitalize;
+}
+
+.dermatology-consultations-document .record-title {
+  font-size: 23px;
+  font-weight: 600;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* ===============================================================
+   NESTED MINI-CARD (For parsed sub-items within sections)
+   =============================================================== */
+
+.dermatology-consultations-document .nested-mini-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.dermatology-consultations-document .nested-mini-card:last-child {
+  margin-bottom: 0;
+}
+
+.dermatology-consultations-document .nested-subtitle.sub-label {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  padding-left: 0;
+  opacity: 0.9;
+  border-bottom: none;
+  margin-bottom: 4px;
+  padding-bottom: 2px;
+}
+
+/* ===============================================================
+   SECTION STYLES
+   =============================================================== */
+
+.dermatology-consultations-document .section {
+  margin-bottom: 16px;
+}
+
+.dermatology-consultations-document .section:last-child {
+  margin-bottom: 0;
+}
+
+/* ===============================================================
+   SECTION HEADER - With header-right-actions
+   =============================================================== */
+
+.dermatology-consultations-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.dermatology-consultations-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.dermatology-consultations-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* ===============================================================
+   MINI CARDS CONTAINER (Blue Glow Box)
+   =============================================================== */
+
+.dermatology-consultations-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 24px 16px 16px 16px;
+}
+
+.dermatology-consultations-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.dermatology-consultations-document .rec-mini-card:last-child {
+  margin-bottom: 0;
+}
+
+/* Nested Subtitle */
+.dermatology-consultations-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.15);
+  margin-bottom: 6px;
+}
+
+/* Numbered Row */
+.dermatology-consultations-document .numbered-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.dermatology-consultations-document .numbered-row.edit-row {
+  flex-direction: column;
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.dermatology-consultations-document .numbered-row textarea {
+  width: 100%;
+  min-height: 80px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  padding: 10px;
+  color: #ececf1;
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.dermatology-consultations-document .numbered-row textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+.dermatology-consultations-document .edit-field-container {
+  width: 100%;
+}
+
+.dermatology-consultations-document .edit-textarea {
+  width: 100%;
+  min-height: 80px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  padding: 10px;
+  color: #ececf1;
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.dermatology-consultations-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+.dermatology-consultations-document .edit-select {
+  width: 100%;
+  padding: 10px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.dermatology-consultations-document .edit-select:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+/* canonical −/+ stepper (numbers never use native spinner arrows) */
+.dermatology-consultations-document .num-stepper-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+}
+
+.dermatology-consultations-document .num-step {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  background: #0F1B33;
+  border: 2px solid #60a5fa;
+  border-radius: 6px;
+  color: #93c5fd;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.dermatology-consultations-document .num-step:hover {
+  background: rgba(96, 165, 250, 0.15);
+}
+
+.dermatology-consultations-document .edit-number {
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+  background: #0F1B33;
+  border: 2px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  text-align: center;
+  outline: none;
+  box-sizing: border-box;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.dermatology-consultations-document .edit-number::-webkit-outer-spin-button,
+.dermatology-consultations-document .edit-number::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* segmented measurement editor ("9mm x 7mm") — one −/+ segment per number */
+.dermatology-consultations-document .number-edit-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dermatology-consultations-document .num-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dermatology-consultations-document .num-seg .edit-number {
+  width: 84px;
+  flex: 0 1 auto; -moz-appearance: textfield; appearance: textfield; }
+
+.dermatology-consultations-document .number-edit-unit {
+  font-size: 15px;
+  color: #93c5fd;
+  white-space: nowrap;
+}
+
+.dermatology-consultations-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dermatology-consultations-document .save-btn,
+.dermatology-consultations-document .cancel-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dermatology-consultations-document .save-btn {
+  background: rgba(96, 165, 250, 0.2);
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  color: #93c5fd;
+}
+
+.dermatology-consultations-document .save-btn:hover {
+  background: rgba(96, 165, 250, 0.3);
+  border-color: rgba(96, 165, 250, 0.7);
+}
+
+.dermatology-consultations-document .save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dermatology-consultations-document .cancel-btn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.dermatology-consultations-document .cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.dermatology-consultations-document .save-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.dermatology-consultations-document .row-content {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 8px;
+  padding-right: 24px;
+}
+
+/* Edit indicator — pencil ✎ shown on hover.
+   Out of flow: opacity:0 would still reserve layout space inline (hidden-indicator lesson) */
+.dermatology-consultations-document .edit-indicator {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  opacity: 0;
+  font-size: 14px;
+  color: #60a5fa;
+  transition: opacity 0.2s ease;
+}
+
+.dermatology-consultations-document .numbered-row:hover .edit-indicator {
+  opacity: 0.7;
+}
+
+.dermatology-consultations-document .edit-indicator:hover {
+  opacity: 1;
+}
+
+/* Modified indicator */
+.dermatology-consultations-document .modified-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #facc15;
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0.3px;
+}
+
+.dermatology-consultations-document .modified-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #facc15;
+  animation: derm-pulse 2s ease-in-out infinite;
+}
+
+@keyframes derm-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.dermatology-consultations-document .modified-text {
+  color: #facc15;
+}
+
+/* Added row indicator */
+.dermatology-consultations-document .numbered-row.added {
+  border-left: 3px solid #4ade80;
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.dermatology-consultations-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.dermatology-consultations-document .meta-inline {
+  font-size: 12px;
+  color: #93c5fd;
+  font-style: italic;
+}
+
+/* ===============================================================
+   COPY BUTTON
+   =============================================================== */
+
+.dermatology-consultations-document .copy-btn {
+  padding: 6px 12px;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dermatology-consultations-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.3);
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.4);
+  transform: translateY(-1px);
+  color: #bfdbfe;
+}
+
+.dermatology-consultations-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
+}
+
+/* ===============================================================
+   BADGES
+   =============================================================== */
+
+.dermatology-consultations-document .modified-badge {
+  margin-top: 8px;
+  padding: 4px 10px;
+  background: rgba(250, 204, 21, 0.15);
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #facc15;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  font-style: italic;
+}
+
+.dermatology-consultations-document .added-badge {
+  padding: 3px 8px;
+  background: rgba(74, 222, 128, 0.2);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #4ade80;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ===============================================================
+   APPROVE BUTTON
+   =============================================================== */
+
+.dermatology-consultations-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+.dermatology-consultations-document .approve-btn.pending {
+  background: rgba(250, 204, 21, 0.15);
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  color: #facc15;
+}
+
+.dermatology-consultations-document .approve-btn.pending:hover {
+  background: rgba(250, 204, 21, 0.25);
+  border-color: rgba(250, 204, 21, 0.7);
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.2);
+}
+
+.dermatology-consultations-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.dermatology-consultations-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+.dermatology-consultations-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===============================================================
+   CHART SECTION (PASI Score Bar Chart)
+   =============================================================== */
+
+.dermatology-consultations-document .chart-section {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.dermatology-consultations-document .chart-legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.dermatology-consultations-document .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dermatology-consultations-document .legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.dermatology-consultations-document .legend-text {
+  font-size: 13px;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.dermatology-consultations-document .bar-chart-row {
+  margin-bottom: 16px;
+}
+
+.dermatology-consultations-document .bar-chart-row:last-child {
+  margin-bottom: 0;
+}
+
+.dermatology-consultations-document .bar-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ececf1;
+  margin-bottom: 6px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.dermatology-consultations-document .bar-category-value {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.dermatology-consultations-document .bar-container {
+  width: 100%;
+}
+
+.dermatology-consultations-document .bar-background {
+  width: 100%;
+  height: 24px;
+  background: #0d1929;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.dermatology-consultations-document .bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.dermatology-consultations-document .bar-interpretation {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 6px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ===============================================================
+   HIGHLIGHT (MARK) TAG
+   =============================================================== */
+
+.dermatology-consultations-document mark {
+  background: rgba(250, 204, 21, 0.3) !important;
+  color: #fef08a !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+  font-weight: 600 !important;
+}
+
+/* ===============================================================
+   NO DATA
+   =============================================================== */
+
+.dermatology-consultations-document .no-data {
+  text-align: center;
+  padding: 40px;
+  color: #93c5fd;
+  font-size: 16px;
+  font-style: italic;
+}

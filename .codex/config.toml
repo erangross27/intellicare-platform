@@ -1,0 +1,7 @@
+[mcp_servers.intellicare-mongodb]
+command = "node"
+args = ["/Users/erangross/dev/IntelliCare/mcp-mongodb-server/index.js"]
+
+[mcp_servers.mongodb-memory]
+command = "node"
+args = ["/Users/erangross/dev/IntelliCare/mcp-memory-server/index.js"]

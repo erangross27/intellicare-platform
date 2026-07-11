@@ -1,0 +1,47 @@
+{
+  "serviceId": "threat-detection-service",
+  "serviceName": "Threat Detection Service",
+  "description": "Advanced threat detection and response",
+  "permissions": [
+    "security:read",
+    "security:write",
+    "ip:block",
+    "alert:send",
+    "metrics:write"
+  ],
+  "allowedClinics": [
+    "*"
+  ],
+  "dataAccessPatterns": [
+    "requests.analyze(pattern)",
+    "threats.classify(behavior)",
+    "blacklist.add(ipAddress)"
+  ],
+  "schedules": [
+    {
+      "cron": "realtime",
+      "description": "Continuous analysis"
+    }
+  ],
+  "criticality": "critical",
+  "requiresMFA": true,
+  "allowedOperations": [
+    "analyzeThreat",
+    "classifyBehavior", 
+    "blockIpAddress",
+    "sendAlert",
+    "updateThreatIntelligence",
+    "generateReport",
+    "quarantineSuspiciousActivity"
+  ],
+  "securityRequirements": {
+    "encryption": true,
+    "audit": true,
+    "accessControl": "strict",
+    "dataRetention": "5_years"
+  },
+  "dependencies": [
+    "securityMonitoringService",
+    "immutableAuditService"
+  ]
+}

@@ -1,0 +1,167 @@
+/* Collection Selector View Styles - November 2025 */
+/* Shown when AI agent returns multiple collections in the same turn */
+
+.collection-selector-view {
+  padding: 0;
+  margin: -24px;
+  background-color: #060A14;  /* Matches artifact backdrop navy */
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  min-height: 100%;
+  padding: 24px;
+}
+
+/* Header */
+.collection-selector-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #2563eb;
+}
+
+.collection-selector-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.collection-icon {
+  font-size: 28px;
+}
+
+.collection-selector-subtitle {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.collection-selector-patient {
+  font-size: 14px;
+  color: #60a5fa;
+  margin: 0;
+}
+
+.collection-selector-patient strong {
+  color: #ececf1;
+}
+
+/* Collection List */
+.collection-selector-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Collection Item */
+.collection-selector-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(96, 165, 250, 0.12);
+  border: 2px solid #565869;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.collection-selector-item:hover {
+  background: #3a3b46;
+  border-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.collection-selector-item:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+/* Item Icon */
+.collection-item-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+/* Item Content */
+.collection-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.collection-item-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2563eb;
+  margin: 0 0 6px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.collection-item-description {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.collection-item-count {
+  font-size: 12px;
+  color: #60a5fa;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Item Arrow */
+.collection-item-arrow {
+  font-size: 24px;
+  color: #565869;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.collection-selector-item:hover .collection-item-arrow {
+  color: #2563eb;
+  transform: translateX(4px);
+}
+
+/* Empty State */
+.collection-selector-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: #9ca3af;
+  text-align: center;
+  gap: 12px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  opacity: 0.6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .collection-selector-view {
+    padding: 16px;
+  }
+
+  .collection-selector-item {
+    padding: 16px;
+  }
+
+  .collection-item-title {
+    font-size: 16px;
+  }
+
+  .collection-item-icon {
+    font-size: 28px;
+  }
+}

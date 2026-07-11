@@ -1,0 +1,284 @@
+.patient-care-plan-document {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: #343541;
+  max-width: 100%;
+  padding: 24px;
+}
+
+/* Header */
+.patient-care-plan-document .document-header {
+  border-bottom: 3px solid #388e3c;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.patient-care-plan-document .document-header h2 {
+  margin: 0 0 8px 0;
+  color: #388e3c;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.patient-care-plan-document .document-date {
+  color: #c5c5d2;
+  font-size: 14px;
+}
+
+/* Patient Info */
+.patient-care-plan-document .patient-info-section {
+  background: #ececf1;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.patient-care-plan-document .patient-info-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #ececf1;
+}
+
+.patient-care-plan-document .patient-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+/* Care Plan Sections */
+.patient-care-plan-document .care-plan-section {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.patient-care-plan-document .care-plan-section h3 {
+  margin: 0 0 20px 0;
+  font-size: 22px;
+}
+
+.patient-care-plan-document .care-plan-section h4 {
+  margin: 16px 0 12px 0;
+  font-size: 18px;
+  color: #ececf1;
+}
+
+/* Interventions Section */
+.patient-care-plan-document .interventions-section {
+  border: 2px solid #1976d2;
+}
+
+.patient-care-plan-document .interventions-section h3 {
+  color: #1565c0;
+}
+
+.patient-care-plan-document .interventions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.patient-care-plan-document .intervention-card {
+  background: #e3f2fd;
+  border-radius: 8px;
+  padding: 16px;
+  border-left: 4px solid #1976d2;
+}
+
+.patient-care-plan-document .intervention-header {
+  display: flex;
+  gap: 16px;
+}
+
+.patient-care-plan-document .intervention-number {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: #1976d2;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.patient-care-plan-document .intervention-content {
+  flex: 1;
+}
+
+.patient-care-plan-document .intervention-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #343541;
+}
+
+.patient-care-plan-document .intervention-rationale,
+.patient-care-plan-document .intervention-outcome,
+.patient-care-plan-document .intervention-timeframe {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #444;
+}
+
+/* Lifestyle Section */
+.patient-care-plan-document .lifestyle-section {
+  border: 2px solid #ff9800;
+}
+
+.patient-care-plan-document .lifestyle-section h3 {
+  color: #e65100;
+}
+
+.patient-care-plan-document .lifestyle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.patient-care-plan-document .lifestyle-card {
+  background: #fff3e0;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #ff9800;
+}
+
+.patient-care-plan-document .lifestyle-category {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #e65100;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.patient-care-plan-document .lifestyle-recommendation {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #343541;
+}
+
+.patient-care-plan-document .lifestyle-benefits,
+.patient-care-plan-document .lifestyle-barriers,
+.patient-care-plan-document .lifestyle-support {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #444;
+}
+
+/* Comorbidity Section */
+.patient-care-plan-document .comorbidity-section {
+  border: 2px solid #d32f2f;
+}
+
+.patient-care-plan-document .comorbidity-section h3 {
+  color: #c62828;
+}
+
+.patient-care-plan-document .conditions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.patient-care-plan-document .condition-card {
+  background: #ffebee;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #d32f2f;
+}
+
+.patient-care-plan-document .condition-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #c62828;
+}
+
+.patient-care-plan-document .condition-management,
+.patient-care-plan-document .condition-goals {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #444;
+}
+
+.patient-care-plan-document .interactions-section,
+.patient-care-plan-document .prioritization-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #ffcdd2;
+}
+
+.patient-care-plan-document .interactions-content,
+.patient-care-plan-document .prioritization-content {
+  font-size: 14px;
+  color: #343541;
+  line-height: 1.6;
+}
+
+/* Metrics Section */
+.patient-care-plan-document .metrics-section {
+  border: 2px solid #7b1fa2;
+}
+
+.patient-care-plan-document .metrics-section h3 {
+  color: #7b1fa2;
+}
+
+.patient-care-plan-document .metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.patient-care-plan-document .metric-card {
+  background: #f3e5f5;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #7b1fa2;
+}
+
+.patient-care-plan-document .metric-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #7b1fa2;
+}
+
+.patient-care-plan-document .metric-target,
+.patient-care-plan-document .metric-frequency {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #444;
+}
+
+/* Footer */
+.patient-care-plan-document .document-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
+}
+
+.patient-care-plan-document .source-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #c5c5d2;
+}
+
+.patient-care-plan-document .ai-badge {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}

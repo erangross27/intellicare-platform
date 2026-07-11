@@ -1,0 +1,166 @@
+.collection-document-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #060A14; /* Backdrop field behind document card (richer blue-dark navy) */
+}
+
+.collection-document-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #28395C;
+  background: #0F1C33; /* Header bar lifted to match the richer navy backdrop */
+}
+
+.collection-document-header .back-button {
+  background: none;
+  border: none;
+  color: #E9EFFA;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.collection-document-header .back-button:hover {
+  background: #28395C;
+}
+
+.collection-document-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #E9EFFA;
+  flex: 1;
+}
+
+.collection-document-header .document-count {
+  font-size: 13px;
+  color: #93A2BE;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.collection-document-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Document sections */
+.document-section {
+  /* Each section contains one AIDocumentRenderer */
+}
+
+.document-separator {
+  height: 2px;
+  background: linear-gradient(to right, transparent, #28395C, transparent);
+  margin: 48px 0;
+  position: relative;
+}
+
+.document-separator::after {
+  content: '•••';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #060A14; /* Match backdrop so the ••• chip masks the separator line */
+  color: #28395C;
+  padding: 0 12px;
+  font-size: 12px;
+  letter-spacing: 4px;
+}
+
+/* Loading state */
+.collection-document-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #E9EFFA;
+}
+
+.collection-document-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #28395C;
+  border-top-color: #3D8BFF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.collection-document-loading p {
+  margin: 0;
+  font-size: 14px;
+  color: #B7C2D8;
+}
+
+/* Error state */
+.collection-document-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #E9EFFA;
+}
+
+.collection-document-error .error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.collection-document-error p {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  color: #ef4444;
+  text-align: center;
+}
+
+.collection-document-error .retry-button {
+  background: #3D8BFF;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.collection-document-error .retry-button:hover {
+  background: #173a78;
+}
+
+/* Empty state */
+.collection-document-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #E9EFFA;
+}
+
+.collection-document-empty .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.collection-document-empty p {
+  margin: 0;
+  font-size: 14px;
+  color: #B7C2D8;
+}
+

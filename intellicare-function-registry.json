@@ -1,0 +1,1204 @@
+{
+  "metadata": {
+    "totalFunctions": 421,
+    "extractedFrom": "backend/services/agentServiceV4.js",
+    "extractedDate": "2025-08-31",
+    "description": "Complete registry of all IntelliCare platform functions for tooltip generation"
+  },
+  "categories": {
+    "patientManagement": {
+      "name": "Patient Management",
+      "count": 5,
+      "functions": {
+        "addPatient": "Add a new patient to the system - MUST collect all required fields before calling",
+        "updatePatient": "Update patient details. Can use SSN/national ID (preferred) or patientId from search results",
+        "deletePatientBySearch": "Delete patient by name or SSN/national ID",
+        "countPatients": "Count total number of patients in the system",
+        "getPatientDetails": "Get full patient details"
+      }
+    },
+    "medicalHistory": {
+      "name": "Medical History",
+      "count": 4,
+      "functions": {
+        "addMedicalHistory": "Add medical history entry",
+        "getMedicalHistory": "Get patient medical history. Use patient name or national ID",
+        "updateMedicalHistory": "Update medical history entry",
+        "deleteMedicalHistory": "Delete medical history entry"
+      }
+    },
+    "diagnosis": {
+      "name": "Diagnosis & Treatment",
+      "count": 10,
+      "functions": {
+        "analyzeSymptoms": "Analyze symptoms and provide comprehensive medical diagnosis using Gemini AI",
+        "recommendTreatment": "Get AI-powered treatment recommendations",
+        "checkDrugInteractions": "Check for drug interactions",
+        "checkDrugAllergy": "Check if patient is allergic to specific drug",
+        "analyzeVitalSigns": "Analyze vital signs and provide medical insights",
+        "interpretLabResults": "Interpret lab results and flag abnormal values",
+        "getDifferentialDiagnosis": "Get differential diagnosis for symptoms",
+        "generateSOAPNote": "Generate SOAP note from visit information",
+        "calculateMedicationDosing": "Calculate proper medication dosing",
+        "lookupClinicalGuidelines": "Look up clinical guidelines for condition"
+      }
+    },
+    "documentManagement": {
+      "name": "Document Management",
+      "count": 6,
+      "functions": {
+        "uploadDocument": "⚠️ DEPRECATED - Use analyzeDocument instead",
+        "getDocuments": "Get all documents for a patient",
+        "analyzeDocument": "Analyze a document using AI and extract medical information",
+        "deleteDocument": "Delete a document from patient's record",
+        "searchDocuments": "Search documents by patient or content",
+        "categorizeDocument": "Categorize document type and extract key information"
+      }
+    },
+    "preventiveCare": {
+      "name": "Preventive Care",
+      "count": 2,
+      "functions": {
+        "generateVaccinationSchedule": "Generate vaccination schedule for patient",
+        "recommendTests": "Recommend tests based on patient profile"
+      }
+    },
+    "appointments": {
+      "name": "Appointments",
+      "count": 11,
+      "functions": {
+        "scheduleAppointment": "Schedule a new appointment",
+        "findAvailableSlots": "Find available appointment slots",
+        "updateAppointment": "Update existing appointment details",
+        "rescheduleAppointment": "Reschedule an existing appointment",
+        "createAppointment": "Create a new appointment",
+        "getAppointments": "Get appointments for patient or date range",
+        "cancelAppointment": "Cancel an existing appointment",
+        "getTodayAppointments": "Get all appointments for today",
+        "getOverdueAppointments": "Get overdue appointments",
+        "createChatSession": "Create new chat session for consultation",
+        "searchChatHistory": "Search through chat history"
+      }
+    },
+    "userManagement": {
+      "name": "User Management",
+      "count": 16,
+      "functions": {
+        "createUser": "Create new user account",
+        "resendEmailVerification": "Resend email verification",
+        "updateUserRole": "Update user's role and permissions",
+        "getAllUsers": "Get all users in the system",
+        "searchUsers": "Search users by name or email",
+        "setupUserAsProvider": "Set up user as healthcare provider",
+        "getUserDetails": "Get detailed user information",
+        "updateUserProfile": "Update user profile information",
+        "getUserActivity": "Get user activity log",
+        "setupMultipleDoctors": "Set up multiple providers at once",
+        "bulkUpdateRoles": "Update roles for multiple users",
+        "suspendUser": "Suspend user account",
+        "reactivateUser": "Reactivate suspended user",
+        "updateUserPermissions": "Update user permissions",
+        "deactivateUser": "Deactivate user account",
+        "deleteUser": "Delete user account permanently"
+      }
+    },
+    "authentication": {
+      "name": "Authentication & Security",
+      "count": 9,
+      "functions": {
+        "resetUserPassword": "Reset user password",
+        "getMFAStatus": "Get MFA status for user",
+        "setupMFA": "Set up multi-factor authentication",
+        "disableMFA": "Disable multi-factor authentication",
+        "initiatePasswordlessLogin": "Start passwordless login flow",
+        "verifyPasswordlessCode": "Verify passwordless login code",
+        "initZKAuth": "Initialize zero-knowledge authentication",
+        "verifyZKProof": "Verify zero-knowledge proof",
+        "validateClinicToken": "Validate practice authentication token"
+      }
+    },
+    "reports": {
+      "name": "Reports & Analytics",
+      "count": 9,
+      "functions": {
+        "generatePatientReport": "Generate comprehensive patient report",
+        "generateClinicReport": "Generate practice performance report",
+        "generateRealtimeChart": "Generate real-time data charts",
+        "showTrendAnalysis": "Show trend analysis for metrics",
+        "analyzePatientFlow": "Analyze patient flow patterns",
+        "forecastDemand": "Forecast patient demand",
+        "compareMetrics": "Compare metrics across time periods",
+        "getCampaignAnalytics": "Get health campaign analytics",
+        "getCommunicationAnalytics": "Get communication analytics"
+      }
+    },
+    "system": {
+      "name": "System & Security",
+      "count": 8,
+      "functions": {
+        "runBackup": "Run system backup",
+        "getSystemHealth": "Get overall system health status",
+        "exportAuditLogs": "Export audit logs for compliance",
+        "getAuditLogs": "Get audit logs with filtering",
+        "getSecurityEvents": "Get security events log",
+        "exportAuditReport": "Export detailed audit report",
+        "getSystemHealthDetailed": "Get detailed system health metrics",
+        "getActiveAlerts": "Get active system alerts"
+      }
+    },
+    "labResults": {
+      "name": "Lab Results",
+      "count": 2,
+      "functions": {
+        "addLabResult": "Add lab result for patient",
+        "getLabResults": "Get lab results for patient"
+      }
+    },
+    "medications": {
+      "name": "Medications",
+      "count": 2,
+      "functions": {
+        "addMedication": "Add medication to patient record",
+        "getMedications": "Get patient's current medications"
+      }
+    },
+    "vitalSigns": {
+      "name": "Vital Signs",
+      "count": 3,
+      "functions": {
+        "addVitalSigns": "Add vital signs reading",
+        "getVitalSigns": "Get vital signs history",
+        "updateVitalSigns": "Update vital signs record"
+      }
+    },
+    "allergies": {
+      "name": "Allergies",
+      "count": 2,
+      "functions": {
+        "addAllergy": "Add allergy to patient record",
+        "getAllergies": "Get patient's allergies"
+      }
+    },
+    "vaccinations": {
+      "name": "Vaccinations",
+      "count": 2,
+      "functions": {
+        "addVaccination": "Add vaccination record",
+        "getVaccinations": "Get vaccination history"
+      }
+    },
+    "prescriptions": {
+      "name": "Prescriptions",
+      "count": 6,
+      "functions": {
+        "createPrescription": "Create new prescription",
+        "getPrescriptions": "Get patient's prescriptions",
+        "generatePrescription": "Generate prescription document",
+        "refillPrescription": "Process prescription refill",
+        "cancelPrescription": "Cancel existing prescription",
+        "validatePrescription": "Validate prescription details"
+      }
+    },
+    "patientEducation": {
+      "name": "Patient Education",
+      "count": 2,
+      "functions": {
+        "generatePatientEducation": "Generate patient education materials",
+        "calculateMedicalScore": "Calculate medical risk scores"
+      }
+    },
+    "referrals": {
+      "name": "Referrals",
+      "count": 4,
+      "functions": {
+        "createReferral": "Create referral to specialist",
+        "getReferrals": "Get patient's referrals",
+        "updateReferralStatus": "Update referral status",
+        "addImagingResult": "Add imaging study results"
+      }
+    },
+    "imaging": {
+      "name": "Imaging",
+      "count": 4,
+      "functions": {
+        "getImagingResults": "Get imaging results for patient",
+        "uploadImagingResult": "Upload imaging study results",
+        "orderImaging": "Order imaging studies"
+      }
+    },
+    "clinicManagement": {
+      "name": "Practice Management",
+      "count": 11,
+      "functions": {
+        "getClinicInfo": "Get practice information",
+        "getClinicAddress": "Get practice address details",
+        "updateClinicSettings": "Update practice settings",
+        "getClinicStatistics": "Get practice performance statistics",
+        "getAllClinics": "Get all practices in system",
+        "createClinic": "Create new practice",
+        "updateClinic": "Update practice information",
+        "getClinicUsage": "Get practice resource usage",
+        "rotateClinicToken": "Rotate practice authentication token",
+        "getClinicPermissions": "Get practice permissions",
+        "getProviders": "Get all providers in practice"
+      }
+    },
+    "insurance": {
+      "name": "Insurance",
+      "count": 9,
+      "functions": {
+        "verifyInsurance": "Verify patient insurance coverage",
+        "submitInsuranceClaim": "Submit insurance claim",
+        "getInsuranceDetails": "Get patient insurance details",
+        "updateInsurance": "Update insurance information",
+        "checkCoverage": "Check coverage for procedure",
+        "submitPreAuthorization": "Submit pre-authorization request",
+        "checkFormularyCoverage": "Check if drug is covered by formulary",
+        "submitPriorAuthorization": "Submit prior authorization",
+        "verifyInsuranceNetwork": "Verify provider is in network"
+      }
+    },
+    "addressServices": {
+      "name": "Address & Location Services",
+      "count": 8,
+      "functions": {
+        "searchAddress": "Search for addresses",
+        "getCities": "Get list of cities",
+        "validateAddress": "Validate address format",
+        "searchPostalCode": "Search postal codes",
+        "getPostalCodeDetails": "Get postal code details",
+        "searchStreets": "Search street names",
+        "getStreetDetails": "Get street details"
+      }
+    },
+    "externalIntegrations": {
+      "name": "External Integrations",
+      "count": 40,
+      "functions": {
+        "searchDrugInformation": "Search drug information",
+        "checkDrugSafety": "Check drug safety information",
+        "searchProviders": "Search healthcare providers",
+        "getDoctorByNPI": "Get provider by NPI number",
+        "getDoctorSpecialties": "Get provider specialties",
+        "searchNIHProjects": "Search NIH research projects",
+        "generateTreatmentRecommendations": "Generate evidence-based treatment recommendations",
+        "getFDASafetyAlerts": "Get FDA safety alerts",
+        "getCMSRegulatoryUpdates": "Get CMS regulatory updates",
+        "testExternalAPIConnection": "Test external API connectivity",
+        "getExternalAPIHealth": "Get external API health status",
+        "clearExternalAPICache": "Clear external API cache",
+        "searchFDADrugs": "Search FDA drug database",
+        "getFDARecalls": "Get FDA drug recalls",
+        "searchMedicalDevices": "Search medical devices",
+        "checkDrugAdverseEvents": "Check drug adverse events",
+        "getFDAEstablishments": "Get FDA establishments",
+        "checkMedicareCoverage": "Check Medicare coverage",
+        "searchMedicareDoctors": "Search Medicare providers",
+        "getMedicareQualityRatings": "Get Medicare quality ratings",
+        "checkMedicaidEligibility": "Check Medicaid eligibility",
+        "searchHealthInsurancePlans": "Search health insurance plans",
+        "searchClinicalTrials": "Search clinical trials",
+        "matchPatientToTrials": "Match patient to clinical trials",
+        "searchMedicalLiterature": "Search medical literature",
+        "getEvidenceBasedRecommendations": "Get evidence-based recommendations",
+        "searchNIHGrants": "Search NIH grants",
+        "findResearchCollaborators": "Find research collaborators",
+        "getGeneticVariantInfo": "Get genetic variant information",
+        "getPharmacogenomics": "Get pharmacogenomic information",
+        "searchNCBIDatasets": "Search NCBI datasets",
+        "getGeneExpression": "Get gene expression data",
+        "getCancerGenomics": "Get cancer genomics data",
+        "getCDCDiseaseData": "Get CDC disease data",
+        "getCDCHealthGuidelines": "Get CDC health guidelines",
+        "findSubstanceAbuseTreatment": "Find substance abuse treatment",
+        "getHealthProfessionalShortageAreas": "Get health professional shortage areas",
+        "getNutritionData": "Get nutrition data",
+        "calculateNutritionNeeds": "Calculate nutrition needs",
+        "getEnvironmentalHealthData": "Get environmental health data"
+      }
+    },
+    "compliance": {
+      "name": "Compliance & Regulatory",
+      "count": 9,
+      "functions": {
+        "checkRegulatoryCompliance": "Check regulatory compliance",
+        "getRegulatoryAlerts": "Get regulatory alerts",
+        "calculateComplianceScore": "Calculate compliance score",
+        "generateComplianceReport": "Generate compliance report",
+        "setupRegulatoryMonitoring": "Set up regulatory monitoring",
+        "getComplianceStatus": "Get compliance status",
+        "generateComplianceReportDetailed": "Generate detailed compliance report",
+        "scheduleComplianceAudit": "Schedule compliance audit",
+        "scheduleComplianceReports": "Schedule compliance reports"
+      }
+    },
+    "disasterRecovery": {
+      "name": "Disaster Recovery & Backup",
+      "count": 8,
+      "functions": {
+        "createBackup": "Create system backup",
+        "listBackups": "List available backups",
+        "restoreBackup": "Restore from backup",
+        "testDisasterRecovery": "Test disaster recovery procedures",
+        "performFailover": "Perform system failover",
+        "getDisasterRecoveryStatus": "Get disaster recovery status",
+        "scheduleBackup": "Schedule automatic backups",
+        "restoreFromBackup": "Restore system from backup"
+      }
+    },
+    "monitoring": {
+      "name": "System Monitoring",
+      "count": 16,
+      "functions": {
+        "getSystemMetrics": "Get system performance metrics",
+        "getAPIPerformance": "Get API performance statistics",
+        "getCircuitBreakerStatus": "Get circuit breaker status",
+        "resetCircuitBreaker": "Reset circuit breaker",
+        "getAllCircuitBreakers": "Get all circuit breakers",
+        "forceOpenCircuitBreaker": "Force open circuit breaker",
+        "getCircuitBreakerHistory": "Get circuit breaker history",
+        "getAPIUsageStats": "Get API usage statistics",
+        "testAPIEndpoint": "Test API endpoint health",
+        "getSpanDetails": "Get tracing span details",
+        "getServiceMap": "Get service dependency map",
+        "getPerformanceTrace": "Get performance trace data",
+        "getTraces": "Get distributed traces",
+        "getMetrics": "Get system metrics",
+        "createAlert": "Create monitoring alert"
+      }
+    },
+    "database": {
+      "name": "Database Operations",
+      "count": 6,
+      "functions": {
+        "optimizeDatabase": "Optimize database performance",
+        "getDatabaseStats": "Get database statistics",
+        "clearCache": "Clear system cache",
+        "analyzeDatabase": "Analyze database performance",
+        "rebuildIndexes": "Rebuild database indexes",
+        "getCacheStatistics": "Get cache statistics"
+      }
+    },
+    "loadBalancing": {
+      "name": "Load Balancing",
+      "count": 7,
+      "functions": {
+        "addServer": "Add server to load balancer",
+        "removeServer": "Remove server from load balancer",
+        "drainServer": "Drain server connections",
+        "getServerHealth": "Get server health status",
+        "getLoadDistribution": "Get load distribution metrics",
+        "getLoadBalancerStatus": "Get load balancer status",
+        "updateLoadBalancerConfig": "Update load balancer configuration"
+      }
+    },
+    "billing": {
+      "name": "Billing & Payments",
+      "count": 3,
+      "functions": {
+        "createInvoice": "Create patient invoice",
+        "recordPayment": "Record payment received",
+        "getOutstandingBalances": "Get outstanding balances"
+      }
+    },
+    "communication": {
+      "name": "Communication",
+      "count": 12,
+      "functions": {
+        "sendSMS": "Send SMS message",
+        "sendEmail": "Send email message",
+        "scheduleReminder": "Schedule patient reminder",
+        "getReminderHistory": "Get reminder history",
+        "sendBulkPatientSMS": "Send bulk SMS to patients",
+        "sendBulkPatientEmail": "Send bulk email to patients",
+        "sendAppointmentConfirmationRequest": "Send appointment confirmation",
+        "sendTestResultNotifications": "Send test result notifications",
+        "sendMedicationRefillReminders": "Send medication refill reminders",
+        "sendPatientPortalMessage": "Send patient portal message",
+        "getChannelPerformance": "Get communication channel performance",
+        "getPatientEngagementInsights": "Get patient engagement insights"
+      }
+    },
+    "patientPortal": {
+      "name": "Patient Portal",
+      "count": 6,
+      "functions": {
+        "requestPrescriptionRefill": "Request prescription refill",
+        "reportPatientSymptoms": "Report patient symptoms",
+        "schedulePatientAppointment": "Schedule appointment from portal",
+        "getPatientMessageHistory": "Get patient message history",
+        "generateCommunicationReport": "Generate communication report"
+      }
+    },
+    "providerAvailability": {
+      "name": "Provider Availability",
+      "count": 18,
+      "functions": {
+        "setMyBusyTime": "Set provider busy time",
+        "cancelMyBusyTime": "Cancel provider busy time",
+        "showMyBusyTimes": "Show provider busy times",
+        "scheduleDoctorMeeting": "Schedule provider meeting",
+        "getDoctorMeetings": "Get provider meetings",
+        "getDoctorAvailability": "Get provider availability",
+        "setDoctorAvailability": "Set provider availability",
+        "blockDoctorTime": "Block provider time",
+        "getDoctorAppointments": "Get provider appointments",
+        "updateDoctorSettings": "Update provider settings",
+        "enableCalendarSync": "Enable calendar synchronization",
+        "disableCalendarSync": "Disable calendar synchronization",
+        "getCalendarSyncStatus": "Get calendar sync status",
+        "syncWithGoogleCalendar": "Sync with Google Calendar",
+        "checkCalendarConflicts": "Check calendar conflicts",
+        "getProviderSchedule": "Get provider schedule",
+        "sendCalendarSyncEmail": "Send calendar sync email"
+      }
+    },
+    "medicalAnalysis": {
+      "name": "Medical Analysis",
+      "count": 4,
+      "functions": {
+        "parseTreatment": "Parse treatment information",
+        "parseSymptoms": "Parse symptom descriptions",
+        "parseLabResults": "Parse lab result data",
+        "extractMedicalData": "Extract medical data from text"
+      }
+    },
+    "translations": {
+      "name": "Translations",
+      "count": 2,
+      "functions": {
+        "getTranslations": "Get system translations",
+        "updateTranslations": "Update translation strings"
+      }
+    },
+    "rbacPermissions": {
+      "name": "RBAC & Permissions",
+      "count": 3,
+      "functions": {
+        "getRoles": "Get available roles",
+        "getUserPermissions": "Get user permissions",
+        "assignRole": "Assign role to user"
+      }
+    },
+    "threatDetection": {
+      "name": "Threat Detection",
+      "count": 4,
+      "functions": {
+        "getThreatLevel": "Get current threat level",
+        "blockIP": "Block IP address",
+        "unblockIP": "Unblock IP address",
+        "blacklistIP": "Add IP to blacklist"
+      }
+    },
+    "encryption": {
+      "name": "E2E Encryption",
+      "count": 6,
+      "functions": {
+        "getEncryptionKeys": "Get encryption keys",
+        "rotateEncryptionKeys": "Rotate encryption keys",
+        "encryptData": "Encrypt sensitive data",
+        "decryptData": "Decrypt sensitive data",
+        "shareEncryptedDocument": "Share encrypted document"
+      }
+    },
+    "deletedPatients": {
+      "name": "Deleted Patients",
+      "count": 3,
+      "functions": {
+        "getDeletedPatients": "Get deleted patients",
+        "restorePatient": "Restore deleted patient",
+        "permanentlyDeletePatient": "Permanently delete patient"
+      }
+    },
+    "graphql": {
+      "name": "GraphQL Management",
+      "count": 4,
+      "functions": {
+        "getGraphQLStats": "Get GraphQL statistics",
+        "getGraphQLHealth": "Get GraphQL health status",
+        "configureGraphQL": "Configure GraphQL settings",
+        "testGraphQLQuery": "Test GraphQL query"
+      }
+    },
+    "secrets": {
+      "name": "Secrets Management",
+      "count": 5,
+      "functions": {
+        "createSecret": "Create encrypted secret",
+        "getSecret": "Get encrypted secret",
+        "rotateSecret": "Rotate secret key",
+        "deleteSecret": "Delete secret",
+        "listSecrets": "List all secrets"
+      }
+    },
+    "securityHeaders": {
+      "name": "CSP & Security Headers",
+      "count": 4,
+      "functions": {
+        "getCSPViolations": "Get CSP violations",
+        "updateCSPPolicy": "Update CSP policy",
+        "getSecurityHeaders": "Get security headers",
+        "updateSecurityHeader": "Update security header"
+      }
+    },
+    "aiEvents": {
+      "name": "AI Events",
+      "count": 1,
+      "functions": {
+        "getAIEvents": "Get AI processing events"
+      }
+    },
+    "chatSessions": {
+      "name": "Chat Sessions",
+      "count": 9,
+      "functions": {
+        "getChatSessions": "Get chat sessions",
+        "getChatMessages": "Get chat messages",
+        "sendChatMessage": "Send chat message",
+        "updateChatSessionTitle": "Update chat session title",
+        "deleteChatSession": "Delete chat session",
+        "searchChatSessions": "Search chat sessions",
+        "getChatAnalytics": "Get chat analytics",
+        "exportChatHistory": "Export chat history"
+      }
+    },
+    "diagnosisAdvanced": {
+      "name": "Diagnosis Advanced",
+      "count": 3,
+      "functions": {
+        "getDiagnosisModels": "Get available diagnosis models",
+        "stopDiagnosis": "Stop diagnosis process",
+        "getDiagnosisStatus": "Get diagnosis status"
+      }
+    },
+    "apiVersioning": {
+      "name": "API Versioning",
+      "count": 4,
+      "functions": {
+        "getAPIVersions": "Get available API versions",
+        "getAPIChangelog": "Get API changelog",
+        "deprecateAPI": "Deprecate API version",
+        "getMigrationGuide": "Get migration guide"
+      }
+    },
+    "batchOperations": {
+      "name": "Batch Operations",
+      "count": 3,
+      "functions": {
+        "batchUpdatePatients": "Update multiple patients",
+        "batchDeleteSessions": "Delete multiple sessions",
+        "batchAnalyzeDocuments": "Analyze multiple documents"
+      }
+    },
+    "webhooks": {
+      "name": "Webhooks",
+      "count": 4,
+      "functions": {
+        "createWebhook": "Create webhook endpoint",
+        "listWebhooks": "List webhook endpoints",
+        "deleteWebhook": "Delete webhook",
+        "testWebhook": "Test webhook delivery"
+      }
+    },
+    "currency": {
+      "name": "Currency Management",
+      "count": 4,
+      "functions": {
+        "setCurrency": "Set practice currency",
+        "getCurrency": "Get current currency",
+        "convertCurrency": "Convert between currencies",
+        "getExchangeRate": "Get exchange rates"
+      }
+    },
+    "securityMonitoring": {
+      "name": "Security Monitoring Advanced",
+      "count": 14,
+      "functions": {
+        "getSecurityDashboard": "Get security dashboard",
+        "getSecurityAlerts": "Get security alerts",
+        "acknowledgeSecurityAlert": "Acknowledge security alert",
+        "getSecurityMetrics": "Get security metrics",
+        "getDetailedSecurityMetrics": "Get detailed security metrics",
+        "getThreatReport": "Get threat assessment report",
+        "emitSecurityEvent": "Emit security event",
+        "checkIPReputation": "Check IP reputation",
+        "updateSecurityThresholds": "Update security thresholds",
+        "getSecurityEventTypes": "Get security event types",
+        "getRecentSecurityEvents": "Get recent security events"
+      }
+    },
+    "hipaaCompliance": {
+      "name": "HIPAA Compliance",
+      "count": 36,
+      "functions": {
+        "recordConsent": "Record patient consent",
+        "updateConsent": "Update consent preferences",
+        "revokeConsent": "Revoke patient consent",
+        "getPatientConsents": "Get patient consent history",
+        "checkConsentStatus": "Check consent status",
+        "anonymizePatientData": "Anonymize patient data",
+        "exportAnonymizedData": "Export anonymized dataset",
+        "reIdentifyData": "Re-identify anonymized data",
+        "scheduleDataRetention": "Schedule data retention",
+        "executeDataRetention": "Execute data retention policy",
+        "getRetentionPolicy": "Get retention policy",
+        "updateRetentionPolicy": "Update retention policy",
+        "getRetentionHistory": "Get retention history",
+        "generateAuditReport": "Generate audit report",
+        "submitAccessRequest": "Submit data access request",
+        "approveAccessRequest": "Approve access request",
+        "denyAccessRequest": "Deny access request",
+        "fulfillAccessRequest": "Fulfill access request",
+        "getAccessRequests": "Get access requests",
+        "trackAccessDelivery": "Track access delivery",
+        "exportAuditData": "Export audit data",
+        "reportBreach": "Report security breach",
+        "assessBreachRisk": "Assess breach risk level",
+        "notifyAffectedParties": "Notify affected parties",
+        "generateBreachReport": "Generate breach report",
+        "getBreachHistory": "Get breach history",
+        "assessVendorRisk": "Assess vendor HIPAA risk",
+        "addBusinessAssociate": "Add business associate",
+        "updateBAAgreement": "Update business associate agreement",
+        "getVendorCompliance": "Get vendor compliance status",
+        "auditVendor": "Audit vendor compliance",
+        "getVendorList": "Get vendor list",
+        "getPolicy": "Get policy document",
+        "acknowledgePolicy": "Acknowledge policy",
+        "getPolicyCompliance": "Get policy compliance",
+        "documentProcess": "Document business process"
+      }
+    },
+    "policyManagement": {
+      "name": "Policy Management",
+      "count": 16,
+      "functions": {
+        "generateDocumentation": "Generate documentation",
+        "validateDocumentation": "Validate documentation",
+        "createPolicy": "Create new policy",
+        "updatePolicy": "Update existing policy",
+        "approvePolicy": "Approve policy for publication",
+        "publishPolicy": "Publish policy",
+        "acknowledgePolicyDistribution": "Acknowledge policy distribution",
+        "searchPolicies": "Search policy documents",
+        "getPolicyComplianceReport": "Get policy compliance report",
+        "schedulePolicyReview": "Schedule policy review"
+      }
+    },
+    "incidentManagement": {
+      "name": "Incident Management",
+      "count": 7,
+      "functions": {
+        "reportIncident": "Report security incident",
+        "investigateIncident": "Investigate incident",
+        "escalateIncident": "Escalate incident",
+        "resolveIncident": "Resolve incident",
+        "getIncidentStatus": "Get incident status",
+        "generateIncidentReport": "Generate incident report"
+      }
+    },
+    "training": {
+      "name": "Training Management",
+      "count": 30,
+      "functions": {
+        "assignTraining": "Assign training to user",
+        "completeTraining": "Mark training as complete",
+        "getTrainingStatus": "Get training status",
+        "scheduleTraining": "Schedule training session",
+        "getTrainingMaterials": "Get training materials",
+        "createTrainingProgram": "Create training program",
+        "enrollInTraining": "Enroll in training",
+        "updateTrainingProgress": "Update training progress",
+        "trackCertification": "Track certification status",
+        "scheduleMandatoryTraining": "Schedule mandatory training",
+        "generateTrainingReport": "Generate training report",
+        "getTrainingDashboard": "Get training dashboard",
+        "checkExpiringCertifications": "Check expiring certifications",
+        "createCompetencyFramework": "Create competency framework",
+        "createAssessment": "Create competency assessment",
+        "conductAssessment": "Conduct assessment",
+        "createSkillsTest": "Create skills test",
+        "takeSkillsTest": "Take skills test",
+        "submitSkillsTest": "Submit skills test",
+        "generateCompetencyReport": "Generate competency report",
+        "createCompetencyGapAnalysis": "Create gap analysis",
+        "createEducationProgram": "Create education program",
+        "registerForProgram": "Register for program",
+        "recordAttendance": "Record attendance",
+        "completeProgram": "Complete program",
+        "trackExternalCredit": "Track external credit",
+        "generateCreditTranscript": "Generate credit transcript",
+        "getCreditRequirements": "Get credit requirements"
+      }
+    },
+    "riskAssessment": {
+      "name": "Risk Assessment",
+      "count": 3,
+      "functions": {
+        "performRiskAssessment": "Perform risk assessment",
+        "identifyVulnerabilities": "Identify vulnerabilities",
+        "generateRiskReport": "Generate risk report"
+      }
+    },
+    "healthCampaigns": {
+      "name": "Health Campaign Management",
+      "count": 8,
+      "functions": {
+        "createHealthCampaign": "Create health campaign",
+        "startHealthCampaign": "Start campaign",
+        "pauseHealthCampaign": "Pause campaign",
+        "resumeHealthCampaign": "Resume campaign",
+        "getCampaignAnalytics": "Get campaign analytics",
+        "getCommunicationAnalytics": "Get communication analytics",
+        "getChannelPerformance": "Get channel performance",
+        "getPatientEngagementInsights": "Get engagement insights"
+      }
+    },
+    "advancedMedication": {
+      "name": "Advanced Medication Management",
+      "count": 3,
+      "functions": {
+        "prescribeMedication": "Prescribe medication with checks",
+        "checkFormularyCoverage": "Check formulary coverage",
+        "submitPriorAuthorization": "Submit prior authorization"
+      }
+    },
+    "laboratoryManagement": {
+      "name": "Laboratory Management",
+      "count": 4,
+      "functions": {
+        "orderLabTest": "Order laboratory test",
+        "flagCriticalValues": "Flag critical lab values",
+        "recordVitalSigns": "Record vital signs",
+        "analyzeVitalTrends": "Analyze vital sign trends"
+      }
+    },
+    "vitalSignsMonitoring": {
+      "name": "Vital Signs Monitoring",
+      "count": 1,
+      "functions": {
+        "setVitalAlerts": "Set vital sign alerts"
+      }
+    }
+  },
+  "deprecatedFunctions": [
+    "uploadDocument"
+  ],
+  "alphabeticalIndex": [
+    "acknowledgePolicy",
+    "acknowledgeSecurityAlert",
+    "addAllergy",
+    "addBusinessAssociate",
+    "addImagingResult",
+    "addLabResult",
+    "addMedication",
+    "addMedicalHistory",
+    "addPatient",
+    "addServer",
+    "addVaccination",
+    "addVitalSigns",
+    "analyzeDatabase",
+    "analyzeDocument",
+    "analyzePatientFlow",
+    "analyzeSymptoms",
+    "analyzeVitalSigns",
+    "analyzeVitalTrends",
+    "anonymizePatientData",
+    "approveAccessRequest",
+    "approvePolicy",
+    "assignRole",
+    "assignTraining",
+    "assessBreachRisk",
+    "assessVendorRisk",
+    "auditVendor",
+    "batchAnalyzeDocuments",
+    "batchDeleteSessions",
+    "batchUpdatePatients",
+    "blacklistIP",
+    "blockIP",
+    "blockDoctorTime",
+    "bulkUpdateRoles",
+    "calculateComplianceScore",
+    "calculateMedicalScore",
+    "calculateMedicationDosing",
+    "calculateNutritionNeeds",
+    "cancelAppointment",
+    "cancelMyBusyTime",
+    "cancelPrescription",
+    "categorizeDocument",
+    "checkCalendarConflicts",
+    "checkConsentStatus",
+    "checkCoverage",
+    "checkDrugAdverseEvents",
+    "checkDrugAllergy",
+    "checkDrugInteractions",
+    "checkDrugSafety",
+    "checkExpiringCertifications",
+    "checkFormularyCoverage",
+    "checkIPReputation",
+    "checkMedicaidEligibility",
+    "checkMedicareCoverage",
+    "checkRegulatoryCompliance",
+    "clearCache",
+    "clearExternalAPICache",
+    "compareMetrics",
+    "completeProgram",
+    "completeTraining",
+    "conductAssessment",
+    "configureGraphQL",
+    "convertCurrency",
+    "countPatients",
+    "createAlert",
+    "createAppointment",
+    "createAssessment",
+    "createBackup",
+    "createChatSession",
+    "createClinic",
+    "createCompetencyFramework",
+    "createCompetencyGapAnalysis",
+    "createEducationProgram",
+    "createHealthCampaign",
+    "createInvoice",
+    "createPolicy",
+    "createPrescription",
+    "createReferral",
+    "createSecret",
+    "createTrainingProgram",
+    "createUser",
+    "createWebhook",
+    "deactivateUser",
+    "decryptData",
+    "deleteDocument",
+    "deletePatientBySearch",
+    "deleteSecret",
+    "deleteChatSession",
+    "deleteMedicalHistory",
+    "deleteUser",
+    "deleteWebhook",
+    "denyAccessRequest",
+    "deprecateAPI",
+    "disableCalendarSync",
+    "disableMFA",
+    "documentProcess",
+    "drainServer",
+    "emitSecurityEvent",
+    "enableCalendarSync",
+    "encryptData",
+    "enrollInTraining",
+    "escalateIncident",
+    "executeDataRetention",
+    "exportAnonymizedData",
+    "exportAuditData",
+    "exportAuditLogs",
+    "exportAuditReport",
+    "exportChatHistory",
+    "extractMedicalData",
+    "findAvailableSlots",
+    "findResearchCollaborators",
+    "findSubstanceAbuseTreatment",
+    "flagCriticalValues",
+    "forceOpenCircuitBreaker",
+    "forecastDemand",
+    "fulfillAccessRequest",
+    "generateAuditReport",
+    "generateBreachReport",
+    "generateClinicReport",
+    "generateCompetencyReport",
+    "generateComplianceReport",
+    "generateComplianceReportDetailed",
+    "generateCommunicationReport",
+    "generateCreditTranscript",
+    "generateDocumentation",
+    "generateIncidentReport",
+    "generatePatientEducation",
+    "generatePatientReport",
+    "generatePrescription",
+    "generateRealtimeChart",
+    "generateRiskReport",
+    "generateSOAPNote",
+    "generateTrainingReport",
+    "generateTreatmentRecommendations",
+    "generateVaccinationSchedule",
+    "getActiveAlerts",
+    "getAIEvents",
+    "getAllClinics",
+    "getAllCircuitBreakers",
+    "getAllUsers",
+    "getAllergies",
+    "getAPIChangelog",
+    "getAPIPerformance",
+    "getAPIUsageStats",
+    "getAPIVersions",
+    "getAccessRequests",
+    "getAppointments",
+    "getAuditLogs",
+    "getBreachHistory",
+    "getCSPViolations",
+    "getCacheStatistics",
+    "getCalendarSyncStatus",
+    "getCampaignAnalytics",
+    "getCancerGenomics",
+    "getCDCDiseaseData",
+    "getCDCHealthGuidelines",
+    "getCMSRegulatoryUpdates",
+    "getChatAnalytics",
+    "getChatMessages",
+    "getChatSessions",
+    "getChannelPerformance",
+    "getCities",
+    "getCircuitBreakerHistory",
+    "getCircuitBreakerStatus",
+    "getClinicAddress",
+    "getClinicInfo",
+    "getClinicPermissions",
+    "getClinicStatistics",
+    "getClinicUsage",
+    "getComplianceStatus",
+    "getCommunicationAnalytics",
+    "getCreditRequirements",
+    "getCurrency",
+    "getDatabaseStats",
+    "getDeletedPatients",
+    "getDetailedSecurityMetrics",
+    "getDiagnosisModels",
+    "getDiagnosisStatus",
+    "getDifferentialDiagnosis",
+    "getDisasterRecoveryStatus",
+    "getDocuments",
+    "getEnvironmentalHealthData",
+    "getEvidenceBasedRecommendations",
+    "getExchangeRate",
+    "getExternalAPIHealth",
+    "getFDAEstablishments",
+    "getFDARecalls",
+    "getFDASafetyAlerts",
+    "getGeneExpression",
+    "getGeneticVariantInfo",
+    "getGraphQLHealth",
+    "getGraphQLStats",
+    "getHealthProfessionalShortageAreas",
+    "getImagingResults",
+    "getIncidentStatus",
+    "getInsuranceDetails",
+    "getLabResults",
+    "getLoadBalancerStatus",
+    "getLoadDistribution",
+    "getMFAStatus",
+    "getMedicareQualityRatings",
+    "getMedicalHistory",
+    "getMedications",
+    "getMedications",
+    "getMetrics",
+    "getMigrationGuide",
+    "getNutritionData",
+    "getOutstandingBalances",
+    "getPatientConsents",
+    "getPatientDetails",
+    "getPatientEngagementInsights",
+    "getPatientMessageHistory",
+    "getPerformanceTrace",
+    "getPharmacogenomics",
+    "getPolicy",
+    "getPolicyCompliance",
+    "getPolicyComplianceReport",
+    "getPostalCodeDetails",
+    "getPrescriptions",
+    "getDoctorAppointments",
+    "getDoctorAvailability",
+    "getDoctorByNPI",
+    "getDoctorMeetings",
+    "getProviderSchedule",
+    "getDoctorSpecialties",
+    "getProviders",
+    "getRecentSecurityEvents",
+    "getReferrals",
+    "getRegulatoryAlerts",
+    "getReminderHistory",
+    "getRetentionHistory",
+    "getRetentionPolicy",
+    "getRoles",
+    "getSecret",
+    "getSecurityAlerts",
+    "getSecurityDashboard",
+    "getSecurityEventTypes",
+    "getSecurityEvents",
+    "getSecurityHeaders",
+    "getSecurityMetrics",
+    "getServerHealth",
+    "getServiceMap",
+    "getSpanDetails",
+    "getStreetDetails",
+    "getSystemHealth",
+    "getSystemHealthDetailed",
+    "getSystemMetrics",
+    "getThreatLevel",
+    "getThreatReport",
+    "getTodayAppointments",
+    "getTraces",
+    "getTrainingDashboard",
+    "getTrainingMaterials",
+    "getTrainingStatus",
+    "getTranslations",
+    "getUserActivity",
+    "getUserDetails",
+    "getUserPermissions",
+    "getVaccinations",
+    "getVendorCompliance",
+    "getVendorList",
+    "getVitalSigns",
+    "identifyVulnerabilities",
+    "initZKAuth",
+    "initiatePasswordlessLogin",
+    "interpretLabResults",
+    "investigateIncident",
+    "listBackups",
+    "listSecrets",
+    "listWebhooks",
+    "lookupClinicalGuidelines",
+    "matchPatientToTrials",
+    "notifyAffectedParties",
+    "optimizeDatabase",
+    "orderImaging",
+    "orderLabTest",
+    "parseLabResults",
+    "parseSymptoms",
+    "parseTreatment",
+    "pauseHealthCampaign",
+    "performFailover",
+    "performRiskAssessment",
+    "permanentlyDeletePatient",
+    "prescribeMedication",
+    "publishPolicy",
+    "reactivateUser",
+    "rebuildIndexes",
+    "recordAttendance",
+    "recordConsent",
+    "recordPayment",
+    "recordVitalSigns",
+    "refillPrescription",
+    "registerForProgram",
+    "reIdentifyData",
+    "removeServer",
+    "reportBreach",
+    "reportIncident",
+    "reportPatientSymptoms",
+    "requestPrescriptionRefill",
+    "rescheduleAppointment",
+    "resendEmailVerification",
+    "resetCircuitBreaker",
+    "resetUserPassword",
+    "resolveIncident",
+    "restoreBackup",
+    "restoreFromBackup",
+    "restorePatient",
+    "resumeHealthCampaign",
+    "revokeConsent",
+    "rotateClinicToken",
+    "rotateEncryptionKeys",
+    "rotateSecret",
+    "runBackup",
+    "scheduleAppointment",
+    "scheduleBackup",
+    "scheduleComplianceAudit",
+    "scheduleComplianceReports",
+    "scheduleDataRetention",
+    "scheduleMandatoryTraining",
+    "schedulePatientAppointment",
+    "schedulePolicyReview",
+    "scheduleDoctorMeeting",
+    "scheduleReminder",
+    "scheduleTraining",
+    "searchAddress",
+    "searchChatHistory",
+    "searchChatSessions",
+    "searchClinicalTrials",
+    "searchDocuments",
+    "searchFDADrugs",
+    "searchHealthInsurancePlans",
+    "searchMedicalDevices",
+    "searchMedicalLiterature",
+    "searchMedicareDoctors",
+    "searchNCBIDatasets",
+    "searchNIHGrants",
+    "searchNIHProjects",
+    "searchPolicies",
+    "searchPostalCode",
+    "searchProviders",
+    "searchStreets",
+    "searchUsers",
+    "sendAppointmentConfirmationRequest",
+    "sendBulkPatientEmail",
+    "sendBulkPatientSMS",
+    "sendCalendarSyncEmail",
+    "sendChatMessage",
+    "sendEmail",
+    "sendMedicationRefillReminders",
+    "sendPatientPortalMessage",
+    "sendSMS",
+    "sendTestResultNotifications",
+    "setCurrency",
+    "setMyBusyTime",
+    "setDoctorAvailability",
+    "setVitalAlerts",
+    "setupMFA",
+    "setupMultipleDoctors",
+    "setupRegulatoryMonitoring",
+    "setupUserAsProvider",
+    "shareEncryptedDocument",
+    "showMyBusyTimes",
+    "showTrendAnalysis",
+    "startHealthCampaign",
+    "stopDiagnosis",
+    "submitAccessRequest",
+    "submitInsuranceClaim",
+    "submitPreAuthorization",
+    "submitPriorAuthorization",
+    "submitSkillsTest",
+    "suspendUser",
+    "syncWithGoogleCalendar",
+    "takeSkillsTest",
+    "testAPIEndpoint",
+    "testDisasterRecovery",
+    "testExternalAPIConnection",
+    "testGraphQLQuery",
+    "testWebhook",
+    "trackAccessDelivery",
+    "trackCertification",
+    "trackExternalCredit",
+    "unblockIP",
+    "updateBAAgreement",
+    "updateAppointment",
+    "updateClinic",
+    "updateClinicSettings",
+    "updateCSPPolicy",
+    "updateConsent",
+    "updateInsurance",
+    "updateLoadBalancerConfig",
+    "updateMedicalHistory",
+    "updatePatient",
+    "updatePolicy",
+    "updateDoctorSettings",
+    "updateReferralStatus",
+    "updateRetentionPolicy",
+    "updateSecurityHeader",
+    "updateSecurityThresholds",
+    "updateTrainingProgress",
+    "updateTranslations",
+    "updateUserPermissions",
+    "updateUserProfile",
+    "updateUserRole",
+    "updateVitalSigns",
+    "updateChatSessionTitle",
+    "uploadDocument",
+    "uploadImagingResult",
+    "validateAddress",
+    "validateClinicToken",
+    "validateDocumentation",
+    "validatePrescription",
+    "verifyInsurance",
+    "verifyInsuranceNetwork",
+    "verifyPasswordlessCode",
+    "verifyZKProof",
+    "warmupCache"
+  ]
+}

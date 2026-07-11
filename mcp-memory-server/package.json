@@ -1,0 +1,25 @@
+{
+  "name": "mongodb-memory-mcp",
+  "version": "1.0.0",
+  "description": "MongoDB-based Memory MCP Server for Claude Code",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "mongodb-memory-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "mongodb": "^6.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "memory",
+    "mongodb",
+    "claude"
+  ],
+  "author": "IntelliCare",
+  "license": "MIT"
+}

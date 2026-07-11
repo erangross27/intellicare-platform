@@ -1,0 +1,26 @@
+{
+  "serviceId": "file-cleanup-service",
+  "serviceName": "File Cleanup Service",
+  "description": "Handles automatic cleanup of temporary files, orphaned uploads, and old logs",
+  "permissions": [
+    "file:delete",
+    "log:archive",
+    "metrics:write"
+  ],
+  "allowedClinics": [
+    "*"
+  ],
+  "dataAccessPatterns": [
+    "fs.unlink(tempFiles)",
+    "uploads.find({ orphaned: true })",
+    "logs.archive({ age: { $gt: 30 } })"
+  ],
+  "schedules": [
+    {
+      "cron": "*/30 * * * *",
+      "description": "Every 30 minutes"
+    }
+  ],
+  "criticality": "medium",
+  "requiresMFA": false
+}

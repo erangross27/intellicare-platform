@@ -1,0 +1,31 @@
+{
+  "serviceId": "compliance-reporting-service",
+  "serviceName": "Compliance Reporting Service",
+  "description": "Generates HIPAA and GDPR compliance reports",
+  "permissions": [
+    "audit:read",
+    "compliance:write",
+    "report:generate",
+    "metrics:write"
+  ],
+  "allowedClinics": [
+    "*"
+  ],
+  "dataAccessPatterns": [
+    "auditLogs.aggregate(complianceQuery)",
+    "violations.find({ resolved: false })",
+    "reports.create(complianceReport)"
+  ],
+  "schedules": [
+    {
+      "cron": "0 0 * * 1",
+      "description": "Weekly on Monday"
+    },
+    {
+      "cron": "0 0 1 * *",
+      "description": "Monthly on 1st"
+    }
+  ],
+  "criticality": "high",
+  "requiresMFA": true
+}

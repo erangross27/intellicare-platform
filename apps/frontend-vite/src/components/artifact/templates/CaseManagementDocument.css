@@ -1,0 +1,668 @@
+/**
+ * CaseManagementDocument.css
+ * December 2025 Template - Blue Theme
+ *
+ * Font Hierarchy:
+ * - section-title: 19px (Level 1 - BIGGEST)
+ * - nested-subtitle: 17px (Level 2 - MEDIUM)
+ * - content-value: 16px (Level 3 - READABLE)
+ *
+ * Colors:
+ * - numbered-row bg: #0d1929
+ * - nested-subtitle: #93c5fd
+ * - borders: rgba(96, 165, 250, 0.3)
+ * - copy-btn.copied: #2563eb (SOLID BLUE)
+ */
+
+/* Parent Container */
+.case-management-document {
+  padding: 24px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ============================================
+   DOCUMENT HEADER - Column Layout
+   ============================================ */
+.case-management-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.case-management-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Header Actions - Row Layout, Right-Aligned */
+.case-management-document .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.case-management-document .header-actions .copy-btn,
+.case-management-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.case-management-document .header-actions .copy-btn:hover,
+.case-management-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #60a5fa;
+}
+
+.case-management-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ============================================
+   SEARCH
+   ============================================ */
+.case-management-document .search-container {
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.case-management-document .search-input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  padding: 10px 36px 10px 14px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 14px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.case-management-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.case-management-document .search-input::placeholder {
+  color: #9ca3af;
+}
+
+.case-management-document .clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.case-management-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* Search Results Count */
+.case-management-document .search-results-count {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: rgba(96, 165, 250, 0.1);
+  border-radius: 6px;
+}
+
+/* Search Highlight */
+.case-management-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* No Data Message */
+.case-management-document .no-data-message {
+  font-size: 16px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+/* ============================================
+   RECORDS LIST
+   ============================================ */
+.case-management-document .records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ============================================
+   RECORD CARD
+   ============================================ */
+.case-management-document .record-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 2px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Record Header */
+.case-management-document .record-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.case-management-document .record-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.case-management-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.case-management-document .date-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.15);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ============================================
+   SECTIONS
+   ============================================ */
+.case-management-document .section {
+  margin-bottom: 8px;
+}
+
+/* Mini Cards Container - Outer wrapper with blue glow */
+.case-management-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Section Header - Inside mini-cards-container */
+.case-management-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Section Title - Level 1: BIGGEST (19px) */
+.case-management-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Recommendation Group - Outer wrapper for parent + children (PURPLE tint) */
+.case-management-document .recommendation-group {
+  background: rgba(139, 92, 246, 0.08);
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Parent Recommendation - BLUE, more prominent */
+.case-management-document .recommendation-group .parent-recommendation {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+/* Child Recommendation - standard blue, no margin (same width as parent) */
+.case-management-document .recommendation-group .child-recommendation {
+  background: rgba(96, 165, 250, 0.08);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+/* Rec Mini Card - Individual item box */
+.case-management-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Nested Subtitle - Level 2: MEDIUM (17px) */
+.case-management-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* Numbered Row - VERY DARK BLUE background */
+.case-management-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Row Content */
+.case-management-document .row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Content Value - Level 3: READABLE (16px) */
+.case-management-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ============================================
+   COPY BUTTONS
+   ============================================ */
+.case-management-document .copy-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.case-management-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+/* SOLID BLUE for copied state - NOT GREEN! */
+.case-management-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Section Copy Button */
+.case-management-document .section-header .copy-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+/* ============================================
+   URGENCY BADGES
+   ============================================ */
+.case-management-document .urgency-badge {
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.case-management-document .badge-critical {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid #ef4444;
+}
+
+.case-management-document .badge-high {
+  background: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+  border: 1px solid #dc2626;
+}
+
+.case-management-document .badge-moderate {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+  border: 1px solid #eab308;
+}
+
+.case-management-document .badge-routine {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  border: 1px solid #22c55e;
+}
+
+/* ============================================
+   INLINE EDITING
+   ============================================ */
+
+/* Header Right Actions — Copy Section + Approve side by side */
+.case-management-document .header-right-actions {
+  /* checklist: column layout — Copy Section on top, approve button BELOW */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Editable row cursor */
+.case-management-document .row-content.editable {
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.case-management-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+/* Edit Indicator */
+.case-management-document .edit-indicator {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(96, 165, 250, 0.5);
+  margin-left: 6px;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.case-management-document .row-content.editable:hover .edit-indicator {
+  color: #60a5fa;
+}
+
+/* Edit Row */
+.case-management-document .numbered-row.edit-row {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+}
+
+/* Edit Field Container */
+.case-management-document .edit-field-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Edit Textarea */
+.case-management-document .edit-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  background: #1a1b26;
+  border: 1px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 15px;
+  font-family: 'Comfortaa', sans-serif;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.case-management-document .edit-textarea:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.case-management-document .edit-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  background: #1a1b26;
+  border: 1px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 15px;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  appearance: auto;
+}
+.case-management-document .edit-select option { background: #1a1b26; color: #ececf1; }
+
+/* Edit Actions */
+.case-management-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.case-management-document .edit-save-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.case-management-document .edit-save-btn:hover {
+  background: #3b82f6;
+}
+
+.case-management-document .edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.case-management-document .edit-cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.case-management-document .edit-cancel-btn:hover {
+  color: #ececf1;
+  border-color: #9ca3af;
+}
+
+/* Modified Row */
+.case-management-document .numbered-row.modified {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+/* Added Row — green border for newly created sentences */
+.case-management-document .numbered-row.added {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+/* Modified Badge */
+.case-management-document .modified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #fbbf24;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Added Badge */
+.case-management-document .added-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #22c55e;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Approve Button — Yellow (pending edits) */
+.case-management-document .approve-btn {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+}
+
+.case-management-document .approve-btn:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+/* Approve Button — Green (approved) */
+.case-management-document .approve-btn.approved {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.case-management-document .approve-btn.approved:hover {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.case-management-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .case-management-document {
+    padding: 16px;
+  }
+
+  .case-management-document .document-title {
+    font-size: 24px;
+  }
+
+  .case-management-document .header-actions {
+    flex-wrap: wrap;
+  }
+
+  .case-management-document .record-card {
+    padding: 16px;
+  }
+
+  .case-management-document .record-title {
+    font-size: 18px;
+  }
+
+  .case-management-document .section-title {
+    font-size: 17px;
+  }
+
+  .case-management-document .nested-subtitle {
+    font-size: 15px;
+  }
+
+  .case-management-document .content-value {
+    font-size: 14px;
+  }
+
+  .case-management-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .case-management-document .copy-btn {
+    align-self: flex-end;
+  }
+}

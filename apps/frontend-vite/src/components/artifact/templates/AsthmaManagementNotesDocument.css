@@ -1,0 +1,499 @@
+/**
+ * AsthmaManagementNotesDocument.css
+ * Blue glow theme with inline editing support
+ */
+
+/* Container */
+.asthma-management-notes-document {
+  padding: 20px;
+  background: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  min-height: 100%;
+}
+
+/* Header — block layout, buttons below title */
+.asthma-management-notes-document .document-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #2563eb;
+}
+
+.asthma-management-notes-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.asthma-management-notes-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  margin-top: 10px;
+}
+
+/* Records Container */
+.asthma-management-notes-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.asthma-management-notes-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.asthma-management-notes-document .record-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.asthma-management-notes-document .record-meta-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.asthma-management-notes-document .record-title-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.asthma-management-notes-document .record-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.asthma-management-notes-document .record-date {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+/* Section */
+.asthma-management-notes-document .section {
+  margin-bottom: 20px;
+}
+
+/* Section Header — INSIDE mini-cards-container */
+.asthma-management-notes-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.asthma-management-notes-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Header Right Actions — column layout (copy on top, approve below) */
+.asthma-management-notes-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Mini Cards Container */
+.asthma-management-notes-document .mini-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+/* Rec Mini Card */
+.asthma-management-notes-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.asthma-management-notes-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 4px;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+/* Numbered Row */
+.asthma-management-notes-document .numbered-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.asthma-management-notes-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.asthma-management-notes-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ==================== EDITING STYLES ==================== */
+
+/* Editable row — pencil icon on hover */
+.asthma-management-notes-document .editable-row {
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.asthma-management-notes-document .editable-row:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.asthma-management-notes-document .edit-indicator {
+  opacity: 0;
+  color: #60a5fa;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.asthma-management-notes-document .editable-row:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Modified row — blue glow */
+.asthma-management-notes-document .numbered-row.modified {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.15);
+}
+
+/* Edit field container */
+.asthma-management-notes-document .edit-field-container {
+  width: 100%;
+}
+
+.asthma-management-notes-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.asthma-management-notes-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+.asthma-management-notes-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.asthma-management-notes-document .save-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.asthma-management-notes-document .save-btn:hover {
+  background: #3b82f6;
+}
+
+.asthma-management-notes-document .cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.asthma-management-notes-document .cancel-btn:hover {
+  border-color: #9ca3af;
+  color: #ececf1;
+}
+
+/* Modified badge */
+.asthma-management-notes-document .modified-badge {
+  font-size: 11px;
+  color: #facc15;
+  padding: 2px 8px;
+  font-style: italic;
+}
+
+.asthma-management-notes-document .modified-badge.added {
+  color: #4ade80;
+}
+
+/* ==================== APPROVE BUTTON ==================== */
+
+.asthma-management-notes-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+/* Pending — YELLOW */
+.asthma-management-notes-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.asthma-management-notes-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+/* Approved — GREEN */
+.asthma-management-notes-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.asthma-management-notes-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+/* ==================== COPY BUTTON ==================== */
+
+.asthma-management-notes-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.asthma-management-notes-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.asthma-management-notes-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Header Copy All / Export PDF buttons */
+.asthma-management-notes-document .header-actions .copy-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.asthma-management-notes-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ==================== BAR CHART ==================== */
+
+.asthma-management-notes-document .chart-category {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.asthma-management-notes-document .category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+.asthma-management-notes-document .category-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none;
+}
+
+.asthma-management-notes-document .category-description {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+  text-align: right;
+}
+
+.asthma-management-notes-document .bar-chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+}
+
+.asthma-management-notes-document .bar-chart-row:hover {
+  border-color: #60a5fa;
+}
+
+.asthma-management-notes-document .bar-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.asthma-management-notes-document .bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.asthma-management-notes-document .bar-background {
+  flex: 1;
+  height: 24px;
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #565869;
+}
+
+.asthma-management-notes-document .bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.asthma-management-notes-document .bar-value {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.asthma-management-notes-document .bar-interpretation {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Highlight */
+.asthma-management-notes-document mark {
+  background: #fbbf24;
+  color: #000;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+/* Empty State */
+.asthma-management-notes-document .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .asthma-management-notes-document {
+    padding: 16px;
+  }
+
+  .asthma-management-notes-document .document-title {
+    font-size: 22px;
+  }
+
+  .asthma-management-notes-document .header-actions {
+    flex-direction: column;
+  }
+}

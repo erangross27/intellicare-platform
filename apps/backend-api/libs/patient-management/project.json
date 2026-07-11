@@ -1,0 +1,9 @@
+{
+  "name": "patient-management",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/patient-management",
+  "projectType": "library",
+  "targets": {},
+  "tags": ["scope:patient", "type:context", "compliance:hipaa"],
+  "implicitDependencies": []
+}

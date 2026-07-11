@@ -1,0 +1,33 @@
+{
+  "admin": [
+    "user_management",
+    "system_configuration",
+    "audit_access",
+    "key_management",
+    "upload_documents",
+    "view_documents",
+    "delete_documents",
+    "export_data",
+    "manage_patients",
+    "view_analytics"
+  ],
+  "doctor": [
+    "upload_documents",
+    "view_documents",
+    "manage_patients",
+    "view_analytics",
+    "export_data"
+  ],
+  "nurse": [
+    "upload_documents",
+    "view_documents",
+    "manage_patients"
+  ],
+  "receptionist": [
+    "manage_patients",
+    "view_documents"
+  ],
+  "viewer": [
+    "view_documents"
+  ]
+}

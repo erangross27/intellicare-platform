@@ -1,0 +1,1657 @@
+/* Hospital Discharge Summary Document - Professional Medical Chart Style */
+
+.discharge-document {
+  background: #343541;
+  color: #ececf1;
+  padding: 32px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.discharge-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #4a9eff;
+  color: #4a9eff;
+  text-align: center;
+}
+
+/* Patient Demographics */
+.discharge-document .patient-demographics {
+  background: #2d2e38;
+  padding: 24px;
+  border-radius: 8px;
+  margin-bottom: 32px;
+  border-left: 4px solid #4a9eff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.discharge-document .patient-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: #4a9eff;
+  margin-bottom: 16px;
+}
+
+.discharge-document .demographics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.discharge-document .demo-field {
+  font-size: 14px;
+}
+
+.discharge-document .demo-field strong {
+  color: #4a9eff;
+  margin-right: 8px;
+}
+
+/* Section Styles */
+.discharge-document .doc-section {
+  background: #3e3f4b;
+  padding: 24px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border-left: 3px solid #565869;
+}
+
+.discharge-document .section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #4a9eff;
+  margin-bottom: 16px;
+}
+
+.discharge-document .subsection-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4a9eff;
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+/* Administrative Data */
+.discharge-document .admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.discharge-document .admin-field {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.discharge-document .admin-field strong {
+  color: #4a9eff;
+  margin-right: 8px;
+}
+
+.discharge-document .admin-field.admitting-dx {
+  grid-column: 1 / -1;
+  background: #3e2828;
+  border-left: 3px solid #ef4444;
+  font-weight: 600;
+}
+
+/* Providers */
+.discharge-document .provider-primary {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 15px;
+}
+
+.discharge-document .provider-primary strong {
+  color: #4a9eff;
+  margin-right: 8px;
+}
+
+.discharge-document .provider-consulting {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+}
+
+.discharge-document .provider-consulting strong {
+  color: #4a9eff;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.discharge-document .provider-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.discharge-document .provider-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid #565869;
+}
+
+.discharge-document .provider-list li:last-child {
+  border-bottom: none;
+}
+
+/* Diagnoses */
+.discharge-document .diagnosis-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.discharge-document .diagnosis-item {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border-left: 3px solid #565869;
+}
+
+.discharge-document .diagnosis-item.primary {
+  background: #3b2e1e;
+  border-left-color: #faa500;
+}
+
+.discharge-document .diagnosis-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ececf1;
+  margin-bottom: 6px;
+}
+
+.discharge-document .diagnosis-meta {
+  font-size: 12px;
+  color: #c5c5d2;
+  display: flex;
+  gap: 16px;
+}
+
+.discharge-document .dx-type {
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Narrative Text */
+.discharge-document .narrative-text {
+  padding: 16px;
+  background: #2d2e38;
+  border-radius: 4px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.discharge-document .narrative-text p {
+  margin-bottom: 12px;
+}
+
+.discharge-document .narrative-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* Treatment Course */
+.discharge-document .treatment-subsection {
+  margin-bottom: 20px;
+}
+
+.discharge-document .treatment-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .treatment-list li {
+  padding: 10px 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.discharge-document .treatment-list li strong {
+  color: #4a9eff;
+}
+
+/* Procedures */
+.discharge-document .procedure-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.discharge-document .procedure-item {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.discharge-document .procedure-name {
+  font-weight: 600;
+  color: #4a9eff;
+  margin-bottom: 6px;
+}
+
+.discharge-document .procedure-findings {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.discharge-document .procedure-status {
+  font-size: 12px;
+  color: #c5c5d2;
+  margin-top: 4px;
+}
+
+/* Lab Results Table */
+.discharge-document .lab-results-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.discharge-document .lab-results-table thead {
+  background: #2d2e38;
+}
+
+.discharge-document .lab-results-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #4a9eff;
+  border-bottom: 2px solid #565869;
+}
+
+.discharge-document .lab-results-table tbody tr {
+  background: #3e3f4b;
+}
+
+.discharge-document .lab-results-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #565869;
+  color: #ececf1;
+}
+
+/* Remove high-risk row background styling - only badges should be colored */
+
+.discharge-document .lab-results-table tr:hover {
+  background: #2d2e38 !important;
+}
+
+/* Imaging */
+.discharge-document .imaging-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.discharge-document .imaging-item {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+}
+
+.discharge-document .imaging-modality {
+  font-weight: 600;
+  color: #4a9eff;
+  margin-bottom: 8px;
+}
+
+.discharge-document .imaging-findings {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Medications */
+.discharge-document .medication-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.discharge-document .medication-item {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border-left: 3px solid #4a9eff;
+}
+
+.discharge-document .medication-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4a9eff;
+  margin-bottom: 6px;
+}
+
+.discharge-document .medication-dosage {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.discharge-document .medication-indication {
+  font-size: 13px;
+  color: #c5c5d2;
+  font-style: italic;
+  margin-top: 6px;
+}
+
+.discharge-document .medication-status {
+  font-size: 12px;
+  color: #c5c5d2;
+  margin-top: 4px;
+}
+
+/* Follow-up Appointments */
+.discharge-document .followup-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.discharge-document .followup-item {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.discharge-document .followup-item strong {
+  color: #4a9eff;
+}
+
+.discharge-document .followup-type {
+  font-size: 12px;
+  color: #c5c5d2;
+  margin-left: 8px;
+}
+
+.discharge-document .followup-scheduled {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.discharge-document .followup-scheduled.scheduled {
+  background: #1e4938;
+  color: #10a37f;
+}
+
+.discharge-document .followup-scheduled.not-scheduled {
+  background: #4a2617;
+  color: #fb923c;
+}
+
+/* Patient Education */
+.discharge-document .education-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.discharge-document .education-list li {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.discharge-document .education-list li strong {
+  color: #4a9eff;
+}
+
+.discharge-document .topic-details {
+  font-size: 13px;
+  color: #c5c5d2;
+  margin-top: 6px;
+}
+
+/* Emergency Section - Normal background like other sections */
+.discharge-document .emergency-section {
+  background: #3e3f4b !important;
+  border-left-color: #ef4444 !important;
+}
+
+.discharge-document .emergency-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .emergency-item {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #ef4444;
+  color: #fff;
+  border-radius: 16px;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Clinical Decision Support */
+.discharge-document .cds-subsection {
+  margin-bottom: 24px;
+}
+
+.discharge-document .overall-risk {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 15px;
+}
+
+.discharge-document .risk-factors {
+  margin-top: 16px;
+}
+
+.discharge-document .risk-factors > strong {
+  color: #4a9eff;
+}
+
+.discharge-document .risk-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .risk-item {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border-left: 3px solid #565869;
+}
+
+.discharge-document .risk-item.severity-critical {
+  background: #3e2828;
+  border-left-color: #ef4444;
+}
+
+.discharge-document .risk-item.severity-high {
+  background: #3b2617;
+  border-left-color: #faa500;
+}
+
+.discharge-document .risk-factor-name {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.discharge-document .risk-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 8px;
+  text-transform: uppercase;
+  background: #c5c5d2;
+  color: #fff;
+  border: none;
+}
+
+.discharge-document .risk-item.severity-critical .risk-badge,
+.discharge-document .risk-badge.critical {
+  background: #ef4444;
+  color: #fff;
+}
+
+.discharge-document .risk-item.severity-high .risk-badge,
+.discharge-document .risk-badge.high {
+  background: #faa500;
+  color: #fff;
+}
+
+.discharge-document .risk-badge.moderate {
+  background: #faa500;
+  color: #fff;
+}
+
+.discharge-document .risk-item.severity-low .risk-badge,
+.discharge-document .risk-badge.low {
+  background: #10a37f;
+  color: #fff;
+}
+
+.discharge-document .risk-evidence {
+  font-size: 13px;
+  color: #c5c5d2;
+  margin-top: 6px;
+}
+
+.discharge-document .mitigating-factors {
+  margin-top: 16px;
+}
+
+.discharge-document .mitigating-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .mitigating-item {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border-left: 3px solid #10a37f;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.discharge-document .mitigating-item:hover {
+  background: #353535;
+}
+
+.discharge-document .mitigating-number {
+  font-weight: 700;
+  color: #10a37f;
+  font-size: 16px;
+  min-width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.discharge-document .mitigating-text {
+  flex: 1;
+  color: #ececf1;
+  line-height: 1.5;
+}
+
+/* Red Flags */
+.discharge-document .redflag-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .redflag-item {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border-left: 3px solid #faa500;
+}
+
+.discharge-document .redflag-item.immediate,
+.discharge-document .redflag-item.urgent {
+  background: #3e2828;
+  border-left-color: #ef4444;
+}
+
+.discharge-document .redflag-finding {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.discharge-document .urgency-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #ef4444;
+  color: white;
+  margin-right: 8px;
+  text-transform: uppercase;
+}
+
+.discharge-document .redflag-action {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.discharge-document .redflag-timeframe {
+  font-size: 12px;
+  color: #c5c5d2;
+  margin-top: 4px;
+}
+
+/* Drug Interactions */
+.discharge-document .interaction-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .interaction-item {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border-left: 3px solid #565869;
+}
+
+.discharge-document .interaction-item.severity-high {
+  background: #3b2617;
+  border-left-color: #faa500;
+}
+
+.discharge-document .interaction-drugs {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.discharge-document .interaction-drugs strong {
+  color: #fff;
+}
+
+.discharge-document .severity-badge {
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.discharge-document .severity-badge.severity-high {
+  background: #ef4444;
+  color: #fff;
+  font-weight: 700;
+}
+
+.discharge-document .severity-badge.severity-moderate {
+  background: #faa500;
+  color: #fff;
+  font-weight: 700;
+}
+
+.discharge-document .severity-badge.severity-minor,
+.discharge-document .severity-badge.severity-low {
+  background: #10a37f;
+  color: #fff;
+  font-weight: 700;
+}
+
+.discharge-document .interaction-effect,
+.discharge-document .interaction-mechanism,
+.discharge-document .interaction-recommendation {
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+/* Contraindications */
+.discharge-document .contraindication-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .contraindication-list li {
+  padding: 12px;
+  background: #3e2828;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border-left: 3px solid #ef4444;
+}
+
+.discharge-document .contraindication-list strong {
+  color: #fb923c;
+}
+
+/* Intelligent Recommendations */
+.discharge-document .recommendations-subsection {
+  margin-bottom: 24px;
+}
+
+.discharge-document .recommendation-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .recommendation-item {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border-left: 3px solid #4a9eff;
+}
+
+.discharge-document .recommendation-item.critical {
+  background: #2d2e38;
+  border-left-color: #ef4444;
+}
+
+.discharge-document .recommendation-action {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #ececf1;
+}
+
+.discharge-document .priority-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #4a9eff;
+  color: white;
+  margin-right: 8px;
+  text-transform: uppercase;
+}
+
+.discharge-document .priority-badge.priority-critical,
+.discharge-document .recommendation-item.critical .priority-badge {
+  background: #dc143c;
+  color: #fff;
+}
+
+.discharge-document .priority-badge.priority-high {
+  background: #ef4444;
+  color: #fff;
+}
+
+.discharge-document .priority-badge.urgent,
+.discharge-document .priority-badge.priority-urgent {
+  background: #ef4444;
+  color: #fff;
+}
+
+.discharge-document .priority-badge.routine,
+.discharge-document .priority-badge.priority-routine {
+  background: #10a37f;
+  color: #fff;
+}
+
+.discharge-document .recommendation-rationale {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.discharge-document .recommendation-evidence,
+.discharge-document .recommendation-timeframe,
+.discharge-document .recommendation-outcome {
+  font-size: 13px;
+  color: #c5c5d2;
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+/* Long-term Goals */
+.discharge-document .longterm-goal {
+  padding: 16px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  border-left: 3px solid #8b5cf6;
+}
+
+.discharge-document .goal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #a78bfa;
+  margin-bottom: 10px;
+}
+
+.discharge-document .goal-timeline {
+  font-size: 13px;
+  color: #c5c5d2;
+  margin-bottom: 12px;
+}
+
+.discharge-document .goal-interventions {
+  margin-top: 12px;
+}
+
+.discharge-document .goal-interventions strong {
+  color: #4a9eff;
+}
+
+.discharge-document .goal-interventions ul {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .goal-interventions li {
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+/* Preventive Care */
+.discharge-document .preventive-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .preventive-list li {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border-left: 3px solid #10a37f;
+}
+
+.discharge-document .preventive-list strong {
+  color: #10a37f;
+}
+
+.discharge-document .guidelines {
+  font-size: 12px;
+  color: #c5c5d2;
+  margin-top: 6px;
+}
+
+/* Trending Analysis */
+.discharge-document .trending-subsection {
+  margin-bottom: 24px;
+}
+
+.discharge-document .disease-trajectory,
+.discharge-document .disease-timeline,
+.discharge-document .prognosis {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.discharge-document .key-events strong {
+  color: #4a9eff;
+}
+
+.discharge-document .key-events ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 12px 0 0 0;
+}
+
+.discharge-document .key-events li {
+  padding: 10px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.discharge-document .event-impact {
+  font-size: 13px;
+  color: #c5c5d2;
+  margin-top: 6px;
+}
+
+.discharge-document .lab-trend,
+.discharge-document .vital-trend {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 14px;
+  border-left: 3px solid #565869;
+}
+
+.discharge-document .trend-test,
+.discharge-document .trend-direction,
+.discharge-document .trend-latest,
+.discharge-document .trend-interpretation,
+.discharge-document .trend-action,
+.discharge-document .trend-target,
+.discharge-document .trend-reassess {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.discharge-document .trend-up {
+  color: #fb923c;
+  font-weight: 600;
+}
+
+.discharge-document .trend-stable {
+  color: #10a37f;
+  font-weight: 600;
+}
+
+/* Patient-Specific Care Plan */
+.discharge-document .careplan-subsection {
+  margin-bottom: 24px;
+}
+
+.discharge-document .intervention-item,
+.discharge-document .lifestyle-mod {
+  padding: 16px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  border-left: 3px solid #8b5cf6;
+}
+
+.discharge-document .intervention-title,
+.discharge-document .lifestyle-domain {
+  font-size: 16px;
+  font-weight: 600;
+  color: #a78bfa;
+  margin-bottom: 10px;
+}
+
+.discharge-document .intervention-context,
+.discharge-document .lifestyle-current,
+.discharge-document .lifestyle-recommendation,
+.discharge-document .lifestyle-context,
+.discharge-document .lifestyle-feasibility,
+.discharge-document .lifestyle-benefit,
+.discharge-document .lifestyle-outcome {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.discharge-document .lifestyle-current strong,
+.discharge-document .lifestyle-recommendation strong,
+.discharge-document .lifestyle-feasibility strong,
+.discharge-document .lifestyle-benefit strong,
+.discharge-document .lifestyle-outcome strong {
+  color: #4a9eff;
+}
+
+.discharge-document .intervention-barriers ul,
+.discharge-document .intervention-enablers ul {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.discharge-document .intervention-enablers li {
+  color: #10a37f;
+}
+
+.discharge-document .intervention-strategy,
+.discharge-document .intervention-metrics {
+  margin-top: 12px;
+  padding: 10px;
+  background: #565869;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.discharge-document .comorbidity-approach,
+.discharge-document .comorbidity-interactions,
+.discharge-document .comorbidity-priority {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.discharge-document .comorbidity-interactions strong,
+.discharge-document .comorbidity-priority strong {
+  color: #4a9eff;
+}
+
+/* Medication Optimization */
+.discharge-document .medopt-subsection {
+  margin-bottom: 24px;
+}
+
+.discharge-document .cost-analysis-item,
+.discharge-document .simplification-item {
+  padding: 16px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  border-left: 3px solid #10a37f;
+}
+
+.discharge-document .simplification-current strong,
+.discharge-document .simplification-proposed strong,
+.discharge-document .simplification-benefit strong {
+  color: #4a9eff;
+}
+
+.discharge-document .cost-medication {
+  font-size: 16px;
+  font-weight: 600;
+  color: #10a37f;
+  margin-bottom: 10px;
+}
+
+.discharge-document .cost-estimate,
+.discharge-document .cost-insurance {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.discharge-document .cost-alternatives {
+  margin-top: 12px;
+}
+
+.discharge-document .alternative-option {
+  padding: 10px;
+  background: #565869;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.discharge-document .alt-comparison,
+.discharge-document .alt-safety {
+  font-size: 13px;
+  color: #c5c5d2;
+  margin-top: 4px;
+}
+
+.discharge-document .adherence-risk,
+.discharge-document .adherence-factors,
+.discharge-document .adherence-strategies {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.discharge-document .adherence-risk strong,
+.discharge-document .adherence-factors strong,
+.discharge-document .adherence-strategies strong {
+  color: #4a9eff;
+}
+
+/* Follow-up Intelligence */
+.discharge-document .followup-subsection {
+  margin-bottom: 24px;
+}
+
+.discharge-document .deadline-list,
+.discharge-document .priority-list,
+.discharge-document .coordination-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .deadline-item,
+.discharge-document .priority-item,
+.discharge-document .coordination-item {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border-left: 3px solid #4a9eff;
+}
+
+.discharge-document .deadline-item.critical,
+.discharge-document .priority-item.critical {
+  background: #3e2828;
+  border-left-color: #ef4444;
+}
+
+.discharge-document .deadline-item.important,
+.discharge-document .deadline-item.high {
+  border-left-color: #ef4444;
+}
+
+.discharge-document .deadline-item.medium {
+  border-left-color: #faa500;
+}
+
+.discharge-document .deadline-item.low {
+  border-left-color: #10a37f;
+}
+
+.discharge-document .deadline-item-header,
+.discharge-document .priority-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.discharge-document .criticality-badge {
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #ef4444;
+  color: white;
+  text-transform: uppercase;
+}
+
+.discharge-document .criticality-badge.critical {
+  background: #ef4444;
+}
+
+.discharge-document .criticality-badge.important,
+.discharge-document .criticality-badge.high {
+  background: #ef4444;
+}
+
+.discharge-document .criticality-badge.medium {
+  background: #faa500;
+}
+
+.discharge-document .criticality-badge.low {
+  background: #10a37f;
+}
+
+.discharge-document .priority-number {
+  padding: 4px 10px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #4a9eff;
+  color: white;
+}
+
+.discharge-document .deadline-due,
+.discharge-document .deadline-consequences,
+.discharge-document .deadline-metrics,
+.discharge-document .priority-urgency,
+.discharge-document .priority-importance,
+.discharge-document .priority-outcome,
+.discharge-document .coordination-reason,
+.discharge-document .coordination-urgency,
+.discharge-document .coordination-info,
+.discharge-document .coordination-outcome {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.discharge-document .coordination-specialist {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #4a9eff;
+}
+
+.discharge-document .coordination-specialist strong {
+  color: #4a9eff;
+}
+
+.discharge-document .treatment-goal-primary {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 15px;
+  border-left: 3px solid #8b5cf6;
+}
+
+.discharge-document .treatment-targets ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 12px 0 0 0;
+}
+
+.discharge-document .treatment-targets li {
+  padding: 10px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.discharge-document .treatment-targets strong {
+  color: #4a9eff;
+}
+
+/* Patient Education Context */
+.discharge-document .education-subsection {
+  margin-bottom: 24px;
+}
+
+.discharge-document .condition-summary,
+.discharge-document .condition-expect {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 14px;
+  line-height: 1.8;
+}
+
+.discharge-document .condition-keypoints,
+.discharge-document .condition-warnings {
+  margin-top: 16px;
+}
+
+.discharge-document .condition-keypoints > strong,
+.discharge-document .condition-expect > strong {
+  color: #4a9eff;
+}
+
+.discharge-document .condition-warnings {
+  padding: 14px;
+  background: #3e2828;
+  border-radius: 4px;
+  border-left: 3px solid #ef4444;
+}
+
+.discharge-document .condition-warnings strong {
+  color: #fb923c;
+}
+
+.discharge-document .condition-warnings ul {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 10px 0 0 0;
+}
+
+.discharge-document .condition-warnings li {
+  padding: 4px 0;
+  color: #fff;
+}
+
+.discharge-document .med-instruction {
+  padding: 16px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  border-left: 3px solid #4a9eff;
+}
+
+.discharge-document .med-instruction-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4a9eff;
+  margin-bottom: 12px;
+}
+
+.discharge-document .med-instruction-purpose,
+.discharge-document .med-instruction-how,
+.discharge-document .med-instruction-sideeffects,
+.discharge-document .med-instruction-calldoctor {
+  margin-bottom: 10px;
+}
+
+.discharge-document .med-instruction-purpose strong,
+.discharge-document .med-instruction-how strong,
+.discharge-document .med-instruction-sideeffects strong {
+  color: #4a9eff;
+}
+
+.discharge-document .med-instruction-calldoctor {
+  padding: 10px;
+  background: #3b2617;
+  border-radius: 4px;
+  border-left: 3px solid #faa500;
+}
+
+.discharge-document .med-instruction-calldoctor strong {
+  color: #fb923c;
+}
+
+.discharge-document .lifestyle-guidance {
+  padding: 16px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  border-left: 3px solid #10a37f;
+}
+
+.discharge-document .lifestyle-guidance-topic {
+  font-size: 16px;
+  font-weight: 600;
+  color: #10a37f;
+  margin-bottom: 10px;
+}
+
+.discharge-document .lifestyle-guidance-recommendation,
+.discharge-document .lifestyle-guidance-reasoning,
+.discharge-document .lifestyle-guidance-tips {
+  margin-bottom: 10px;
+}
+
+.discharge-document .lifestyle-guidance-tips strong {
+  color: #4a9eff;
+}
+
+.discharge-document .lifestyle-guidance-reasoning {
+  font-style: italic;
+  color: #c5c5d2;
+}
+
+.discharge-document .resources-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .resource-item {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.discharge-document .resource-item strong {
+  color: #4a9eff;
+}
+
+.discharge-document .resource-relevance {
+  font-size: 13px;
+  color: #c5c5d2;
+  margin-top: 6px;
+}
+
+/* Guideline Compliance */
+.discharge-document .compliance-subsection,
+.discharge-document .caregaps-subsection {
+  margin-bottom: 24px;
+}
+
+.discharge-document .guideline-item {
+  padding: 16px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  border-left: 3px solid #4a9eff;
+}
+
+.discharge-document .guideline-name {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.discharge-document .compliance-status {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.discharge-document .compliance-status.compliant {
+  background: #1e4938;
+  color: #10a37f;
+}
+
+.discharge-document .compliance-status.partial {
+  background: #3b2617;
+  color: #fb923c;
+}
+
+.discharge-document .guideline-recommendations ul,
+.discharge-document .guideline-gaps ul {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.discharge-document .guideline-gaps li {
+  color: #fb923c;
+}
+
+.discharge-document .caregap-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.discharge-document .caregap-item {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border-left: 3px solid #faa500;
+}
+
+.discharge-document .caregap-item.high {
+  background: #3b2617;
+  border-left-color: #ef4444;
+}
+
+.discharge-document .caregap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.discharge-document .caregap-status {
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.discharge-document .caregap-status.missing,
+.discharge-document .caregap-status.due-soon {
+  background: #ef4444;
+  color: white;
+}
+
+.discharge-document .caregap-category,
+.discharge-document .caregap-action,
+.discharge-document .caregap-priority,
+.discharge-document .caregap-due {
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* Outcomes Prediction */
+.discharge-document .outcomes-prognosis,
+.discharge-document .outcomes-expected {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  line-height: 1.8;
+}
+
+.discharge-document .multi-line-narrative {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.discharge-document .numbered-narrative {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.discharge-document .numbered-narrative li {
+  margin-bottom: 6px;
+}
+
+.discharge-document .outcomes-subsection {
+  margin-top: 20px;
+}
+
+.discharge-document .modifiable-factor {
+  padding: 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-bottom: 14px;
+  border-left: 3px solid #8b5cf6;
+}
+
+.discharge-document .factor-name {
+  font-weight: 600;
+  color: #a78bfa;
+  margin-bottom: 8px;
+}
+
+.discharge-document .factor-impact,
+.discharge-document .factor-recommendation {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.discharge-document .outcomes-priority {
+  padding: 10px 14px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-top: 16px;
+  font-weight: 600;
+}
+
+.discharge-document .outcomes-priority span {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #ef4444;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+/* Quality Metrics */
+.discharge-document .quality-metrics-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.discharge-document .quality-metric {
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+}
+
+.discharge-document .quality-metric strong {
+  color: #4a9eff;
+  margin-right: 8px;
+}
+
+/* Severity Classes */
+.discharge-document .severity-critical {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* Lab flag badges */
+.discharge-document .lab-results-table .severity-high {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #ef4444;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.discharge-document .lab-results-table .severity-moderate {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #faa500;
+  color: #000;
+  font-weight: 700;
+  border-radius: 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+/* General severity text (not in lab table) */
+.discharge-document .severity-high {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.discharge-document .severity-moderate {
+  color: #fff;
+}
+
+/* Overall Risk badge styling */
+.discharge-document .overall-risk .severity-high,
+.discharge-document .overall-risk .severity-moderate,
+.discharge-document .overall-risk .severity-critical {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #faa500;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+.discharge-document .overall-risk .severity-critical {
+  background: #ef4444;
+}
+
+/* Electronic Signature */
+.discharge-document .electronic-signature {
+  padding: 16px;
+  background: #2d2e38;
+  border-radius: 4px;
+  margin-top: 32px;
+  text-align: center;
+  font-style: italic;
+  border-top: 2px solid #565869;
+}
+
+.discharge-document .signature-text {
+  font-size: 14px;
+  color: #c5c5d2;
+}
+
+/* Provider Signature */
+.discharge-document .provider-signature {
+  padding: 20px;
+  text-align: center;
+  margin-top: 24px;
+  border-top: 2px solid #565869;
+}
+
+.discharge-document .provider-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4a9eff;
+}
+
+/* Field Row */
+.discharge-document .field-row {
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.discharge-document .field-row strong {
+  color: #4a9eff;
+  margin-right: 8px;
+}
+
+/* Utility Classes */
+.discharge-document .critical-text {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.discharge-document .high-risk {
+  background: #3e2828 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .discharge-document {
+    padding: 16px;
+  }
+
+  .discharge-document .demographics-grid,
+  .discharge-document .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .discharge-document .quality-metrics-content {
+    grid-template-columns: 1fr;
+  }
+
+  .discharge-document .followup-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -1,0 +1,385 @@
+/* NeuromuscularDisorderDocument.css - Blue Glow Theme - March 2026 */
+
+.neuromuscular-disorder-document {
+  padding: 0;
+  color: #e2e8f0;
+  font-family: 'Comfortaa', sans-serif;
+  max-width: 100%;
+  direction: ltr;
+  text-align: left;
+}
+.neuromuscular-disorder-document * { direction: ltr; }
+
+/* Document Header */
+.neuromuscular-disorder-document .document-header {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #565869;
+}
+
+.neuromuscular-disorder-document .document-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 10px 0;
+  text-transform: none !important;
+}
+
+/* Header Actions */
+.neuromuscular-disorder-document .header-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.neuromuscular-disorder-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+
+/* Search */
+.neuromuscular-disorder-document .search-container {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.neuromuscular-disorder-document .search-input {
+  width: 100%;
+  padding: 10px 36px 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 14px;
+  font-family: 'Comfortaa', sans-serif;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.neuromuscular-disorder-document .search-input:focus {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.15);
+}
+
+.neuromuscular-disorder-document .search-input::placeholder {
+  color: #64748b;
+}
+
+.neuromuscular-disorder-document .search-results {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+  display: block;
+}
+
+.neuromuscular-disorder-document .clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 23px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.neuromuscular-disorder-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* Records Container */
+.neuromuscular-disorder-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Record Card */
+.neuromuscular-disorder-document .record-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* Record Header */
+.neuromuscular-disorder-document .record-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.neuromuscular-disorder-document .record-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Sections */
+.neuromuscular-disorder-document .section {
+  margin-top: 14px;
+}
+
+/* Mini Cards Container (Blue Glow Box) */
+.neuromuscular-disorder-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Section Header (INSIDE mini-cards-container per Rule #49) */
+.neuromuscular-disorder-document .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+  margin-bottom: 4px;
+}
+
+.neuromuscular-disorder-document .section-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Rec Mini Card */
+.neuromuscular-disorder-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Nested Subtitle */
+.neuromuscular-disorder-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 600;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.15);
+  margin-bottom: 4px;
+  text-transform: none !important;
+}
+
+/* Numbered Row (Very Dark Blue Background) */
+.neuromuscular-disorder-document .numbered-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0d1929;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.1);
+}
+
+.neuromuscular-disorder-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+.neuromuscular-disorder-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.neuromuscular-disorder-document .content-value {
+  font-size: 16px;
+  color: #e2e8f0;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Copy Buttons */
+.neuromuscular-disorder-document .copy-btn {
+  background-color: transparent;
+  color: white;
+  border: 1px solid #2563eb;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.neuromuscular-disorder-document .copy-btn:hover {
+  background-color: #2563eb;
+  color: white;
+}
+
+.neuromuscular-disorder-document .copy-btn.copied {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+/* ====== Inline Editing ====== */
+.neuromuscular-disorder-document .editable-row { cursor: pointer; }
+.neuromuscular-disorder-document .editable-row:hover .edit-indicator { opacity: 1; }
+.neuromuscular-disorder-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+
+.neuromuscular-disorder-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.neuromuscular-disorder-document .modified-badge.added { color: #4ade80; }
+.neuromuscular-disorder-document .edit-field-container { width: 100%; }
+.neuromuscular-disorder-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.neuromuscular-disorder-document .edit-actions { display: flex; gap: 8px; margin-top: 6px; justify-content: flex-start; }
+.neuromuscular-disorder-document .num-stepper-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.neuromuscular-disorder-document .num-step { width: 44px; flex-shrink: 0; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; font-family: 'Comfortaa', sans-serif; display: flex; align-items: center; justify-content: center; }
+.neuromuscular-disorder-document .num-step:disabled { opacity: 0.5; cursor: not-allowed; }
+.neuromuscular-disorder-document .edit-number { flex: 1; width: auto; min-width: 0; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; text-align: center; }
+.neuromuscular-disorder-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.neuromuscular-disorder-document .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.neuromuscular-disorder-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.neuromuscular-disorder-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.neuromuscular-disorder-document .approve-btn { text-transform: capitalize; }
+.neuromuscular-disorder-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.neuromuscular-disorder-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+
+/* ====== Bar Chart ====== */
+.neuromuscular-disorder-document .chart-container {
+  background: rgba(96, 165, 250, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.neuromuscular-disorder-document .chart-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.neuromuscular-disorder-document .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.neuromuscular-disorder-document .legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.neuromuscular-disorder-document .bar-row {
+  margin-bottom: 6px;
+}
+
+.neuromuscular-disorder-document .bar-row.editable-row {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.neuromuscular-disorder-document .bar-row.editable-row:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.neuromuscular-disorder-document .bar-row.editable-row:hover .edit-indicator {
+  opacity: 1;
+}
+
+.neuromuscular-disorder-document .bar-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.neuromuscular-disorder-document .bar-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.neuromuscular-disorder-document .bar-track {
+  flex: 1;
+  height: 24px;
+  background: #0d1929;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.neuromuscular-disorder-document .bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+  min-width: 4px;
+}
+
+.neuromuscular-disorder-document .bar-value {
+  min-width: 55px;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.neuromuscular-disorder-document .bar-interpretation {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Empty State */
+.neuromuscular-disorder-document .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+  font-size: 16px;
+}
+
+/* No Results */
+.neuromuscular-disorder-document .no-results {
+  text-align: center;
+  padding: 30px 20px;
+  color: #64748b;
+  font-size: 15px;
+}
+
+/* Mark (Search Highlight) Override */
+.neuromuscular-disorder-document mark {
+  background-color: #fbbf24;
+  color: #000000;
+  padding: 0;
+  border-radius: 2px;
+}
+
+/* Nested object (results) renderer */
+.neuromuscular-disorder-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.neuromuscular-disorder-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.neuromuscular-disorder-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }

@@ -1,0 +1,526 @@
+/**
+ * AllergyImmunologyAssessmentDocument CSS
+ * Blue-only color scheme, Comfortaa font, text-transform: none !important
+ * Editing styles: textarea, save/cancel, modified badge, approve button
+ */
+
+.allergy-immunology-assessment-document {
+  padding: 24px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Document Title - 31px BIGGEST */
+.allergy-immunology-assessment-document .document-title {
+  font-size: 31px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0 0 20px 0;
+  text-transform: none !important;
+}
+
+/* Document Header */
+.allergy-immunology-assessment-document .document-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #565869;
+}
+
+.allergy-immunology-assessment-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  flex-direction: row !important;
+}
+
+/* Search Container */
+.allergy-immunology-assessment-document .search-container {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.allergy-immunology-assessment-document .search-input {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 17px;
+  font-family: 'Comfortaa', sans-serif;
+  box-sizing: border-box;
+}
+
+.allergy-immunology-assessment-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.allergy-immunology-assessment-document .search-input::placeholder {
+  color: #9ca3af;
+}
+
+.allergy-immunology-assessment-document .clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 23px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.allergy-immunology-assessment-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* Empty State */
+.allergy-immunology-assessment-document .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.allergy-immunology-assessment-document .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.allergy-immunology-assessment-document .empty-text {
+  color: #9ca3af;
+  font-size: 19px;
+}
+
+/* No Results */
+.allergy-immunology-assessment-document .no-results {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+}
+
+/* Records List */
+.allergy-immunology-assessment-document .records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.allergy-immunology-assessment-document .record-card {
+  background: #1e1f2e;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Card Header */
+.allergy-immunology-assessment-document .card-header {
+  display: flex;
+  flex-direction: column !important;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(96, 165, 250, 0.08) 100%);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.allergy-immunology-assessment-document .header-top-row {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+  width: 100% !important;
+}
+
+.allergy-immunology-assessment-document .card-title {
+  font-size: 23px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Card Content */
+.allergy-immunology-assessment-document .card-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Badges */
+.allergy-immunology-assessment-document .date-badge {
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.allergy-immunology-assessment-document .status-badge {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* Mini Cards Container */
+.allergy-immunology-assessment-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Individual Mini Card */
+.allergy-immunology-assessment-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Numbered Row */
+.allergy-immunology-assessment-document .numbered-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  gap: 12px;
+}
+
+.allergy-immunology-assessment-document .row-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+/* Nested Subtitle - 17px LIGHT BRIGHT BLUE */
+.allergy-immunology-assessment-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+
+/* Content Value - 17px WHITE */
+.allergy-immunology-assessment-document .content-value {
+  font-size: 17px;
+  color: #ececf1;
+  line-height: 1.6;
+}
+
+/* Section Title - 19px BLUE */
+.allergy-immunology-assessment-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Section Header */
+.allergy-immunology-assessment-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Copy Button — DEFAULT state */
+.allergy-immunology-assessment-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.allergy-immunology-assessment-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: #60a5fa;
+}
+
+/* Copy Button — COPIED state (SOLID BLUE) */
+.allergy-immunology-assessment-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Header Copy All / Export PDF — COPIED state */
+.allergy-immunology-assessment-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Search Highlight */
+.allergy-immunology-assessment-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* ─── Editing Styles ────────────────────────────────────────── */
+
+/* Header right actions — column layout: copy on top, approve below */
+.allergy-immunology-assessment-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Edit field container — MUST have width: 100% */
+.allergy-immunology-assessment-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Edit textarea */
+.allergy-immunology-assessment-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  background: #0d1929;
+  color: #ececf1;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.allergy-immunology-assessment-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+/* Status dropdown (active / not active) — full row width */
+.allergy-immunology-assessment-document .edit-select {
+  width: 100%;
+  padding: 10px 12px;
+  background: #0d1929;
+  color: #ececf1;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* Number-only edit row: number input flanked by preserved unit/qualifier text */
+.allergy-immunology-assessment-document .number-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.allergy-immunology-assessment-document .edit-number {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  background: #0d1929;
+  color: #ececf1;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+
+.allergy-immunology-assessment-document .edit-select:focus,
+.allergy-immunology-assessment-document .edit-number:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+.allergy-immunology-assessment-document .number-edit-unit {
+  color: #93c5fd;
+  font-size: 14px;
+  white-space: nowrap;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Edit actions (Save / Cancel) */
+.allergy-immunology-assessment-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.allergy-immunology-assessment-document .save-btn {
+  padding: 6px 16px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.allergy-immunology-assessment-document .save-btn:hover {
+  background: #1d4ed8;
+}
+
+.allergy-immunology-assessment-document .save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.allergy-immunology-assessment-document .cancel-btn {
+  padding: 6px 16px;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.allergy-immunology-assessment-document .cancel-btn:hover {
+  background: rgba(75, 85, 99, 0.2);
+  color: #ececf1;
+}
+
+/* Editable row content — cursor pointer + edit indicator */
+.allergy-immunology-assessment-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+}
+
+.allergy-immunology-assessment-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.05);
+  border-radius: 4px;
+}
+
+.allergy-immunology-assessment-document .edit-indicator {
+  margin-left: 8px;
+  color: rgba(96, 165, 250, 0.4);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.allergy-immunology-assessment-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Modified row — yellow border + tint */
+.allergy-immunology-assessment-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+/* Modified badge — styled badge below numbered-row */
+.allergy-immunology-assessment-document .modified-badge {
+  font-size: 11px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.allergy-immunology-assessment-document .modified-badge.added {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* Approve button — base */
+.allergy-immunology-assessment-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+/* Pending Approve — YELLOW */
+.allergy-immunology-assessment-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.allergy-immunology-assessment-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+/* Approved — GREEN */
+.allergy-immunology-assessment-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.allergy-immunology-assessment-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}

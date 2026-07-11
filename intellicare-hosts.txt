@@ -1,0 +1,6 @@
+# IntelliCare local development
+127.0.0.1 intellicare.health
+127.0.0.1 stanford.intellicare.health
+127.0.0.1 www.intellicare.health
+# Add more practice subdomains as needed:
+# 127.0.0.1 [practice-name].intellicare.health

@@ -1,0 +1,257 @@
+/* Ensure full width for navigation */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Animations for chat components */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes typing-dots {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+/* Professional typing indicator */
+.typing-indicator-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%);
+  border-radius: 12px;
+  border-left: 3px solid #2563eb;
+  margin: 8px 0;
+}
+
+.typing-indicator-text {
+  font-size: 14px;
+  color: #475569;
+  font-style: italic;
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 8px;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  background: #2563eb;
+  border-radius: 50%;
+  animation: typing-dots 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.App {
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.App main {
+  flex: 1;
+}
+
+/* Ensure no scrollbars on landing/auth pages */
+.App main:empty {
+  padding: 0;
+  margin: 0;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 🎯 PERFORMANCE: Loading spinner animation for code splitting */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 🎯 CRITICAL PERFORMANCE FIX: Loading spinner styles to replace inline styles */
+.loading-spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: #667eea;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 15px;
+}
+
+.navbar {
+  background-color: #1e40af;
+  box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+.nav-link {
+  color: #fff;
+  transition: color 0.3s;
+}
+
+.nav-link:hover {
+  color: #bfdbfe;
+}
+
+/* Basic body styles without global overrides */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
+  padding: 1rem;
+}
+
+/* 🎯 PERFORMANCE: Auth button styles using CSS classes for better performance */
+.auth-button {
+  padding: 10px 20px;
+  border-radius: 25px;
+  text-decoration: none;
+  color: white !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.25) 100%);
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.auth-button:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.35) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* 🎯 PERFORMANCE: Main navigation buttons for logged-in users */
+.main-nav-button {
+  padding: 10px 20px;
+  border-radius: 25px;
+  text-decoration: none;
+  color: white !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.25) 100%);
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.main-nav-button:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.35) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.main-nav-button.nav-link-active {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.4) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Chat message text selection styles */
+.chat-message-content * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  text-align: left !important; /* Force left alignment */
+}
+
+.chat-message-content ::selection {
+  background-color: rgba(96, 165, 250, 0.4);
+  color: #ffffff;
+}
+
+.chat-message-content ::-moz-selection {
+  background-color: rgba(96, 165, 250, 0.4);
+  color: #ffffff;
+}

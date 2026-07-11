@@ -1,0 +1,1868 @@
+/* Anesthesia Preoperative Consultation Document - Comprehensive Medical Report */
+
+.anesthesia-document {
+  padding: 24px;
+  background: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  font-size: 19px;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+}
+
+/* CRITICAL: SearchBar scoping - prevent global CSS pollution */
+.anesthesia-document .search-container {
+  margin-bottom: 24px !important;
+  width: 100% !important;
+}
+
+.anesthesia-document .search-input {
+  width: 100% !important;
+  padding: 12px 16px !important;
+  background: rgba(96, 165, 250, 0.12) !important;
+  border: 1px solid #565869 !important;
+  border-radius: 8px !important;
+  color: #ececf1 !important;
+  font-size: 19px !important;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif !important;
+}
+
+.anesthesia-document .search-input:focus {
+  outline: none !important;
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+}
+
+.anesthesia-document .search-input::placeholder {
+  color: #9ca3af !important;
+}
+
+.anesthesia-document .search-stats {
+  margin-top: 8px !important;
+  font-size: 17px !important;
+  color: #9ca3af !important;
+}
+
+/* Document Header */
+.anesthesia-document .document-header {
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #565869;
+}
+
+.anesthesia-document .document-title {
+  font-size: 35px;
+  font-weight: 600;
+  color: #ececf1;
+  margin: 0 0 8px 0;
+}
+
+.anesthesia-document .document-date {
+  font-size: 17px;
+  color: #c5c5d2;
+  margin: 8px 0 0 0;
+}
+
+/* Action Buttons Row - Two-row header pattern */
+.anesthesia-document .action-buttons-row {
+  display: flex !important;
+  gap: 8px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  margin-top: 16px;
+  width: 100% !important;
+  align-self: stretch !important;
+  flex-direction: row !important;
+}
+
+.anesthesia-document .action-btn {
+  background: linear-gradient(135deg, #243B66 0%, #2E4F86 100%);
+  color: #ececf1;
+  border: 1px solid #667eea;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 17px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.anesthesia-document .action-btn:hover {
+  background: linear-gradient(135deg, #667eea 0%, #565869 100%);
+  border-color: #818cf8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.anesthesia-document .action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Patient Demographics */
+.anesthesia-document .patient-demographics {
+  background: rgba(96, 165, 250, 0.12);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid #565869;
+}
+
+.anesthesia-document .demographics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.anesthesia-document .demo-field {
+  font-size: 19px;
+  color: #ececf1;
+}
+
+.anesthesia-document .demo-field strong {
+  color: #667eea;
+  margin-right: 8px;
+}
+
+/* Sections */
+.anesthesia-document .anesthesia-section {
+  margin-bottom: 40px;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.anesthesia-document .section-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #565869;
+  margin-bottom: 20px;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Subsections */
+.anesthesia-document .subsection {
+  margin-bottom: 24px;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.anesthesia-document .subsection-title {
+  font-size: 23px;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-bottom: 12px;
+}
+
+.anesthesia-document .section-title {
+  font-size: 27px;
+  font-weight: 600;
+  color: #667eea;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.anesthesia-document .section-icon {
+  font-size: 27px;
+}
+
+/* Section Copy Button */
+.anesthesia-document .section-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  min-width: 85px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .section-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+.anesthesia-document .section-copy-btn svg {
+  flex-shrink: 0;
+}
+
+/* Content Cards */
+.anesthesia-document .content-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;  /* PREVENTS side-by-side layout */
+  box-sizing: border-box;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  text-align: left !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  margin: 0 !important;
+}
+
+.anesthesia-document .content-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #5a67d8 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.anesthesia-document .content-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2), 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.anesthesia-document .content-card:hover::before {
+  opacity: 1;
+}
+
+.anesthesia-document .card-content {
+  display: block !important;  /* Override global display: flex pollution */
+  font-size: 19px;
+  line-height: 1.8;
+  color: #ececf1;
+  word-wrap: break-word;
+  margin-bottom: 8px;
+  text-align: left !important;
+  flex-shrink: 0 !important;
+  align-self: flex-start !important;
+}
+
+.anesthesia-document .card-content:last-child {
+  margin-bottom: 0;
+}
+
+/* Search Highlighting - Override global CSS pollution on mark element */
+.anesthesia-document mark {
+  display: inline !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+/* Cards Grid */
+.anesthesia-document .cards-grid {
+  display: flex !important;
+  flex-direction: column !important;  /* VERTICAL STACKING - One card per row */
+  flex-wrap: nowrap !important;
+  gap: 16px;
+  width: 100% !important;
+}
+
+/* Alert Cards - Critical severity */
+.anesthesia-document .alert-card {
+  background: #2d1f1f;
+  border-color: #dc2626;
+}
+
+.anesthesia-document .alert-title {
+  color: #dc2626 !important;
+}
+
+.anesthesia-document .alert-critical {
+  color: #dc2626 !important;
+}
+
+/* Recommendation Cards */
+.anesthesia-document .recommendation-card {
+  background: #1f2d26;
+  border-color: #667eea;
+}
+
+.anesthesia-document .recommendation-title {
+  color: #667eea !important;
+}
+
+/* Info Cards */
+.anesthesia-document .info-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid #565869;
+  border-radius: 8px;
+  padding: 20px;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+}
+
+.anesthesia-document .info-field {
+  font-size: 19px;
+  color: #ececf1;
+  margin-bottom: 8px;
+}
+
+.anesthesia-document .info-field:last-child {
+  margin-bottom: 0;
+}
+
+.anesthesia-document .info-field strong {
+  color: #667eea;
+  margin-right: 8px;
+}
+
+/* Medications List - Individual cards with copy buttons */
+.anesthesia-document .medications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.anesthesia-document .medication-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.12);
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.anesthesia-document .medication-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #5a67d8 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.anesthesia-document .medication-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2), 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.anesthesia-document .medication-card:hover::before {
+  opacity: 1;
+}
+
+.anesthesia-document .medication-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Top row: Status badge and Copy button grouped together on right */
+.anesthesia-document .medication-top-row {
+  display: flex;
+  justify-content: space-between;  /* Space between left and right */
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.anesthesia-document .medication-name {
+  font-size: 19px;
+  font-weight: 600;
+  color: #ececf1;
+}
+
+.anesthesia-document .medication-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.anesthesia-document .med-detail {
+  font-size: 17px;
+  color: #c5c5d2;
+}
+
+.anesthesia-document .med-detail strong {
+  color: #667eea;
+  margin-right: 4px;
+}
+
+.anesthesia-document .medication-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  min-width: 75px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .medication-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+/* Diagnoses List - Individual cards with status badges and copy buttons */
+.anesthesia-document .diagnoses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.anesthesia-document .diagnosis-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.12);
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+}
+
+.anesthesia-document .diagnosis-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #5a67d8 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.anesthesia-document .diagnosis-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2), 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.anesthesia-document .diagnosis-card:hover::before {
+  opacity: 1;
+}
+
+.anesthesia-document .diagnosis-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Top row: Status badge and Copy button grouped together on right */
+.anesthesia-document .diagnosis-top-row {
+  display: flex;
+  justify-content: space-between;  /* Space between left and right */
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.anesthesia-document .diagnosis-name {
+  font-size: 19px;
+  font-weight: 600;
+  color: #ececf1;
+}
+
+.anesthesia-document .diagnosis-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.anesthesia-document .dx-detail {
+  font-size: 17px;
+  color: #c5c5d2;
+}
+
+.anesthesia-document .dx-detail strong {
+  color: #667eea;
+  margin-right: 4px;
+}
+
+.anesthesia-document .diagnosis-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  min-width: 75px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .diagnosis-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+/* Past Medical History List - Individual cards with status badges and copy buttons */
+.anesthesia-document .pmh-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.anesthesia-document .pmh-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.12);
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+}
+
+.anesthesia-document .pmh-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #5a67d8 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.anesthesia-document .pmh-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2), 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.anesthesia-document .pmh-card:hover::before {
+  opacity: 1;
+}
+
+.anesthesia-document .pmh-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Top row: Status badge and Copy button grouped together on right */
+.anesthesia-document .pmh-top-row {
+  display: flex;
+  justify-content: space-between;  /* Space between left and right */
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.anesthesia-document .pmh-condition {
+  font-size: 19px;
+  font-weight: 600;
+  color: #ececf1;
+}
+
+.anesthesia-document .pmh-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.anesthesia-document .pmh-detail {
+  font-size: 17px;
+  color: #c5c5d2;
+}
+
+.anesthesia-document .pmh-detail strong {
+  color: #667eea;
+  margin-right: 4px;
+}
+
+.anesthesia-document .pmh-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  min-width: 75px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .pmh-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+/* Laboratory Results List - Individual cards with copy buttons */
+.anesthesia-document .lab-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.anesthesia-document .lab-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.12);
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+}
+
+.anesthesia-document .lab-result-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #5a67d8 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.anesthesia-document .lab-result-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2), 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.anesthesia-document .lab-result-card:hover::before {
+  opacity: 1;
+}
+
+/* Top row: Flag badge and Copy button grouped together on right */
+.anesthesia-document .lab-top-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #565869;
+}
+
+.anesthesia-document .lab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anesthesia-document .lab-test-name {
+  font-size: 19px;
+  font-weight: 600;
+  color: #ececf1;
+}
+
+.anesthesia-document .lab-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anesthesia-document .lab-value,
+.anesthesia-document .lab-interpretation {
+  font-size: 17px;
+  color: #c5c5d2;
+}
+
+.anesthesia-document .lab-value strong,
+.anesthesia-document .lab-interpretation strong {
+  color: #667eea;
+  margin-right: 4px;
+}
+
+.anesthesia-document .flag-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #dc2626;
+  color: #fff;
+}
+
+.anesthesia-document .lab-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  min-width: 75px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .lab-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+/* Imaging Studies - Individual card copy buttons */
+.anesthesia-document .imaging-top-row {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #565869;
+  margin-bottom: 12px;
+  width: 100% !important;
+  flex-direction: row !important;
+}
+
+.anesthesia-document .imaging-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  min-width: 75px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .imaging-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+/* Clinical Scores - Vertical stacking with individual copy buttons */
+.anesthesia-document .scores-grid {
+  display: flex !important;
+  flex-direction: column !important;  /* VERTICAL STACKING - One card per row */
+  flex-wrap: nowrap !important;
+  gap: 16px;
+  width: 100% !important;
+}
+
+.anesthesia-document .score-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid #565869;
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.2s ease;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;  /* PREVENTS side-by-side layout */
+  box-sizing: border-box;
+}
+
+.anesthesia-document .score-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.anesthesia-document .score-top-row {
+  display: flex;
+  justify-content: space-between;  /* Score name LEFT, button RIGHT */
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #565869;
+  margin-bottom: 12px;
+}
+
+.anesthesia-document .score-name {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+  color: #667eea;
+  flex: 1;
+}
+
+.anesthesia-document .score-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  min-width: 75px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .score-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+.anesthesia-document .score-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anesthesia-document .score-field {
+  margin: 0;
+  font-size: 18px;
+  color: #ececf1;
+  line-height: 1.6;
+}
+
+.anesthesia-document .score-value {
+  margin: 0;
+  font-size: 19px;
+  color: #ececf1;
+  font-weight: 600;
+}
+
+/* Additional Notes - Card-based layout with beautiful design */
+.anesthesia-document .notes-cards-grid {
+  display: flex !important;
+  flex-direction: column !important;  /* VERTICAL STACKING - One card per row */
+  flex-wrap: nowrap !important;
+  gap: 16px;
+  width: 100% !important;
+}
+
+.anesthesia-document .note-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid #565869;
+  border-left: 4px solid #667eea;  /* Beautiful accent border */
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.anesthesia-document .note-card:hover {
+  border-color: #667eea;
+  border-left-color: #667eea;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px);
+}
+
+.anesthesia-document .note-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(86, 88, 105, 0.5);
+  margin-bottom: 12px;
+}
+
+.anesthesia-document .note-card-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: #667eea;
+  flex: 1;
+  letter-spacing: 0.5px;
+}
+
+.anesthesia-document .note-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  min-width: 75px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .note-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+.anesthesia-document .note-card-content {
+  padding: 8px 0;
+}
+
+.anesthesia-document .note-text {
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  font-size: 18px;
+  line-height: 1.8;
+  color: #ffffff;  /* White text for content (not green) */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+/* Assessment and Plan - Card-based layout with blue accent (clinical recommendations) */
+.anesthesia-document .assessment-cards-grid {
+  display: flex !important;
+  flex-direction: column !important;  /* VERTICAL STACKING - One card per row */
+  flex-wrap: nowrap !important;
+  gap: 16px;
+  width: 100% !important;
+}
+
+.anesthesia-document .assessment-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid #565869;
+  border-left: 4px solid #667eea;  /* Blue accent for clinical recommendations */
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.anesthesia-document .assessment-card:hover {
+  border-color: #667eea;
+  border-left-color: #667eea;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px);
+}
+
+.anesthesia-document .assessment-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(86, 88, 105, 0.5);
+  margin-bottom: 12px;
+}
+
+.anesthesia-document .assessment-card-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: #667eea;
+  flex: 1;
+  letter-spacing: 0.5px;
+}
+
+.anesthesia-document .assessment-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  min-width: 75px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .assessment-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+.anesthesia-document .assessment-card-content {
+  padding: 8px 0;
+}
+
+.anesthesia-document .assessment-text {
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  font-size: 18px;
+  line-height: 1.8;
+  color: #ffffff;  /* White text for content (not blue) */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+/* Data Tables (other sections if needed) */
+.anesthesia-document .table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #565869;
+}
+
+.anesthesia-document .data-table,
+.anesthesia-document .medications-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.anesthesia-document .data-table thead,
+.anesthesia-document .medications-table thead {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.anesthesia-document .data-table th,
+.anesthesia-document .medications-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #667eea !important;
+  border-bottom: 2px solid #565869;
+}
+
+.anesthesia-document .data-table td,
+.anesthesia-document .medications-table td {
+  padding: 12px;
+  color: #ececf1 !important;
+  border-bottom: 1px solid #565869;
+}
+
+.anesthesia-document .data-table tbody tr:last-child td,
+.anesthesia-document .medications-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.anesthesia-document .data-table tbody tr:hover,
+.anesthesia-document .medications-table tbody tr:hover {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+/* Status Badges in Tables */
+.anesthesia-document .status-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #fff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.anesthesia-document .status-active,
+.anesthesia-document .status-current {
+  background: linear-gradient(135deg, #667eea 0%, #5a67d8 100%);
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+}
+
+.anesthesia-document .status-discontinued,
+.anesthesia-document .status-stopped {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
+}
+
+.anesthesia-document .status-unknown {
+  background: linear-gradient(135deg, #243B66 0%, #2E4F86 100%);
+  color: #ececf1 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Severity Badges */
+.anesthesia-document .severity-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.anesthesia-document .severity-high {
+  background: #dc2626;
+  color: #fff;
+}
+
+.anesthesia-document .severity-moderate {
+  background: #ea580c;
+  color: #fff;
+}
+
+.anesthesia-document .severity-low {
+  background: #eab308;
+  color: #000;
+}
+
+/* Vitals Container - Full Width Cards */
+.anesthesia-document .vitals-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.anesthesia-document .vital-card-full {
+  position: relative;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  padding: 24px;
+  padding-top: 48px;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.anesthesia-document .vital-card-full::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #5a67d8 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.anesthesia-document .vital-card-full:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2), 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.anesthesia-document .vital-card-full:hover::before {
+  opacity: 1;
+}
+
+.anesthesia-document .vital-copy-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  min-width: 70px;
+  justify-content: center;
+  z-index: 1;
+}
+
+.anesthesia-document .vital-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+.anesthesia-document .vital-label {
+  font-size: 16px;
+  color: #667eea;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.anesthesia-document .vital-value {
+  font-size: 27px;
+  font-weight: 600;
+  color: #ececf1;
+}
+
+/* Allergy Cards - Full Width with Top-Right Badge & Copy Button */
+.anesthesia-document .allergy-card-full {
+  position: relative;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  padding: 24px;
+  padding-top: 48px; /* Space for top-right elements */
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.anesthesia-document .allergy-card-full::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #5a67d8 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.anesthesia-document .allergy-card-full:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2), 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.anesthesia-document .allergy-card-full:hover::before {
+  opacity: 1;
+}
+
+.anesthesia-document .allergy-top-right {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.anesthesia-document .allergy-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  min-width: 70px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .allergy-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+}
+
+.anesthesia-document .allergy-copy-btn svg {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .allergy-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anesthesia-document .allergy-title {
+  font-size: 23px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0 0 12px 0;
+}
+
+.anesthesia-document .allergy-detail {
+  font-size: 19px;
+  line-height: 1.6;
+  color: #ececf1;
+  margin: 0;
+}
+
+.anesthesia-document .allergy-detail strong {
+  color: #667eea;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+/* Subsections (for Clinical Decision Support) */
+.anesthesia-document .cds-subsection {
+  margin-bottom: 24px;
+  padding-left: 20px;
+  border-left: 3px solid #667eea;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+}
+
+.anesthesia-document .subsection-title {
+  font-size: 21px;
+  font-weight: 600;
+  color: #667eea;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* List Items */
+.anesthesia-document .list-items {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0 0 0;
+}
+
+.anesthesia-document .list-items li {
+  padding: 8px 0;
+  padding-left: 24px;
+  position: relative;
+  color: #ececf1;
+  line-height: 1.6;
+}
+
+.anesthesia-document .list-items li:before {
+  content: "•";
+  position: absolute;
+  left: 8px;
+  color: #667eea;
+  font-weight: bold;
+}
+
+/* Notes Text (pre-formatted) */
+.anesthesia-document .notes-text {
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  font-size: 19px;
+  line-height: 1.8;
+  color: #ececf1;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+/* Consultation Footer */
+.anesthesia-document .consultation-footer {
+  margin-top: 60px;
+  padding-top: 24px;
+  border-top: 2px solid #565869;
+}
+
+/* Search Highlighting - Minimal styling, inline styles take precedence */
+.anesthesia-document mark {
+  display: inline !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+/* Empty State */
+.anesthesia-document .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+}
+
+.anesthesia-document .empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.anesthesia-document .empty-text {
+  font-size: 21px;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .anesthesia-document {
+    padding: 16px;
+  }
+
+  .anesthesia-document .document-title {
+    font-size: 27px;
+  }
+
+  .anesthesia-document .section-title {
+    font-size: 23px;
+  }
+
+  .anesthesia-document .demographics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .anesthesia-document .cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .anesthesia-document .medications-table {
+    font-size: 17px;
+  }
+
+  .anesthesia-document .medications-table th,
+  .anesthesia-document .medications-table td {
+    padding: 8px;
+  }
+
+  .anesthesia-document .card-content {
+    font-size: 17px;
+  }
+}
+
+/* Copy button styles for info fields */
+.anesthesia-document .info-field-with-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.anesthesia-document .info-field-with-copy .info-field {
+  margin: 0;
+  flex: 1;
+}
+
+/* Field copy button (for Review of Systems, Social History) */
+.anesthesia-document .field-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.anesthesia-document .field-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+  box-shadow: 0 0 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Card copy button (for Surgical History, Family History) */
+.anesthesia-document .card-copy-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+}
+
+.anesthesia-document .card-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #667eea;
+  box-shadow: 0 0 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Physical Examination system with copy */
+.anesthesia-document .exam-system-with-copy {
+  padding: 12px 0;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box;
+}
+
+.anesthesia-document .exam-system-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.anesthesia-document .exam-system-header .exam-system-title {
+  margin: 0;
+  flex: 1;
+}
+
+/* === HEADER RIGHT ACTIONS (Copy Section + Approve — column layout) === */
+.anesthesia-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* === COPY BUTTON (blue tint default) === */
+.anesthesia-document .copy-btn {
+  background: rgba(102, 126, 234, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(102, 126, 234, 0.4);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: 'Comfortaa', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.anesthesia-document .copy-btn:hover {
+  background: rgba(102, 126, 234, 0.25);
+  border-color: rgba(102, 126, 234, 0.6);
+}
+
+.anesthesia-document .copy-btn.copied {
+  background: #667eea;
+  color: #ffffff;
+  border-color: #667eea;
+}
+
+/* === EDIT INDICATOR (pencil — appears on hover) === */
+.anesthesia-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+}
+
+.anesthesia-document .row-content.editable:hover {
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 4px;
+}
+
+.anesthesia-document .edit-indicator {
+  margin-left: 8px;
+  color: rgba(102, 126, 234, 0.4);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.anesthesia-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* === NUMBERED ROW (dark background for editable rows) === */
+.anesthesia-document .numbered-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.anesthesia-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.5);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+.anesthesia-document .row-content {
+  flex: 1;
+  display: block !important;
+}
+
+.anesthesia-document .content-value {
+  color: #ececf1;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+/* === MINI-CARDS CONTAINER === */
+.anesthesia-document .mini-cards-container {
+  background: rgba(102, 126, 234, 0.08);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* === REC MINI-CARD === */
+.anesthesia-document .rec-mini-card {
+  background: rgba(102, 126, 234, 0.08);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* === NESTED SUBTITLE === */
+.anesthesia-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #a5b4fc;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+}
+
+/* === EDITING === */
+.anesthesia-document .edit-field-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anesthesia-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 14px;
+  background: rgba(96, 165, 250, 0.12);
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 17px;
+  font-family: 'Comfortaa', sans-serif;
+  line-height: 1.6;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.anesthesia-document .edit-textarea:focus {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+}
+
+.anesthesia-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.anesthesia-document .save-btn {
+  padding: 6px 16px;
+  background: #667eea;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.anesthesia-document .save-btn:hover {
+  background: #818cf8;
+}
+
+.anesthesia-document .save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.anesthesia-document .cancel-btn {
+  padding: 6px 16px;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid rgba(156, 163, 175, 0.4);
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.anesthesia-document .cancel-btn:hover {
+  color: #ececf1;
+  border-color: rgba(156, 163, 175, 0.6);
+}
+
+/* === MODIFIED BADGE === */
+.anesthesia-document .modified-badge {
+  font-size: 11px;
+  color: #eab308;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  padding: 2px 8px;
+  margin-top: 2px;
+}
+
+/* === APPROVE BUTTON === */
+.anesthesia-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+.anesthesia-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.anesthesia-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+.anesthesia-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.anesthesia-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+/* === SECTION HEADER (override for editing — use header-right-actions) === */
+.anesthesia-document .section-header-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #667eea;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+/* === MARK (Search Highlight) === */
+.anesthesia-document mark {
+  background-color: #fbbf24;
+  color: #000;
+  padding: 0;
+  margin: 0;
+  font-weight: inherit;
+  border-radius: 0;
+  display: inline !important;
+}

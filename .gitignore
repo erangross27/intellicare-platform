@@ -1,0 +1,257 @@
+# Dependencies - NEVER commit these
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+*/node_modules/
+
+# Environment variables - Keep secrets safe
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Security keys and sensitive data
+.kms/
+*/.kms/
+.kms.bak-*/
+*/.kms.bak-*/
+kms-storage/
+*/kms-storage/
+
+# Local AI tooling (Qwen) - local config/hooks, not project code
+.qwen/
+qwen-hooks/
+*.key
+*.pem
+*.crt
+*.pfx
+
+# Claude memory file - Contains sensitive credentials
+# CLAUDE.md - now tracked as project documentation
+
+# Build outputs - Generated files
+build/
+dist/
+frontend/build/
+backend/build/
+*/build/
+*/dist/
+backend/uploads
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+apps/backend-api/logs/
+*/logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# AI/ML Model files (too large for GitHub)
+*.bin
+*.safetensors
+*.ckpt
+*.pth
+*.pkl
+ai_models/
+ml_models/
+huggingface_models/
+cache/
+huggingface_cache/
+.cache/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# ESLint cache
+.eslintcache
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+backend/test-medgemma-performance.js
+
+# Security-sensitive files - NEVER commit these
+backend/config/ca/
+backend/config/key.history
+backend/test-login-endpoint.js
+backend/test-login.js
+backend/logs/
+backend/check-rbac-policy.js
+backend/fix-user-roles.js
+nul
+*/nul
+**/nul
+
+# Backup and temporary development files
+backup-vector-search/
+backups/
+apps/backups/
+**/backups/
+*.zip
+data/keyfile
+*.test.js
+test-*.js
+*-test.js
+analyze-*.js
+fix-*.js
+show-*.js
+
+# Claude assistant files
+.claude/
+
+# Temporary script files
+apps/backend-api/services/batchProgressCacheSingleton.js
+apps/backend-api/services/serviceContextHelper.js
+
+# KMS Keys - Never commit
+apps/backend-api/.kms/keys/*.json
+
+# Log request files
+apps/backend-api/logs/claude-request-*.json
+apps/backend-api/logs/*.log
+
+# Verification reports - contain extracted medical data
+apps/backend-api/scripts/verification-report*.json
+
+# OpenFDA downloaded data - Large files
+data/openfda/
+
+# Billing codes raw data - Large files from CDC/CMS (re-download via import script)
+data/billing-codes/
+*.json.zip
+
+.gemini/
+gha-creds-*.json
+# MCP Memory Server
+mcp-memory-server/node_modules/
+mcp-memory-server/.env
+mcp-memory-server/*.log
+.memory-backups/
+apps/backend-api/.recovery/
+apps/backend-api/config/master.key
+apps/backend-api/config/master.salt
+
+# Local AI assistant / MCP tooling config (may hold API keys — keep out of git)
+.grok/
+.mcp.json
+
+# TLS certificates / private keys — MUST NOT enter the repo
+apps/backend-api/certs/
+
+# Ubuntu→Mac migration backup snapshots
+*.premac
+
+# ── Open-source hygiene (added when repo went public) ───────────────────
+# Env backups & credential dumps
+.env.backup*
+*.env.backup*
+**/practice-credentials.json
+**/kms-encrypted-keys.json
+apps/backend-api/data/kms-encrypted-keys.json
+
+# TLS/CA private key material
+apps/backend-api/config/ca/
+
+# Database backups / dumps / emergency-restore (may contain PHI)
+**/emergency-restore-temp/
+apps/backend-api/backups/
+*.json.gz
+*.enc
+
+# Patient data exports / work artifacts (PHI)
+docs/updated_patients.csv
+**/patients-for-reanalysis.json
+**/_patientList.txt
+
+# Audit logs
+**/blockchain-audit.json
+**/integrity-manifest.json
+**/*-audit.json
+
+# Tracker/dev scratchpad working artifacts
+**/scripts/scratchpad/
+**/scratchpad/

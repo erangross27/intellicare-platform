@@ -1,0 +1,425 @@
+import React, { useState, useRef } from 'react';
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
+import PDFDocumentTemplate from '../PDFDocumentTemplate';
+import SearchBar from '../components/SearchBar';
+import './AdministrativeDataDocument.css';
+
+/**
+ * Administrative Data Document
+ * Displays patient administrative information including admission/discharge data, MRN, insurance, etc.
+ */
+const AdministrativeDataDocument = ({ document: doc }) => {
+  const [copiedSection, setCopiedSection] = useState(null);
+  const [exportStatus, setExportStatus] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const containerRef = useRef(null);
+
+  console.log('[AdministrativeDataDocument] Received document:', doc);
+
+  if (!doc) {
+    return (
+      <div className="administrative-data-document">
+        <div className="empty-state">
+          <div className="empty-icon">⚠️</div>
+          <p className="empty-text">No administrative data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Unwrap data structure - handle both wrapped and direct data
+  const data = doc.administrative_data?.[0] || doc.administrative_data || doc.data || doc;
+
+  // Format date helper
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not specified';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Highlight matching text
+  const highlightText = (text) => {
+    if (!text || !searchTerm.trim()) return text;
+
+    const searchLower = searchTerm.toLowerCase();
+    const textLower = String(text).toLowerCase();
+
+    if (!textLower.includes(searchLower)) return text;
+
+    const parts = [];
+    let lastIndex = 0;
+    let index = textLower.indexOf(searchLower);
+
+    while (index !== -1) {
+      if (index > lastIndex) {
+        parts.push(String(text).substring(lastIndex, index));
+      }
+      parts.push(
+        <mark key={index} style={{ backgroundColor: '#fef08a', color: '#000', padding: '2px 0' }}>
+          {String(text).substring(index, index + searchTerm.length)}
+        </mark>
+      );
+      lastIndex = index + searchTerm.length;
+      index = textLower.indexOf(searchLower, lastIndex);
+    }
+
+    if (lastIndex < String(text).length) {
+      parts.push(String(text).substring(lastIndex));
+    }
+
+    return parts;
+  };
+
+  // Check if field matches search
+  const matchesSearch = (value) => {
+    if (!searchTerm.trim() || !value) return true;
+    return String(value).toLowerCase().includes(searchTerm.toLowerCase());
+  };
+
+  // Filter: show section only if any field matches
+  const shouldShowSection = (fields) => {
+    if (!searchTerm.trim()) return true;
+    return fields.some(field => matchesSearch(field));
+  };
+
+  // Copy to clipboard
+  const copyToClipboard = async (text, section) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        const container = containerRef.current || document.body;
+        container.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        container.removeChild(textarea);
+      }
+      setCopiedSection(section);
+      setTimeout(() => setCopiedSection(null), 3000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+  };
+
+  // Copy entire document
+  const copyAll = async () => {
+    const allText = [];
+
+    allText.push('ADMINISTRATIVE DATA\n');
+    if (data.mrn) allText.push(`MRN: ${data.mrn}`);
+    if (data.accountNumber) allText.push(`Account Number: ${data.accountNumber}`);
+    if (data.insurance) allText.push(`Insurance: ${data.insurance}`);
+    if (data.admissionDate) allText.push(`Admission Date: ${formatDate(data.admissionDate)}`);
+    if (data.dischargeDate) allText.push(`Discharge Date: ${formatDate(data.dischargeDate)}`);
+    if (data.lengthOfStay) allText.push(`Length of Stay: ${data.lengthOfStay} days`);
+    if (data.disposition) allText.push(`Disposition: ${data.disposition}`);
+    if (data.admittingDiagnosis) allText.push(`Admitting Diagnosis: ${data.admittingDiagnosis}`);
+    if (data.conditionAtDischarge) allText.push(`Condition at Discharge: ${data.conditionAtDischarge}`);
+    if (data.dietaryInstructions) allText.push(`Dietary Instructions: ${data.dietaryInstructions}`);
+    if (data.primaryCareProvider) allText.push(`Primary Care Provider: ${data.primaryCareProvider}`);
+    if (data.emergencyContact) allText.push(`Emergency Contact: ${data.emergencyContact}`);
+    if (data.codeStatus) allText.push(`Code Status: ${data.codeStatus}`);
+    if (data.advancedDirectives) allText.push(`Advanced Directives: Yes`);
+    if (data.powerOfAttorney) allText.push(`Power of Attorney: ${data.powerOfAttorney}`);
+    if (data.facility) allText.push(`Facility: ${data.facility}`);
+    if (data.electronicSignature) allText.push(`Electronic Signature: ${data.electronicSignature}`);
+
+    await copyToClipboard(allText.join('\n'), 'all');
+  };
+
+  // Export to PDF
+  const exportToPDF = async () => {
+    try {
+      setExportStatus('exporting');
+
+      const pdfDocuments = [{
+        ...data,
+        category: 'administrative_data'
+      }];
+
+      const blob = await pdf(
+        <PDFDocumentTemplate
+          category="administrative_data"
+          categoryDisplay="Administrative Data"
+          documents={pdfDocuments}
+          patientName={data.patientName || null}
+        />
+      ).toBlob();
+
+      const fileName = `Administrative_Data_${new Date().toISOString().split('T')[0]}.pdf`;
+      saveAs(blob, fileName);
+
+      setExportStatus('exported');
+      setTimeout(() => setExportStatus(null), 3000);
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+      alert(`PDF Export Error: ${err.message}`);
+      setExportStatus(null);
+    }
+  };
+
+  return (
+    <div className="administrative-data-document" ref={containerRef}>
+      {/* Header */}
+      <div className="document-header">
+        <div className="header-title-section">
+          <h2>Administrative Data</h2>
+          <p className="document-subtitle">Patient administrative and admission information</p>
+        </div>
+        <div className="header-actions">
+          <button
+            className={`copy-all-button ${copiedSection === 'all' ? 'copied' : ''}`}
+            onClick={copyAll}
+          >
+            {copiedSection === 'all' ? '✓ Copied All' : 'Copy All'}
+          </button>
+          <button
+            className={`export-pdf-button ${exportStatus === 'exported' ? 'exported' : ''}`}
+            onClick={exportToPDF}
+            disabled={exportStatus === 'exporting'}
+          >
+            {exportStatus === 'exported' ? '✓ Exported' : exportStatus === 'exporting' ? 'Exporting...' : 'Export PDF'}
+          </button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <SearchBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        placeholder="Search administrative data (MRN, dates, diagnosis, insurance...)"
+      />
+
+      {/* Patient Identification Section */}
+      {shouldShowSection([data.mrn, data.accountNumber, data.insurance]) && (
+        <div className="admin-section">
+          <div className="section-header">
+            <h3 className="section-title">Patient Identification</h3>
+            <button
+              className={`copy-section-button ${copiedSection === 'identification' ? 'copied' : ''}`}
+              onClick={() => copyToClipboard(`MRN: ${data.mrn || 'N/A'}\nAccount Number: ${data.accountNumber || 'N/A'}\nInsurance: ${data.insurance || 'N/A'}`, 'identification')}
+            >
+              {copiedSection === 'identification' ? '✓ Copied' : 'Copy'}
+            </button>
+          </div>
+          <div className="admin-grid">
+            {matchesSearch(data.mrn) && (
+              <div className="admin-field">
+                <span className="field-label">MRN:</span>
+                <span className="field-value">{highlightText(data.mrn || 'Not specified')}</span>
+              </div>
+            )}
+            {matchesSearch(data.accountNumber) && data.accountNumber && (
+              <div className="admin-field">
+                <span className="field-label">Account Number:</span>
+                <span className="field-value">{highlightText(data.accountNumber)}</span>
+              </div>
+            )}
+            {matchesSearch(data.insurance) && data.insurance && (
+              <div className="admin-field">
+                <span className="field-label">Insurance:</span>
+                <span className="field-value">{highlightText(data.insurance)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Admission/Discharge Section */}
+      {shouldShowSection([data.admissionDate, data.dischargeDate, data.lengthOfStay, data.disposition]) && (
+        <div className="admin-section">
+          <div className="section-header">
+            <h3 className="section-title">Admission & Discharge</h3>
+            <button
+              className={`copy-section-button ${copiedSection === 'admission' ? 'copied' : ''}`}
+              onClick={() => copyToClipboard(`Admission Date: ${formatDate(data.admissionDate)}\nDischarge Date: ${formatDate(data.dischargeDate)}\nLength of Stay: ${data.lengthOfStay || 'N/A'} days\nDisposition: ${data.disposition || 'N/A'}`, 'admission')}
+            >
+              {copiedSection === 'admission' ? '✓ Copied' : 'Copy'}
+            </button>
+          </div>
+          <div className="admin-grid">
+            {matchesSearch(formatDate(data.admissionDate)) && data.admissionDate && (
+              <div className="admin-field">
+                <span className="field-label">Admission Date:</span>
+                <span className="field-value highlight-date">{highlightText(formatDate(data.admissionDate))}</span>
+              </div>
+            )}
+            {matchesSearch(formatDate(data.dischargeDate)) && data.dischargeDate && (
+              <div className="admin-field">
+                <span className="field-label">Discharge Date:</span>
+                <span className="field-value highlight-date">{highlightText(formatDate(data.dischargeDate))}</span>
+              </div>
+            )}
+            {matchesSearch(String(data.lengthOfStay)) && data.lengthOfStay && (
+              <div className="admin-field">
+                <span className="field-label">Length of Stay:</span>
+                <span className="field-value">{highlightText(`${data.lengthOfStay} days`)}</span>
+              </div>
+            )}
+            {matchesSearch(data.disposition) && data.disposition && (
+              <div className="admin-field">
+                <span className="field-label">Disposition:</span>
+                <span className="field-value">{highlightText(data.disposition)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Clinical Information Section */}
+      {shouldShowSection([data.admittingDiagnosis, data.conditionAtDischarge, data.dietaryInstructions]) && (
+        <div className="admin-section">
+          <div className="section-header">
+            <h3 className="section-title">Clinical Information</h3>
+            <button
+              className={`copy-section-button ${copiedSection === 'clinical' ? 'copied' : ''}`}
+              onClick={() => copyToClipboard(`Admitting Diagnosis: ${data.admittingDiagnosis || 'N/A'}\nCondition at Discharge: ${data.conditionAtDischarge || 'N/A'}\nDietary Instructions: ${data.dietaryInstructions || 'N/A'}`, 'clinical')}
+            >
+              {copiedSection === 'clinical' ? '✓ Copied' : 'Copy'}
+            </button>
+          </div>
+          <div className="admin-field-full">
+            {matchesSearch(data.admittingDiagnosis) && data.admittingDiagnosis && (
+              <div className="admin-field-block">
+                <span className="field-label">Admitting Diagnosis:</span>
+                <p className="field-value-text">{highlightText(data.admittingDiagnosis)}</p>
+              </div>
+            )}
+            {matchesSearch(data.conditionAtDischarge) && data.conditionAtDischarge && (
+              <div className="admin-field-block">
+                <span className="field-label">Condition at Discharge:</span>
+                <p className="field-value-text">{highlightText(data.conditionAtDischarge)}</p>
+              </div>
+            )}
+            {matchesSearch(data.dietaryInstructions) && data.dietaryInstructions && (
+              <div className="admin-field-block">
+                <span className="field-label">Dietary Instructions:</span>
+                <p className="field-value-text">{highlightText(data.dietaryInstructions)}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Care Team & Contacts Section */}
+      {shouldShowSection([data.primaryCareProvider, data.emergencyContact, data.facility]) && (
+        <div className="admin-section">
+          <div className="section-header">
+            <h3 className="section-title">Care Team & Contacts</h3>
+            <button
+              className={`copy-section-button ${copiedSection === 'contacts' ? 'copied' : ''}`}
+              onClick={() => copyToClipboard(`Primary Care Provider: ${data.primaryCareProvider || 'N/A'}\nEmergency Contact: ${data.emergencyContact || 'N/A'}\nFacility: ${data.facility || 'N/A'}`, 'contacts')}
+            >
+              {copiedSection === 'contacts' ? '✓ Copied' : 'Copy'}
+            </button>
+          </div>
+          <div className="admin-grid">
+            {matchesSearch(data.primaryCareProvider) && data.primaryCareProvider && (
+              <div className="admin-field">
+                <span className="field-label">Primary Care Provider:</span>
+                <span className="field-value">{highlightText(data.primaryCareProvider)}</span>
+              </div>
+            )}
+            {matchesSearch(data.emergencyContact) && data.emergencyContact && (
+              <div className="admin-field">
+                <span className="field-label">Emergency Contact:</span>
+                <span className="field-value">{highlightText(data.emergencyContact)}</span>
+              </div>
+            )}
+            {matchesSearch(data.facility) && data.facility && (
+              <div className="admin-field">
+                <span className="field-label">Facility:</span>
+                <span className="field-value">{highlightText(data.facility)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Legal & Directives Section */}
+      {shouldShowSection([data.codeStatus, data.advancedDirectives, data.powerOfAttorney]) && (
+        <div className="admin-section">
+          <div className="section-header">
+            <h3 className="section-title">Legal & Advance Directives</h3>
+            <button
+              className={`copy-section-button ${copiedSection === 'legal' ? 'copied' : ''}`}
+              onClick={() => copyToClipboard(`Code Status: ${data.codeStatus || 'N/A'}\nAdvanced Directives: ${data.advancedDirectives ? 'Yes' : 'No'}\nPower of Attorney: ${data.powerOfAttorney || 'N/A'}`, 'legal')}
+            >
+              {copiedSection === 'legal' ? '✓ Copied' : 'Copy'}
+            </button>
+          </div>
+          <div className="admin-grid">
+            {matchesSearch(data.codeStatus) && data.codeStatus && (
+              <div className="admin-field">
+                <span className="field-label">Code Status:</span>
+                <span className="field-value">{highlightText(data.codeStatus)}</span>
+              </div>
+            )}
+            {data.advancedDirectives && (
+              <div className="admin-field">
+                <span className="field-label">Advanced Directives:</span>
+                <span className="field-value highlight-yes">Yes</span>
+              </div>
+            )}
+            {matchesSearch(data.powerOfAttorney) && data.powerOfAttorney && (
+              <div className="admin-field">
+                <span className="field-label">Power of Attorney:</span>
+                <span className="field-value">{highlightText(data.powerOfAttorney)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Electronic Signature */}
+      {matchesSearch(data.electronicSignature) && data.electronicSignature && (
+        <div className="admin-section">
+          <div className="section-header">
+            <h3 className="section-title">Electronic Signature</h3>
+            <button
+              className={`copy-section-button ${copiedSection === 'signature' ? 'copied' : ''}`}
+              onClick={() => copyToClipboard(data.electronicSignature, 'signature')}
+            >
+              {copiedSection === 'signature' ? '✓ Copied' : 'Copy'}
+            </button>
+          </div>
+          <div className="signature-field">
+            <p className="signature-text">{highlightText(data.electronicSignature)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Empty Search State */}
+      {searchTerm && !shouldShowSection([
+        data.mrn, data.accountNumber, data.insurance,
+        data.admissionDate, data.dischargeDate, data.lengthOfStay, data.disposition,
+        data.admittingDiagnosis, data.conditionAtDischarge, data.dietaryInstructions,
+        data.primaryCareProvider, data.emergencyContact, data.facility,
+        data.codeStatus, data.advancedDirectives, data.powerOfAttorney,
+        data.electronicSignature
+      ]) && (
+        <div className="empty-search-state">
+          <div className="empty-icon">🔍</div>
+          <p>No administrative data found for "{searchTerm}"</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdministrativeDataDocument;

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IntelliCare Chat Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 IntelliCare - בדיקת מערכת הצ'אט</h1>
+        
+        <div class="test-section">
+            <h2>🔐 בדיקת התחברות למרפאה קיימת</h2>
+            <p>התחברות למרפאה "developer" עם המשתמש הקיים</p>
+            <button class="test-button" onclick="testExistingLogin()">בדוק התחברות</button>
+            <div id="loginResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🆕 יצירת מרפאה חדשה</h2>
+            <p>יצירת מרפאה חדשה עם משתמש מנהל</p>
+            <button class="test-button" onclick="testClinicCreation()">צור מרפאה חדשה</button>
+            <div id="createResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>💬 פתח את החלון צ'אט</h2>
+            <p>פתח את ממשק הצ'אט המלא</p>
+            <button class="test-button" onclick="openChatInterface()">פתח צ'אט</button>
+        </div>
+    </div>
+
+    <script>
+        async function testExistingLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = 'מתחבר...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/clinic-auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-clinic-subdomain': 'developer'
+                    },
+                    body: JSON.stringify({
+                        email: 'eran@gross.support',
+                        password: 'Mk!p93Mk!p93'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Store auth data
+                    sessionStorage.setItem('token', result.token);
+                    sessionStorage.setItem('user', JSON.stringify(result.user));
+                    localStorage.setItem('clinic', JSON.stringify(result.clinic));
+                    localStorage.setItem('clinicSubdomain', result.clinic.subdomain);
+                    
+                    resultDiv.innerHTML = `<span class="success">✅ התחברות הצליחה!</span>
+                    
+משתמש: ${result.user.fullName}
+אימייל: ${result.user.email}
+מרפאה: ${result.clinic.name}
+תפקידים: ${result.user.roles.join(', ')}
+טוקן: ${result.token.substring(0, 20)}...`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ התחברות נכשלה: ${result.message?.he || result.message?.en}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ שגיאה: ${error.message}</span>`;
+            }
+        }
+        
+        async function testClinicCreation() {
+            const resultDiv = document.getElementById('createResult');
+            const timestamp = Date.now();
+            
+            resultDiv.innerHTML = 'יוצר מרפאה חדשה...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/clinics/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: `מרפאת בדיקה ${timestamp}`,
+                        subdomain: `test${timestamp}`,
+                        address: {
+                            street: 'רחוב הבדיקה 123',
+                            city: 'תל אביב',
+                            country: 'ישראל',
+                            state: '',
+                            postalCode: '12345'
+                        },
+                        adminUser: {
+                            email: `test${timestamp}@example.com`,
+                            password: 'TestPassword123!',
+                            firstName: 'משתמש',
+                            lastName: 'בדיקה',
+                            title: 'ד"ר',
+                            phone: ''
+                        },
+                        settings: {
+                            language: 'he',
+                            timezone: 'Asia/Jerusalem',
+                            patientIdFormat: 'israeli_id'
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.innerHTML = `<span class="success">✅ מרפאה נוצרה בהצלחה!</span>
+                    
+שם מרפאה: ${result.clinic.name}
+תת-דומיין: ${result.clinic.subdomain}
+משתמש מנהל: ${result.user.email}
+טוקן: ${result.token.substring(0, 20)}...`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ יצירה נכשלה: ${result.message?.he || result.message?.en}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ שגיאה: ${error.message}</span>`;
+            }
+        }
+        
+        function openChatInterface() {
+            // Open the React app in a new window
+            window.open('http://localhost:5173/', '_blank');
+        }
+    </script>
+</body>
+</html>

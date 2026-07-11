@@ -1,0 +1,275 @@
+# FULL-COLLECTION COVERAGE SWEEP — CHECKPOINT (resume state)
+
+**Goal (user, June 16 2026):** EVERY rendered collection must reach 100% schema-only coverage at the **FULL TEMPLATE STANDARD** — no missing fields AND full standard compliance. Pace: **3 collections per wave** (Anthropic usage; resets every 5h). Parent verifies + commits each wave.
+
+**FULL STANDARD BAR (user chose this over functional-only, June 16 2026) — every touched template MUST have:**
+1. 100% schema-only coverage (every extractable field rendered in JSX + PDF + route ALLOWED_FIELDS).
+2. Correct TYPED editing — number→number input (parseFloat, hide-zero); Date→renderDateField date-picker (YYYY-MM-DD); boolean→Yes/No select; array→renderArrayField; object→recursive renderObjectLeaf. NEVER a number/Date/boolean as plain text. Audit existing fields too.
+3. PER-SENTENCE text editing (Rule #68) — narrative string fields use splitBySentence + renderSentenceEditableField + reconstructFullText + saveSentence + per-sentence edit keys + sectionHasEdits/copySection/copyAll per-sentence. Reference: templates/PastMedicalHistoryDocument.jsx. Short/simple fields (status/provider/date/numbers) stay simple.
+4. PDF B&W ONLY (#000000 + grayscale ONLY; NO saturated colors at all — audit ALL hex, not just blue: red/green/orange chart/risk colors also violate, e.g. wound_care_notes pain chart fixed W10) + Rule #74 wrap-gating (each section ONE wrap-gated View, sectionTitle FIRST child, wrap={items>8?undefined:false}; only recordHeader unconditionally wrap=false; no standalone sectionTitle siblings). Reference: pdf-templates/CervicalLengthMeasurementDocumentPDFTemplate.jsx.
+5. Working edit route — sda.update only (NEVER accessData), ALLOWED_FIELDS = every editable field. Create+register the route if missing.
+6. Copy / Copy Section / Copy All, 4-level search, Pending(yellow)→Approved(green) badges, copied-state BLUE.
+
+Parent QA gate: run /tmp/compliance.sh <Component> <route_collection> + coverage 100% + no-regression on shared/near-twin collections, BEFORE committing each wave. Memories: checklist 6982205e, editing 69994f28, approve-badge 699bf60f, Rule#74 6a2d6af6, PDF-B&W 6a2d52ec.
+
+<!-- RESUME-MARKER -->
+**RESUME: Sweep COMPLETE — 0 remaining at the first `- [ ]` row below (lowest %% first). 231 collections were <100% on the June-16 full `--all --schema-only` sweep. For EACH: (1) read its schema in apps/backend-api/services/unified-medical-schemas.json; (2) read its template's field-type arrays + SECTION_FIELDS + PDF SECTION_CONFIGS + route ALLOWED_FIELDS; (3) ADD every missing extractable field with the CORRECT typed renderer per schema type (number→number input parseFloat+hide-zero; boolean→Yes/No select; Date→renderDateField date-picker; array→renderArrayField; object→recursive renderObjectLeaf; string→per-sentence); (4) AUDIT existing fields — if a number/Date/boolean is rendered as plain text, fix it; (5) mirror into PDF (B&W Rule #74) + route ALLOWED_FIELDS. Verify: checkTemplateCoverageAndOverlap.js <col> --schema-only → 100%, node --check route, esbuild JSX+PDF (use --outfile=/tmp/x.js NOT /dev/null). Most are REBUILD-OWN field-adds (own component, correctly routed). allergy_assessments (14%) is WRONG/EMPTY near-twin of allergies_assessments → needs its OWN dedicated AllergyAssessmentsDocument + anchored /^allergy_assessments$/i pattern (parent). The full list/source: SWEEP_ALL run output. Tick each row when its collection hits 100%.**
+<!-- /RESUME-MARKER -->
+
+## Protocol per collection (field-add REBUILD-OWN, the common case)
+- Edit ONLY the 3 files of the OWN component: templates/<C>Document.jsx (+ maybe .css), pdf-templates/<C>DocumentPDFTemplate.jsx, routes/edit/<col>.js. NO routing/shared-registration change (it already routes correctly).
+- Add missing fields to the type arrays (DATE_FIELDS/NUMBER_FIELDS/BOOLEAN_FIELDS/ARRAY_FIELDS/OBJECT_FIELDS/STRING_FIELDS), to a sensible SECTION_FIELDS group, to FIELD_LABELS, to the PDF SECTION_CONFIGS, and to route ALLOWED_FIELDS.
+- Standard fields appear in MANY: provider/facility(string, header or its own section), findings/assessment/plan/notes/status(string), recommendations(array), results(object), date(Date header).
+- Verify 100% schema-only + compile. Commit per wave of 3.
+
+## WORKLIST (sorted lowest-% first; `…` = checker truncated, re-derive full diff from schema)
+- [x] allergy_assessments  14%  [WRONG] → Allergies Assessments  ::JSX:environmentalAllergens, totalIge, eosinophilCount, skinTestResults, specificIgE, provider ::PDF:environmentalAllergens, totalIge, eosinophilCount, skinTestResults, specificIgE, provider
+- [x] biologic_therapy  41%  [partial] → Biologic Therapy Records  ::JSX:medicationName, startDate, baselineAssessment, monitoringLabs, sideEffects, infusionReactions, continuationPlan, provider… ::PDF:medicationName, startDate, baselineAssessment, monitoringLabs, sideEffects, infusionReactions, continuationPlan, provider…
+- [x] outcomes_prediction  47%  [partial] → Outcomes Predictions  ::JSX:provider, facility, findings, assessment, plan, recommendations, notes, status ::PDF:
+- [x] trending_analysis  50%  [partial] → Trending Analysis  ::JSX:provider, facility, findings, plan, recommendations, notes, status ::PDF:
+- [x] continuous_glucose_monitor  53%  [partial] → CGM Data  ::JSX:offered, accepted, deviceInfo, instructions, findings, results, status ::PDF:offered, accepted, deviceInfo, instructions, findings, results, status
+- [x] patient_specific_care_plan  53%  [partial] → Patient-Specific Care Plan  ::JSX:provider, facility, findings, recommendations, notes, status, longTerm ::PDF:date, provider, facility, findings, assessment, recommendations, results, notes…
+- [x] medication_dosing_recommendation  58%  [partial] → Medication Dosing Recommendation  ::JSX:pediatricDosingWeight, maximumDailyDose, creatinineClearanceThreshold, infusionRateRecommendation, loadingDoseAmount, targetPeakLevel, aucTargetRange, halfLifeHours… ::PDF:pediatricDosingWeight, maximumDailyDose, creatinineClearanceThreshold, infusionRateRecommendation, loadingDoseAmount, targetPeakLevel, aucTargetRange, halfLifeHours…
+- [x] consultation_requests  58%  [partial] → Consultation Requests  ::JSX:requestingProviderId, consultingProviderId, requestedDateTime, desiredCompletionDateTime, appointmentScheduledDateTime, locationOfService, priorityReason, supportingDocuments… ::PDF:requestingProviderId, consultingProviderId, requestedDateTime, desiredCompletionDateTime, appointmentScheduledDateTime, locationOfService, priorityReason, supportingDocuments…
+- [x] care_gaps  58%  [partial] → Care Gaps  ::JSX:screenings, findings, assessment, plan, recommendations ::PDF:
+- [x] variant_interpretation_guidelines  64%  [partial] → Variant Interpretation Guidelines  ::JSX:genomicCoordinates, functionalImpactPrediction, segregationAnalysis, functionalStudiesEvidence, spliceImpactAssessment, proteinDomainImpact, reviewerConsensus, clinicalValidationStatus ::PDF:genomicCoordinates, functionalImpactPrediction, segregationAnalysis, functionalStudiesEvidence, spliceImpactAssessment, proteinDomainImpact, reviewerConsensus, clinicalValidationStatus
+- [x] pregnancy_course  64%  [partial] → Pregnancy Course  ::JSX:findings, assessment, plan, recommendations, notes ::PDF:findings, assessment, plan, recommendations, results, notes
+- [x] vital_signs_monitoring  64%  [partial] → Hourly Vital Signs  ::JSX:bloodPressurePosition, bloodPressureSite, pulseQuality, glasgowComaScore, bloodGlucoseLevel, pupilResponseLeft, pupilResponseRight, pupilSizeLeft… ::PDF:bloodPressurePosition, bloodPressureSite, pulseQuality, glasgowComaScore, bloodGlucoseLevel, pupilResponseLeft, pupilResponseRight, pupilSizeLeft…
+- [x] secondary_prophylaxis  67%  [partial] → Secondary Prophylaxis  ::JSX:facility, findings, assessment, plan, recommendations ::PDF:facility, findings, assessment, plan, recommendations, results
+- [x] behavioral_assessment  68%  [partial] → Behavioral Assessment  ::JSX:anxietySymptoms, panicAttackFrequency, weightChange, adhdSymptoms, autismRedFlags, recommendations, results ::PDF:
+- [x] cardiac_device_interrogations  68%  [partial] → Cardiac Device Interrogations  ::JSX:implantDate, interrogationDate, leads, arrhythmiaEpisodes, alerts, programmingChanges, deviceAlerts ::PDF:implantDate, interrogationDate, interrogationReason, leads, arrhythmiaEpisodes, alerts, programmingChanges, deviceAlerts
+- [x] current_dialysis  71%  [partial] → Current Dialysis  ::JSX:pdDetails, findings, recommendations, notes, status ::PDF:pdDetails, findings, recommendations, results, notes, status
+- [x] dermatology_consultations  71%  [partial] → Dermatology Consultations  ::JSX:fitzpatrickSkinType, scoradIndex, melanomaBreslow, melanomaClark, patchTestResults, woodsLampFindings, kOHTest ::PDF:fitzpatrickSkinType, scoradIndex, melanomaBreslow, melanomaClark, patchTestResults, woodsLampFindings, kOHTest
+- [x] care_coordination_notes  71%  [partial] → Care Coordination Notes  ::JSX:allergiesContraindications, glasgowComaScale, nyhaClassification, imagingStudies, dischargeInstructions, transitionOfCare, advanceDirectives ::PDF:allergiesContraindications, glasgowComaScale, nyhaClassification, imagingStudies, dischargeInstructions, transitionOfCare, advanceDirectives
+- [x] hospital_course  71%  [partial] → Hospital Course  ::JSX:dietaryInstructions, electronicSignature, facility, findings, assessment, plan, recommendations, notes ::PDF:dietaryInstructions, electronicSignature, facility, findings, assessment, plan, recommendations, results…
+- [x] acmg_guidelines_reference  73%  [partial] → ACMG Guidelines Reference  ::JSX:screeningGuidelines, referenceUrl, applicability ::PDF:screeningGuidelines, referenceUrl, applicability
+- [x] plastic_surgery_assessment  73%  [partial] → Plastic Surgery Assessment  ::JSX:preoperativePhotography, skinAnalysis, flapAssessment, implantData, aestheticGoals, facility ::PDF:preoperativePhotography, skinAnalysis, flapAssessment, implantData, aestheticGoals, facility, results
+- [x] consultation_timeline  73%  [partial] → Consultation Timeline  ::JSX:specialty, requestedTime, responseTime, consultant ::PDF:specialty, requestedTime, responseTime, consultant, results
+- [x] renal_protection_plan  73%  [partial] → Renal Protection Plan  ::JSX:findings, recommendations, notes, status ::PDF:findings, recommendations, results, notes, status
+- [x] cultural_considerations  73%  [partial] → Cultural Considerations  ::JSX:findings, assessment, plan, recommendations ::PDF:findings, assessment, plan, recommendations, results
+- [x] rheumatologic_monitoring  73%  [partial] → Rheumatologic Monitoring  ::JSX:findings, assessment, recommendations, notes ::PDF:findings, assessment, recommendations, results, notes
+- [x] dermatology_assessment  75%  [partial] → Dermatology Assessment  ::JSX:scoradIndex, dlqi, phototherapy, recommendations, notes ::PDF:scoradIndex, dlqi, phototherapy, recommendations, results, notes
+- [x] medications  76%  [partial] → Medications  ::JSX:originalDosage, usage, maxDailyDose, taperInstructions, durationDays, durationUnit ::PDF:originalDosage, usage, maxDailyDose, taperInstructions, durationDays, durationUnit
+- [x] wound_care_notes  76%  [partial] → Wound Care Notes  ::JSX:woundDimensions, exudateAmount, exudateType, undermining, tunneling, photographicDocumentation ::PDF:woundDimensions, exudateAmount, exudateType, undermining, tunneling, photographicDocumentation
+- [x] care_coordination  76%  [partial] → Care Coordination  ::JSX:activeMedications, dischargeMedications, homeHealthServices, caregiverInformation, advanceDirectives, socialDeterminants ::PDF:
+- [x] thoracic_surgery_assessment  77%  [partial] → Thoracic Surgery Assessment  ::JSX:mediastinoscopy, bronchoscopy, provider, facility, findings, notes, status ::PDF:mediastinoscopy, bronchoscopy, provider, facility, findings, results, notes, status
+- [x] obstetric_ultrasound_reports  78%  [partial] → Ultrasound OB Reports  ::JSX:fetalPresentation, amnioticFluidVolume, cervicalLength, dopplerStudies ::PDF:fetalPresentation, amnioticFluidVolume, cervicalLength, dopplerStudies
+- [x] caregiver_assessment  78%  [partial] → Caregiver Assessment  ::JSX:findings, recommendations, results, notes ::PDF:findings, recommendations, results, notes
+- [x] cancer_related_side_effects  78%  [partial] → Cancer Related Side Effects  ::JSX:fertilityImpact, recommendations, results, notes ::PDF:fertilityImpact, recommendations, results, notes
+- [x] current_pregnancy  78%  [partial] → Current Pregnancy  ::JSX:multipleGestation, findings, assessment, plan, recommendations, notes ::PDF:multipleGestation, findings, assessment, plan, recommendations, results, notes
+- [x] doctors_medication_recommendations  78%  [partial] → Doctors Medication Recommendations  ::JSX:frequency, priority ::PDF:frequency, priority
+- [x] insurance_authorizations  78%  [partial] → Insurance Authorizations  ::JSX:secondaryDiagnosisCodes, authorizationExpirationDate, authorizedUnits, appealSubmissionDate, estimatedCostAmount ::PDF:
+- [x] prenatal_screening  78%  [partial] → Prenatal Screening  ::JSX:cellFreeDna, quadScreen, amniocentesis, cvs, status ::PDF:cellFreeDna, quadScreen, amniocentesis, cvs, status
+- [x] birth_plan  79%  [partial] → Birth Plan  ::JSX:findings, assessment, recommendations, results ::PDF:findings, assessment, recommendations, results
+- [x] birth_history  80%  [partial] → Birth History  ::JSX:assessment, plan, recommendations, results ::PDF:assessment, plan, recommendations, results
+- [x] preventive_medicine_assessments  80%  [partial] → Preventive Medicine Assessments  ::JSX:immunizationStatus, functionalStatusAssessment, fallRiskAssessment, cognitiveScreening, advanceDirectivesDiscussion ::PDF:immunizationStatus, functionalStatusAssessment, fallRiskAssessment, cognitiveScreening, advanceDirectivesDiscussion
+- [x] intraoperative_monitoring  81%  [partial] → Intraoperative Monitoring  ::JSX:vitalSignsLog, fluidBalance, neuromuscularBlockade, bisValue, temperatureManagement ::PDF:airwayManagement, ventilationMode, bisValue
+- [x] nt_scan_result  81%  [partial] → NT Scan Result  ::JSX:chorionicityDetermination, amnionicityDetermination, placentalLocation, uterineArteryDoppler ::PDF:chorionicityDetermination, amnionicityDetermination, placentalLocation, uterineArteryDoppler
+- [x] advance_directives  81%  [partial] → Advance Directives  ::JSX:organDonation, witnessSignatures, documentLocation ::PDF:organDonation, witnessSignatures, documentLocation
+- [x] dental_examination_reports  83%  [partial] → Dental Examination Reports  ::JSX:periodontalPocketDepths, clinicalAttachmentLevel, salivaryFlowRate, fluorosisScore ::PDF:periodontalPocketDepths, clinicalAttachmentLevel, salivaryFlowRate, fluorosisScore
+- [x] chemotherapy_records  83%  [partial] → Chemotherapy Records  ::JSX:labValues, vitals ::PDF:
+- [x] chemotherapy_regimen  83%  [partial] → Chemotherapy Regimen  ::JSX:findings, results, status ::PDF:findings, results, status
+- [x] pregnancy_complications  83%  [partial] → Pregnancy Complications  ::JSX:placentalComplications, infections, recommendations ::PDF:placentalComplications, infections, recommendations, results
+- [x] detailed_family_pedigree  83%  [partial] → Detailed Family Pedigree  ::JSX:autoimmuneFamilialConditions, pregnancyComplications, ageOfOnsetPatterns, carrierStatusKnown ::PDF:autoimmuneFamilialConditions, pregnancyComplications, ageOfOnsetPatterns, carrierStatusKnown
+- [x] cardiology_followup_reports  84%  [partial] → Cardiology Follow-Up Reports  ::JSX:edemaLocation, lipidPanel, inrValue, deviceInterrogation ::PDF:
+- [x] insurance_forms  84%  [partial] → Insurance Forms  ::JSX:nyhaClassification, rutherfordClassification, ankleBrachialIndex, estimatedGlomerularFiltrationRate ::PDF:nyhaClassification, rutherfordClassification, ankleBrachialIndex, estimatedGlomerularFiltrationRate
+- [x] dental_implant_surgery  84%  [partial] → Dental Implant Surgery  ::JSX:boneQuantityLekholmZarb, sinusLiftApproach, softTissueAugmentation, papillaIndexScore ::PDF:
+- [x] neuromuscular_disorder  84%  [partial] → Neuromuscular Disorder  ::JSX:findings, recommendations, notes ::PDF:findings, recommendations, results, notes
+- [x] nuclear_medicine_assessment  84%  [partial] → Nuclear Medicine Assessment  ::JSX:petScan, boneScan, ventilationPerfusion ::PDF:petScan, boneScan, ventilationPerfusion, results
+- [x] dialysis_planning  85%  [partial] → Dialysis Planning  ::JSX:urgentStartCriteria, contraindications, homeAssessment, recommendations ::PDF:accessStatus, urgentStartCriteria, contraindications, homeAssessment, recommendations, results
+- [x] occupational_medicine_evaluations  85%  [partial] → Occupational Medicine Evaluations  ::JSX:occupationalExposure, impairmRating ::PDF:occupationalExposure, impairmRating
+- [x] suicide_risk_assessment  85%  [partial] → Suicide Risk Assessment  ::JSX:findings, recommendations, status ::PDF:findings, recommendations, results, status
+- [x] pmr_assessment  85%  [partial] → PMR Assessment  ::JSX:emgStudies, orthotic, facility, notes ::PDF:emgStudies, orthotic, facility, findings, recommendations, results, notes
+- [x] hematology_assessment  85%  [partial] → Hematology Assessment  ::JSX:coagulation, boneMarrow, findings, recommendations ::PDF:coagulation, boneMarrow, growthFactors, findings, recommendations, results
+- [x] treatment_courses  86%  [partial] → Treatment Courses  ::JSX:reportDate ::PDF:
+- [x] appetite_stimulants  86%  [partial] → Appetite Stimulants  ::JSX:findings, recommendations ::PDF:findings, recommendations, results, notes
+- [x] biologic_therapy_records  86%  [partial] → Biologic Therapy Records  ::JSX:responseAssessment, switchingBiologics ::PDF:responseAssessment, switchingBiologics
+- [x] cgm_data  86%  [partial] → CGM Data  ::JSX:findings, results, status ::PDF:findings, results, status
+- [x] epilepsy_assessment  86%  [partial] → EpilepsyAssessmentDocument  ::JSX:seizureDiary, vagusNerveStimulator, recommendations ::PDF:seizureDiary, vagusNerveStimulator, recommendations, results
+- [x] school_performance  86%  [partial] → School Performance  ::JSX:findings, plan, recommendations ::PDF:
+- [x] asthma_action_plan  86%  [partial] → Asthma Action Plan  ::JSX:recommendations, results ::PDF:
+- [x] indian_diet_exchange_lists  86%  [partial] → Indian Diet Exchange Lists  ::JSX:findings, recommendations ::PDF:findings, recommendations, results
+- [x] chronic_disease_management  86%  [partial] → Chronic Disease Management  ::JSX:managedBy, findings, results ::PDF:managedBy, findings, recommendations, results, status
+- [x] acute_kidney_injury  86%  [partial] → Acute Kidney Injury  ::JSX:fenA, feUrea, urinaryIndices ::PDF:fenA, feUrea, urinaryIndices, results
+- [x] respiratory_medications  86%  [partial] → Respiratory Medications  ::JSX:durationDays, durationUnit, refills ::PDF:durationDays, durationUnit, refills
+- [x] bolus_adjustments  87%  [partial] → Bolus Adjustments  ::JSX:recommendations, results ::PDF:
+- [x] fetal_surveillance  87%  [partial] → Fetal Surveillance  ::JSX:cst, recommendations ::PDF:cst, recommendations, results, status
+- [x] contraction_monitoring  87%  [partial] → Contraction Monitoring  ::JSX:braxtonHicks, recommendations ::PDF:braxtonHicks, recommendations, results
+- [x] connective_tissue_disease_assessment  87%  [partial] → Connective Tissue Disease Assessment  ::JSX:findings, recommendations ::PDF:findings, recommendations, results
+- [x] work_accommodations  87%  [partial] → Work Accommodations  ::JSX:recommendations, status ::PDF:recommendations, results, status
+- [x] psychosocial_factors  87%  [partial] → Psychosocial Factors  ::JSX:recommendations, status ::PDF:recommendations, results, status
+- [x] headache_assessment  87%  [partial] → HeadacheAssessmentDocument  ::JSX:headacheDiary, findings, recommendations ::PDF:headacheDiary, findings, recommendations, results, status
+- [x] hospital_transfer_notes  88%  [partial] → Hospital Transfer Notes  ::JSX:recommendations ::PDF:recommendations
+- [x] autoimmune_panels  88%  [partial] → Autoimmune Panels  ::JSX:enaPanel, antiphospholipid ::PDF:enaPanel, antiphospholipid
+- [x] radiation_oncology  88%  [partial] → Radiation Therapy  ::JSX:completionStatus, boostDose, complications ::PDF:completionStatus, boostDose, complications, results
+- [x] early_childhood_development  88%  [partial] → Early Childhood Development  ::JSX:toiletTraining, notes ::PDF:toiletTraining, results, notes
+- [x] colorectal_surgery_assessment  88%  [partial] → Colorectal Surgery Assessment  ::JSX:anorectalManometry, defecography ::PDF:anorectalManometry, defecography, results
+- [x] cardiology_admission_notes  88%  [partial] → Cardiology Admission Notes  ::JSX:hemodynamicParameters, inotropicSupport, anticoagulationStatus ::PDF:
+- [x] cardiac_monitoring  88%  [partial] → Cardiac Monitoring  ::JSX:arrhythmiaEvents, icdTherapies, telemetryAlarms ::PDF:arrhythmiaEvents, icdTherapies, telemetryAlarms
+- [x] asthma_assessments  88%  [partial] → Asthma Assessments  ::JSX:symptomFrequency, nighttimeAwakenings ::PDF:
+- [x] insulin_regimen  88%  [partial] → Insulin Regimen  ::JSX:findings, recommendations ::PDF:
+- [x] disease_activity_scores  88%  [partial] → Disease Activity Scores  ::JSX:recommendations, status ::PDF:recommendations, results, status
+- [x] surgical_oncology  88%  [partial] → Surgical Oncology  ::JSX:reconstruction, recommendations ::PDF:reconstruction, recommendations, results
+- [x] pregnancy_risk_assessment  88%  [partial] → Pregnancy Risk Assessment  ::JSX:recommendations, status ::PDF:recommendations, results, status
+- [x] deep_brain_stimulation  88%  [partial] → Deep Brain Stimulation  ::JSX:findings, recommendations ::PDF:findings, recommendations, results
+- [x] surgical_approach  88%  [partial] → Surgical Approach  ::JSX:pneumoperitoneum, portPlacement ::PDF:pneumoperitoneum, portPlacement, results
+- [x] interventional_pain_procedures  88%  [partial] → Interventional Pain Procedures  ::JSX:medicationVolumes, numberOfAttempts, neurolysisPerformed ::PDF:medicationVolumes, fluoroscopyTime, contrastSpreadPattern, technicalDifficulty, numberOfAttempts, neurolysisPerformed, proceduralDuration, postProcedureMonitoringTime
+- [x] exercise_prescription  88%  [partial] → Exercise Prescription  ::JSX:secondaryDiagnoses, functionalLimitations, returnToPlayCriteria ::PDF:secondaryDiagnoses, functionalLimitations, returnToPlayCriteria
+- [x] home_health_orders  88%  [partial] → Home Health Orders  ::JSX:certificationPeriodStartDate, certificationPeriodEndDate, priorHospitalizationDate ::PDF:
+- [x] ibd_consultation_details  89%  [partial] → IBD Consultation Details  ::JSX:findings, recommendations ::PDF:recommendations, results
+- [x] cancer_staging  89%  [partial] → Cancer Staging  ::JSX:recommendations, results ::PDF:otherStaging, recommendations, results
+- [x] survivorship_care_plan  89%  [partial] → Survivorship Care Plan  ::JSX:findings, recommendations ::PDF:findings, recommendations, results
+- [x] fetal_ultrasound  89%  [partial] → Fetal Ultrasound  ::JSX:fetalEcho, recommendations ::PDF:fetalEcho, results, status
+- [x] return_to_sport  89%  [partial] → Return to Sport  ::JSX:findings, recommendations ::PDF:findings, results
+- [x] athlete_specific_data  89%  [partial] → Athlete Specific Data  ::JSX:recommendations, results ::PDF:recommendations, results
+- [x] developmental_milestones  89%  [partial] → Developmental Milestones  ::JSX:plan, recommendations ::PDF:plan, recommendations, results
+- [x] cardiology_assessment  89%  [partial] → Cardiology Assessment  ::JSX:stressTest, additionalTestingOrdered ::PDF:stressTest, additionalTestingOrdered, results
+- [x] immunization_status  89%  [partial] → Immunization Status  ::JSX:findings, results ::PDF:
+- [x] psychiatric_treatment_plan  89%  [partial] → Psychiatric Treatment Plan  ::JSX:findings, recommendations ::PDF:findings, recommendations, results
+- [x] social_determinants_of_health  89%  [partial] → Social Determinants of Health  ::JSX:assessmentDate, utilities ::PDF:assessmentDate, utilities, language, employment, educationLevel, interventions
+- [x] brain_tumor_molecular_markers  89%  [partial] → Brain Tumor Molecular Markers  ::JSX:ngsPanel, specimen ::PDF:mgmtStatus, tertPromoterStatus, atrxStatus, tp53Status, ki67ProliferationIndex, egfrStatus, cdkn2aStatus, brafStatus…
+- [x] prognosis_discussion  89%  [partial] → Prognosis Discussion  ::JSX:brotherVerySupportive, recommendations ::PDF:brotherVerySupportive, recommendations, results
+- [x] fetal_assessment  89%  [partial] → Fetal Assessment  ::JSX:leopoldManeuvers, recommendations ::PDF:fundalHeightPercentile, leopoldManeuvers, recommendations, results, status
+- [x] dementia_assessment  89%  [partial] → Dementia Assessment  ::JSX:recommendations, notes ::PDF:
+- [x] adhd_assessment  89%  [partial] → ADHD Assessment  ::JSX:findings, results ::PDF:findings, results, status
+- [x] biopsychosocial_formulation  89%  [partial] → Biopsychosocial Formulation  ::JSX:results, status ::PDF:results, status
+- [x] lupus_assessment  89%  [partial] → Lupus Assessment  ::JSX:findings, recommendations ::PDF:results, status
+- [x] patient_education_records  90%  [partial] → Patient Education Records  ::JSX:findings, recommendations, educatorRole ::PDF:findings, assessment, plan, recommendations, results, status, educatorRole
+- [x] insulin_pump_settings  90%  [partial] → Insulin Pump Settings  ::JSX:findings, recommendations ::PDF:maxBolus, maxBasalRate
+- [x] geriatric_cognitive_assessment  90%  [partial] → Geriatric Cognitive Assessment  ::JSX:findings, recommendations ::PDF:
+- [x] delivery_planning  90%  [partial] → Delivery Planning  ::JSX:recommendations, notes ::PDF:recommendations, results, notes
+- [x] psychotropic_medications  90%  [partial] → Psychotropic Medications  ::JSX:durationDays, durationUnit ::PDF:durationDays, durationUnit
+- [x] ophthalmology_exam  91%  [partial] → Ophthalmology Exam  ::JSX:recommendations, notes ::PDF:
+- [x] inflammatory_bowel_reports  91%  [partial] → Inflammatory Bowel Reports  ::JSX:ileocolonicAnatomy, parisClassification ::PDF:crohnsDiseasesActivityIndex, mayoEndoscopicScore, simpleEndoscopicScore, fecalCalprotectinLevel, fecalLactoferrinLevel, ileocolonicAnatomy, montrealClassification, parisClassification…
+- [x] cancer_diagnosis  91%  [partial] → Cancer Diagnosis  ::JSX:recommendations, results ::PDF:recommendations, results
+- [x] pregnancy_symptoms  92%  [partial] → Pregnancy Symptoms  ::JSX:recommendations, status ::PDF:recommendations, results, status
+- [x] autoantibody_profile  92%  [partial] → Autoantibody Profile  ::JSX:recommendations, results ::PDF:recommendations, results
+- [x] wound_care_documentation  92%  [partial] → Wound Care Documentation  ::JSX:exudateAmount, exudateType ::PDF:exudateAmount, exudateType
+- [x] gestational_diabetes  92%  [partial] → Gestational Diabetes  ::JSX:findings, recommendations ::PDF:insulinStorageInstructions, recommendations, results
+- [x] postpartum_planning  92%  [partial] → Postpartum Planning  ::JSX:maternityLeave, recommendations ::PDF:maternityLeave, recommendations, results
+- [x] pharmacogenomic_testing  92%  [partial] → Pharmacogenomic Testing  ::JSX:factorVLeidenStatus, prothrombinG20210AStatus ::PDF:factorVLeidenStatus, prothrombinG20210AStatus
+- [x] well_child_examinations  92%  [partial] → Well Child Examinations  ::JSX:headCircumference ::PDF:
+- [x] pathology_reports  92%  [partial] → Pathology Reports  ::JSX:margins ::PDF:
+- [x] basal_rate_adjustments  92%  [partial] → Basal Rate Adjustments  ::JSX:effectiveDate ::PDF:
+- [x] social_history  92%  [partial] → Social History  ::JSX:findings, assessment, plan, recommendations ::PDF:findings, assessment, plan, recommendations, results, status
+- [x] therapy_requests  93%  [partial] → Therapy Requests  ::JSX:requesterId, performerId ::PDF:requesterId, performerId
+- [x] immune_reconstitution_planning  93%  [partial] → Immune Reconstitution Planning  ::JSX:recommendations ::PDF:facility, findings, results
+- [x] ed_course  93%  [partial] → ED Course  ::JSX:recommendations ::PDF:recommendations, results
+- [x] flare_management  93%  [partial] → Flare Management  ::JSX:recommendations ::PDF:results
+- [x] ketone_monitoring_instructions  93%  [partial] → Ketone Monitoring Instructions  ::JSX:recommendations ::PDF:recommendations, results
+- [x] hypertensive_nephropathy  93%  [partial] → Hypertensive Nephropathy  ::JSX:bloodPressureControl ::PDF:status
+- [x] intraoperative_imaging  93%  [partial] → Intraoperative Imaging  ::JSX:recommendations ::PDF:results, status
+- [x] estimated_blood_loss  93%  [partial] → Estimated Blood Loss  ::JSX:recommendations ::PDF:recommendations, results
+- [x] rehabilitation_protocol  93%  [partial] → Rehabilitation Protocol  ::JSX:cpmProtocol ::PDF:cpmProtocol, results
+- [x] estimated_delivery_date  93%  [partial] → Estimated Delivery Date  ::JSX:recommendations ::PDF:recommendations, results
+- [x] sports_medicine_evaluations  93%  [partial] → Sports Medicine Evaluations  ::JSX:rehabilitationPlan ::PDF:
+- [x] critical_view_of_safety  93%  [partial] → Critical View of Safety  ::JSX:recommendations ::PDF:recommendations
+- [x] bone_health  93%  [partial] → Bone Health  ::JSX:results ::PDF:results, status
+- [x] glomerular_disease  93%  [partial] → GlomerularDiseaseDocument  ::JSX:recommendations ::PDF:
+- [x] parkinsonian_features  93%  [partial] → Parkinsonian Features  ::JSX:recommendations ::PDF:recommendations, results, status
+- [x] tourniquet_data  93%  [partial] → Tourniquet Data  ::JSX:used ::PDF:used, results
+- [x] umbilical_artery_doppler  93%  [partial] → Umbilical Artery Doppler  ::JSX:recommendations ::PDF:recommendations, results
+- [x] insulin_adjustment_protocol  93%  [partial] → Insulin Adjustment Protocol  ::JSX:recommendations ::PDF:recommendations, results
+- [x] amniotic_fluid_assessment  93%  [partial] → Amniotic Fluid Assessment  ::JSX:recommendations ::PDF:recommendations, results
+- [x] exercise_program  93%  [partial] → Exercise Program  ::JSX:findings ::PDF:findings, results
+- [x] growth_ultrasound_schedule  93%  [partial] → Growth Ultrasound Schedule  ::JSX:recommendations ::PDF:recommendations, results
+- [x] glucose_monitoring_frequency  93%  [partial] → Glucose Monitoring Frequency  ::JSX:recommendations ::PDF:findings, assessment, plan, recommendations, results, status
+- [x] glaucoma_management  93%  [partial] → Glaucoma Management  ::JSX:recommendations ::PDF:facility, recommendations, results, notes
+- [x] prenatal_visits  94%  [partial] → Prenatal Visits  ::JSX:cervicalExam ::PDF:cervicalExam
+- [x] diabetes_education  94%  [partial] → Diabetes Education  ::JSX:dateProvided ::PDF:dateProvided, results
+- [x] functional_status  94%  [partial] → Functional Status  ::JSX:recommendations ::PDF:results
+- [x] motor_complications  94%  [partial] → Motor Complications  ::JSX:status ::PDF:results, status
+- [x] parental_concerns  94%  [partial] → Parental Concerns  ::JSX:findings ::PDF:findings, results, status
+- [x] endocrinology_assessment  94%  [partial] → Endocrinology Assessment  ::JSX:metabolicPanel ::PDF:metabolicPanel, results
+- [x] family_meeting_notes  94%  [partial] → Family Meeting Notes  ::JSX:recommendations ::PDF:recommendations, results
+- [x] infectious_disease_assessment  94%  [partial] → Infectious Disease Assessment  ::JSX:recommendations ::PDF:
+- [x] inflammatory_markers  94%  [partial] → Inflammatory Markers  ::JSX:recommendations ::PDF:
+- [x] first_trimester_bleeding  94%  [partial] → First Trimester Bleeding  ::JSX:recommendations ::PDF:recommendations, results
+- [x] rheumatologic_assessment  94%  [partial] → Rheumatologic Assessment  ::JSX:recommendations ::PDF:recommendations, results, notes
+- [x] family_medicine_assessment  94%  [partial] → Family Medicine Assessment  ::JSX:recommendations ::PDF:recommendations, results
+- [x] symptom_progression  94%  [partial] → Symptom Progression  ::JSX:recommendations ::PDF:recommendations, results
+- [x] nuclear_medicine_studies  94%  [partial] → Nuclear Medicine Studies  ::JSX:tnmStaging ::PDF:tnmStaging
+- [x] endoscopy_findings  94%  [partial] → Endoscopy Findings  ::JSX:recommendations ::PDF:recommendations, results
+- [x] oncologic_emergencies  94%  [partial] → Oncologic Emergencies  ::JSX:recommendations ::PDF:recommendations, results
+- [x] renal_anemia  94%  [partial] → Renal Anemia  ::JSX:recommendations ::PDF:results, status
+- [x] operative_technique  94%  [partial] → Operative Technique  ::JSX:results ::PDF:results
+- [x] mechanism_of_injury  94%  [partial] → Mechanism of Injury  ::JSX:recommendations ::PDF:recommendations, results
+- [x] ligament_reconstruction  94%  [partial] → Ligament Reconstruction  ::JSX:recommendations ::PDF:results
+- [x] growth_parameters  94%  [partial] → Growth Parameters  ::JSX:recommendations ::PDF:findings, recommendations, results, notes, status
+- [x] home_monitoring  94%  [partial] → Home Monitoring  ::JSX:recommendations ::PDF:glucose, symptoms, type, facility, findings, assessment, plan, recommendations…
+- [x] fluid_intake  94%  [partial] → Fluid Intake  ::JSX:recommendations ::PDF:recommendations, results
+- [x] geriatric_care_planning  94%  [partial] → Geriatric Care Planning  ::JSX:recommendations ::PDF:recommendations, results
+- [x] cervical_assessment  94%  [partial] → Cervical Assessment  ::JSX:recommendations ::PDF:recommendations, results
+- [x] discharge_planning  94%  [partial] → Discharge Planning  ::JSX:findings ::PDF:findings, results
+- [x] emergency_assessment  94%  [partial] → Emergency Assessment  ::JSX:recommendations ::PDF:recommendations, results
+- [x] fluid_output  94%  [partial] → Fluid Output  ::JSX:recommendations ::PDF:recommendations, results
+- [x] health_maintenance  94%  [partial] → Health Maintenance  ::JSX:recommendations ::PDF:
+- [x] hiv_history  95%  [partial] → HIV History  ::JSX:recommendations ::PDF:findings, plan, recommendations, results, notes
+- [x] intraoperative_cholangiography  95%  [partial] → Intraoperative Cholangiography  ::JSX:recommendations ::PDF:recommendations
+- [x] pulmonary_function_tests  95%  [partial] → Pulmonary Function Tests  ::JSX:predictedPostoperativeFev1 ::PDF:predictedPostoperativeFev1
+- [x] triage_data  95%  [partial] → Triage Data  ::JSX:recommendations ::PDF:recommendations, results
+- [x] hypoglycemia_management  95%  [partial] → Hypoglycemia Management  ::JSX:recommendations ::PDF:
+- [x] foot_exam  95%  [partial] → Foot Exam  ::JSX:recommendations ::PDF:results
+- [x] ibd_assessment  95%  [partial] → IBD Assessment  ::JSX:recommendations ::PDF:diseaseLocation, recommendations, results
+- [x] ibd_surgical_planning  95%  [partial] → IBD Surgical Planning  ::JSX:recommendations ::PDF:results
+- [x] tumor_markers  95%  [partial] → Tumor Markers  ::JSX:recommendations ::PDF:recommendations
+- [x] movement_disorder_assessment  95%  [partial] → Movement Disorder Assessment  ::JSX:recommendations ::PDF:recommendations, results
+- [x] rheumatoid_arthritis_assessment  95%  [partial] → Rheumatoid Arthritis Assessment  ::JSX:jointCounts ::PDF:
+- [x] surgical_consent_forms  95%  [partial] → Surgical Consent Form  ::JSX:alternativeName ::PDF:alternativeName
+- [x] ed_disposition  95%  [partial] → ED Disposition  ::JSX:recommendations ::PDF:recommendations, results
+- [x] injury_details  95%  [partial] → Injury Details  ::JSX:recommendations ::PDF:recommendations, results, status
+- [x] proteinuria_assessment  95%  [partial] → Proteinuria Assessment  ::JSX:recommendations ::PDF:recommendations, results
+- [x] intraoperative_findings  95%  [partial] → Intraoperative Findings  ::JSX:recommendations ::PDF:results, status
+- [x] anticipatory_guidance  95%  [partial] → Anticipatory Guidance  ::JSX:results ::PDF:results, status
+- [x] psychiatric_assessment_scales  95%  [partial] → Psychiatric Assessment Scales  ::JSX:results ::PDF:results, status
+- [x] imaging_orders  95%  [partial] → Imaging Orders  ::JSX:recommendations ::PDF:
+- [x] maternal_labs  95%  [partial] → Maternal Labs  ::JSX:recommendations ::PDF:recommendations, results
+- [x] prenatal_education  95%  [partial] → Prenatal Education  ::JSX:recommendations ::PDF:recommendations, results, status
+- [x] post_operative_reports  95%  [partial] → Post-Operative Reports  ::JSX:recommendations ::PDF:recommendations
+- [x] cardiology_consultations  95%  [partial] → Cardiology Consultations  ::JSX:referringProvider ::PDF:referringProvider, cardiacExamFindings
+- [x] chief_complaints  95%  [partial] → Chief Complaints  ::JSX:symptomOnsetDateTime ::PDF:symptomOnsetDateTime
+- [x] diabetes_management  95%  [partial] → Diabetes Management  ::JSX:targetPostprandialGlucose, cgmData ::PDF:targetFastingGlucose, targetPostprandialGlucose, cgmData
+- [x] endocrine_therapy  95%  [partial] → Endocrine Therapy  ::JSX:recommendations ::PDF:recommendations, results
+- [x] ckd_assessment  95%  [partial] → CKD Assessment  ::JSX:chronicity ::PDF:chronicity, results
+- [x] renal_nutrition  95%  [partial] → Renal Nutrition  ::JSX:status ::PDF:results, status
+- [x] gait_analysis  95%  [partial] → Gait Analysis  ::JSX:recommendations ::PDF:results, status
+- [x] sleep_study_reports  96%  [partial] → Sleep Study Reports  ::JSX:sleepStageDistribution ::PDF:sleepStageDistribution
+- [x] bone_scan_reports  96%  [partial] → Bone Scan Reports  ::JSX:bloodPoolImaging ::PDF:bloodPoolImaging, arthriticChanges, pageticChanges, osteoporosisEvidence, renalClearance, softtissueUptake, prostheticDevices, spinalAlignment…
+- [x] medication_deprescribing  96%  [partial] → Medication Deprescribing  ::JSX:patientMedicalRecordNumber ::PDF:patientMedicalRecordNumber
+- [x] hepatitis_c_history  96%  [partial] → Hepatitis C History  ::JSX:coinfections ::PDF:coinfections
+- [x] surgical_steps  96%  [partial] → Surgical Steps  ::JSX:images ::PDF:images
+- [x] endoscopy_reports  96%  [partial] → Endoscopy Reports  ::JSX:photodocumentation ::PDF:photodocumentation
+- [x] gastroenterology_consultations  96%  [partial] → Gastroenterology Consultations  ::JSX:crohnsDiseaseName ::PDF:chiefComplaint, bowelMovementFrequency, abdominalPainScore, crohnsDiseaseName, ulcerativeColitisMayoScore, endoscopyFindings, colonoscopyPrepQuality, liverEnzymeLevels…
+- [x] toxicology_reports  96%  [partial] → Toxicology Reports  ::JSX:patientAge ::PDF:patientAge
+- [x] prognosis_records  96%  [partial] → Prognosis Records  ::JSX:performanceStatusScore ::PDF:performanceStatusScore
+- [x] medical_geneticist  96%  [partial] → Medical Geneticist  ::JSX:cmaResolution ::PDF:cmaResolution
+- [x] parkinson_medications  96%  [partial] → Parkinson Medications  ::JSX:anticholinergics ::PDF:anticholinergics
+- [x] day_programs  96%  [partial] → DayProgramsDocument  ::JSX:procedureCptCode ::PDF:procedureCptCode
+- [x] chiropractic_treatment_plan  96%  [partial] → Chiropractic Treatment Plan  ::JSX:maximumMedicalImprovementDate ::PDF:maximumMedicalImprovementDate
+- [x] bone_marrow_studies  96%  [partial] → Bone Marrow Studies  ::JSX:previousStudyDate ::PDF:previousStudyDate
+- [x] workers_compensation_evaluation  96%  [partial] → Workers' Compensation Evaluation  ::JSX:dateReportedToEmployer ::PDF:dateReportedToEmployer
+- [x] review_of_systems  96%  [partial] → Review of Systems  ::JSX:recommendations ::PDF:findings, assessment, plan, recommendations, results
+- [x] care_team  96%  [partial] → Care Team  ::JSX:teamFormationDate ::PDF:teamFormationDate
+- [x] emergency_observation_unit  96%  [partial] → Emergency Observation Unit  ::JSX:fluidBalance ::PDF:fluidBalance
+- [x] durable_medical_equipment_orders  96%  [partial] → Durable Medical Equipment Orders  ::JSX:prescribingProviderId ::PDF:prescribingProviderId
+- [x] liver_transplant_follow_up  97%  [partial] → Liver Transplant Follow-Up  ::JSX:patientId ::PDF:patientId
+- [x] clinical_scores  97%  [partial] → Clinical Scores  ::JSX:recommendations ::PDF:CHA2DS2VASc, HASBLED, ASA, STOPBANG, Apfel, RCRI, NSQIP, findings…
+
+## COMPLETED LOG (one line per wave: collections + commit hash)
+
+- Sweep Wave 1 (FULL standard): biologic_therapy, outcomes_prediction, trending_analysis — all 100% + per-sentence + Rule#74 + B&W PDF. Commit: pending
+- Sweep Wave 2 (FULL standard): allergy_assessments (dedicated, near-twin), continuous_glucose_monitor (dedicated, booleans Yes/No), patient_specific_care_plan (field-add) — all 100%. Commit: pending
+- Sweep Wave 3 (FULL standard): medication_dosing_recommendation (4 bool/3 num typed), consultation_requests (4 dates), care_gaps (rebuilt vs real schema) — all 100%. Commit: pending
+- Sweep Wave 4 (FULL standard): variant_interpretation_guidelines, pregnancy_course, vital_signs_monitoring (dedicated near-twin, 14 numeric vitals) — all 100%. Commit: pending
+- Sweep Wave 5 (FULL standard): secondary_prophylaxis, behavioral_assessment, cardiac_device_interrogations (7 objects/5 arrays) — all 100%. Commit: pending
+- Sweep Wave 6 (FULL standard): current_dialysis, dermatology_consultations, care_coordination_notes — all 100%. Commit: pending
+- Sweep Wave 7 (FULL standard): hospital_course, acmg_guidelines_reference, plastic_surgery_assessment (10 objects) — all 100%. Commit: pending
+- Sweep Wave 8 (FULL standard): consultation_timeline, renal_protection_plan, cultural_considerations — all 100%. Commit: pending
+- Sweep Wave 9 (FULL standard): rheumatologic_monitoring, dermatology_assessment (3 num/6 obj), medications (core: 2 num/2 bool typed) — all 100%. Commit: pending
+- Sweep Wave 10 (FULL standard): wound_care_notes (parent fixed pain-chart colors→grayscale), care_coordination, thoracic_surgery_assessment (16 objects) — all 100%. Commit: pending
+- Sweep Wave 11 (FULL standard): obstetric_ultrasound_reports (route created + parent registered detail/panel/route/sda), caregiver_assessment, cancer_related_side_effects (6 objects) — all 100%, 0 saturated PDF colors. Commit: pending
+- Sweep Wave 12 (FULL standard): current_pregnancy (4 obj/6 arr), doctors_medication_recommendations (phantom-schema retarget to 9), insurance_authorizations (2 num/2 bool/3 date) — all 100%. Commit: pending
+- Sweep Wave 13 (FULL standard): prenatal_screening (6 obj), birth_plan (4 arr/2 obj), birth_history (nicuStay bool/apgar obj) — all 100%, 0 saturated colors. Commit: pending
+- Sweep Wave 14 (FULL standard): preventive_medicine_assessments (8 obj/8 arr), intraoperative_monitoring (9 arr/3 obj), nt_scan_result (7 num/2 bool) — all 100%, 0 saturated colors. Commit: pending
+- Sweep Wave 15 (FULL standard): advance_directives (2 dates), dental_examination_reports (7 numbers fixed textarea→input + boolean), chemotherapy_records (3 num/4 arr/2 obj) — all 100%, 0 saturated colors. Commit: pending
+- Sweep Wave 16 (FULL standard): chemotherapy_regimen, pregnancy_complications (4 obj/3 bool + parent added nested-editor CSS), detailed_family_pedigree (19 arr) — all 100%, 0 saturated colors. Commit: pending

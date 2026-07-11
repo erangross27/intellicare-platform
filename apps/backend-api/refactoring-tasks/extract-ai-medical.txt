@@ -1,0 +1,43 @@
+# AI/ML Medical Functions to Extract
+
+## aiMedicalService.js:
+- analyzeSymptoms
+- getDifferentialDiagnosis  
+- recommendTreatment
+- recommendTests
+- analyzeVitalSigns
+- getAIClinicalInsights
+- setupAIContext
+
+## calendarService.js:
+- scheduleProviderMeeting
+- enableCalendarSync
+- disableCalendarSync
+- getCalendarSyncStatus
+- syncWithGoogleCalendar
+- checkCalendarConflicts
+- getProviderSchedule
+- sendCalendarSyncEmail
+- setProviderBusyTime
+- cancelProviderBusyTime
+- showProviderBusyTimes
+
+## campaignService.js:
+- createHealthCampaign
+- startHealthCampaign
+- pauseHealthCampaign
+- resumeHealthCampaign
+- getCampaignAnalytics
+- getCommunicationAnalytics
+- getChannelPerformance
+- generateCommunicationReport
+
+## healthcareOpsService.js:
+- createReferral
+- getReferrals
+- verifyInsurance
+- submitInsuranceClaim
+- updatePatientCriticalAlerts
+- getPatientAllergies
+- getAllergies
+- addAllergy

@@ -1,0 +1,91 @@
+{
+  "serviceId": "breach-notification-service",
+  "serviceName": "Breach Notification Service",
+  "description": "Handles security breach notifications and compliance reporting",
+  "version": "1.0.0",
+  "owner": "Compliance Team",
+  "contactEmail": "compliance@intellicare.com",
+  
+  "authentication": {
+    "requireApiKey": true,
+    "requireMFA": true,
+    "tokenRotationDays": 30
+  },
+  
+  "permissions": {
+    "allowedClinics": ["*"],
+    "allowedCollections": [
+      "breaches",
+      "notifications",
+      "users",
+      "patients",
+      "audit_logs"
+    ],
+    "operations": {
+      "breaches": ["query", "insert", "update"],
+      "notifications": ["query", "insert", "update"],
+      "users": ["query"],
+      "patients": ["query"],
+      "audit_logs": ["insert"]
+    },
+    "fieldAccess": {
+      "patients": {
+        "allowed": ["_id", "name", "email", "phone"],
+        "denied": ["ssn", "medicalHistory", "insurance"]
+      },
+      "users": {
+        "allowed": ["_id", "email", "name", "role"],
+        "denied": ["password"]
+      }
+    }
+  },
+  
+  "dataGovernance": {
+    "dataClassification": "restricted",
+    "piiAccess": true,
+    "phiAccess": true,
+    "financialDataAccess": false,
+    "auditLevel": "full",
+    "dataRetentionDays": 2555
+  },
+  
+  "rateLimits": {
+    "queriesPerMinute": 100,
+    "queriesPerHour": 5000,
+    "maxRecordsPerQuery": 10000,
+    "maxConcurrentQueries": 10,
+    "burstAllowance": 20
+  },
+  
+  "security": {
+    "requireEncryption": true,
+    "ipWhitelist": [],
+    "ipBlacklist": [],
+    "allowedTimeWindows": [],
+    "geoRestrictions": {
+      "allowedCountries": ["US", "IL"],
+      "blockedCountries": []
+    }
+  },
+  
+  "criticality": "critical",
+  "tags": ["compliance", "breach", "notification", "hipaa"],
+  
+  "monitoring": {
+    "enableMetrics": true,
+    "enableAlerting": true,
+    "alertThresholds": {
+      "errorRate": 0.01,
+      "latencyP95": 500,
+      "violationCount": 1
+    }
+  },
+  
+  "compliance": {
+    "hipaaCompliant": true,
+    "gdprCompliant": true,
+    "encryptionRequired": true,
+    "rightToErasure": false,
+    "dataPortability": true
+  }
+}

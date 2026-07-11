@@ -1,0 +1,60 @@
+{
+  "serviceId": "data-retention-service",
+  "serviceName": "Data Retention Service",
+  "description": "Handles automated data cleanup, archival, and compliance with retention policies",
+  "permissions": [
+    "patient:delete",
+    "document:delete",
+    "audit:read",
+    "archive:write",
+    "metrics:write"
+  ],
+  "allowedClinics": [
+    "*"
+  ],
+  "dataAccessPatterns": [
+    "patients.find({ deletedAt: { $exists: true } })",
+    "documents.deleteMany({ expiresAt: { $lt: Date.now() } })",
+    "auditLogs.find({ createdAt: { $lt: retentionDate } })"
+  ],
+  "schedules": [
+    {
+      "cron": "0 2 * * *",
+      "description": "Daily cleanup at 2 AM"
+    },
+    {
+      "cron": "0 3 * * 0",
+      "description": "Weekly archive at 3 AM Sunday"
+    }
+  ],
+  "criticality": "high",
+  "requiresMFA": true,
+  "allowedOperations": [
+    "cleanupExpiredData",
+    "archiveData",
+    "applyRetentionPolicy",
+    "deletePatientData",
+    "deleteDocumentData",
+    "scheduleCleanup",
+    "generateRetentionReport"
+  ],
+  "securityRequirements": {
+    "encryption": true,
+    "audit": true,
+    "accessControl": "strict",
+    "dataRetention": "permanent",
+    "irreversibleDeletion": true
+  },
+  "dependencies": [
+    "immutableAuditService",
+    "patientDeletionService",
+    "secureDataAccess"
+  ],
+  "integrations": [
+    {
+      "service": "patientDeletionService",
+      "purpose": "Coordinate patient data deletion",
+      "permissions": ["patient:delete"]
+    }
+  ]
+}

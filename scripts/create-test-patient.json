@@ -1,0 +1,14 @@
+{
+  "nationalId": "987654321",
+  "firstName": "Test",
+  "lastName": "User",
+  "name": "Test User",
+  "age": 34,
+  "dateOfBirth": "1990-01-01",
+  "email": "test@test.com",
+  "phone": "+972501234567",
+  "city": "Jerusalem",
+  "street": "Herzl",
+  "zipCode": "9618801",
+  "healthFund": "מכבי"
+}

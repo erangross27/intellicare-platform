@@ -1,0 +1,83 @@
+{
+  "serviceId": "load-balancing-service",
+  "serviceName": "Load Balancing Service",
+  "description": "Manages traffic distribution and auto-scaling",
+  "version": "1.0.0",
+  "owner": "Infrastructure Team",
+  "contactEmail": "infrastructure@intellicare.com",
+  
+  "authentication": {
+    "requireApiKey": true,
+    "requireMFA": false,
+    "tokenRotationDays": 60
+  },
+  
+  "permissions": {
+    "allowedClinics": ["*"],
+    "allowedCollections": [
+      "systemmetrics",
+      "loadbalancerconfig",
+      "audit_logs"
+    ],
+    "operations": {
+      "systemmetrics": ["query", "insert", "update"],
+      "loadbalancerconfig": ["query", "update"],
+      "audit_logs": ["insert"]
+    },
+    "fieldAccess": {
+      "*": {
+        "allowed": ["*"],
+        "denied": []
+      }
+    }
+  },
+  
+  "dataGovernance": {
+    "dataClassification": "internal",
+    "piiAccess": false,
+    "phiAccess": false,
+    "financialDataAccess": false,
+    "auditLevel": "basic",
+    "dataRetentionDays": 90
+  },
+  
+  "rateLimits": {
+    "queriesPerMinute": 1000,
+    "queriesPerHour": 50000,
+    "maxRecordsPerQuery": 10000,
+    "maxConcurrentQueries": 100,
+    "burstAllowance": 200
+  },
+  
+  "security": {
+    "requireEncryption": true,
+    "ipWhitelist": [],
+    "ipBlacklist": [],
+    "allowedTimeWindows": [],
+    "geoRestrictions": {
+      "allowedCountries": ["US", "IL"],
+      "blockedCountries": []
+    }
+  },
+  
+  "criticality": "high",
+  "tags": ["infrastructure", "load-balancing", "performance"],
+  
+  "monitoring": {
+    "enableMetrics": true,
+    "enableAlerting": true,
+    "alertThresholds": {
+      "errorRate": 0.05,
+      "latencyP95": 100,
+      "violationCount": 10
+    }
+  },
+  
+  "compliance": {
+    "hipaaCompliant": true,
+    "gdprCompliant": true,
+    "encryptionRequired": true,
+    "rightToErasure": true,
+    "dataPortability": false
+  }
+}

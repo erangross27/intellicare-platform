@@ -1,0 +1,26 @@
+/* BlueDiplotypePicker — themed CYP450 star-allele diplotype picker.
+   Self-scoped under .blue-diplotype-picker so it drops into any template's edit container.
+   Theme matches BlueDatePicker/BlueMonthPicker (#0F1B33 / #60a5fa / #93c5fd / #2563eb, Comfortaa). */
+.blue-diplotype-picker { background: #0F1B33; border: 2px solid #60a5fa; border-radius: 8px; padding: 14px; width: 100%; box-sizing: border-box; font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; }
+
+.blue-diplotype-picker .bdp-row { display: flex; align-items: flex-start; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.blue-diplotype-picker .bdp-allele { display: flex; flex-direction: column; gap: 6px; align-items: center; min-width: 130px; flex: 1 1 130px; }
+.blue-diplotype-picker .bdp-allele-label { font-size: 12px; font-weight: 700; color: #93c5fd; letter-spacing: 0.3px; }
+
+.blue-diplotype-picker .bdp-select,
+.blue-diplotype-picker .bdp-custom-input { width: 100%; padding: 8px 10px; background: #0d1929; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; font-weight: 700; text-align: center; outline: none; box-sizing: border-box; cursor: pointer; }
+.blue-diplotype-picker .bdp-select option { background: #0F1B33; color: #ececf1; }
+.blue-diplotype-picker .bdp-custom-input { cursor: text; }
+.blue-diplotype-picker .bdp-custom-input::placeholder { color: #6b7a99; }
+
+.blue-diplotype-picker .bdp-copies-label { font-size: 11px; color: #6b7a99; margin-top: 2px; }
+.blue-diplotype-picker .bdp-stepper { display: flex; align-items: center; gap: 8px; }
+.blue-diplotype-picker .bdp-step { width: 30px; height: 30px; font-size: 18px; line-height: 1; background: rgba(96, 165, 250, 0.15); border: 1px solid rgba(96, 165, 250, 0.5); border-radius: 6px; color: #93c5fd; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.blue-diplotype-picker .bdp-step:hover:not(:disabled) { background: rgba(96, 165, 250, 0.35); }
+.blue-diplotype-picker .bdp-step:disabled { opacity: 0.4; cursor: default; }
+.blue-diplotype-picker .bdp-copies { min-width: 20px; text-align: center; font-size: 15px; font-weight: 700; color: #ececf1; }
+
+.blue-diplotype-picker .bdp-slash { font-size: 26px; font-weight: 700; color: #60a5fa; align-self: center; padding: 0 2px; }
+
+.blue-diplotype-picker .bdp-result { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(96, 165, 250, 0.2); text-align: center; font-size: 13px; color: #93c5fd; }
+.blue-diplotype-picker .bdp-result strong { color: #ffffff; font-size: 16px; letter-spacing: 0.5px; }

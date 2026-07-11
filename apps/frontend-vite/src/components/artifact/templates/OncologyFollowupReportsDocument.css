@@ -1,0 +1,100 @@
+/* OncologyFollowupReportsDocument.css — March 2026 Blue glow editing theme */
+.oncology-followup-reports-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; text-align: left; }
+.oncology-followup-reports-document * { direction: ltr; }
+.oncology-followup-reports-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
+.oncology-followup-reports-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
+.oncology-followup-reports-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
+.oncology-followup-reports-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+.oncology-followup-reports-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
+.oncology-followup-reports-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
+.oncology-followup-reports-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
+.oncology-followup-reports-document .record-meta-row { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 8px; }
+.oncology-followup-reports-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
+.oncology-followup-reports-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
+
+/* Status Badge */
+.oncology-followup-reports-document .status-badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.oncology-followup-reports-document .status-badge.status-good { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); }
+.oncology-followup-reports-document .status-badge.status-alert { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); }
+
+/* Section */
+.oncology-followup-reports-document .section { margin-top: 16px; }
+.oncology-followup-reports-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
+.oncology-followup-reports-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
+.oncology-followup-reports-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
+.oncology-followup-reports-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+
+/* Mini card */
+.oncology-followup-reports-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.oncology-followup-reports-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
+.oncology-followup-reports-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
+.oncology-followup-reports-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
+.oncology-followup-reports-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
+.oncology-followup-reports-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
+
+/* Copy buttons */
+.oncology-followup-reports-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
+.oncology-followup-reports-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
+.oncology-followup-reports-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
+.oncology-followup-reports-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: #ffffff; }
+
+/* Inline editing */
+.oncology-followup-reports-document .editable-row { cursor: pointer; }
+.oncology-followup-reports-document .editable-row:hover .edit-indicator { opacity: 1; }
+.oncology-followup-reports-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.oncology-followup-reports-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.oncology-followup-reports-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.oncology-followup-reports-document .modified-badge.added { color: #4ade80; }
+.oncology-followup-reports-document .edit-field-container { width: 100%; }
+.oncology-followup-reports-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.oncology-followup-reports-document .num-stepper-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.oncology-followup-reports-document .num-step { width: 44px; flex-shrink: 0; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; font-family: 'Comfortaa', sans-serif; display: flex; align-items: center; justify-content: center; }
+.oncology-followup-reports-document .num-step:disabled { opacity: 0.5; cursor: not-allowed; }
+.oncology-followup-reports-document .edit-number { flex: 1; width: auto; min-width: 0; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; text-align: center; -moz-appearance: textfield; appearance: textfield; }
+.oncology-followup-reports-document .edit-number::-webkit-inner-spin-button, .oncology-followup-reports-document .edit-number::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.oncology-followup-reports-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
+.oncology-followup-reports-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+.oncology-followup-reports-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
+.oncology-followup-reports-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.oncology-followup-reports-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.oncology-followup-reports-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+
+/* Approve buttons */
+.oncology-followup-reports-document .approve-btn { text-transform: capitalize; }
+.oncology-followup-reports-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.oncology-followup-reports-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+
+/* Search */
+.oncology-followup-reports-document .search-container { margin-bottom: 20px; }
+.oncology-followup-reports-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.oncology-followup-reports-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.oncology-followup-reports-document .search-input::placeholder { color: #9ca3af; }
+.oncology-followup-reports-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
+
+/* Bar chart styles */
+.oncology-followup-reports-document .chart-container { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 20px; }
+.oncology-followup-reports-document .chart-legend { display: flex; justify-content: center; gap: 24px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid rgba(96, 165, 250, 0.3); flex-wrap: wrap; }
+.oncology-followup-reports-document .legend-item { display: flex; align-items: center; gap: 8px; }
+.oncology-followup-reports-document .legend-color { width: 16px; height: 16px; border-radius: 4px; }
+.oncology-followup-reports-document .legend-text { font-size: 13px; color: #94a3b8; font-weight: 500; font-family: 'Comfortaa', sans-serif; }
+.oncology-followup-reports-document .bar-chart-row { margin-bottom: 16px; }
+.oncology-followup-reports-document .bar-label { font-size: 16px; font-weight: 700; color: #60a5fa; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(96, 165, 250, 0.3); font-family: 'Comfortaa', sans-serif; }
+.oncology-followup-reports-document .bar-category-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+.oncology-followup-reports-document .bar-category-value { font-size: 14px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.oncology-followup-reports-document .bar-interpretation { font-size: 13px; font-weight: 600; text-align: right; font-family: 'Comfortaa', sans-serif; }
+.oncology-followup-reports-document .bar-container { width: 100%; }
+.oncology-followup-reports-document .bar-background { width: 100%; height: 24px; background: #0d1929; border-radius: 6px; overflow: hidden; }
+.oncology-followup-reports-document .bar-fill { height: 100%; border-radius: 5px; transition: width 0.3s ease; }
+.oncology-followup-reports-document .bar-scale { position: relative; width: 100%; height: 20px; margin-top: 4px; }
+.oncology-followup-reports-document .scale-item { position: absolute; font-size: 12px; font-weight: 600; color: #9ca3af; transform: translateX(-50%); font-family: 'Comfortaa', sans-serif; }
+.oncology-followup-reports-document .bar-scale-labels { display: flex; justify-content: space-between; width: 100%; margin-top: 2px; }
+.oncology-followup-reports-document .scale-label { font-size: 10px; font-weight: 700; text-align: center; flex: 1; font-family: 'Comfortaa', sans-serif; }
+
+/* Empty state */
+.oncology-followup-reports-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
+
+/* Search highlight */
+.oncology-followup-reports-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
+
+/* Responsive */
+@media (max-width: 768px) { .oncology-followup-reports-document .document-header { padding-bottom: 12px; } .oncology-followup-reports-document .document-title { font-size: 24px; } .oncology-followup-reports-document .header-actions { flex-direction: column; } }

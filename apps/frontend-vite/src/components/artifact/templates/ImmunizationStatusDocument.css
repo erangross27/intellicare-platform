@@ -1,0 +1,69 @@
+/* ImmunizationStatusDocument.css — canonical blue glow editing theme */
+.immunization-status-document { font-family: 'Comfortaa', 'Segoe UI', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; text-align: left; min-height: 100%; }
+.immunization-status-document * { direction: ltr; }
+.immunization-status-document .document-header { display: block; border-bottom: 1px solid #565869; padding-bottom: 16px; margin-bottom: 24px; }
+.immunization-status-document .document-title { font-size: 31px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; font-family: 'Comfortaa', sans-serif; }
+.immunization-status-document .header-actions { display: flex; flex-direction: row; gap: 12px; margin-top: 8px; justify-content: flex-end; align-items: center; }
+.immunization-status-document .header-actions .copy-btn, .immunization-status-document .header-actions .pdf-btn { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 120px; white-space: nowrap; height: 36px; padding: 8px 16px; box-sizing: border-box; background: transparent; color: #ececf1; border: 1px solid #2563eb; border-radius: 6px; font-size: 14px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-decoration: none; cursor: pointer; transition: all 0.2s ease; }
+.immunization-status-document .header-actions .copy-btn:hover, .immunization-status-document .header-actions .pdf-btn:hover { background: rgba(37, 99, 235, 0.2); }
+.immunization-status-document .header-actions .copy-btn.copied { background: #2563eb; color: #ffffff; }
+.immunization-status-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+.immunization-status-document .immunization-status-record { background: rgba(96, 165, 250, 0.05); border: 2px solid rgba(96, 165, 250, 0.2); border-radius: 12px; padding: 20px; transition: all 0.2s ease; }
+.immunization-status-document .immunization-status-record:hover { border-color: rgba(96, 165, 250, 0.4); }
+.immunization-status-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(96, 165, 250, 0.3); }
+.immunization-status-document .record-title { font-size: 22px; font-weight: 700; color: #ececf1; margin: 0; text-transform: none !important; font-family: 'Comfortaa', sans-serif; }
+.immunization-status-document .section { margin-top: 16px; margin-bottom: 16px; }
+.immunization-status-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 16px; background: rgba(37, 99, 235, 0.05); display: flex; flex-direction: column; gap: 12px; }
+.immunization-status-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
+.immunization-status-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; font-family: 'Comfortaa', sans-serif; }
+.immunization-status-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+.immunization-status-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.immunization-status-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; font-family: 'Comfortaa', sans-serif; padding-bottom: 6px; border-bottom: 1px solid rgba(96, 165, 250, 0.2); margin-bottom: 4px; }
+.immunization-status-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 14px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
+.immunization-status-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
+.immunization-status-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
+.immunization-status-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
+.immunization-status-document .copy-btn { background: transparent; color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.4); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
+.immunization-status-document .copy-btn:hover { background: rgba(96, 165, 250, 0.15); border-color: #60a5fa; }
+.immunization-status-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: #ffffff; }
+.immunization-status-document .editable-row { cursor: pointer; }
+.immunization-status-document .editable-row:hover .edit-indicator { opacity: 1; }
+.immunization-status-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.immunization-status-document .numbered-row.modified { border-color: #facc15; box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.4); }
+.immunization-status-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; display: block; margin-top: 2px; }
+.immunization-status-document .modified-badge.added { color: #4ade80; }
+.immunization-status-document .edit-field-container { width: 100%; }
+.immunization-status-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.immunization-status-document .num-stepper-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.immunization-status-document .num-step { width: 44px; flex-shrink: 0; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; font-family: 'Comfortaa', sans-serif; display: flex; align-items: center; justify-content: center; }
+.immunization-status-document .num-step:disabled { opacity: 0.5; cursor: not-allowed; }
+.immunization-status-document .edit-number { flex: 1; width: auto; min-width: 0; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; text-align: center; }
+.immunization-status-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
+.immunization-status-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.immunization-status-document .save-btn:disabled { opacity: 0.6; cursor: default; }
+.immunization-status-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.immunization-status-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.immunization-status-document .approve-btn { text-transform: capitalize; }
+.immunization-status-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.immunization-status-document .approve-btn.pending:hover:not(:disabled) { background: rgba(234, 179, 8, 0.28); }
+.immunization-status-document .approve-btn.pending:disabled { opacity: 0.6; cursor: default; }
+.immunization-status-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; cursor: default; }
+.immunization-status-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.immunization-status-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.immunization-status-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.immunization-status-document .search-container { position: relative; width: 100%; margin-bottom: 20px; }
+.immunization-status-document .search-input { width: 100%; box-sizing: border-box; padding: 10px 36px 10px 14px; background: #0d1929; border: 1px solid #565869; border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 14px; outline: none; }
+.immunization-status-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.immunization-status-document .search-input::placeholder { color: #9ca3af; }
+.immunization-status-document .clear-search { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #9ca3af; font-size: 18px; cursor: pointer; padding: 0; line-height: 1; }
+.immunization-status-document .clear-search:hover { color: #ececf1; }
+.immunization-status-document .no-data { text-align: center; padding: 48px 24px; color: #9ca3af; font-size: 16px; background: rgba(96, 165, 250, 0.05); border: 2px dashed rgba(96, 165, 250, 0.2); border-radius: 12px; }
+.immunization-status-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 2px !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 2px !important; }
+@media (max-width: 768px) {
+  .immunization-status-document { padding: 16px; }
+  .immunization-status-document .document-header { padding-bottom: 12px; }
+  .immunization-status-document .document-title { font-size: 24px; }
+  .immunization-status-document .header-actions { flex-direction: column; }
+  .immunization-status-document .section-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .immunization-status-document .numbered-row { flex-direction: column; gap: 8px; }
+}

@@ -1,0 +1,3420 @@
+import React, { useState, useRef } from 'react';
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
+import SearchBar from '../components/SearchBar';
+import { useDocumentSearch } from '../hooks/useDocumentSearch';
+import ReactMarkdown from 'react-markdown';
+import './AllergyImmunologyDocument.css';
+
+const AllergyImmunologyDocument = ({ document: rawData }) => {
+  const [copiedFeedback, setCopiedFeedback] = useState(null);
+  const [copiedCardId, setCopiedCardId] = useState(null);
+  const contentRef = useRef(null);
+
+  // Unwrap the allergy_immunology_assessment array if wrapped
+  const document = rawData?.allergy_immunology_assessment?.[0] || rawData;
+
+  console.log('🏥 [AllergyImmunologyDocument] Received document:', document);
+
+  // Flatten all searchable items (including static sections)
+  const allItems = [
+    // Static content sections
+    ...(document.chiefComplaint ? [{
+      _type: 'static-chief-complaint',
+      _searchText: `Chief Complaint ${typeof document.chiefComplaint === 'object' ? document.chiefComplaint.complaint : document.chiefComplaint} ${document.chiefComplaint?.duration || ''}`,
+      content: typeof document.chiefComplaint === 'object' ? document.chiefComplaint.complaint : document.chiefComplaint,
+      duration: document.chiefComplaint?.duration
+    }] : []),
+    ...(document.historyOfPresentIllness ? [{
+      _type: 'static-hpi',
+      _searchText: `History of Present Illness ${document.historyOfPresentIllness}`,
+      content: document.historyOfPresentIllness
+    }] : []),
+    ...(document.physicalExamination ? [{
+      _type: 'static-physical-exam',
+      _searchText: `Physical Examination ${JSON.stringify(document.physicalExamination)}`,
+      content: document.physicalExamination
+    }] : []),
+    ...(document.vitalSigns ? [{
+      _type: 'static-vital-signs',
+      _searchText: `Vital Signs ${JSON.stringify(document.vitalSigns)}`,
+      content: document.vitalSigns
+    }] : []),
+    ...(document.pulmonaryFunctionTests ? [{
+      _type: 'static-pulmonary',
+      _searchText: `Pulmonary Function Tests ${JSON.stringify(document.pulmonaryFunctionTests)}`,
+      content: document.pulmonaryFunctionTests
+    }] : []),
+    ...(document.asthmaAssessment ? [{
+      _type: 'static-asthma',
+      _searchText: `Asthma Assessment ${JSON.stringify(document.asthmaAssessment)}`,
+      content: document.asthmaAssessment
+    }] : []),
+    ...(document.allergyAssessment ? [{
+      _type: 'static-allergy-assessment',
+      _searchText: `Allergy Assessment ${JSON.stringify(document.allergyAssessment)}`,
+      content: document.allergyAssessment
+    }] : []),
+    ...(document.allergyImmunologyAssessment ? [{
+      _type: 'static-allergy-immunology',
+      _searchText: `Allergy Immunology Assessment ${JSON.stringify(document.allergyImmunologyAssessment)}`,
+      content: document.allergyImmunologyAssessment
+    }] : []),
+    ...(document.reviewOfSystems ? [{
+      _type: 'static-ros',
+      _searchText: `Review of Systems ${JSON.stringify(document.reviewOfSystems)}`,
+      content: document.reviewOfSystems
+    }] : []),
+    ...(document.medicalHistory ? [{
+      _type: 'static-medical-history',
+      _searchText: `Medical History ${JSON.stringify(document.medicalHistory)}`,
+      content: document.medicalHistory
+    }] : []),
+    ...(document.assessmentAndPlan ? [{
+      _type: 'static-assessment-plan',
+      _searchText: `Assessment Plan ${document.assessmentAndPlan}`,
+      content: document.assessmentAndPlan
+    }] : []),
+    ...(document.treatmentPlan ? [{
+      _type: 'static-treatment-plan',
+      _searchText: `Treatment Plan ${typeof document.treatmentPlan === 'string' ? document.treatmentPlan : JSON.stringify(document.treatmentPlan)}`,
+      content: document.treatmentPlan
+    }] : []),
+    ...(document.patientEducation ? [{
+      _type: 'static-patient-education',
+      _searchText: `Patient Education ${typeof document.patientEducation === 'string' ? document.patientEducation : JSON.stringify(document.patientEducation)}`,
+      content: document.patientEducation
+    }] : []),
+    ...(document.monitoringPlan ? [{
+      _type: 'static-monitoring-plan',
+      _searchText: `Monitoring Plan ${typeof document.monitoringPlan === 'string' ? document.monitoringPlan : JSON.stringify(document.monitoringPlan)}`,
+      content: document.monitoringPlan
+    }] : []),
+    ...(document.prognosis ? [{
+      _type: 'static-prognosis',
+      _searchText: `Prognosis ${typeof document.prognosis === 'string' ? document.prognosis : JSON.stringify(document.prognosis)}`,
+      content: document.prognosis
+    }] : []),
+
+    // Dynamic card-based items (search only in card content, not section names)
+    ...(document.allergies || []).map((item, idx) => ({ ...item, _type: 'allergy', _searchText: `${item.allergen} ${item.reaction} ${item.severity} ${item.type || ''}`, _idx: idx })),
+    ...(document.medications || []).map((item, idx) => ({ ...item, _type: 'medication', _searchText: `${item.name} ${item.dosage} ${item.frequency} ${item.indication || ''}`, _idx: idx })),
+    ...(document.labResults || []).map((item, idx) => ({ ...item, _type: 'lab', _searchText: `${item.testName} ${item.value} ${item.interpretation || ''}`, _idx: idx })),
+    ...(document.diagnoses || []).map((item, idx) => ({ ...item, _type: 'diagnosis', _searchText: `${item.diagnosis} ${item.icdCode || ''} ${item.type || ''}`, _idx: idx })),
+    ...(document.followUpAppointments || []).map((item, idx) => ({ ...item, _type: 'followup', _searchText: `${item.specialty} ${item.reason} ${item.timing || ''}`, _idx: idx })),
+    ...(document.referrals || []).map((item, idx) => ({ ...item, _type: 'referral', _searchText: `${item.specialty} ${item.reason} ${item.urgency || ''}`, _idx: idx })),
+    ...(document.imaging || []).map((item, idx) => ({ ...item, _type: 'imaging', _searchText: `${item.type || item.study} ${item.findings || ''}`, _idx: idx })),
+    ...(document.clinicalDecisionSupport?.redFlags || []).map((item, idx) => ({ ...item, _type: 'redflag', _searchText: `${item.finding} ${item.urgency} ${item.action || ''}`, _idx: idx })),
+    ...(document.clinicalDecisionSupport?.drugInteractions || []).map((item, idx) => ({ ...item, _type: 'druginteraction', _searchText: `${item.medications?.join(' ')} ${item.clinicalEffect || ''}`, _idx: idx })),
+    ...(document.clinicalDecisionSupport?.contraindications || []).map((item, idx) => ({ ...item, _type: 'contraindication', _searchText: `${item.medication || item.name} ${item.condition || ''}`, _idx: idx })),
+    ...(document.intelligentRecommendations?.immediate || []).map((item, idx) => ({ ...item, _type: 'rec-immediate', _searchText: `${item.action} ${item.rationale || ''}`, _idx: idx })),
+    ...(document.intelligentRecommendations?.shortTerm || []).map((item, idx) => ({ ...item, _type: 'rec-short', _searchText: `${item.action} ${item.rationale || ''}`, _idx: idx })),
+    ...(document.intelligentRecommendations?.longTerm || []).map((item, idx) => ({ ...item, _type: 'rec-long', _searchText: `${item.goal || item.action} ${item.timeline || ''}`, _idx: idx })),
+
+    // New sections - 11 missing fields
+    ...(document.doctorsMedicationsRecommendations || []).map((item, idx) => ({ ...item, _type: 'doc-med-rec', _searchText: `${item.medication || item.name} ${item.dosage || ''} ${item.indication || ''}`, _idx: idx })),
+    ...(document.medicationChanges?.started || []).map((item, idx) => ({ ...item, _type: 'med-started', _searchText: `Started ${item.medication || item.name} ${item.dosage || ''}`, _idx: idx })),
+    ...(document.medicationChanges?.stopped || []).map((item, idx) => ({ ...item, _type: 'med-stopped', _searchText: `Stopped ${item.medication || item.name} ${item.reason || ''}`, _idx: idx })),
+    ...(document.medicationChanges?.modified || []).map((item, idx) => ({ ...item, _type: 'med-modified', _searchText: `Modified ${item.medication || item.name} ${item.change || ''}`, _idx: idx })),
+    // consultationDetails is an object, not array - add as single searchable item
+    ...(document.consultationDetails ? [{
+      ...document.consultationDetails,
+      _type: 'consultation',
+      _searchText: `${document.consultationDetails.consultingSpecialty || ''} ${document.consultationDetails.consultingPhysician || ''} ${document.consultationDetails.reasonForConsult || ''}`,
+      _idx: 0
+    }] : []),
+    ...(document.trendingAnalysis?.trends || []).map((item, idx) => ({ ...item, _type: 'trend', _searchText: `${item.parameter} ${item.direction} ${item.clinicalSignificance || ''}`, _idx: idx })),
+    ...(document.patientSpecificCarePlan?.interventions || []).map((item, idx) => ({ ...item, _type: 'care-intervention', _searchText: `${item.intervention} ${item.rationale || ''}`, _idx: idx })),
+    ...(document.medicationsOptimizations?.optimizations || []).map((item, idx) => ({ ...item, _type: 'med-opt', _searchText: `${item.medication} ${item.recommendation} ${item.rationale || ''}`, _idx: idx })),
+    ...(document.doctorsMedicationsRecommendationsOptimizations?.optimizations || []).map((item, idx) => ({ ...item, _type: 'doc-med-opt', _searchText: `${item.medication} ${item.recommendation} ${item.rationale || ''}`, _idx: idx })),
+    ...(document.followUpIntelligence?.prioritization || []).map((item, idx) => ({ ...item, _type: 'followup-intel', _searchText: `${item.task} ${item.urgency} ${item.importance || ''}`, _idx: idx })),
+    ...(document.patientEducationContext?.topics || []).map((item, idx) => ({ ...item, _type: 'edu-context', _searchText: `${item.topic} ${item.keyPoints?.join(' ') || ''}`, _idx: idx }))
+  ];
+
+  // Search hook
+  const { searchTerm, setSearchTerm, filteredItems } = useDocumentSearch(
+    allItems,
+    ['_searchText', 'allergen', 'name', 'testName', 'diagnosis', 'specialty', 'finding', 'action', 'goal']
+  );
+
+  // Highlight search term
+  const highlightText = (text) => {
+    if (!text || !searchTerm.trim()) return text;
+    const searchLower = searchTerm.toLowerCase();
+    const textLower = text.toLowerCase();
+    if (!textLower.includes(searchLower)) return text;
+
+    const parts = [];
+    let lastIndex = 0;
+    let index = textLower.indexOf(searchLower);
+
+    while (index !== -1) {
+      if (index > lastIndex) {
+        parts.push(text.substring(lastIndex, index));
+      }
+      parts.push(
+        <mark key={index} style={{ backgroundColor: '#fef08a', color: '#000', padding: '2px 0' }}>
+          {text.substring(index, index + searchTerm.length)}
+        </mark>
+      );
+      lastIndex = index + searchTerm.length;
+      index = textLower.indexOf(searchLower, lastIndex);
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts;
+  };
+
+  const formatDate = (dateValue) => {
+    if (!dateValue) return 'Not specified';
+    try {
+      const date = new Date(dateValue);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return String(dateValue);
+    }
+  };
+
+  // Copy Chief Complaint
+  const copyChiefComplaint = async () => {
+    let text = 'CHIEF COMPLAINT\n';
+    text += '═'.repeat(60) + '\n\n';
+    text += typeof document.chiefComplaint === 'object' ? document.chiefComplaint.complaint : document.chiefComplaint;
+    if (document.chiefComplaint?.duration) {
+      text += `\nDuration: ${document.chiefComplaint.duration}`;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCardId('chief-complaint');
+      setTimeout(() => setCopiedCardId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy with clipboard API:', err);
+      try {
+        const textarea = window.document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        window.document.body.appendChild(textarea);
+        textarea.select();
+        window.document.execCommand('copy');
+        window.document.body.removeChild(textarea);
+
+        setCopiedCardId('chief-complaint');
+        setTimeout(() => setCopiedCardId(null), 2000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy also failed:', fallbackErr);
+      }
+    }
+  };
+
+  // Copy History of Present Illness
+  const copyHistoryOfPresentIllness = async () => {
+    let text = 'HISTORY OF PRESENT ILLNESS\n';
+    text += '═'.repeat(60) + '\n\n';
+    text += document.historyOfPresentIllness;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCardId('hpi');
+      setTimeout(() => setCopiedCardId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy with clipboard API:', err);
+      try {
+        const textarea = window.document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        window.document.body.appendChild(textarea);
+        textarea.select();
+        window.document.execCommand('copy');
+        window.document.body.removeChild(textarea);
+
+        setCopiedCardId('hpi');
+        setTimeout(() => setCopiedCardId(null), 2000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy also failed:', fallbackErr);
+      }
+    }
+  };
+
+  // Copy entire document
+  const copyAllText = async () => {
+    let text = 'ALLERGY & IMMUNOLOGY ASSESSMENT\n\n';
+
+    if (document.patientName) {
+      text += `Patient: ${document.patientName}`;
+      if (document.age) text += ` • Age: ${document.age}`;
+      if (document.gender) text += ` • Gender: ${document.gender}`;
+      if (document.mrn) text += ` • MRN: ${document.mrn}`;
+      text += '\n\n';
+    }
+
+    if (document.chiefComplaint) {
+      text += 'CHIEF COMPLAINT\n';
+      text += '═'.repeat(60) + '\n\n';
+      text += typeof document.chiefComplaint === 'object' ? document.chiefComplaint.complaint : document.chiefComplaint;
+      if (document.chiefComplaint.duration) {
+        text += `\nDuration: ${document.chiefComplaint.duration}`;
+      }
+      text += '\n\n';
+    }
+
+    if (document.allergies?.length > 0) {
+      text += `ALLERGIES (${document.allergies.length})\n`;
+      text += '═'.repeat(60) + '\n\n';
+      document.allergies.forEach((allergy, idx) => {
+        text += `${idx + 1}. ${allergy.allergen}\n`;
+        text += `   Severity: ${allergy.severity || 'Not specified'}\n`;
+        text += `   Reaction: ${allergy.reaction}\n`;
+        if (allergy.type) text += `   Type: ${allergy.type}\n`;
+        if (allergy.onset) text += `   Onset: ${allergy.onset}\n`;
+        text += '\n';
+      });
+    }
+
+    if (document.medications?.length > 0) {
+      text += `CURRENT MEDICATIONS (${document.medications.length})\n`;
+      text += '═'.repeat(60) + '\n\n';
+      document.medications.forEach((med, idx) => {
+        text += `${idx + 1}. ${med.name}: ${med.dosage} ${med.frequency}\n`;
+        if (med.route) text += `   Route: ${med.route}\n`;
+        if (med.indication) text += `   Indication: ${med.indication}\n`;
+        if (med.status) text += `   Status: ${med.status}\n`;
+        text += '\n';
+      });
+    }
+
+    if (document.labResults?.length > 0) {
+      text += `LAB RESULTS (${document.labResults.length})\n`;
+      text += '═'.repeat(60) + '\n\n';
+      document.labResults.forEach((lab, idx) => {
+        text += `${idx + 1}. ${lab.testName}: ${lab.value} ${lab.unit || ''}\n`;
+        if (lab.flag) text += `   Flag: ${lab.flag}\n`;
+        if (lab.referenceRange) text += `   Reference: ${lab.referenceRange}\n`;
+        if (lab.interpretation) text += `   Interpretation: ${lab.interpretation}\n`;
+        text += '\n';
+      });
+    }
+
+    if (document.diagnoses?.length > 0) {
+      text += `DIAGNOSES (${document.diagnoses.length})\n`;
+      text += '═'.repeat(60) + '\n\n';
+      document.diagnoses.forEach((dx, idx) => {
+        text += `${idx + 1}. ${dx.diagnosis}\n`;
+        if (dx.icdCode) text += `   ICD Code: ${dx.icdCode}\n`;
+        if (dx.type) text += `   Type: ${dx.type}\n`;
+        if (dx.status) text += `   Status: ${dx.status}\n`;
+        text += '\n';
+      });
+    }
+
+    if (document.imaging?.length > 0) {
+      text += `IMAGING STUDIES (${document.imaging.length})\n`;
+      text += '═'.repeat(60) + '\n\n';
+      document.imaging.forEach((img, idx) => {
+        text += `${idx + 1}. ${img.type || img.study}\n`;
+        if (img.date) text += `   Date: ${formatDate(img.date)}\n`;
+        if (img.findings) text += `   Findings: ${img.findings}\n`;
+        text += '\n';
+      });
+    }
+
+    if (document.followUpAppointments?.length > 0) {
+      text += `FOLLOW-UP APPOINTMENTS (${document.followUpAppointments.length})\n`;
+      text += '═'.repeat(60) + '\n\n';
+      document.followUpAppointments.forEach((appt, idx) => {
+        text += `${idx + 1}. ${appt.specialty}\n`;
+        text += `   Reason: ${appt.reason}\n`;
+        if (appt.timing) text += `   Timing: ${appt.timing}\n`;
+        if (appt.urgency) text += `   Urgency: ${appt.urgency}\n`;
+        text += '\n';
+      });
+    }
+
+    if (document.referrals?.length > 0) {
+      text += `REFERRALS (${document.referrals.length})\n`;
+      text += '═'.repeat(60) + '\n\n';
+      document.referrals.forEach((ref, idx) => {
+        text += `${idx + 1}. ${ref.specialty}\n`;
+        text += `   Reason: ${ref.reason}\n`;
+        if (ref.urgency) text += `   Urgency: ${ref.urgency}\n`;
+        if (ref.status) text += `   Status: ${ref.status}\n`;
+        text += '\n';
+      });
+    }
+
+    if (document.clinicalDecisionSupport?.redFlags?.length > 0) {
+      text += `CLINICAL DECISION SUPPORT - RED FLAGS (${document.clinicalDecisionSupport.redFlags.length})\n`;
+      text += '═'.repeat(60) + '\n\n';
+      document.clinicalDecisionSupport.redFlags.forEach((flag, idx) => {
+        text += `${idx + 1}. ${flag.finding}\n`;
+        text += `   Urgency: ${flag.urgency}\n`;
+        if (flag.action) text += `   Action: ${flag.action}\n`;
+        text += '\n';
+      });
+    }
+
+    if (document.clinicalDecisionSupport?.drugInteractions?.length > 0) {
+      text += `CLINICAL DECISION SUPPORT - DRUG INTERACTIONS (${document.clinicalDecisionSupport.drugInteractions.length})\n`;
+      text += '═'.repeat(60) + '\n\n';
+      document.clinicalDecisionSupport.drugInteractions.forEach((interaction, idx) => {
+        text += `${idx + 1}. ${interaction.medications?.join(' + ')}\n`;
+        text += `   Severity: ${interaction.severity}\n`;
+        if (interaction.clinicalEffect) text += `   Effect: ${interaction.clinicalEffect}\n`;
+        if (interaction.recommendation) text += `   Recommendation: ${interaction.recommendation}\n`;
+        text += '\n';
+      });
+    }
+
+    if (document.intelligentRecommendations?.immediate?.length > 0) {
+      text += `INTELLIGENT RECOMMENDATIONS - IMMEDIATE ACTIONS (${document.intelligentRecommendations.immediate.length})\n`;
+      text += '═'.repeat(60) + '\n\n';
+      document.intelligentRecommendations.immediate.forEach((rec, idx) => {
+        text += `${idx + 1}. ${rec.action}\n`;
+        if (rec.rationale) text += `   Rationale: ${rec.rationale}\n`;
+        text += '\n';
+      });
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedFeedback('all');
+      setTimeout(() => setCopiedFeedback(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy with clipboard API:', err);
+      // Fallback method for older browsers
+      try {
+        const textarea = window.document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        window.document.body.appendChild(textarea);
+        textarea.select();
+        window.document.execCommand('copy');
+        window.document.body.removeChild(textarea);
+
+        setCopiedFeedback('all');
+        setTimeout(() => setCopiedFeedback(null), 2000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy also failed:', fallbackErr);
+      }
+    }
+  };
+
+  // Copy entire section
+  const copySection = async (sectionTitle, sectionData, id) => {
+    let text = `${sectionTitle.toUpperCase()}\n${'═'.repeat(60)}\n\n`;
+
+    const formatSectionData = (data, indent = 0) => {
+      const indentStr = '  '.repeat(indent);
+
+      // Handle arrays
+      if (Array.isArray(data)) {
+        let result = '';
+        data.forEach((item, idx) => {
+          if (typeof item === 'object' && item !== null) {
+            result += `${indentStr}[${idx + 1}]\n`;
+            Object.entries(item)
+              .filter(([k]) => !k.startsWith('_'))
+              .forEach(([k, v]) => {
+                const displayKey = k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                if (typeof v === 'object' && v !== null) {
+                  result += `${indentStr}  ${displayKey}:\n`;
+                  result += formatSectionData(v, indent + 2);
+                } else {
+                  result += `${indentStr}  ${displayKey}: ${v}\n`;
+                }
+              });
+            result += '\n';
+          } else {
+            result += `${indentStr}• ${item}\n`;
+          }
+        });
+        return result;
+      }
+
+      // Handle objects
+      if (typeof data === 'object' && data !== null) {
+        let result = '';
+        Object.entries(data)
+          .filter(([k]) => !k.startsWith('_'))
+          .forEach(([key, value]) => {
+            const displayKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
+            if (typeof value === 'object' && value !== null) {
+              result += `${indentStr}${displayKey}:\n`;
+              result += formatSectionData(value, indent + 1);
+              result += '\n';
+            } else {
+              result += `${indentStr}${displayKey}: ${value}\n`;
+            }
+          });
+        return result;
+      }
+
+      // Simple value
+      return `${indentStr}${data}\n`;
+    };
+
+    text += formatSectionData(sectionData);
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCardId(id);
+      setTimeout(() => setCopiedCardId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy section:', err);
+      try {
+        const textarea = window.document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        window.document.body.appendChild(textarea);
+        textarea.select();
+        window.document.execCommand('copy');
+        window.document.body.removeChild(textarea);
+
+        setCopiedCardId(id);
+        setTimeout(() => setCopiedCardId(null), 2000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy also failed:', fallbackErr);
+      }
+    }
+  };
+
+  // Copy individual card
+  const copyCard = async (item, id) => {
+    console.log('[AllergyImmunologyDocument] copyCard called with:', { item, id });
+    let text = '';
+
+    if (item._type === 'allergy') {
+      text = `${item.allergen}\nSeverity: ${item.severity || 'Not specified'}\nReaction: ${item.reaction}`;
+      if (item.type) text += `\nType: ${item.type}`;
+      if (item.onset) text += `\nOnset: ${item.onset}`;
+    } else if (item._type === 'medication') {
+      text = `${item.name}: ${item.dosage} ${item.frequency}`;
+      if (item.route) text += `\nRoute: ${item.route}`;
+      if (item.indication) text += `\nIndication: ${item.indication}`;
+      if (item.status) text += `\nStatus: ${item.status}`;
+    } else if (item._type === 'lab') {
+      text = `${item.testName}: ${item.value} ${item.unit || ''}`;
+      if (item.flag) text += `\nFlag: ${item.flag}`;
+      if (item.referenceRange) text += `\nReference: ${item.referenceRange}`;
+      if (item.interpretation) text += `\nInterpretation: ${item.interpretation}`;
+    } else if (item._type === 'diagnosis') {
+      text = `${item.diagnosis}`;
+      if (item.icdCode) text += `\nICD Code: ${item.icdCode}`;
+      if (item.type) text += `\nType: ${item.type}`;
+      if (item.status) text += `\nStatus: ${item.status}`;
+    } else if (item._type === 'followup') {
+      text = `${item.specialty}\nReason: ${item.reason}`;
+      if (item.timing) text += `\nTiming: ${item.timing}`;
+      if (item.urgency) text += `\nUrgency: ${item.urgency}`;
+    } else if (item._type === 'referral') {
+      text = `${item.specialty}\nReason: ${item.reason}`;
+      if (item.urgency) text += `\nUrgency: ${item.urgency}`;
+      if (item.status) text += `\nStatus: ${item.status}`;
+    } else if (item._type === 'imaging') {
+      text = `${item.type || item.study}`;
+      if (item.date) text += `\nDate: ${formatDate(item.date)}`;
+      if (item.findings) text += `\nFindings: ${item.findings}`;
+    } else if (item._type === 'redflag') {
+      text = `${item.finding}\nUrgency: ${item.urgency}`;
+      if (item.action) text += `\nAction: ${item.action}`;
+    } else if (item._type === 'druginteraction') {
+      text = `${item.medications?.join(' + ')}\nSeverity: ${item.severity}`;
+      if (item.clinicalEffect) text += `\nEffect: ${item.clinicalEffect}`;
+      if (item.recommendation) text += `\nRecommendation: ${item.recommendation}`;
+    } else if (item._type === 'contraindication') {
+      text = `${item.medication || item.name}\nSeverity: ${item.severity}`;
+      if (item.condition) text += `\nCondition: ${item.condition}`;
+      if (item.reason) text += `\nReason: ${item.reason}`;
+      if (item.alternative) text += `\nAlternative: ${item.alternative}`;
+    } else if (item._type === 'rec-immediate') {
+      text = `${item.action}`;
+      if (item.rationale) text += `\nRationale: ${item.rationale}`;
+    } else if (item._type === 'rec-short') {
+      text = `${item.action}`;
+      if (item.rationale) text += `\nRationale: ${item.rationale}`;
+    } else if (item._type === 'rec-long') {
+      text = `${item.goal || item.action}`;
+      if (item.timeline) text += `\nTimeline: ${item.timeline}`;
+    } else if (item._type === 'structured') {
+      // Handle structured data from renderStructuredCards
+      text = `${item.key}\n${'═'.repeat(40)}\n\n`;
+
+      const formatStructuredValue = (val, indent = 0) => {
+        const indentStr = '  '.repeat(indent);
+
+        // Handle arrays
+        if (Array.isArray(val)) {
+          let result = '';
+          val.forEach((item, idx) => {
+            if (typeof item === 'object' && item !== null) {
+              result += `${indentStr}[${idx + 1}]\n`;
+              Object.entries(item).forEach(([k, v]) => {
+                const displayKey = k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                if (typeof v === 'object' && v !== null) {
+                  result += `${indentStr}  ${displayKey}:\n`;
+                  result += formatStructuredValue(v, indent + 2);
+                } else {
+                  result += `${indentStr}  ${displayKey}: ${v}\n`;
+                }
+              });
+            } else {
+              result += `${indentStr}• ${item}\n`;
+            }
+          });
+          return result;
+        }
+
+        // Handle objects
+        if (typeof val === 'object' && val !== null) {
+          let result = '';
+          Object.entries(val).forEach(([k, v]) => {
+            const displayKey = k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            if (typeof v === 'object' && v !== null) {
+              result += `${indentStr}${displayKey}:\n`;
+              result += formatStructuredValue(v, indent + 1);
+            } else {
+              result += `${indentStr}${displayKey}: ${v}\n`;
+            }
+          });
+          return result;
+        }
+
+        // Simple value
+        return `${indentStr}${val}\n`;
+      };
+
+      text += formatStructuredValue(item.value);
+    }
+
+    console.log('[AllergyImmunologyDocument] Text to copy:', text);
+
+    try {
+      await navigator.clipboard.writeText(text);
+      console.log('[AllergyImmunologyDocument] Copy successful via clipboard API');
+      setCopiedCardId(id);
+      setTimeout(() => setCopiedCardId(null), 2000);
+    } catch (err) {
+      console.error('[AllergyImmunologyDocument] Failed to copy with clipboard API:', err);
+      // Fallback method for older browsers
+      try {
+        const textarea = window.document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        window.document.body.appendChild(textarea);
+        textarea.select();
+        window.document.execCommand('copy');
+        window.document.body.removeChild(textarea);
+
+        console.log('[AllergyImmunologyDocument] Copy successful via fallback method');
+        setCopiedCardId(id);
+        setTimeout(() => setCopiedCardId(null), 2000);
+      } catch (fallbackErr) {
+        console.error('[AllergyImmunologyDocument] Fallback copy also failed:', fallbackErr);
+      }
+    }
+  };
+
+  // Export to PDF
+  const exportToPDF = async () => {
+    try {
+      setCopiedFeedback('exporting');
+
+      const { default: AllergyImmunologyPDFTemplate } = await import('../pdf-templates/AllergyImmunologyPDFTemplate');
+
+      const blob = await pdf(
+        <AllergyImmunologyPDFTemplate
+          documents={[document]}
+          patientName={document.patientName}
+        />
+      ).toBlob();
+
+      const fileName = `AllergyImmunology_${new Date().toISOString().split('T')[0]}.pdf`;
+      saveAs(blob, fileName);
+
+      setCopiedFeedback('exported');
+      setTimeout(() => setCopiedFeedback(null), 2000);
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+      alert(`PDF Export Error: ${err.message}`);
+    }
+  };
+
+  // Render severity badge
+  const renderSeverityBadge = (severity) => {
+    if (!severity) return null;
+    const severityLower = severity.toLowerCase();
+    let className = '';
+
+    if (severityLower.includes('critical') || severityLower.includes('severe') || severityLower.includes('high')) {
+      className = 'severity-critical';
+    } else if (severityLower.includes('moderate') || severityLower.includes('important')) {
+      className = 'severity-moderate';
+    } else {
+      className = 'severity-low';
+    }
+
+    return <span className={`severity-badge ${className}`}>{severity.toUpperCase()}</span>;
+  };
+
+  // Render lab flag badge
+  const renderLabFlagBadge = (flag) => {
+    if (!flag) return null;
+    const flagLower = flag.toLowerCase();
+    let className = '';
+
+    if (flagLower.includes('h') || flagLower.includes('high') || flagLower.includes('abnormal') || flagLower.includes('critical')) {
+      className = 'severity-critical';
+    } else if (flagLower.includes('l') || flagLower.includes('low') || flagLower.includes('borderline')) {
+      className = 'severity-moderate';
+    } else if (flagLower.includes('normal')) {
+      className = 'severity-low';
+    } else {
+      className = 'severity-low';
+    }
+
+    return <span className={`severity-badge ${className}`}>{flag.toUpperCase()}</span>;
+  };
+
+  // Render nested object as readable format with search highlighting
+  const renderObject = (obj, excludeFields = []) => {
+    if (!obj || typeof obj !== 'object') return null;
+
+    const entries = Object.entries(obj).filter(
+      ([key]) => !excludeFields.includes(key) && !key.startsWith('_')
+    );
+
+    if (entries.length === 0) return null;
+
+    return (
+      <div className="nested-fields">
+        {entries.map(([key, value]) => (
+          <div key={key} className="field-row">
+            <span className="field-label">
+              {highlightText(key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()))}:
+            </span>
+            <span className="field-value">
+              {typeof value === 'object' && value !== null
+                ? renderObject(value)
+                : highlightText(String(value))}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Render markdown with search highlighting
+  const renderMarkdownWithHighlight = (text) => {
+    if (!searchTerm || !text) {
+      return <ReactMarkdown>{text}</ReactMarkdown>;
+    }
+
+    // For simple highlighting in markdown, we'll render the markdown
+    // and wrap it in a div that highlights the search term
+    const highlighted = highlightText(text);
+
+    // If highlighting occurred (returns array), render as text
+    // Otherwise render as markdown
+    if (Array.isArray(highlighted)) {
+      return <div style={{ whiteSpace: 'pre-wrap' }}>{highlighted}</div>;
+    }
+
+    return <ReactMarkdown>{text}</ReactMarkdown>;
+  };
+
+  // Render structured data as full-width row cards (like CDS template)
+  const renderStructuredCards = (obj, sectionId) => {
+    if (!obj || typeof obj !== 'object') return null;
+
+    const entries = Object.entries(obj).filter(
+      ([key]) => !key.startsWith('_')
+    );
+
+    if (entries.length === 0) return null;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {entries.map(([key, value], idx) => {
+          const displayKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
+          // Render nested object as detail items
+          const renderDetailItems = (val) => {
+            // Handle arrays
+            if (Array.isArray(val)) {
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {val.map((item, itemIdx) => {
+                    if (typeof item === 'object' && item !== null) {
+                      // Render object array items as mini-cards
+                      return (
+                        <div
+                          key={itemIdx}
+                          style={{
+                            background: '#2d2d2d',
+                            padding: '12px',
+                            borderRadius: '6px',
+                            border: '1px solid #565869'
+                          }}
+                        >
+                          {Object.entries(item)
+                            .filter(([k]) => !k.startsWith('_'))
+                            .map(([k, v]) => (
+                              <div key={k} style={{ marginBottom: '4px' }}>
+                                <span style={{ fontWeight: '600', color: '#10a37f', fontSize: '14px' }}>
+                                  {highlightText(k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()))}:
+                                </span>
+                                <span style={{ marginLeft: '8px', color: '#ececf1', fontSize: '14px' }}>
+                                  {typeof v === 'object' && v !== null ? JSON.stringify(v) : highlightText(String(v))}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      );
+                    }
+                    // Simple array item (string/number)
+                    return (
+                      <div key={itemIdx} style={{ color: '#ececf1', fontSize: '14px', paddingLeft: '12px' }}>
+                        • {highlightText(String(item))}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
+            // Handle nested objects
+            if (typeof val === 'object' && val !== null) {
+              return Object.entries(val)
+                .filter(([k]) => !k.startsWith('_'))
+                .map(([k, v]) => {
+                  const nestedDisplayKey = k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
+                  // If nested value is also an object or array, render recursively
+                  if (typeof v === 'object' && v !== null) {
+                    return (
+                      <div key={k} style={{ marginBottom: '12px' }}>
+                        <div style={{ fontWeight: '600', color: '#10a37f', fontSize: '15px', marginBottom: '8px' }}>
+                          {highlightText(nestedDisplayKey)}:
+                        </div>
+                        <div style={{ paddingLeft: '16px' }}>
+                          {renderDetailItems(v)}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={k} className="detail-item" style={{ marginBottom: '8px' }}>
+                      <span className="detail-label" style={{ fontWeight: '600', color: '#10a37f' }}>
+                        {highlightText(nestedDisplayKey)}:
+                      </span>
+                      <span className="detail-value" style={{ marginLeft: '8px', color: '#ececf1' }}>
+                        {highlightText(String(v))}
+                      </span>
+                    </div>
+                  );
+                });
+            }
+
+            // Simple value
+            return (
+              <div style={{ color: '#ececf1', fontSize: '15px', lineHeight: '1.6' }}>
+                {highlightText(String(val))}
+              </div>
+            );
+          };
+
+          return (
+            <div
+              key={key}
+              className="ai-card"
+              style={{
+                padding: '20px',
+                background: '#343541',
+                borderRadius: '8px',
+                border: '1px solid #565869'
+              }}
+            >
+              {/* Title row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#ececf1' }}>
+                  {highlightText(displayKey)}
+                </h3>
+                <button
+                  onClick={() => copyCard({ _type: 'structured', key: displayKey, value: value }, `${sectionId}-${idx}`)}
+                  style={{
+                    background: 'transparent',
+                    color: '#9ca3af',
+                    border: '1px solid #565869',
+                    borderRadius: '6px',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s',
+                    flexShrink: 0,
+                    minWidth: '85px',
+                    justifyContent: 'center'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#40414f';
+                    e.currentTarget.style.color = '#ececf1';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#9ca3af';
+                  }}
+                  title="Copy this item"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  {copiedCardId === `${sectionId}-${idx}` ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+
+              {/* Content area */}
+              <div style={{ paddingLeft: '4px' }}>
+                {renderDetailItems(value)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Severity sorting
+  const getSeverityScore = (level) => {
+    if (!level) return 0;
+    const levelLower = level.toLowerCase();
+    if (levelLower.includes('critical') || levelLower.includes('severe')) return 5;
+    if (levelLower.includes('high')) return 4;
+    if (levelLower.includes('moderate')) return 3;
+    if (levelLower.includes('low')) return 2;
+    if (levelLower.includes('mild')) return 1;
+    return 0;
+  };
+
+  // Filter items by type
+  const filteredAllergies = filteredItems
+    .filter(item => item._type === 'allergy')
+    .sort((a, b) => getSeverityScore(b.severity) - getSeverityScore(a.severity));
+
+  const filteredMedications = filteredItems.filter(item => item._type === 'medication');
+  const filteredLabs = filteredItems
+    .filter(item => item._type === 'lab')
+    .sort((a, b) => {
+      const flagOrder = { h: 5, high: 5, abnormal: 4, l: 3, low: 3, borderline: 2 };
+      const aFlag = (a.flag?.toLowerCase()?.trim()) || 'normal';
+      const bFlag = (b.flag?.toLowerCase()?.trim()) || 'normal';
+      const aOrder = flagOrder[aFlag] ?? 0;
+      const bOrder = flagOrder[bFlag] ?? 0;
+      return bOrder - aOrder;
+    });
+  const filteredDiagnoses = filteredItems.filter(item => item._type === 'diagnosis');
+  const filteredFollowUps = filteredItems.filter(item => item._type === 'followup');
+  const filteredReferrals = filteredItems.filter(item => item._type === 'referral');
+  const filteredImaging = filteredItems.filter(item => item._type === 'imaging');
+  const filteredRedFlags = filteredItems.filter(item => item._type === 'redflag');
+  const filteredDrugInteractions = filteredItems.filter(item => item._type === 'druginteraction');
+  const filteredContraindications = filteredItems.filter(item => item._type === 'contraindication');
+  const filteredRecImmediate = filteredItems.filter(item => item._type === 'rec-immediate');
+  const filteredRecShort = filteredItems.filter(item => item._type === 'rec-short');
+  const filteredRecLong = filteredItems.filter(item => item._type === 'rec-long');
+
+  // New filtered arrays for 11 missing sections
+  const filteredDocMedRec = filteredItems.filter(item => item._type === 'doc-med-rec');
+  const filteredMedStarted = filteredItems.filter(item => item._type === 'med-started');
+  const filteredMedStopped = filteredItems.filter(item => item._type === 'med-stopped');
+  const filteredMedModified = filteredItems.filter(item => item._type === 'med-modified');
+  const filteredConsultations = filteredItems.filter(item => item._type === 'consultation');
+  const filteredTrends = filteredItems.filter(item => item._type === 'trend');
+  const filteredCareInterventions = filteredItems.filter(item => item._type === 'care-intervention');
+  const filteredMedOpt = filteredItems.filter(item => item._type === 'med-opt');
+  const filteredDocMedOpt = filteredItems.filter(item => item._type === 'doc-med-opt');
+  const filteredFollowUpIntel = filteredItems.filter(item => item._type === 'followup-intel');
+  const filteredEduContext = filteredItems.filter(item => item._type === 'edu-context');
+
+  // Filter static sections - only show if no search OR if section matches search
+  const showChiefComplaint = !searchTerm || filteredItems.some(item => item._type === 'static-chief-complaint');
+  const showHPI = !searchTerm || filteredItems.some(item => item._type === 'static-hpi');
+  const showPhysicalExam = !searchTerm || filteredItems.some(item => item._type === 'static-physical-exam');
+  const showVitalSigns = !searchTerm || filteredItems.some(item => item._type === 'static-vital-signs');
+  const showPulmonary = !searchTerm || filteredItems.some(item => item._type === 'static-pulmonary');
+  const showAsthma = !searchTerm || filteredItems.some(item => item._type === 'static-asthma');
+  const showAllergyAssessment = !searchTerm || filteredItems.some(item => item._type === 'static-allergy-assessment');
+  const showAllergyImmunology = !searchTerm || filteredItems.some(item => item._type === 'static-allergy-immunology');
+  const showROS = !searchTerm || filteredItems.some(item => item._type === 'static-ros');
+  const showMedicalHistory = !searchTerm || filteredItems.some(item => item._type === 'static-medical-history');
+  const showAssessmentPlan = !searchTerm || filteredItems.some(item => item._type === 'static-assessment-plan');
+  const showTreatmentPlan = !searchTerm || filteredItems.some(item => item._type === 'static-treatment-plan');
+  const showPatientEducation = !searchTerm || filteredItems.some(item => item._type === 'static-patient-education');
+  const showMonitoringPlan = !searchTerm || filteredItems.some(item => item._type === 'static-monitoring-plan');
+  const showPrognosis = !searchTerm || filteredItems.some(item => item._type === 'static-prognosis');
+
+  // Debug logging
+  if (searchTerm) {
+    console.log('🔍 [Search Debug]', {
+      searchTerm,
+      totalItems: allItems.length,
+      filteredCount: filteredItems.length,
+      filteredTypes: filteredItems.map(i => i._type),
+      showFlags: {
+        showChiefComplaint,
+        showHPI,
+        showPhysicalExam,
+        showMedicalHistory,
+        showAllergyAssessment
+      }
+    });
+  }
+
+  // Check if we have any results when searching
+  const hasSearchResults = !searchTerm || filteredItems.length > 0;
+
+  return (
+    <div className="allergy-immunology-document" ref={contentRef}>
+      {/* Document Header */}
+      <div className="ai-document-header">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <h1 className="ai-document-title">Allergy & Immunology Assessment</h1>
+
+          {/* Action Buttons - On the right side */}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {/* Copy All Button */}
+            <button
+              onClick={copyAllText}
+              className="action-btn"
+              title="Copy all"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedFeedback === 'all' ? 'Copied!' : 'Copy All'}
+            </button>
+
+            {/* Export PDF Button */}
+            <button
+              onClick={exportToPDF}
+              className="action-btn"
+              title="Export to PDF"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+              {copiedFeedback === 'exported' ? 'Exported!' : copiedFeedback === 'exporting' ? 'Exporting...' : 'Export PDF'}
+            </button>
+          </div>
+        </div>
+
+        {document.date && <p className="ai-document-date">{formatDate(document.date)}</p>}
+        {document.patientName && (
+          <div className="document-meta">
+            <strong>Patient:</strong> {document.patientName}
+            {document.age && ` • Age: ${document.age}`}
+            {document.gender && ` • Gender: ${document.gender}`}
+            {document.dateOfBirth && ` • DOB: ${document.dateOfBirth}`}
+            {document.mrn && ` • MRN: ${document.mrn}`}
+          </div>
+        )}
+      </div>
+
+      {/* Search Bar */}
+      <SearchBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        placeholder="Search allergies, medications, labs, diagnoses, recommendations..."
+        totalCount={allItems.length}
+        filteredCount={filteredItems.length}
+      />
+
+      {/* Empty Search State */}
+      {filteredItems.length === 0 && searchTerm && (
+        <div className="empty-state">
+          <div className="empty-icon">🔍</div>
+          <p className="empty-text">No results found for "{searchTerm}"</p>
+        </div>
+      )}
+
+      {/* Chief Complaint */}
+      {showChiefComplaint && document.chiefComplaint && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="chief-complaint-title section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">🚨</span>
+              {highlightText('Chief Complaint')}
+            </h2>
+            <button
+              onClick={copyChiefComplaint}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy chief complaint"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'chief-complaint' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <div className="chief-complaint-card">
+            <p className="complaint-text">
+              {highlightText(typeof document.chiefComplaint === 'object' ? document.chiefComplaint.complaint : document.chiefComplaint)}
+            </p>
+            {document.chiefComplaint.duration && (
+              <p className="complaint-duration">
+                <strong>Duration:</strong> {highlightText(document.chiefComplaint.duration)}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* History of Present Illness */}
+      {showHPI && document.historyOfPresentIllness && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">📋</span>
+              {highlightText('History of Present Illness')}
+            </h2>
+            <button
+              onClick={copyHistoryOfPresentIllness}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy history of present illness"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'hpi' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <div className="doc-section" style={{ background: '#343541', border: 'none' }}>
+            {renderMarkdownWithHighlight(document.historyOfPresentIllness)}
+          </div>
+        </section>
+      )}
+
+      {/* Vital Signs */}
+      {showVitalSigns && document.vitalSigns && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">❤️</span>
+              {highlightText('Vital Signs')}
+            </h2>
+            <button
+              onClick={() => copySection('Vital Signs', document.vitalSigns, 'vital-signs-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'vital-signs-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {renderStructuredCards(document.vitalSigns, 'vital-signs')}
+        </section>
+      )}
+
+      {/* Physical Examination */}
+      {showPhysicalExam && document.physicalExamination && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">🩺</span>
+              {highlightText('Physical Examination')}
+            </h2>
+            <button
+              onClick={() => copySection('Physical Examination', document.physicalExamination, 'physical-exam-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'physical-exam-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {renderStructuredCards(document.physicalExamination, 'physical-exam')}
+        </section>
+      )}
+
+      {/* Pulmonary Function Tests */}
+      {showPulmonary && document.pulmonaryFunctionTests && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">🫁</span>
+              {highlightText('Pulmonary Function Tests')}
+            </h2>
+            <button
+              onClick={() => copySection('Pulmonary Function Tests', document.pulmonaryFunctionTests, 'pulmonary-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'pulmonary-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {renderStructuredCards(document.pulmonaryFunctionTests, 'pulmonary')}
+        </section>
+      )}
+
+      {/* Lab Results */}
+      {filteredLabs.length > 0 && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="labs-title section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">🔬</span>
+              {highlightText(`Lab Results (${filteredLabs.length})`)}
+            </h2>
+            <button
+              onClick={() => copySection('Lab Results', filteredLabs, 'labs-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy all lab results"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'labs-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <div className="cards-grid">
+            {filteredLabs.map((lab, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(lab.testName)}</h4>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {lab.flag && renderLabFlagBadge(lab.flag)}
+                    <button
+                      onClick={() => copyCard(lab, `lab-${idx}`)}
+                      className="copy-btn-inline"
+                      title="Copy this lab result"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                      {copiedCardId === `lab-${idx}` ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                <div className="card-details">
+                  <div className="detail-item">
+                    <span className="detail-label">Value</span>
+                    <span className="detail-value">{highlightText(`${lab.value} ${lab.unit || ''}`)}</span>
+                  </div>
+                  {lab.referenceRange && (
+                    <div className="detail-item">
+                      <span className="detail-label">Reference</span>
+                      <span className="detail-value">{highlightText(lab.referenceRange)}</span>
+                    </div>
+                  )}
+                  {lab.interpretation && (
+                    <div className="detail-item">
+                      <span className="detail-label">Interpretation</span>
+                      <span className="detail-value">{highlightText(lab.interpretation)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Imaging */}
+      {filteredImaging.length > 0 && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">🏥</span>
+              {highlightText(`Imaging Studies (${filteredImaging.length})`)}
+            </h2>
+            <button
+              onClick={() => copySection('Imaging Studies', filteredImaging, 'imaging-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'imaging-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <div className="cards-grid">
+            {filteredImaging.map((img, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(img.type || img.study)}</h4>
+                  <button
+                    onClick={() => copyCard(img, `img-${idx}`)}
+                    className="copy-btn-inline"
+                    title="Copy this imaging"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `img-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="card-details">
+                  {img.date && (
+                    <div className="detail-item">
+                      <span className="detail-label">Date</span>
+                      <span className="detail-value">{formatDate(img.date)}</span>
+                    </div>
+                  )}
+                  {img.findings && (
+                    <div className="detail-item">
+                      <span className="detail-label">Findings</span>
+                      <span className="detail-value">{highlightText(img.findings)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Allergies */}
+      {filteredAllergies.length > 0 && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="allergies-title section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">⚠️</span>
+              {highlightText(`Allergies (${filteredAllergies.length})`)}
+            </h2>
+            <button
+              onClick={() => copySection('Allergies', filteredAllergies, 'allergies-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy all allergies"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'allergies-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <div className="cards-grid">
+            {filteredAllergies.map((allergy, idx) => (
+              <div key={idx} className="ai-card allergy-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(allergy.allergen)}</h4>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {renderSeverityBadge(allergy.severity)}
+                    <button
+                      onClick={() => copyCard(allergy, `allergy-${idx}`)}
+                      className="copy-btn-inline"
+                      title="Copy this allergy"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                      {copiedCardId === `allergy-${idx}` ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                <div className="card-details">
+                  <div className="detail-item">
+                    <span className="detail-label">Reaction</span>
+                    <span className="detail-value">{highlightText(allergy.reaction)}</span>
+                  </div>
+                  {allergy.type && (
+                    <div className="detail-item">
+                      <span className="detail-label">Type</span>
+                      <span className="detail-value">{highlightText(allergy.type)}</span>
+                    </div>
+                  )}
+                  {allergy.onset && (
+                    <div className="detail-item">
+                      <span className="detail-label">Onset</span>
+                      <span className="detail-value">{highlightText(allergy.onset)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Medications */}
+      {filteredMedications.length > 0 && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="medications-title section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">💊</span>
+              {highlightText(`Current Medications (${filteredMedications.length})`)}
+            </h2>
+            <button
+              onClick={() => copySection('Current Medications', filteredMedications, 'medications-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy all medications"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'medications-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <div className="cards-grid">
+            {filteredMedications.map((med, idx) => (
+              <div key={idx} className="ai-card medication-compact-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(med.name)}</h4>
+                  <button
+                    onClick={() => copyCard(med, `med-${idx}`)}
+                    className="copy-btn-inline"
+                    title="Copy this medication"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `med-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="medication-compact-details">
+                  <strong>{highlightText(med.dosage)}</strong> • {highlightText(med.frequency)}
+                  {med.route && <span className="route-text"> • {highlightText(med.route)}</span>}
+                  {med.indication && <div style={{ marginTop: '4px' }}><em>{highlightText(med.indication)}</em></div>}
+                  {med.status && <span className="status-text"> • {highlightText(med.status)}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Diagnoses */}
+      {filteredDiagnoses.length > 0 && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="diagnoses-title section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">📋</span>
+              {highlightText(`Diagnoses (${filteredDiagnoses.length})`)}
+            </h2>
+            <button
+              onClick={() => copySection('Diagnoses', filteredDiagnoses, 'diagnoses-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy all diagnoses"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'diagnoses-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <div className="cards-grid">
+            {filteredDiagnoses.map((dx, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(dx.diagnosis)}</h4>
+                  <button
+                    onClick={() => copyCard(dx, `dx-${idx}`)}
+                    className="copy-btn-inline"
+                    title="Copy this diagnosis"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `dx-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="card-details">
+                  {dx.icdCode && (
+                    <div className="detail-item">
+                      <span className="detail-label">ICD Code</span>
+                      <span className="detail-value">{highlightText(dx.icdCode)}</span>
+                    </div>
+                  )}
+                  {dx.type && (
+                    <div className="detail-item">
+                      <span className="detail-label">Type</span>
+                      <span className="detail-value">{highlightText(dx.type)}</span>
+                    </div>
+                  )}
+                  {dx.status && (
+                    <div className="detail-item">
+                      <span className="detail-label">Status</span>
+                      <span className="detail-value">{highlightText(dx.status)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Medical History */}
+      {showMedicalHistory && document.medicalHistory && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">📚</span>
+              {highlightText('Medical History')}
+            </h2>
+            <button
+              onClick={() => copySection('Medical History', document.medicalHistory, 'medical-history-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'medical-history-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+
+          {document.medicalHistory.pastMedicalHistory && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '18px', color: '#ececf1', marginBottom: '12px', paddingLeft: '4px' }}>
+                {highlightText('Past Medical History')}
+              </h3>
+              {Array.isArray(document.medicalHistory.pastMedicalHistory) ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                  {document.medicalHistory.pastMedicalHistory.map((item, idx) => (
+                    <div key={idx} className="ai-card" style={{ padding: '16px', background: '#343541', borderRadius: '8px', border: '1px solid #565869' }}>
+                      <div style={{ marginBottom: '8px' }}>
+                        <strong style={{ color: '#10a37f', fontSize: '15px' }}>
+                          {highlightText(item.condition)}
+                        </strong>
+                      </div>
+                      {item.status && (
+                        <div style={{ color: '#c5c5d2', fontSize: '14px', marginBottom: '4px' }}>
+                          <strong>Status:</strong> {highlightText(item.status)}
+                        </div>
+                      )}
+                      {item.dateOfOnset && (
+                        <div style={{ color: '#c5c5d2', fontSize: '14px' }}>
+                          <strong>Onset:</strong> {highlightText(item.dateOfOnset)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                renderStructuredCards(document.medicalHistory.pastMedicalHistory, 'past-medical-history')
+              )}
+            </div>
+          )}
+
+          {document.medicalHistory.familyHistory && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '18px', color: '#ececf1', marginBottom: '12px', paddingLeft: '4px' }}>
+                {highlightText('Family History')}
+              </h3>
+              {renderStructuredCards(document.medicalHistory.familyHistory, 'family-history')}
+            </div>
+          )}
+
+          {document.medicalHistory.socialHistory && (
+            <div>
+              <h3 style={{ fontSize: '18px', color: '#ececf1', marginBottom: '12px', paddingLeft: '4px' }}>
+                {highlightText('Social History')}
+              </h3>
+              {renderStructuredCards(document.medicalHistory.socialHistory, 'social-history')}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Review of Systems */}
+      {showROS && document.reviewOfSystems && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">🔍</span>
+              {highlightText('Review of Systems')}
+            </h2>
+            <button
+              onClick={() => copySection('Review of Systems', document.reviewOfSystems, 'ros-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'ros-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {renderStructuredCards(document.reviewOfSystems, 'ros')}
+        </section>
+      )}
+
+      {/* Asthma Assessment */}
+      {showAsthma && document.asthmaAssessment && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="asthma-title section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">🫁</span>
+              {highlightText('Asthma Assessment')}
+            </h2>
+            <button
+              onClick={() => copySection('Asthma Assessment', document.asthmaAssessment, 'asthma-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'asthma-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {renderStructuredCards(document.asthmaAssessment, 'asthma')}
+        </section>
+      )}
+
+      {/* Allergy Assessment */}
+      {showAllergyAssessment && document.allergyAssessment && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">⚠️</span>
+              {highlightText('Allergy Assessment')}
+            </h2>
+            <button
+              onClick={() => copySection('Allergy Assessment', document.allergyAssessment, 'allergy-assessment-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'allergy-assessment-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {renderStructuredCards(document.allergyAssessment, 'allergy-assessment')}
+        </section>
+      )}
+
+      {/* Allergy & Immunology Assessment */}
+      {showAllergyImmunology && document.allergyImmunologyAssessment && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">🔬</span>
+              {highlightText('Allergy & Immunology Assessment')}
+            </h2>
+            <button
+              onClick={() => copySection('Allergy & Immunology Assessment', document.allergyImmunologyAssessment, 'allergy-immunology-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'allergy-immunology-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {renderStructuredCards(document.allergyImmunologyAssessment, 'allergy-immunology')}
+        </section>
+      )}
+
+      {/* Assessment & Plan */}
+      {showAssessmentPlan && document.assessmentAndPlan && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">📝</span>
+              {highlightText('Assessment & Plan')}
+            </h2>
+            <button
+              onClick={() => copySection('Assessment & Plan', document.assessmentAndPlan, 'assessment-plan-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'assessment-plan-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+
+          {/* Parse Primary Diagnoses */}
+          {(() => {
+            const text = document.assessmentAndPlan;
+            const primaryMatch = text.match(/Primary Diagnoses:\s*(.+?)(?=Phenotype\/Endotype:|$)/s);
+            const phenotypeMatch = text.match(/Phenotype\/Endotype:\s*(.+?)$/s);
+
+            if (primaryMatch) {
+              // Extract numbered diagnoses
+              const diagnosesText = primaryMatch[1];
+              const diagnoses = diagnosesText.split(/\d+\.\s+/).filter(d => d.trim().length > 0);
+
+              return (
+                <div>
+                  <h3 className="section-title" style={{ fontSize: '18px', marginBottom: '16px' }}>
+                    Primary Diagnoses ({diagnoses.length})
+                  </h3>
+                  <div className="cards-grid">
+                    {diagnoses.map((diagnosis, idx) => (
+                      <div key={idx} className="ai-card">
+                        <div className="card-header">
+                          <div className="priority-number">{idx + 1}</div>
+                          <div style={{ flex: 1, marginLeft: '16px' }}>
+                            <h4 className="card-title" style={{ margin: 0 }}>
+                              {highlightText(diagnosis.replace(/,\s*$/, '').trim())}
+                            </h4>
+                          </div>
+                          <button
+                            onClick={() => copyCard({ text: diagnosis.trim() }, `diagnosis-${idx}`)}
+                            className="copy-btn-inline"
+                            title="Copy"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                            {copiedCardId === `diagnosis-${idx}` ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Phenotype/Endotype */}
+                  {phenotypeMatch && (
+                    <div style={{ marginTop: '24px' }}>
+                      <h3 className="section-title" style={{ fontSize: '18px', marginBottom: '16px' }}>
+                        Phenotype/Endotype
+                      </h3>
+                      <div className="ai-card" style={{ borderLeft: '4px solid #10a37f' }}>
+                        <div className="card-details">
+                          {phenotypeMatch[1].split(',').map((item, idx) => (
+                            <div key={idx} className="detail-item" style={{ marginBottom: '8px' }}>
+                              <span className="detail-value">• {highlightText(item.trim())}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            } else {
+              // Fallback: show as markdown
+              return (
+                <div className="doc-section" style={{ background: '#343541', border: '1px solid #565869', borderRadius: '8px', padding: '20px' }}>
+                  {renderMarkdownWithHighlight(document.assessmentAndPlan)}
+                </div>
+              );
+            }
+          })()}
+        </section>
+      )}
+
+      {/* Treatment Plan */}
+      {showTreatmentPlan && document.treatmentPlan && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">💊</span>
+              {highlightText('Treatment Plan')}
+            </h2>
+            <button
+              onClick={() => copySection('Treatment Plan', document.treatmentPlan, 'treatment-plan-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'treatment-plan-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {typeof document.treatmentPlan === 'string' ? (
+            <div className="doc-section" style={{ background: '#343541', border: '1px solid #565869', borderRadius: '8px', padding: '20px' }}>
+              {renderMarkdownWithHighlight(document.treatmentPlan)}
+            </div>
+          ) : (
+            renderStructuredCards(document.treatmentPlan, 'treatment-plan')
+          )}
+        </section>
+      )}
+
+      {/* Medication Changes */}
+      {(filteredMedStarted.length > 0 || filteredMedStopped.length > 0 || filteredMedModified.length > 0) && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">🔄</span>
+            Medication Changes
+          </h2>
+
+          {filteredMedStarted.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 className="section-title" style={{ fontSize: '18px', color: '#10b981' }}>
+                ✅ {highlightText(`Started (${filteredMedStarted.length})`)}
+              </h3>
+              <div className="cards-grid">
+                {filteredMedStarted.map((med, idx) => (
+                  <div key={idx} className="ai-card" style={{ borderLeft: '4px solid #10b981' }}>
+                    <div className="card-header">
+                      <h4 className="card-title">{highlightText(med.medication || med.name)}</h4>
+                      <button onClick={() => copyCard(med, `med-start-${idx}`)} className="copy-btn-inline" title="Copy">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        {copiedCardId === `med-start-${idx}` ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                    <div className="card-details">
+                      {med.dosage && (
+                        <div className="detail-item">
+                          <span className="detail-label">Dosage</span>
+                          <span className="detail-value">{highlightText(med.dosage)}</span>
+                        </div>
+                      )}
+                      {med.reason && (
+                        <div className="detail-item">
+                          <span className="detail-label">Reason</span>
+                          <span className="detail-value">{highlightText(med.reason)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {filteredMedStopped.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 className="section-title" style={{ fontSize: '18px', color: '#dc2626' }}>
+                ❌ {highlightText(`Stopped (${filteredMedStopped.length})`)}
+              </h3>
+              <div className="cards-grid">
+                {filteredMedStopped.map((med, idx) => (
+                  <div key={idx} className="ai-card" style={{ borderLeft: '4px solid #dc2626' }}>
+                    <div className="card-header">
+                      <h4 className="card-title">{highlightText(med.medication || med.name)}</h4>
+                      <button onClick={() => copyCard(med, `med-stop-${idx}`)} className="copy-btn-inline" title="Copy">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        {copiedCardId === `med-stop-${idx}` ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                    {med.reason && (
+                      <div className="card-details">
+                        <div className="detail-item">
+                          <span className="detail-label">Reason</span>
+                          <span className="detail-value">{highlightText(med.reason)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {filteredMedModified.length > 0 && (
+            <div>
+              <h3 className="section-title" style={{ fontSize: '18px', color: '#ea580c' }}>
+                🔧 {highlightText(`Modified (${filteredMedModified.length})`)}
+              </h3>
+              <div className="cards-grid">
+                {filteredMedModified.map((med, idx) => (
+                  <div key={idx} className="ai-card" style={{ borderLeft: '4px solid #ea580c' }}>
+                    <div className="card-header">
+                      <h4 className="card-title">{highlightText(med.medication || med.name)}</h4>
+                      <button onClick={() => copyCard(med, `med-mod-${idx}`)} className="copy-btn-inline" title="Copy">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        {copiedCardId === `med-mod-${idx}` ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                    {med.change && (
+                      <div className="card-details">
+                        <div className="detail-item">
+                          <span className="detail-label">Change</span>
+                          <span className="detail-value">{highlightText(med.change)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Doctor's Medications Recommendations */}
+      {filteredDocMedRec.length > 0 && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">💊</span>
+            {highlightText(`Doctor's Medications Recommendations (${filteredDocMedRec.length})`)}
+          </h2>
+          <div className="cards-grid">
+            {filteredDocMedRec.map((med, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(med.medication || med.name)}</h4>
+                  <button onClick={() => copyCard(med, `doc-med-${idx}`)} className="copy-btn-inline" title="Copy">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `doc-med-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="card-details">
+                  {med.dosage && (
+                    <div className="detail-item">
+                      <span className="detail-label">Dosage</span>
+                      <span className="detail-value">{highlightText(med.dosage)}</span>
+                    </div>
+                  )}
+                  {med.frequency && (
+                    <div className="detail-item">
+                      <span className="detail-label">Frequency</span>
+                      <span className="detail-value">{highlightText(med.frequency)}</span>
+                    </div>
+                  )}
+                  {med.indication && (
+                    <div className="detail-item">
+                      <span className="detail-label">Indication</span>
+                      <span className="detail-value">{highlightText(med.indication)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Clinical Decision Support */}
+      {(filteredRedFlags.length > 0 || filteredDrugInteractions.length > 0 || filteredContraindications.length > 0) && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">⚡</span>
+              Clinical Decision Support
+            </h2>
+            <button
+              onClick={() => copySection('Clinical Decision Support', { redFlags: filteredRedFlags, drugInteractions: filteredDrugInteractions, contraindications: filteredContraindications }, 'clinical-decision-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'clinical-decision-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+
+          {/* Red Flags */}
+          {filteredRedFlags.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 className="red-flags-title section-title" style={{ fontSize: '18px' }}>
+                🚨 {highlightText(`Red Flags (${filteredRedFlags.length})`)}
+              </h3>
+              <div className="cards-grid">
+                {filteredRedFlags.map((flag, idx) => (
+                  <div key={idx} className="ai-card red-flag-card">
+                    <div className="card-header">
+                      <h4 className="card-title">{highlightText(flag.finding)}</h4>
+                      <button
+                        onClick={() => copyCard(flag, `redflag-${idx}`)}
+                        className="copy-btn-inline"
+                        title="Copy this red flag"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        {copiedCardId === `redflag-${idx}` ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                    <div className="card-details">
+                      <div className="detail-item">
+                        <span className="detail-label">Urgency</span>
+                        <span className="detail-value">{highlightText(flag.urgency)}</span>
+                      </div>
+                      {flag.action && (
+                        <div className="detail-item">
+                          <span className="detail-label">Action</span>
+                          <span className="detail-value">{highlightText(flag.action)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Drug Interactions */}
+          {filteredDrugInteractions.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 className="drug-interactions-title section-title" style={{ fontSize: '18px' }}>
+                💊 {highlightText(`Drug Interactions (${filteredDrugInteractions.length})`)}
+              </h3>
+              <div className="cards-grid">
+                {filteredDrugInteractions.map((interaction, idx) => (
+                  <div key={idx} className="ai-card">
+                    <div className="card-header">
+                      <h4 className="card-title">{highlightText(interaction.medications?.join(' + '))}</h4>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {renderSeverityBadge(interaction.severity)}
+                        <button
+                          onClick={() => copyCard(interaction, `interaction-${idx}`)}
+                          className="copy-btn-inline"
+                          title="Copy this interaction"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                          </svg>
+                          {copiedCardId === `interaction-${idx}` ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="card-details">
+                      {interaction.clinicalEffect && (
+                        <div className="detail-item">
+                          <span className="detail-label">Effect</span>
+                          <span className="detail-value">{highlightText(interaction.clinicalEffect)}</span>
+                        </div>
+                      )}
+                      {interaction.recommendation && (
+                        <div className="detail-item">
+                          <span className="detail-label">Recommendation</span>
+                          <span className="detail-value">{highlightText(interaction.recommendation)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Contraindications */}
+          {filteredContraindications.length > 0 && (
+            <div>
+              <h3 className="contraindications-title section-title" style={{ fontSize: '18px' }}>
+                🚫 {highlightText(`Contraindications (${filteredContraindications.length})`)}
+              </h3>
+              <div className="cards-grid">
+                {filteredContraindications.map((contra, idx) => (
+                  <div key={idx} className="ai-card">
+                    <div className="card-header">
+                      <h4 className="card-title">{highlightText(contra.medication || contra.name)}</h4>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {renderSeverityBadge(contra.severity)}
+                        <button
+                          onClick={() => copyCard(contra, `contra-${idx}`)}
+                          className="copy-btn-inline"
+                          title="Copy this contraindication"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                          </svg>
+                          {copiedCardId === `contra-${idx}` ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="card-details">
+                      {contra.condition && (
+                        <div className="detail-item">
+                          <span className="detail-label">Condition</span>
+                          <span className="detail-value">{highlightText(contra.condition)}</span>
+                        </div>
+                      )}
+                      {contra.reason && (
+                        <div className="detail-item">
+                          <span className="detail-label">Reason</span>
+                          <span className="detail-value">{highlightText(contra.reason)}</span>
+                        </div>
+                      )}
+                      {contra.alternative && (
+                        <div className="detail-item">
+                          <span className="detail-label">Alternative</span>
+                          <span className="detail-value">{highlightText(contra.alternative)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Intelligent Recommendations */}
+      {(filteredRecImmediate.length > 0 || filteredRecShort.length > 0 || filteredRecLong.length > 0) && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">💡</span>
+              Intelligent Recommendations
+            </h2>
+            <button
+              onClick={() => copySection('Intelligent Recommendations', { immediate: filteredRecImmediate, shortTerm: filteredRecShort, longTerm: filteredRecLong }, 'intelligent-recommendations-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'intelligent-recommendations-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+
+          {/* Immediate */}
+          {filteredRecImmediate.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 className="recommendations-immediate-title section-title" style={{ fontSize: '18px' }}>
+                ⚡ {highlightText(`Immediate Actions (${filteredRecImmediate.length})`)}
+              </h3>
+              <div className="cards-grid">
+                {filteredRecImmediate.map((rec, idx) => (
+                  <div key={idx} className="ai-card">
+                    <div className="card-header">
+                      <h4 className="card-title">{highlightText(rec.action)}</h4>
+                      <button
+                        onClick={() => copyCard(rec, `rec-imm-${idx}`)}
+                        className="copy-btn-inline"
+                        title="Copy this recommendation"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        {copiedCardId === `rec-imm-${idx}` ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                    {rec.rationale && (
+                      <div className="card-details">
+                        <div className="detail-item">
+                          <span className="detail-label">Rationale</span>
+                          <span className="detail-value">{highlightText(rec.rationale)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Short-term */}
+          {filteredRecShort.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 className="recommendations-short-title section-title" style={{ fontSize: '18px' }}>
+                📝 {highlightText(`Short-term Actions (${filteredRecShort.length})`)}
+              </h3>
+              <div className="cards-grid">
+                {filteredRecShort.map((rec, idx) => (
+                  <div key={idx} className="ai-card">
+                    <div className="card-header">
+                      <h4 className="card-title">{highlightText(rec.action)}</h4>
+                      <button
+                        onClick={() => copyCard(rec, `rec-short-${idx}`)}
+                        className="copy-btn-inline"
+                        title="Copy this recommendation"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        {copiedCardId === `rec-short-${idx}` ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                    {rec.rationale && (
+                      <div className="card-details">
+                        <div className="detail-item">
+                          <span className="detail-label">Rationale</span>
+                          <span className="detail-value">{highlightText(rec.rationale)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Long-term */}
+          {filteredRecLong.length > 0 && (
+            <div>
+              <h3 className="recommendations-long-title section-title" style={{ fontSize: '18px' }}>
+                🎯 {highlightText(`Long-term Goals (${filteredRecLong.length})`)}
+              </h3>
+              <div className="cards-grid">
+                {filteredRecLong.map((rec, idx) => (
+                  <div key={idx} className="ai-card">
+                    <div className="card-header">
+                      <h4 className="card-title">{highlightText(rec.goal || rec.action)}</h4>
+                      <button
+                        onClick={() => copyCard(rec, `rec-long-${idx}`)}
+                        className="copy-btn-inline"
+                        title="Copy this recommendation"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        {copiedCardId === `rec-long-${idx}` ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                    <div className="card-details">
+                      {rec.timeline && (
+                        <div className="detail-item">
+                          <span className="detail-label">Timeline</span>
+                          <span className="detail-value">{highlightText(rec.timeline)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Medications Optimizations */}
+      {filteredMedOpt.length > 0 && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">⚡</span>
+            {highlightText(`Medications Optimizations (${filteredMedOpt.length})`)}
+          </h2>
+          <div className="cards-grid">
+            {filteredMedOpt.map((opt, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(opt.medication)}</h4>
+                  <button onClick={() => copyCard(opt, `med-opt-${idx}`)} className="copy-btn-inline" title="Copy">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `med-opt-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="card-details">
+                  {opt.recommendation && (
+                    <div className="detail-item">
+                      <span className="detail-label">Recommendation</span>
+                      <span className="detail-value">{highlightText(opt.recommendation)}</span>
+                    </div>
+                  )}
+                  {opt.rationale && (
+                    <div className="detail-item">
+                      <span className="detail-label">Rationale</span>
+                      <span className="detail-value">{highlightText(opt.rationale)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Doctor's Medications Recommendations Optimizations */}
+      {filteredDocMedOpt.length > 0 && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">💡</span>
+            {highlightText(`New Prescriptions Analysis (${filteredDocMedOpt.length})`)}
+          </h2>
+          <div className="cards-grid">
+            {filteredDocMedOpt.map((opt, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(opt.medication)}</h4>
+                  <button onClick={() => copyCard(opt, `doc-opt-${idx}`)} className="copy-btn-inline" title="Copy">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `doc-opt-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="card-details">
+                  {opt.recommendation && (
+                    <div className="detail-item">
+                      <span className="detail-label">Recommendation</span>
+                      <span className="detail-value">{highlightText(opt.recommendation)}</span>
+                    </div>
+                  )}
+                  {opt.rationale && (
+                    <div className="detail-item">
+                      <span className="detail-label">Rationale</span>
+                      <span className="detail-value">{highlightText(opt.rationale)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Trending Analysis */}
+      {filteredTrends.length > 0 && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">📈</span>
+            {highlightText(`Trending Analysis (${filteredTrends.length})`)}
+          </h2>
+          <div className="cards-grid">
+            {filteredTrends.map((trend, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(trend.parameter)}</h4>
+                  <button onClick={() => copyCard(trend, `trend-${idx}`)} className="copy-btn-inline" title="Copy">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `trend-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="card-details">
+                  {trend.direction && (
+                    <div className="detail-item">
+                      <span className="detail-label">Direction</span>
+                      <span className="detail-value">{highlightText(trend.direction)}</span>
+                    </div>
+                  )}
+                  {trend.clinicalSignificance && (
+                    <div className="detail-item">
+                      <span className="detail-label">Clinical Significance</span>
+                      <span className="detail-value">{highlightText(trend.clinicalSignificance)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Patient-Specific Care Plan */}
+      {filteredCareInterventions.length > 0 && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">🎯</span>
+            {highlightText(`Patient-Specific Care Plan (${filteredCareInterventions.length})`)}
+          </h2>
+          <div className="cards-grid">
+            {filteredCareInterventions.map((intervention, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(intervention.intervention)}</h4>
+                  <button onClick={() => copyCard(intervention, `care-${idx}`)} className="copy-btn-inline" title="Copy">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `care-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                {intervention.rationale && (
+                  <div className="card-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Rationale</span>
+                      <span className="detail-value">{highlightText(intervention.rationale)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Follow-Up Intelligence */}
+      {filteredFollowUpIntel.length > 0 && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">📋</span>
+            {highlightText(`Follow-Up Intelligence (${filteredFollowUpIntel.length})`)}
+          </h2>
+          <div className="cards-grid">
+            {filteredFollowUpIntel.map((task, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header" style={{ flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div className="priority-number">{task.priority || idx + 1}</div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {task.urgency && (
+                        <span className={`urgency-badge ${task.urgency.toLowerCase().includes('high') ? 'urgency-high' : task.urgency.toLowerCase().includes('important') ? 'urgency-important' : 'urgency-routine'}`}>
+                          {task.urgency}
+                        </span>
+                      )}
+                      <button onClick={() => copyCard(task, `followup-${idx}`)} className="copy-btn-inline" title="Copy">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        {copiedCardId === `followup-${idx}` ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                  <h4 className="card-title" style={{ margin: 0 }}>{highlightText(task.task)}</h4>
+                </div>
+                {task.importance && (
+                  <div className="card-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Importance</span>
+                      <span className="detail-value">{highlightText(task.importance)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Follow-up Appointments */}
+      {filteredFollowUps.length > 0 && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="appointments-title section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">📅</span>
+              {highlightText(`Follow-up Appointments (${filteredFollowUps.length})`)}
+            </h2>
+            <button
+              onClick={() => copySection('Follow-up Appointments', filteredFollowUps, 'followups-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'followups-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <div className="cards-grid">
+            {filteredFollowUps.map((appt, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(appt.specialty)}</h4>
+                  <button
+                    onClick={() => copyCard(appt, `followup-${idx}`)}
+                    className="copy-btn-inline"
+                    title="Copy this appointment"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `followup-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="card-details">
+                  <div className="detail-item">
+                    <span className="detail-label">Reason</span>
+                    <span className="detail-value">{highlightText(appt.reason)}</span>
+                  </div>
+                  {appt.timing && (
+                    <div className="detail-item">
+                      <span className="detail-label">Timing</span>
+                      <span className="detail-value">{highlightText(appt.timing)}</span>
+                    </div>
+                  )}
+                  {appt.urgency && (
+                    <div className="detail-item">
+                      <span className="detail-label">Urgency</span>
+                      <span className="detail-value">{highlightText(appt.urgency)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Referrals */}
+      {filteredReferrals.length > 0 && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">🏥</span>
+              {highlightText(`Referrals (${filteredReferrals.length})`)}
+            </h2>
+            <button
+              onClick={() => copySection('Referrals', filteredReferrals, 'referrals-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'referrals-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <div className="cards-grid">
+            {filteredReferrals.map((ref, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(ref.specialty)}</h4>
+                  <button
+                    onClick={() => copyCard(ref, `referral-${idx}`)}
+                    className="copy-btn-inline"
+                    title="Copy this referral"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `referral-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="card-details">
+                  <div className="detail-item">
+                    <span className="detail-label">Reason</span>
+                    <span className="detail-value">{highlightText(ref.reason)}</span>
+                  </div>
+                  {ref.urgency && (
+                    <div className="detail-item">
+                      <span className="detail-label">Urgency</span>
+                      <span className="detail-value">{highlightText(ref.urgency)}</span>
+                    </div>
+                  )}
+                  {ref.status && (
+                    <div className="detail-item">
+                      <span className="detail-label">Status</span>
+                      <span className="detail-value">{highlightText(ref.status)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Patient Education Context */}
+      {filteredEduContext.length > 0 && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">📚</span>
+            {highlightText(`Patient Education (${filteredEduContext.length})`)}
+          </h2>
+          <div className="cards-grid">
+            {filteredEduContext.map((topic, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(topic.topic)}</h4>
+                  <button onClick={() => copyCard(topic, `edu-${idx}`)} className="copy-btn-inline" title="Copy">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === `edu-${idx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                {topic.keyPoints && topic.keyPoints.length > 0 && (
+                  <div className="card-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Key Points</span>
+                      <span className="detail-value">
+                        {topic.keyPoints.map((point, pidx) => (
+                          <div key={pidx}>{highlightText(`• ${point}`)}</div>
+                        ))}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Patient Education */}
+      {showPatientEducation && document.patientEducation && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">📚</span>
+              {highlightText('Patient Education')}
+            </h2>
+            <button
+              onClick={() => copySection('Patient Education', document.patientEducation, 'patient-education-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'patient-education-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {typeof document.patientEducation === 'string' ? (
+            <div className="doc-section" style={{ background: '#343541', border: '1px solid #565869', borderRadius: '8px', padding: '20px' }}>
+              {renderMarkdownWithHighlight(document.patientEducation)}
+            </div>
+          ) : (
+            renderStructuredCards(document.patientEducation, 'patient-education')
+          )}
+        </section>
+      )}
+
+      {/* Monitoring Plan */}
+      {showMonitoringPlan && document.monitoringPlan && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">📊</span>
+              {highlightText('Monitoring Plan')}
+            </h2>
+            <button
+              onClick={() => copySection('Monitoring Plan', document.monitoringPlan, 'monitoring-plan-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'monitoring-plan-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {typeof document.monitoringPlan === 'string' ? (
+            <div className="doc-section" style={{ background: '#343541', border: '1px solid #565869', borderRadius: '8px', padding: '20px' }}>
+              {renderMarkdownWithHighlight(document.monitoringPlan)}
+            </div>
+          ) : (
+            renderStructuredCards(document.monitoringPlan, 'monitoring-plan')
+          )}
+        </section>
+      )}
+
+      {/* Prognosis */}
+      {showPrognosis && document.prognosis && (
+        <section className="ai-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              <span className="section-icon">🎯</span>
+              {highlightText('Prognosis')}
+            </h2>
+            <button
+              onClick={() => copySection('Prognosis', document.prognosis, 'prognosis-section')}
+              style={{
+                background: 'transparent',
+                color: '#9ca3af',
+                border: '1px solid #565869',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#40414f';
+                e.currentTarget.style.color = '#ececf1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Copy entire section"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              {copiedCardId === 'prognosis-section' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          {typeof document.prognosis === 'string' ? (
+            <div className="doc-section" style={{ background: '#343541', border: '1px solid #565869', borderRadius: '8px', padding: '20px' }}>
+              {renderMarkdownWithHighlight(document.prognosis)}
+            </div>
+          ) : (
+            renderStructuredCards(document.prognosis, 'prognosis')
+          )}
+        </section>
+      )}
+
+      {/* Consultation Details */}
+      {filteredConsultations.length > 0 && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">👨‍⚕️</span>
+            {highlightText('Consultation Details')}
+          </h2>
+          <div className="cards-grid">
+            {filteredConsultations.map((consult, idx) => (
+              <div key={idx} className="ai-card">
+                <div className="card-header">
+                  <h4 className="card-title">{highlightText(consult.consultingSpecialty || 'Consultation')}</h4>
+                  <button onClick={() => copyCard(consult, 'consultation')} className="copy-btn-inline" title="Copy">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {copiedCardId === 'consultation' ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="card-details">
+                  {consult.consultDate && (
+                    <div className="detail-item">
+                      <span className="detail-label">Consult Date</span>
+                      <span className="detail-value">{formatDate(consult.consultDate)}</span>
+                    </div>
+                  )}
+                  {consult.consultingPhysician && (
+                    <div className="detail-item">
+                      <span className="detail-label">Consulting Physician</span>
+                      <span className="detail-value">{highlightText(consult.consultingPhysician)}</span>
+                    </div>
+                  )}
+                  {consult.referringPhysician && (
+                    <div className="detail-item">
+                      <span className="detail-label">Referring Physician</span>
+                      <span className="detail-value">{highlightText(consult.referringPhysician)}</span>
+                    </div>
+                  )}
+                  {consult.reasonForConsult && (
+                    <div className="detail-item">
+                      <span className="detail-label">Reason for Consult</span>
+                      <span className="detail-value">{highlightText(consult.reasonForConsult)}</span>
+                    </div>
+                  )}
+                  {consult.physicianCredentials && (
+                    <div className="detail-item">
+                      <span className="detail-label">Credentials</span>
+                      <span className="detail-value">{highlightText(consult.physicianCredentials)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Providers Section */}
+      {!searchTerm && document.providers && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">👥</span>
+            Care Team
+          </h2>
+          <div className="cards-grid">
+            {document.providers.primary && (
+              <div className="ai-card">
+                <div className="card-details">
+                  <div className="detail-item">
+                    <span className="detail-label">Primary Physician</span>
+                    <span className="detail-value">{document.providers.primary}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {document.providers.consulting && document.providers.consulting.length > 0 && (
+              <div className="ai-card">
+                <h4 className="card-title" style={{ marginBottom: '12px' }}>Consultants</h4>
+                <div className="card-details">
+                  {document.providers.consulting.map((consultant, idx) => (
+                    <div key={idx} className="detail-item">
+                      <span className="detail-label">{document.providers.consultingSpecialties?.[idx] || 'Consultant'}</span>
+                      <span className="detail-value">{consultant}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Administrative Data */}
+      {!searchTerm && document.administrativeData && Object.keys(document.administrativeData).length > 0 && (
+        <section className="ai-section">
+          <h2 className="section-title">
+            <span className="section-icon">📄</span>
+            Administrative Data
+          </h2>
+          <div className="ai-card">
+            <div className="card-details">
+              {document.administrativeData.mrn && (
+                <div className="detail-item">
+                  <span className="detail-label">Medical Record Number</span>
+                  <span className="detail-value">{document.administrativeData.mrn}</span>
+                </div>
+              )}
+              {document.administrativeData.admissionDate && (
+                <div className="detail-item">
+                  <span className="detail-label">Admission Date</span>
+                  <span className="detail-value">{formatDate(document.administrativeData.admissionDate)}</span>
+                </div>
+              )}
+              {document.administrativeData.dischargeDate && (
+                <div className="detail-item">
+                  <span className="detail-label">Discharge Date</span>
+                  <span className="detail-value">{formatDate(document.administrativeData.dischargeDate)}</span>
+                </div>
+              )}
+              {document.administrativeData.lengthOfStay && (
+                <div className="detail-item">
+                  <span className="detail-label">Length of Stay</span>
+                  <span className="detail-value">{document.administrativeData.lengthOfStay}</span>
+                </div>
+              )}
+              {document.administrativeData.disposition && (
+                <div className="detail-item">
+                  <span className="detail-label">Disposition</span>
+                  <span className="detail-value">{document.administrativeData.disposition}</span>
+                </div>
+              )}
+              {document.administrativeData.electronicSignature && (
+                <div className="detail-item">
+                  <span className="detail-label">Electronic Signature</span>
+                  <span className="detail-value">{document.administrativeData.electronicSignature}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Empty State */}
+      {allItems.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">📋</div>
+          <p className="empty-text">No allergy & immunology data available</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AllergyImmunologyDocument;

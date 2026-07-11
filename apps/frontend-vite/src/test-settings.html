@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Settings Modal</title>
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            background: #1e293b;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Settings Modal Test</h1>
+    <button onclick="testProfileButton()">Test Profile Button Click</button>
+    <button onclick="testOpenModal()">Force Open Modal</button>
+    <button onclick="checkModalState()">Check Modal State</button>
+    <div id="status">Status will appear here...</div>
+
+    <script>
+        function testProfileButton() {
+            const button = document.querySelector('.profile-button');
+            if (button) {
+                button.click();
+                document.getElementById('status').innerHTML = 'Profile button clicked!';
+            } else {
+                document.getElementById('status').innerHTML = 'Profile button not found!';
+            }
+        }
+
+        function testOpenModal() {
+            // Try to find and open the modal directly
+            const modal = document.querySelector('.user-settings-overlay');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.getElementById('status').innerHTML = 'Modal forced open!';
+            } else {
+                document.getElementById('status').innerHTML = 'Modal element not found in DOM!';
+            }
+        }
+
+        function checkModalState() {
+            const modal = document.querySelector('.user-settings-overlay');
+            const profileButton = document.querySelector('.profile-button');
+            let status = 'Checking state:<br>';
+            status += `Profile button exists: ${profileButton ? 'YES' : 'NO'}<br>`;
+            status += `Modal in DOM: ${modal ? 'YES' : 'NO'}<br>`;
+            if (modal) {
+                status += `Modal display: ${window.getComputedStyle(modal).display}<br>`;
+            }
+            document.getElementById('status').innerHTML = status;
+        }
+    </script>
+</body>
+</html>

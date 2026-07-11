@@ -1,0 +1,40 @@
+{
+  "default": {
+    "totalCostUSD": 0.004302,
+    "totalCostILS": 0.01454076,
+    "totalTokens": 259,
+    "totalConversations": 1,
+    "totalMessages": 1,
+    "monthlyCosts": {
+      "2025-08": {
+        "costUSD": 0.004302,
+        "costILS": 0.01454076,
+        "tokens": 259,
+        "messages": 1,
+        "conversations": {}
+      }
+    },
+    "dailyCosts": {
+      "2025-08-16": {
+        "costUSD": 0.004302,
+        "costILS": 0.01454076,
+        "tokens": 259,
+        "messages": 1,
+        "conversations": {}
+      }
+    },
+    "userCosts": {
+      "unknown": {
+        "costUSD": 0.004302,
+        "costILS": 0.01454076,
+        "tokens": 259,
+        "messages": 1,
+        "conversations": {},
+        "firstUse": "2025-08-16T04:30:24.444Z",
+        "lastUse": "2025-08-16T04:30:24.445Z"
+      }
+    },
+    "startDate": "2025-08-16T04:30:24.444Z",
+    "lastUpdated": "2025-08-16T04:30:24.444Z"
+  }
+}

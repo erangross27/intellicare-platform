@@ -1,0 +1,260 @@
+{
+  "lastUpdated": "2025-10-01T16:17:00.000Z",
+  "totalCategories": 825,
+  "completedCategories": 36,
+  "inProgressCategory": "hospital_emergency",
+  "categories": {
+    "core_medical": {
+      "completed": true,
+      "collections": [
+        "diagnoses",
+        "medications",
+        "allergies",
+        "lab_results",
+        "vital_signs",
+        "medical_procedures",
+        "immunization_record",
+        "vaccination_records"
+      ]
+    },
+    "consultations": {
+      "completed": true,
+      "collections": [
+        "cardiology_consultations",
+        "cardiology_followup_reports",
+        "neurology_consultations",
+        "endocrinology_consultations",
+        "oncology_consultations",
+        "oncology_followup_reports",
+        "psychiatric_evaluations",
+        "mental_health_assessments",
+        "nephrology_consultations",
+        "pulmonology_consultations",
+        "gastroenterology_consultations",
+        "rheumatology_consultations",
+        "hematology_consultations",
+        "orthopedic_consultations",
+        "dermatology_consultations",
+        "ophthalmology_examinations",
+        "ent_consultations",
+        "urology_consultations"
+      ]
+    },
+    "imaging_pathology": {
+      "completed": true,
+      "collections": [
+        "imaging_reports",
+        "mri_reports",
+        "radiology_reports",
+        "pathology_reports",
+        "ct_scan_reports",
+        "ultrasound_reports",
+        "xray_reports",
+        "pet_scan_reports",
+        "bone_scan_reports",
+        "mammography_reports"
+      ]
+    },
+    "hospital_emergency": {
+      "completed": false,
+      "collections": [
+        "hospital_course",
+        "hospital_discharge_summaries",
+        "emergency_reports",
+        "emergency_discharge_summaries",
+        "icu_flow_sheet",
+        "icu_flow_sheets",
+        "admission_assessments",
+        "discharge_planning"
+      ]
+    },
+    "surgical": {
+      "completed": false,
+      "collections": [
+        "surgical_history",
+        "operative_reports",
+        "operative_report_details",
+        "anesthesia_records",
+        "anesthesia_record",
+        "pre_operative_assessments",
+        "pre_operative_preparation",
+        "postoperative_orders",
+        "orthopedic_operative_reports",
+        "surgical_oncology"
+      ]
+    },
+    "obstetrics_gynecology": {
+      "completed": false,
+      "collections": [
+        "obstetric_history",
+        "prenatal_visits",
+        "prenatal_visit",
+        "current_pregnancy",
+        "pregnancy_complications",
+        "fetal_ultrasound",
+        "fetal_surveillance",
+        "fetal_assessment",
+        "maternal_labs",
+        "gestational_diabetes",
+        "prenatal_screening",
+        "delivery_planning",
+        "postpartum_planning"
+      ]
+    },
+    "pediatrics": {
+      "completed": false,
+      "collections": [
+        "pediatric_visits",
+        "well_child_examinations",
+        "developmental_milestones",
+        "growth_parameters",
+        "pediatric_screening",
+        "birth_history",
+        "apgar_scores",
+        "newborn_screening_results"
+      ]
+    },
+    "diabetes_endocrine": {
+      "completed": false,
+      "collections": [
+        "diabetes_management",
+        "diabetes_management_notes",
+        "insulin_pump_settings",
+        "cgm_data",
+        "insulin_regimen",
+        "blood_glucose_logs",
+        "diabetes_education",
+        "hypoglycemia_management",
+        "thyroid_management",
+        "endocrine_lab_results"
+      ]
+    },
+    "oncology_cancer": {
+      "completed": false,
+      "collections": [
+        "cancer_diagnosis",
+        "cancer_staging",
+        "chemotherapy_regimen",
+        "radiation_therapy",
+        "tumor_markers",
+        "cancer_surveillance",
+        "oncology_team",
+        "survivorship_care_plan",
+        "cancer_related_side_effects"
+      ]
+    },
+    "nephrology_dialysis": {
+      "completed": false,
+      "collections": [
+        "ckd_assessment",
+        "dialysis_records",
+        "dialysis_planning",
+        "transplant_evaluation",
+        "mineral_bone_disease",
+        "renal_anemia",
+        "proteinuria_assessment",
+        "acute_kidney_injury"
+      ]
+    },
+    "mental_health": {
+      "completed": false,
+      "collections": [
+        "psychiatric_evaluations",
+        "mental_health_assessments",
+        "psychiatric_history",
+        "psychiatric_treatment_plan",
+        "mental_status_exam",
+        "psychiatric_assessment_scales",
+        "psychosocial_assessment",
+        "cognitive_behavioral_therapy"
+      ]
+    },
+    "nursing_care": {
+      "completed": false,
+      "collections": [
+        "nursing_notes",
+        "nursing_assessments",
+        "wound_care_documentation",
+        "pain_assessment_forms",
+        "intake_output_records",
+        "medication_administration_records",
+        "vital_signs_logs"
+      ]
+    },
+    "therapy_rehabilitation": {
+      "completed": false,
+      "collections": [
+        "physical_therapy_evaluations",
+        "occupational_therapy_reports",
+        "speech_therapy_assessments",
+        "rehabilitation_progress_notes",
+        "cognitive_rehabilitation_reports"
+      ]
+    },
+    "patient_education": {
+      "completed": false,
+      "collections": [
+        "patient_education_records",
+        "patient_instructions",
+        "diabetes_education",
+        "prenatal_education",
+        "medication_education"
+      ]
+    },
+    "administrative": {
+      "completed": false,
+      "collections": [
+        "administrative_data",
+        "contact_information",
+        "insurance_forms",
+        "prior_authorization_forms",
+        "insurance_authorizations"
+      ]
+    },
+    "follow_up_referrals": {
+      "completed": false,
+      "collections": [
+        "follow_up_appointments",
+        "appointments",
+        "referrals",
+        "consultation_notes"
+      ]
+    },
+    "history_assessment": {
+      "completed": false,
+      "collections": [
+        "family_history",
+        "social_history",
+        "medical_history",
+        "surgical_history",
+        "chief_complaints",
+        "history_present_illness",
+        "review_of_systems",
+        "physical_examinations",
+        "assessment_plans"
+      ]
+    },
+    "monitoring_trends": {
+      "completed": false,
+      "collections": [
+        "home_monitoring",
+        "trend_analysis",
+        "vital_signs_table",
+        "blood_pressure_readings",
+        "weight_measurements",
+        "glucose_monitoring_frequency"
+      ]
+    },
+    "additional_clinical": {
+      "completed": false,
+      "collections": [
+        "additional_notes",
+        "recommendations",
+        "risk_factors",
+        "preventive_care",
+        "health_maintenance",
+        "lifestyle_counseling"
+      ]
+    }
+  }
+}

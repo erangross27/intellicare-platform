@@ -1,0 +1,410 @@
+/* Professional Medical Chart - Minimal Colors */
+.cardiology-document {
+  padding: 32px;
+  background: #2d2e38;
+  color: #ececf1;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+/* All strong elements get soft blue color */
+.cardiology-document strong {
+  color: #93c5fd !important;
+}
+
+/* Document Header */
+.document-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #4a9eff; /* Bright blue for main title */
+  margin: 0 0 24px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #444;
+}
+
+/* Patient Demographics */
+.patient-demographics {
+  background: #383838;
+  padding: 16px;
+  border-radius: 4px;
+  border: 1px solid #444;
+  margin-bottom: 24px;
+}
+
+.patient-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2d2e38;
+  margin-bottom: 12px;
+}
+
+.demographics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.demo-field {
+  color: #ececf1;
+  font-size: 14px;
+}
+
+.demo-field strong {
+  color: #2d2e38;
+}
+
+/* Sections - Clean Professional */
+.doc-section {
+  margin-bottom: 24px;
+  background: #ececf1;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4a9eff; /* Medium light blue for sections */
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #444;
+}
+
+.subsection {
+  margin-top: 16px;
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+  border: 1px solid #565869;
+}
+
+.subsection-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #93c5fd; /* Softer light blue for subsections */
+  margin: 0 0 12px 0;
+}
+
+/* Field Rows */
+.field-row {
+  margin-bottom: 8px;
+  color: #ececf1;
+  font-size: 14px;
+}
+
+.field-row strong {
+  color: #93c5fd; /* Soft blue for field labels */
+  font-weight: 500;
+}
+
+/* Lists */
+.info-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+
+.info-list li {
+  padding: 8px;
+  margin-bottom: 6px;
+  background: #2d2e38;
+  border-left: 2px solid #555;
+  border-radius: 2px;
+  font-size: 14px;
+  color: #ececf1;
+}
+
+/* Critical/High Risk - RED TAGS ONLY (no background) */
+.critical-finding,
+.high-risk {
+  background: #2d2e38 !important;
+  border-left: 3px solid #ef4444 !important;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 4px;
+}
+
+.critical-text {
+  color: #ff6b6b !important;
+  font-weight: 600;
+}
+
+.urgent-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #ef4444;
+  color: white;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+
+/* Severity Badges - Styled as tags */
+.severity-critical {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #ef4444;
+  color: white;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+
+.severity-high {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #ff8c00;
+  color: white;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+
+.severity-moderate {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #ff8c00;
+  color: white;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+
+/* Cardiology Assessment - Slightly Highlighted */
+.cardiology-assessment {
+  background: #383838;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.assessment-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4a9eff !important;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #555;
+}
+
+/* Medication List */
+.medication-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+
+.medication-item {
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #2d2e38;
+  border-left: 2px solid #555;
+  border-radius: 2px;
+  font-size: 14px;
+  color: #ececf1;
+}
+
+.medication-name {
+  font-weight: 600;
+  color: #4a9eff !important;
+  margin-bottom: 4px;
+}
+
+/* Diagnosis List */
+.diagnosis-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+
+.diagnosis-item {
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #2d2e38;
+  border-left: 2px solid #555;
+  border-radius: 2px;
+  color: #ececf1;
+}
+
+.diagnosis-item.primary {
+  border-left-color: #ef4444;
+  border-left-width: 3px;
+}
+
+.diagnosis-name {
+  font-weight: 600;
+  color: #4a9eff !important;
+}
+
+/* Drug Interactions */
+.drug-interaction {
+  padding: 12px;
+  margin: 8px 0;
+  background: #2d2e38;
+  border-left: 2px solid #555;
+  border-radius: 4px;
+  color: #ececf1;
+}
+
+.drug-interaction.moderate {
+  border-left-color: #ffa500;
+  border-left-width: 3px;
+}
+
+.drug-interaction.major {
+  border-left-color: #ef4444;
+  border-left-width: 3px;
+}
+
+/* Narrative Text */
+.narrative-text {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  color: #ececf1;
+  font-size: 15px;
+  padding: 12px;
+  background: #2d2e38;
+  border-radius: 4px;
+}
+
+/* Ensure all nested elements in narrative text are white */
+.narrative-text p {
+  color: #ececf1;
+  font-size: 15px;
+  margin: 0 0 12px 0;
+}
+
+.narrative-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* Ordered Lists in Narrative Text - Fix spacing */
+.narrative-text ol {
+  list-style-position: inside;
+  padding-left: 0;
+  margin: 12px 0;
+}
+
+.narrative-text ol li {
+  margin-bottom: 16px;
+  padding-left: 8px;
+}
+
+.narrative-text ol li::marker {
+  font-weight: 600;
+  color: #2d2e38;
+}
+
+/* Remove paragraph spacing inside list items to fix newline issue */
+.narrative-text ol li p {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+.narrative-text ol li p:first-child {
+  display: inline;
+}
+
+/* Provider Signature */
+.provider-signature {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #444;
+  color: #999;
+  font-size: 12px;
+}
+
+.provider-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #2d2e38;
+}
+
+/* Empty Value */
+.empty-value {
+  color: #c5c5d2;
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+th {
+  background: #383838;
+  color: #2d2e38;
+  font-weight: 700;
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #555;
+}
+
+td {
+  padding: 8px;
+  border-bottom: 1px solid #565869;
+  color: #ececf1;
+}
+
+/* Make first column (keys) bold in tables */
+td:first-child {
+  font-weight: 700;
+}
+
+/* Bold text within td cells that are wrapped in <strong> */
+td strong {
+  font-weight: 700;
+}
+
+tr:hover {
+  background: #565869;
+}
+
+/* Ensure all inline-styled cards have white text */
+.cardiology-document div[style*="background: #2d2e38"],
+.cardiology-document div[style*="background: '#2d2e38'"],
+.cardiology-document div[style*="background: #ececf1"],
+.cardiology-document div[style*="background: '#ececf1'"] {
+  color: #ececf1 !important;
+}
+
+/* Ensure all text inside cards is white, including child elements */
+.cardiology-document div[style*="background: #2d2e38"],
+.cardiology-document div[style*="background: '#2d2e38'"],
+.cardiology-document div[style*="background: #ececf1"],
+.cardiology-document div[style*="background: '#ececf1'"] {
+  color: #ececf1;
+}
+
+/* Medication names and diagnosis names */
+.medication-name,
+.diagnosis-name {
+  color: #4a9eff !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cardiology-document {
+    padding: 16px;
+  }
+
+  .demographics-grid {
+    grid-template-columns: 1fr;
+  }
+}

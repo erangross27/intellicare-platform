@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-08-23T07:16:31.966Z",
+  "summary": {
+    "filesScanned": 159,
+    "totalViolations": 0,
+    "criticalCount": 0,
+    "status": "SECURE"
+  },
+  "violationsByType": {},
+  "violationsByFile": {},
+  "criticalViolations": []
+}

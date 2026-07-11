@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend-vite
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=https://api.intellicare.health
+    networks:
+      - intellicare
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/intellicare
+      - FRONTEND_URL=https://intellicare.health
+      - JWT_SECRET=${JWT_SECRET}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+    depends_on:
+      - mongodb
+    networks:
+      - intellicare
+
+  mongodb:
+    image: mongo:6
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+    networks:
+      - intellicare
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - intellicare
+
+volumes:
+  mongo_data:
+
+networks:
+  intellicare:
+    driver: bridge

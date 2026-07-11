@@ -1,0 +1,187 @@
+/* Collection Renderer Styles */
+
+.collection-renderer-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: #1a1a1a;
+  color: #ececf1;
+}
+
+.collection-renderer {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header Styles */
+.collection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.collection-header h2 {
+  margin: 0;
+  color: #3b82f6;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.record-count {
+  background: #2d2d2d;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* Content Styles */
+.collection-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.no-data {
+  text-align: center;
+  color: #9ca3af;
+  padding: 48px;
+  font-size: 16px;
+}
+
+/* Generic JSON View */
+.json-view {
+  background: #2d2d2d;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #ececf1;
+}
+
+/* Card Styles (for individual records) */
+.collection-card {
+  background: #2d2d2d;
+  border-radius: 8px;
+  padding: 20px;
+  border-left: 4px solid #3b82f6;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.collection-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.collection-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.collection-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ececf1;
+  margin: 0;
+}
+
+.collection-card-badge {
+  background: #3b82f6;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.collection-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.collection-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.collection-field-label {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.collection-field-value {
+  font-size: 14px;
+  color: #ececf1;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-active {
+  background: #10b981;
+  color: white;
+}
+
+.status-inactive {
+  background: #6b7280;
+  color: white;
+}
+
+.status-discontinued {
+  background: #ef4444;
+  color: white;
+}
+
+.status-pending {
+  background: #f59e0b;
+  color: white;
+}
+
+/* Priority Badges */
+.priority-high {
+  background: #ef4444;
+  color: white;
+}
+
+.priority-medium {
+  background: #f59e0b;
+  color: white;
+}
+
+.priority-low {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .collection-renderer {
+    padding: 16px;
+  }
+
+  .collection-header h2 {
+    font-size: 20px;
+  }
+
+  .collection-card-body {
+    grid-template-columns: 1fr;
+  }
+}

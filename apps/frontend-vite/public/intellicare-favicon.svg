@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background rounded rectangle -->
+  <rect x="2" y="2" width="28" height="28" rx="6" fill="#667eea"/>
+
+  <!-- AI Brain/Circuit Icon -->
+  <g transform="translate(8, 8)">
+    <!-- Brain outline -->
+    <path d="M8 1.5C6 1.5 4.5 2.5 4.5 4.5C4.5 5 4.6 5.4 4.7 5.8C4.3 6.1 4 6.6 4 7.5C4 8.4 4.6 9.1 5.4 9.3C5.4 9.4 5.4 9.4 5.4 9.5C5.4 10.6 6.4 11.5 7.7 11.5C9 11.5 10 10.6 10 9.5C10 9.4 10 9.4 10 9.3C10.8 9.1 11.4 8.4 11.4 7.5C11.4 6.6 11.1 6.1 10.7 5.8C10.8 5.4 10.9 5 10.9 4.5C10.9 2.5 9.4 1.5 8 1.5Z"
+          stroke="white" stroke-width="1" fill="none"/>
+
+    <!-- Circuit nodes -->
+    <circle cx="6.8" cy="4.5" r="0.8" fill="white"/>
+    <circle cx="9.2" cy="4.5" r="0.8" fill="white"/>
+    <circle cx="8" cy="6.8" r="0.8" fill="white"/>
+
+    <!-- Circuit connections -->
+    <line x1="6.8" y1="4.5" x2="8" y2="6.8" stroke="white" stroke-width="0.6"/>
+    <line x1="9.2" y1="4.5" x2="8" y2="6.8" stroke="white" stroke-width="0.6"/>
+  </g>
+
+  <!-- Medical cross -->
+  <g transform="translate(12, 20)">
+    <rect x="2" y="0.5" width="1" height="4" rx="0.5" fill="white"/>
+    <rect x="0.5" y="2" width="4" height="1" rx="0.5" fill="white"/>
+  </g>
+</svg>

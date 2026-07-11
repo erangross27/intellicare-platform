@@ -1,0 +1,211 @@
+
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discharge Summary</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            direction: ltr;
+        }
+        .header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .abnormal {
+            color: red;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 0.9em;
+            color: #666;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Discharge Summary</h1>
+        <p>Date: 8/21/2025, 12:19:22 PM</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Patient Information</div><table>
+            <tr>
+                <td><strong>Name</strong></td>
+                <td>David Cohen</td>
+            </tr>
+            <tr>
+                <td><strong>ID</strong></td>
+                <td>123456789</td>
+            </tr>
+            <tr>
+                <td><strong>Date of Birth</strong></td>
+                <td>1958-03-15</td>
+            </tr>
+            <tr>
+                <td><strong>Age</strong></td>
+                <td>67</td>
+            </tr>
+            <tr>
+                <td><strong>Gender</strong></td>
+                <td>M</td>
+            </tr>
+            <tr>
+                <td><strong>Address</strong></td>
+                <td>15 Rothschild Blvd, Tel Aviv, 65789, Israel</td>
+            </tr>
+            <tr>
+                <td><strong>Phone</strong></td>
+                <td>050-555-1234</td>
+            </tr>
+            <tr>
+                <td><strong>Email</strong></td>
+                <td>david.cohen@example.com</td>
+            </tr>
+            <tr>
+                <td><strong>insurance</strong></td>
+                <td>{"provider":"Clalit","plan":"Clalit Mushlam","policyNumber":"CL123456"}</td>
+            </tr>
+            <tr>
+                <td><strong>primaryPhysician</strong></td>
+                <td>Dr. Sarah Levy</td>
+            </tr></table></div>
+    <div class="section">
+        <div class="section-title">Patient Information</div><table>
+            <tr>
+                <td><strong>Name</strong></td>
+                <td>David Cohen</td>
+            </tr>
+            <tr>
+                <td><strong>ID</strong></td>
+                <td>123456789</td>
+            </tr>
+            <tr>
+                <td><strong>Date of Birth</strong></td>
+                <td>1958-03-15</td>
+            </tr>
+            <tr>
+                <td><strong>Age</strong></td>
+                <td>67</td>
+            </tr>
+            <tr>
+                <td><strong>Gender</strong></td>
+                <td>M</td>
+            </tr>
+            <tr>
+                <td><strong>Address</strong></td>
+                <td>15 Rothschild Blvd, Tel Aviv, 65789, Israel</td>
+            </tr>
+            <tr>
+                <td><strong>Phone</strong></td>
+                <td>050-555-1234</td>
+            </tr>
+            <tr>
+                <td><strong>Email</strong></td>
+                <td>david.cohen@example.com</td>
+            </tr>
+            <tr>
+                <td><strong>insurance</strong></td>
+                <td>{"provider":"Clalit","plan":"Clalit Mushlam","policyNumber":"CL123456"}</td>
+            </tr>
+            <tr>
+                <td><strong>primaryPhysician</strong></td>
+                <td>Dr. Sarah Levy</td>
+            </tr></table></div>
+    <div class="section">
+        <div class="section-title">admissionDate</div><p>2024-01-15</p></div>
+    <div class="section">
+        <div class="section-title">dischargeDate</div><p>2024-01-20</p></div>
+    <div class="section">
+        <div class="section-title">admittingDiagnosis</div><p>Chest pain, rule out MI</p></div>
+    <div class="section">
+        <div class="section-title">dischargeDiagnosis</div><p>Unstable angina, Type 2 diabetes, Hypertension</p></div>
+    <div class="section">
+        <div class="section-title">hospitalCourse</div><p>Patient admitted with chest pain and elevated troponin. 
+    Cardiac catheterization revealed no significant coronary artery disease. 
+    Blood pressure and glucose control optimized during admission. 
+    Patient stable for discharge with medical management.</p></div>
+    <div class="section">
+        <div class="section-title">procedures</div><ul><li>Cardiac catheterization - no significant coronary disease</li><li>Echocardiogram - EF 55%, mild LVH</li><li>Stress test - negative for ischemia</li></ul></div>
+    <div class="section">
+        <div class="section-title">Medications</div><ul><li>{"name":"Metformin","dosage":"1000mg","frequency":"twice daily","route":"PO","indication":"Type 2 Diabetes"}</li><li>{"name":"Lisinopril","dosage":"20mg","frequency":"once daily","route":"PO","indication":"Hypertension"}</li><li>{"name":"Atorvastatin","dosage":"40mg","frequency":"once daily at bedtime","route":"PO","indication":"Hyperlipidemia"}</li></ul></div>
+    <div class="section">
+        <div class="section-title">Laboratory Results</div><table>
+            <tr>
+                <td><strong>results</strong></td>
+                <td>[object Object], [object Object], [object Object], [object Object], [object Object], [object Object], [object Object], [object Object], [object Object], [object Object], [object Object], [object Object]</td>
+            </tr>
+            <tr>
+                <td><strong>abnormal</strong></td>
+                <td>[object Object]</td>
+            </tr>
+            <tr>
+                <td><strong>critical</strong></td>
+                <td></td>
+            </tr></table></div>
+    <div class="section">
+        <div class="section-title">Vital Signs</div><table>
+            <tr>
+                <td><strong>current</strong></td>
+                <td>{"bloodPressure":"145/88 mmHg","heartRate":"78 bpm","temperature":"36.8°C","respiratoryRate":"18 /min","oxygenSaturation":"96%","weight":"85 kg","height":"175 cm","bmi":"27.8"}</td>
+            </tr>
+            <tr>
+                <td><strong>trends</strong></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td><strong>abnormal</strong></td>
+                <td>Hypertension</td>
+            </tr></table></div>
+    <div class="section">
+        <div class="section-title">Follow-up</div><p>Date: 2024-02-03
+Provider: Dr. Michael Goldstein - Cardiology
+Reason: Post-hospitalization follow-up</p></div>
+    <div class="section">
+        <div class="section-title">recommendations</div><p>1. Continue dual antiplatelet therapy
+2. Increase metformin to 1000mg BID
+3. Continue lisinopril 20mg daily
+4. Start cardiac rehabilitation
+5. Follow up with cardiology in 2 weeks
+6. Lifestyle modifications - diet and exercise</p></div>
+    <div class="footer">
+        <p>Generated by IntelliCare Medical System</p>
+        <p>This is an official medical document</p>
+    </div>
+</body>
+</html>

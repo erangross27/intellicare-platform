@@ -1,0 +1,27 @@
+{
+  "serviceId": "audit-log-service",
+  "serviceName": "Audit Log Service",
+  "description": "Manages audit logs and compliance tracking",
+  "permissions": [
+    "audit:write",
+    "audit:read",
+    "blockchain:write",
+    "metrics:write"
+  ],
+  "allowedClinics": [
+    "*"
+  ],
+  "dataAccessPatterns": [
+    "auditLogs.insert(event)",
+    "blockchain.append(hash)",
+    "auditLogs.find({ userId, date })"
+  ],
+  "schedules": [
+    {
+      "cron": "realtime",
+      "description": "Continuous logging"
+    }
+  ],
+  "criticality": "critical",
+  "requiresMFA": true
+}

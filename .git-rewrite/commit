@@ -1,0 +1,30 @@
+tree 6eebe930bffd238189fb1648f04fabd14ba6fffa
+parent 4c6330a48c43853d33991b99318f57122aded2c4
+author Eran Gross <eran@gross.support> 1754675005 +0300
+committer Eran Gross <eran@gross.support> 1754675005 +0300
+
+Fix patient list loading issues and performance optimizations
+
+- Fixed duplicate MongoDB schema indexes in EmailVerification and LoginToken models
+- Resolved document analysis service multi-tenant database context issues
+- Optimized patient list API performance with field selection and lean queries
+- Added comprehensive caching system to prevent redundant API calls
+- Fixed component mounting/unmounting issues causing data loading failures
+- Added timeout protection and enhanced debugging for API calls
+- Removed ESLint warnings (unused variables, missing dependencies, invalid ARIA attributes)
+- Fixed SubdomainRedirect logic to prevent unnecessary page redirects
+- Improved useEffect dependencies to prevent circular re-renders
+- Enhanced error handling and loading state management
+
+Performance improvements:
+- Reduced patient list payload from 100 to 20 records
+- Added 5-second cache window for patient data
+- Implemented request deduplication to prevent simultaneous calls
+- Added query timing logs and slow query detection (>1000ms)
+- Used lean() queries for better memory efficiency
+
+Bug fixes:
+- Document analysis now uses correct clinic-specific models
+- Patient list component stays mounted during API calls
+- Proper cleanup of loading states and timeouts
+- Fixed authentication state handling in protected routes

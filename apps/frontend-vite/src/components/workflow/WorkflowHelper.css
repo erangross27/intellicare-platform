@@ -1,0 +1,521 @@
+/* Workflow Helper Styles */
+.workflow-helper {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  width: 400px;
+  background: #ffffff;
+  border-left: 1px solid #e1e4e8;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Empty State - Library */
+.workflow-helper--empty {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.workflow-library h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  color: #24292e;
+}
+
+.workflow-category {
+  margin-bottom: 25px;
+}
+
+.workflow-category h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #586069;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.workflow-category ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.workflow-category li {
+  padding: 10px 12px;
+  margin-bottom: 5px;
+  background: #f6f8fa;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  color: #24292e;
+}
+
+.workflow-category li:hover {
+  background: #e1e4e8;
+  transform: translateX(3px);
+}
+
+.workflow-hint {
+  margin-top: 20px;
+  padding: 12px;
+  background: #fff8dc;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #735c0f;
+  border: 1px solid #ffe08a;
+}
+
+/* Header */
+.workflow-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.workflow-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Progress Bar */
+.workflow-progress {
+  padding: 16px 20px;
+  background: #f6f8fa;
+  border-bottom: 1px solid #e1e4e8;
+  flex-shrink: 0;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #e1e4e8;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #586069;
+  font-weight: 500;
+}
+
+/* Steps List */
+.workflow-steps {
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 1px solid #e1e4e8;
+  max-height: 200px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.workflow-step {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.workflow-step--completed {
+  color: #28a745;
+  background: #f0fdf4;
+}
+
+.workflow-step--current {
+  color: #0366d6;
+  background: #f0f6ff;
+  font-weight: 600;
+  border: 1px solid #79b8ff;
+}
+
+.workflow-step--pending {
+  color: #6a737d;
+  background: #fafbfc;
+}
+
+.workflow-step:hover {
+  background: #e1e4e8;
+}
+
+.step-icon {
+  margin-right: 10px;
+  font-size: 16px;
+}
+
+.step-name {
+  flex: 1;
+}
+
+/* Current Commands Section */
+.current-commands {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: white;
+}
+
+.commands-header {
+  margin-bottom: 16px;
+}
+
+.commands-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #24292e;
+  display: flex;
+  align-items: center;
+}
+
+/* Command Sections */
+.command-section {
+  margin-bottom: 24px;
+}
+
+.command-section h5 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #586069;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Command Card */
+.command-card {
+  background: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.command-template {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.command-template code {
+  flex: 1;
+  background: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  color: #032f62;
+  border: 1px solid #e1e4e8;
+}
+
+.required-badge {
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: #ff6b6b;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.command-example {
+  font-size: 12px;
+  color: #586069;
+  margin-bottom: 10px;
+}
+
+.command-example code {
+  background: #fff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #e1e4e8;
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #28a745;
+}
+
+.command-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.copy-btn,
+.use-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e1e4e8;
+}
+
+.copy-btn {
+  background: white;
+  color: #24292e;
+}
+
+.copy-btn:hover {
+  background: #f3f4f6;
+}
+
+.copy-btn.copied {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.use-btn {
+  background: #0366d6;
+  color: white;
+  border-color: #0366d6;
+}
+
+.use-btn:hover {
+  background: #025aa5;
+}
+
+/* Shortcuts */
+.shortcut-card {
+  background: #fff8dc;
+  border: 1px solid #ffe08a;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.shortcut-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #735c0f;
+  margin-bottom: 6px;
+}
+
+.shortcut-command {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shortcut-command code {
+  flex: 1;
+  background: white;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* Examples */
+.examples-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.example-item {
+  padding: 8px 12px;
+  background: #f0f6ff;
+  border: 1px solid #79b8ff;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #0366d6;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.example-item:hover {
+  background: #deebff;
+  transform: translateX(3px);
+}
+
+/* Action Buttons */
+.workflow-actions {
+  padding: 16px 20px;
+  background: #f6f8fa;
+  border-top: 1px solid #e1e4e8;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e1e4e8;
+}
+
+.action-btn--primary {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.action-btn--primary:hover {
+  background: #22863a;
+}
+
+.action-btn--secondary {
+  background: white;
+  color: #24292e;
+}
+
+.action-btn--secondary:hover {
+  background: #f3f4f6;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Help Section */
+.workflow-help {
+  padding: 16px 20px;
+  background: white;
+  border-top: 1px solid #e1e4e8;
+  flex-shrink: 0;
+}
+
+.workflow-help details summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0366d6;
+  outline: none;
+}
+
+.help-content {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e1e4e8;
+}
+
+.help-content p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #586069;
+  padding-left: 16px;
+}
+
+/* Scrollbar Styles */
+.workflow-steps::-webkit-scrollbar,
+.current-commands::-webkit-scrollbar {
+  width: 8px;
+}
+
+.workflow-steps::-webkit-scrollbar-track,
+.current-commands::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.workflow-steps::-webkit-scrollbar-thumb,
+.current-commands::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.workflow-steps::-webkit-scrollbar-thumb:hover,
+.current-commands::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .workflow-helper {
+    width: 100%;
+    right: -100%;
+    transition: right 0.3s ease;
+  }
+  
+  .workflow-helper.active {
+    right: 0;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .workflow-helper {
+    background: #0d1117;
+    border-left-color: #30363d;
+  }
+  
+  .workflow-header {
+    background: linear-gradient(135deg, #4c5c8c 0%, #5a4a7a 100%);
+  }
+  
+  .workflow-progress,
+  .workflow-actions,
+  .workflow-help {
+    background: #161b22;
+    border-color: #30363d;
+  }
+  
+  .progress-bar {
+    background: #30363d;
+  }
+  
+  .workflow-steps,
+  .current-commands {
+    background: #0d1117;
+  }
+  
+  .workflow-step--pending {
+    background: #161b22;
+    color: #8b949e;
+  }
+  
+  .command-card {
+    background: #161b22;
+    border-color: #30363d;
+  }
+  
+  .command-template code,
+  .command-example code {
+    background: #0d1117;
+    border-color: #30363d;
+    color: #79c0ff;
+  }
+}

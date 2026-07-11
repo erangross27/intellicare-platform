@@ -1,0 +1,577 @@
+/* Respiratory Medications Document Template - November 2025 Standards */
+.respiratory-medications-document {
+  background: #0F1B33;
+  color: #ececf1;
+  padding: 24px;
+  font-family: 'Comfortaa', sans-serif;
+  border-radius: 8px;
+  max-width: 1200px;
+  margin: 0 auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Header */
+.respiratory-medications-document .document-header {
+  margin-bottom: 12px;
+}
+
+.respiratory-medications-document .document-title {
+  font-size: 31px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+}
+
+.respiratory-medications-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  flex-direction: row !important;
+  margin-bottom: 20px;
+}
+
+.respiratory-medications-document .action-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #2563eb;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 17px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 120px;
+  flex: 0 0 auto !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.respiratory-medications-document .action-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #ececf1;
+  border-color: #3b82f6;
+}
+
+.respiratory-medications-document .action-btn.copied {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #fff !important;
+}
+
+/* Medications Container */
+.respiratory-medications-document .medications-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* Medication Card */
+.respiratory-medications-document .medication-card {
+  width: 100% !important;
+  background: rgba(96, 165, 250, 0.05);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.respiratory-medications-document .medication-card:hover {
+  border-color: rgba(96, 165, 250, 0.5);
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.15);
+}
+
+/* Card Header */
+.respiratory-medications-document .card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 16px 20px;
+  background: rgba(96, 165, 250, 0.08);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.respiratory-medications-document .medication-name {
+  font-size: 21px;
+  font-weight: 600;
+  color: #ffffff;
+  flex: 1;
+}
+
+.respiratory-medications-document .date-badge {
+  display: flex !important;
+  align-items: center !important;
+  padding: 6px 12px;
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Card Content */
+.respiratory-medications-document .card-content {
+  padding: 24px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px;
+}
+
+/* Section */
+.respiratory-medications-document .section {
+  margin-bottom: 16px;
+}
+
+.respiratory-medications-document .section-title {
+  font-size: 19px;
+  font-weight: 600;
+  color: #60a5fa;
+  margin-bottom: 12px;
+  text-transform: none !important;
+}
+
+/* Numbered Rows Pattern */
+.respiratory-medications-document .numbered-rows-wrapper {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.respiratory-medications-document .numbered-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  gap: 12px;
+}
+
+.respiratory-medications-document .numbered-row-content {
+  flex: 1;
+  color: #ececf1;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.respiratory-medications-document .content-subtitle {
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none;
+  font-size: 17px;
+  margin-bottom: 4px;
+  display: block;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  padding-bottom: 6px;
+}
+
+/* Controller/Reliever Items */
+.respiratory-medications-document .controller-item {
+  background: #0d1929;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  margin-bottom: 8px;
+}
+
+.respiratory-medications-document .controller-item:last-child {
+  margin-bottom: 0;
+}
+
+.respiratory-medications-document .item-header {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ececf1;
+  margin-bottom: 8px;
+}
+
+.respiratory-medications-document .item-detail {
+  font-size: 17px;
+  color: #d1d5db;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.respiratory-medications-document .item-detail .label {
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+/* Empty State */
+.respiratory-medications-document .empty-state,
+.respiratory-medications-document .no-data-message {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 19px;
+}
+
+/* Search Highlighting */
+.respiratory-medications-document mark {
+  display: inline !important;
+  margin: 0 !important;
+  border: none !important;
+  background-color: #fef08a;
+  color: #000;
+  padding: 2px 4px;
+  font-weight: inherit;
+  border-radius: 2px;
+}
+
+/* Search Bar Override - Blue Border */
+.respiratory-medications-document .search-bar-container,
+.respiratory-medications-document .search-container {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.respiratory-medications-document .search-bar-container input,
+.respiratory-medications-document .search-input {
+  border: 2px solid #2563eb !important;
+  border-color: #2563eb !important;
+  width: 100% !important;
+}
+
+.respiratory-medications-document .search-bar-container input:focus,
+.respiratory-medications-document .search-input:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+  outline: none !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .respiratory-medications-document {
+    padding: 16px;
+  }
+
+  .respiratory-medications-document .document-title {
+    font-size: 27px;
+  }
+
+  .respiratory-medications-document .medication-name {
+    font-size: 21px;
+  }
+
+  .respiratory-medications-document .header-actions {
+    width: 100%;
+    justify-content: stretch !important;
+  }
+
+  .respiratory-medications-document .action-btn {
+    flex: 1;
+  }
+
+  .respiratory-medications-document .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .respiratory-medications-document .date-badge {
+    align-self: flex-end;
+  }
+}
+
+/* ===== INLINE EDITING STYLES ===== */
+
+/* Mini-cards container (blue glow border) */
+.respiratory-medications-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Section header inside mini-cards-container */
+.respiratory-medications-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+  margin-bottom: 8px;
+}
+
+.respiratory-medications-document .header-right-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Rec mini card */
+.respiratory-medications-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border-radius: 10px;
+  padding: 12px 16px;
+  border: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+/* Nested subtitle */
+.respiratory-medications-document .nested-subtitle {
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none;
+  font-size: 17px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  padding-bottom: 6px;
+}
+
+/* Row content editable */
+.respiratory-medications-document .row-content {
+  flex: 1;
+  color: #ececf1;
+  font-size: 17px;
+  line-height: 1.6;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.respiratory-medications-document .row-content.editable {
+  cursor: pointer;
+  transition: background 0.15s;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.respiratory-medications-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.respiratory-medications-document .numbered-row-content.editable {
+  cursor: pointer;
+  transition: background 0.15s;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.respiratory-medications-document .numbered-row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+/* Content value */
+.respiratory-medications-document .content-value {
+  flex: 1;
+  font-size: 14px;
+}
+
+/* Edit indicator */
+.respiratory-medications-document .edit-indicator {
+  color: #60a5fa;
+  opacity: 0;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.respiratory-medications-document .row-content.editable:hover .edit-indicator,
+.respiratory-medications-document .numbered-row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Edit field container */
+.respiratory-medications-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.respiratory-medications-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  background: #0d1929;
+  border: 2px solid #3b82f6;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 15px;
+  font-family: 'Comfortaa', sans-serif;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.respiratory-medications-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.respiratory-medications-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.respiratory-medications-document .save-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.respiratory-medications-document .save-btn:hover {
+  background: #3b82f6;
+}
+
+.respiratory-medications-document .save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.respiratory-medications-document .cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.respiratory-medications-document .cancel-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  color: #ececf1;
+}
+
+/* Modified badge */
+.respiratory-medications-document .modified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #fbbf24;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Modified row */
+.respiratory-medications-document .numbered-row.modified {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+/* Approve button */
+.respiratory-medications-document .approve-btn {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+  transition: all 0.2s;
+}
+
+.respiratory-medications-document .approve-btn:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.respiratory-medications-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Pending Approve — YELLOW (edits staged, awaiting approval) */
+.respiratory-medications-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+.respiratory-medications-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+}
+
+/* Approved — GREEN */
+.respiratory-medications-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+/* Editable Yes/No (boolean) select */
+.respiratory-medications-document .edit-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  background: #0d1b2a;
+  color: #ececf1;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Edit row */
+.respiratory-medications-document .numbered-row.edit-row {
+  background: #0d1929;
+  border-color: #3b82f6;
+}
+
+/* Copy button */
+.respiratory-medications-document .copy-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.respiratory-medications-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  color: #ececf1;
+}
+
+.respiratory-medications-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* Plan header for array items */
+.respiratory-medications-document .plan-header {
+  color: #ececf1;
+  font-size: 17px;
+  padding: 4px 0;
+}

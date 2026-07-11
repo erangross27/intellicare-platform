@@ -1,0 +1,12 @@
+{
+  "mongoURI": "mongodb://localhost:27017/intellicare",
+  "jwtSecret": "superdoctor_jwt_secret",
+  "modelAPI": {
+    "baseUrl": "https://api.openai.com/v1",
+    "apiKey": "your_openai_api_key"
+  },
+  "medicalModel": {
+    "provider": "openMRS",
+    "version": "1.0"
+  }
+}

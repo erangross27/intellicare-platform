@@ -1,0 +1,505 @@
+/**
+ * AsthmaActionPlanDocument.css
+ * Blue glow theme with zone badges and inline editing support
+ */
+
+/* ========== DOCUMENT CONTAINER ========== */
+.asthma-action-plan-document {
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  background: #0F1B33;
+  color: #ececf1;
+  padding: 20px;
+  min-height: 100%;
+}
+
+/* ========== DOCUMENT HEADER ========== */
+.asthma-action-plan-document .document-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #2563eb;
+}
+
+.asthma-action-plan-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.asthma-action-plan-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  margin-top: 10px;
+}
+
+/* ========== SEARCH ========== */
+.asthma-action-plan-document .search-container {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.asthma-action-plan-document .search-input {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 17px;
+  font-family: 'Comfortaa', sans-serif;
+  box-sizing: border-box;
+}
+
+.asthma-action-plan-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.asthma-action-plan-document .search-input::placeholder {
+  color: #9ca3af;
+}
+
+.asthma-action-plan-document .clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 23px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.asthma-action-plan-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* ========== EMPTY / NO RESULTS ========== */
+.asthma-action-plan-document .no-data {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+/* ========== RECORDS LIST ========== */
+.asthma-action-plan-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ========== RECORD CARD ========== */
+.asthma-action-plan-document .asthma-action-plan-record {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+/* ========== RECORD HEADER ========== */
+.asthma-action-plan-document .record-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.asthma-action-plan-document .record-meta-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.asthma-action-plan-document .record-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.asthma-action-plan-document .record-date {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+/* ========== STATUS BADGES ========== */
+.asthma-action-plan-document .status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.asthma-action-plan-document .status-badge.status-active {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.asthma-action-plan-document .status-badge.status-pending {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.asthma-action-plan-document .status-badge.status-completed {
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+}
+
+/* ========== ZONE BADGES ========== */
+.asthma-action-plan-document .zone-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 12px;
+}
+
+.asthma-action-plan-document .zone-badge.zone-green {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.asthma-action-plan-document .zone-badge.zone-yellow {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.asthma-action-plan-document .zone-badge.zone-red {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* ========== SECTION ========== */
+.asthma-action-plan-document .section {
+  margin-bottom: 20px;
+}
+
+/* Section Header — INSIDE mini-cards-container */
+.asthma-action-plan-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.asthma-action-plan-document .section-title-with-badge {
+  display: flex;
+  align-items: center;
+}
+
+.asthma-action-plan-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Header Right Actions — column layout (copy on top, approve below) */
+.asthma-action-plan-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* ========== MINI CARDS CONTAINER ========== */
+.asthma-action-plan-document .mini-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+/* ========== REC MINI CARD ========== */
+.asthma-action-plan-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.asthma-action-plan-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 4px;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+/* ========== NUMBERED ROW ========== */
+.asthma-action-plan-document .numbered-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.asthma-action-plan-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.asthma-action-plan-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ========== COPY BUTTONS ========== */
+.asthma-action-plan-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.asthma-action-plan-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.asthma-action-plan-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Header Copy All / Export PDF buttons */
+.asthma-action-plan-document .header-actions .copy-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.asthma-action-plan-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========== EDITING STYLES ========== */
+
+/* Editable row — pencil icon on hover */
+.asthma-action-plan-document .editable-row {
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.asthma-action-plan-document .editable-row:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.asthma-action-plan-document .edit-indicator {
+  opacity: 0;
+  color: #60a5fa;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.asthma-action-plan-document .editable-row:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Modified row — blue glow */
+.asthma-action-plan-document .numbered-row.modified {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.15);
+}
+
+/* Edit field container */
+.asthma-action-plan-document .edit-field-container {
+  width: 100%;
+}
+
+.asthma-action-plan-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.asthma-action-plan-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+.asthma-action-plan-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.asthma-action-plan-document .save-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.asthma-action-plan-document .save-btn:hover {
+  background: #3b82f6;
+}
+
+.asthma-action-plan-document .cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.asthma-action-plan-document .cancel-btn:hover {
+  border-color: #9ca3af;
+  color: #ececf1;
+}
+
+/* Modified badge */
+.asthma-action-plan-document .modified-badge {
+  font-size: 11px;
+  color: #facc15;
+  padding: 2px 8px;
+  font-style: italic;
+}
+
+.asthma-action-plan-document .modified-badge.added {
+  color: #4ade80;
+}
+
+/* ========== APPROVE BUTTON ========== */
+.asthma-action-plan-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+/* Pending — YELLOW */
+.asthma-action-plan-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.asthma-action-plan-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+/* Approved — GREEN */
+.asthma-action-plan-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+  cursor: default;
+}
+
+/* ========== SEARCH HIGHLIGHTING ========== */
+.asthma-action-plan-document mark {
+  background: #fbbf24;
+  color: #000;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .asthma-action-plan-document {
+    padding: 16px;
+  }
+
+  .asthma-action-plan-document .document-title {
+    font-size: 22px;
+  }
+
+  .asthma-action-plan-document .header-actions {
+    flex-direction: column;
+  }
+
+  .asthma-action-plan-document .section-title-with-badge {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .asthma-action-plan-document .zone-badge {
+    margin-left: 0;
+  }
+}

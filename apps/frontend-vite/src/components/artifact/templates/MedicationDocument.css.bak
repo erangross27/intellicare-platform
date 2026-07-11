@@ -1,0 +1,257 @@
+/* MedicationDocument Template Styling */
+
+.medication-document {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.document-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #343541;
+  margin: 0 0 24px 0;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #4a9eff;
+}
+
+/* Section styling */
+.medication-section {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #ececf1;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #565869;
+}
+
+.discontinued-section {
+  opacity: 0.7;
+}
+
+.discontinued-section .section-title {
+  color: #c5c5d2;
+}
+
+/* Medication list */
+.medication-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Individual medication item */
+.medication-item {
+  background: #2d2e38;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  padding: 20px;
+  transition: box-shadow 0.2s ease;
+}
+
+.medication-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Medication header */
+.medication-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #565869;
+}
+
+.medication-name-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.medication-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #343541;
+  margin: 0;
+}
+
+.medication-generic {
+  font-size: 14px;
+  color: #c5c5d2;
+  font-weight: normal;
+}
+
+.medication-status {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-discontinued,
+.status-stopped {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Detail sections */
+.medication-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-section h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ececf1;
+  margin: 0;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.detail-item {
+  display: flex;
+  gap: 8px;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #555;
+  min-width: 100px;
+}
+
+.detail-value {
+  color: #343541;
+}
+
+.detail-item-full {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-text {
+  color: #343541;
+  margin: 0;
+  line-height: 1.6;
+  padding: 8px;
+  background: #2d2e38;
+  border-radius: 4px;
+  border-left: 3px solid #4a9eff;
+}
+
+/* Safety section */
+.safety-section {
+  background: #fff9e6;
+  border-radius: 6px;
+  padding: 12px;
+  border: 1px solid #ffcc00;
+}
+
+.safety-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.safety-item:last-child {
+  margin-bottom: 0;
+}
+
+.safety-label {
+  font-weight: 600;
+  color: #b8860b;
+  font-size: 14px;
+}
+
+.safety-text {
+  color: #ececf1;
+  margin: 0;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 64px;
+  opacity: 0.3;
+}
+
+.empty-state p {
+  font-size: 16px;
+  color: #999;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .document-title {
+    font-size: 24px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .medication-name {
+    font-size: 18px;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .medication-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .medication-item {
+    page-break-inside: avoid;
+    border: 1px solid #000;
+    background: transparent;
+  }
+
+  .safety-section {
+    background: transparent;
+    border: 2px solid #000;
+  }
+
+  .medication-status {
+    border: 1px solid #000;
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "billing-insurance",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/billing-insurance",
+  "projectType": "library", 
+  "targets": {},
+  "tags": ["scope:billing", "type:context", "compliance:pci", "compliance:sox"],
+  "implicitDependencies": []
+}

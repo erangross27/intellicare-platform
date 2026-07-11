@@ -1,0 +1,477 @@
+/**
+ * Additional Data Document CSS
+ * Blue-only color scheme, Comfortaa font, text-transform: none !important
+ */
+
+.additional-data-document {
+  padding: 24px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Document Title - 31px BIGGEST */
+.additional-data-document .document-title {
+  font-size: 31px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0 0 20px 0;
+  text-transform: none !important;
+}
+
+/* Document Header */
+.additional-data-document .document-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #565869;
+}
+
+.additional-data-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  flex-direction: row !important;
+}
+
+/* Search Container */
+.additional-data-document .search-container {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.additional-data-document .search-input {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 17px;
+  font-family: 'Comfortaa', sans-serif;
+  box-sizing: border-box;
+}
+
+.additional-data-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.additional-data-document .search-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Empty State */
+.additional-data-document .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.additional-data-document .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.additional-data-document .empty-text {
+  color: #9ca3af;
+  font-size: 19px;
+}
+
+/* No Results */
+.additional-data-document .no-results {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+}
+
+/* Records List */
+.additional-data-document .records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.additional-data-document .record-card {
+  background: #1e1f2e;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Card Header */
+.additional-data-document .card-header {
+  display: flex;
+  flex-direction: column !important;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(96, 165, 250, 0.08) 100%);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.additional-data-document .header-top-row {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+  width: 100% !important;
+}
+
+.additional-data-document .card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Card Title - 23px */
+.additional-data-document .card-title {
+  font-size: 23px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Card Content */
+.additional-data-document .card-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Badges */
+.additional-data-document .date-badge {
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Mini Cards Container */
+.additional-data-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Individual Mini Card */
+.additional-data-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Numbered Row */
+.additional-data-document .numbered-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  gap: 12px;
+}
+
+.additional-data-document .row-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+/* Nested Subtitle - 17px LIGHT BRIGHT BLUE */
+.additional-data-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+
+/* Content Subtitle — used inside object fields */
+.additional-data-document .content-subtitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #93c5fd;
+  margin-bottom: 2px;
+}
+
+/* Content Value - 17px WHITE */
+.additional-data-document .content-value {
+  font-size: 17px;
+  color: #ececf1;
+  line-height: 1.6;
+}
+
+/* Section Title - 19px BLUE */
+.additional-data-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Section Header */
+.additional-data-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Copy Button */
+.additional-data-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.additional-data-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: #60a5fa;
+}
+
+.additional-data-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* PDF Button */
+.additional-data-document .pdf-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.additional-data-document .pdf-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Search Highlight */
+.additional-data-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* No Data Message */
+.additional-data-document .no-data-message {
+  color: #9ca3af;
+  font-size: 16px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+/* ─── Editing Styles ────────────────────────────────────────── */
+
+/* Header right actions — column layout: copy on top, approve below */
+.additional-data-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Edit field container — MUST have width: 100% */
+.additional-data-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Edit textarea */
+.additional-data-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  background: #0d1929;
+  color: #ececf1;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.additional-data-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+/* Edit actions (Save / Cancel) */
+.additional-data-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.additional-data-document .save-btn {
+  padding: 6px 16px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.additional-data-document .save-btn:hover {
+  background: #1d4ed8;
+}
+
+.additional-data-document .save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.additional-data-document .cancel-btn {
+  padding: 6px 16px;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.additional-data-document .cancel-btn:hover {
+  background: rgba(75, 85, 99, 0.2);
+  color: #ececf1;
+}
+
+/* Editable row content — cursor pointer + edit indicator */
+.additional-data-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+}
+
+.additional-data-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.05);
+  border-radius: 4px;
+}
+
+.additional-data-document .edit-indicator {
+  margin-left: 8px;
+  color: rgba(96, 165, 250, 0.4);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.additional-data-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Modified row — yellow border + tint */
+.additional-data-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+/* Modified badge — styled badge below numbered-row */
+.additional-data-document .modified-badge {
+  font-size: 11px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.additional-data-document .modified-badge.added {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* Approve button — base */
+.additional-data-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+/* Pending Approve — YELLOW */
+.additional-data-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.additional-data-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+/* Approved — GREEN */
+.additional-data-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.additional-data-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}

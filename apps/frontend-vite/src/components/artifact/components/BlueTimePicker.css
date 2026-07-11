@@ -1,0 +1,49 @@
+/* BlueTimePicker — compact single-row time control, blue-glow theme (matches BlueDatePicker + the −/+ num-stepper).
+   Self-scoped under .blue-time-picker so it drops into any template's edit container.
+   One low row that fills the edit-row width:  [−] HH [+]  :  [−] MM [+]   [AM|PM]   Now  */
+.blue-time-picker {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px;
+  width: 100%; box-sizing: border-box;
+  background: #0F1B33; border: 1px solid rgba(96, 165, 250, 0.4); border-radius: 10px;
+  padding: 8px 12px;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; user-select: none;
+}
+
+/* HH : MM cluster (kept tight so the colon never drifts) */
+.blue-time-picker .btp-time { display: flex; align-items: center; gap: 10px; }
+.blue-time-picker .btp-unit { display: flex; align-items: center; gap: 8px; }
+.blue-time-picker .btp-num {
+  min-width: 40px; text-align: center; color: #ececf1; font-size: 22px; font-weight: 700;
+  letter-spacing: 1px; font-variant-numeric: tabular-nums;
+}
+.blue-time-picker .btp-colon { color: #60a5fa; font-size: 20px; font-weight: 700; }
+
+/* −/+ step buttons (mirror the template num-stepper) */
+.blue-time-picker .btp-step {
+  width: 30px; height: 30px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+  background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.45); border-radius: 8px;
+  color: #93c5fd; font-size: 18px; font-weight: 700; line-height: 1; cursor: pointer; transition: all 0.15s ease;
+}
+.blue-time-picker .btp-step:hover { background: rgba(96, 165, 250, 0.28); border-color: #60a5fa; color: #dbeafe; }
+.blue-time-picker .btp-step:active { transform: scale(0.92); }
+
+/* AM / PM segmented toggle */
+.blue-time-picker .btp-mer-toggle {
+  display: inline-flex; border: 1px solid rgba(96, 165, 250, 0.45); border-radius: 8px; overflow: hidden;
+}
+.blue-time-picker .btp-mer {
+  padding: 7px 14px; background: transparent; border: none; color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.blue-time-picker .btp-mer + .btp-mer { border-left: 1px solid rgba(96, 165, 250, 0.45); }
+.blue-time-picker .btp-mer:not(.active):hover { background: rgba(96, 165, 250, 0.15); color: #dbeafe; }
+.blue-time-picker .btp-mer.active { background: #2563eb; color: #ffffff; box-shadow: inset 0 0 12px rgba(147, 197, 253, 0.35); }
+
+/* Now — quiet ghost button */
+.blue-time-picker .btp-now-btn {
+  padding: 7px 14px; background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 8px; color: #93c5fd; font-family: 'Comfortaa', sans-serif; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.blue-time-picker .btp-now-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: #60a5fa; color: #dbeafe; }

@@ -1,0 +1,556 @@
+/**
+ * AthleteSpecificDataDocument.css
+ * Blue glow theme with inline editing support
+ */
+
+/* Container */
+.athlete-specific-data-document {
+  padding: 20px;
+  background: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  min-height: 100%;
+}
+
+/* Header — block layout, buttons below title */
+.athlete-specific-data-document .document-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #2563eb;
+}
+
+.athlete-specific-data-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.athlete-specific-data-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  margin-top: 10px;
+}
+
+/* Records Container */
+.athlete-specific-data-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.athlete-specific-data-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.athlete-specific-data-document .record-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.athlete-specific-data-document .record-meta-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.athlete-specific-data-document .record-title-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.athlete-specific-data-document .record-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.athlete-specific-data-document .record-date {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+/* Section */
+.athlete-specific-data-document .section {
+  margin-bottom: 20px;
+}
+
+/* Section Header — INSIDE mini-cards-container */
+.athlete-specific-data-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.athlete-specific-data-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Header Right Actions — column layout (copy on top, approve below) */
+.athlete-specific-data-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Mini Cards Container */
+.athlete-specific-data-document .mini-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+/* Rec Mini Card */
+.athlete-specific-data-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.athlete-specific-data-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 4px;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+/* Numbered Row */
+.athlete-specific-data-document .numbered-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.athlete-specific-data-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.athlete-specific-data-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ==================== EDITING STYLES ==================== */
+
+/* Editable row — pencil icon on hover */
+.athlete-specific-data-document .editable-row {
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.athlete-specific-data-document .editable-row:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.athlete-specific-data-document .edit-indicator {
+  opacity: 0;
+  color: #60a5fa;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.athlete-specific-data-document .editable-row:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Modified row — blue glow */
+.athlete-specific-data-document .numbered-row.modified {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.15);
+}
+
+/* Edit field container */
+.athlete-specific-data-document .edit-field-container {
+  width: 100%;
+}
+
+.athlete-specific-data-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.athlete-specific-data-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+.athlete-specific-data-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.athlete-specific-data-document .save-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.athlete-specific-data-document .save-btn:hover {
+  background: #3b82f6;
+}
+
+.athlete-specific-data-document .cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.athlete-specific-data-document .cancel-btn:hover {
+  border-color: #9ca3af;
+  color: #ececf1;
+}
+
+/* Modified badge */
+.athlete-specific-data-document .modified-badge {
+  font-size: 11px;
+  color: #facc15;
+  padding: 2px 8px;
+  font-style: italic;
+}
+
+.athlete-specific-data-document .modified-badge.added {
+  color: #4ade80;
+}
+
+/* ==================== APPROVE BUTTON ==================== */
+
+.athlete-specific-data-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+/* Pending — YELLOW */
+.athlete-specific-data-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.athlete-specific-data-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+/* Approved — GREEN */
+.athlete-specific-data-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.athlete-specific-data-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+/* ==================== COPY BUTTON ==================== */
+
+.athlete-specific-data-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.athlete-specific-data-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.athlete-specific-data-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Header Copy All / Export PDF buttons */
+.athlete-specific-data-document .header-actions .copy-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.athlete-specific-data-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ==================== BAR CHART ==================== */
+
+.athlete-specific-data-document .chart-category {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.athlete-specific-data-document .category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+.athlete-specific-data-document .category-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none;
+}
+
+.athlete-specific-data-document .category-description {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+  text-align: right;
+}
+
+.athlete-specific-data-document .bar-chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+}
+
+.athlete-specific-data-document .bar-chart-row:hover {
+  border-color: #60a5fa;
+}
+
+.athlete-specific-data-document .bar-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.athlete-specific-data-document .bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.athlete-specific-data-document .bar-background {
+  flex: 1;
+  height: 24px;
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #565869;
+}
+
+.athlete-specific-data-document .bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.athlete-specific-data-document .bar-value {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.athlete-specific-data-document .bar-interpretation {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Highlight */
+.athlete-specific-data-document mark {
+  background: #fbbf24;
+  color: #000;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+/* Empty State */
+.athlete-specific-data-document .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .athlete-specific-data-document {
+    padding: 16px;
+  }
+
+  .athlete-specific-data-document .document-title {
+    font-size: 22px;
+  }
+
+  .athlete-specific-data-document .header-actions {
+    flex-direction: column;
+  }
+}
+/* Sub-field label for injury items */
+.athlete-specific-data-document .sub-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #93c5fd;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+/* ==================== BOOLEAN / SELECT EDIT ==================== */
+.athlete-specific-data-document .edit-select {
+  width: 100%;
+  padding: 10px 14px;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.athlete-specific-data-document .edit-select:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+.athlete-specific-data-document .edit-select option {
+  background: #0F1B33;
+  color: #ececf1;
+}
+
+/* ==================== NESTED OBJECT (results) ==================== */
+.athlete-specific-data-document .nested-mini-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.athlete-specific-data-document .nested-subtitle.sub-label {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.athlete-specific-data-document .nested-group {
+  margin-top: 6px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(96, 165, 250, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

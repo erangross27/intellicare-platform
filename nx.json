@@ -1,0 +1,53 @@
+{
+  "npmScope": "intellicare",
+  "affected": {
+    "defaultBase": "main"
+  },
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "test", "lint"],
+        "parallel": 3
+      }
+    }
+  },
+  "projects": {
+    "patient-management": {
+      "tags": ["scope:patient", "type:feature"]
+    },
+    "clinical-care": {
+      "tags": ["scope:clinical", "type:feature"]
+    },
+    "medical-records": {
+      "tags": ["scope:medical", "type:feature"]
+    },
+    "billing-insurance": {
+      "tags": ["scope:billing", "type:feature"]
+    },
+    "compliance-security": {
+      "tags": ["scope:compliance", "type:feature"]
+    },
+    "communication": {
+      "tags": ["scope:communication", "type:feature"]
+    },
+    "ai-analytics": {
+      "tags": ["scope:ai", "type:feature"]
+    },
+    "infrastructure": {
+      "tags": ["scope:infrastructure", "type:utility"]
+    },
+    "integration": {
+      "tags": ["scope:integration", "type:utility"]
+    },
+    "learning-training": {
+      "tags": ["scope:learning", "type:feature"]
+    },
+    "operations": {
+      "tags": ["scope:operations", "type:utility"]
+    },
+    "shared": {
+      "tags": ["scope:shared", "type:utility"]
+    }
+  }
+}

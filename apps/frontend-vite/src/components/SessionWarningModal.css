@@ -1,0 +1,190 @@
+/* Session Warning Modal Styles */
+.session-warning-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.session-warning-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease-out;
+  text-align: center;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.session-warning-modal.rtl {
+  direction: rtl;
+}
+
+.session-warning-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.session-warning-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 16px 0;
+}
+
+.session-warning-message {
+  font-size: 16px;
+  color: #666;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.session-warning-submessage {
+  font-size: 15px;
+  color: #666;
+  margin: 0 0 24px 0;
+}
+
+.session-warning-countdown {
+  margin: 24px 0;
+}
+
+.countdown-number {
+  display: inline-block;
+  font-size: 36px;
+  font-weight: bold;
+  color: #ff4444;
+  font-variant-numeric: tabular-nums;
+  min-width: 100px;
+}
+
+.session-warning-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.session-warning-button {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 140px;
+}
+
+.session-warning-button.primary {
+  background: #4CAF50;
+  color: white;
+}
+
+.session-warning-button.primary:hover {
+  background: #45a049;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.session-warning-button.secondary {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.session-warning-button.secondary:hover {
+  background: #e0e0e0;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .session-warning-modal {
+    background: #2a2a2a;
+    color: #f0f0f0;
+  }
+  
+  .session-warning-title {
+    color: #f0f0f0;
+  }
+  
+  .session-warning-message,
+  .session-warning-submessage {
+    color: #b0b0b0;
+  }
+  
+  .session-warning-button.secondary {
+    background: #3a3a3a;
+    color: #b0b0b0;
+  }
+  
+  .session-warning-button.secondary:hover {
+    background: #4a4a4a;
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .session-warning-modal {
+    padding: 24px;
+    width: 95%;
+  }
+  
+  .session-warning-title {
+    font-size: 20px;
+  }
+  
+  .session-warning-message,
+  .session-warning-submessage {
+    font-size: 14px;
+  }
+  
+  .countdown-number {
+    font-size: 28px;
+  }
+  
+  .session-warning-actions {
+    flex-direction: column;
+  }
+  
+  .session-warning-button {
+    width: 100%;
+  }
+}

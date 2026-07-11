@@ -1,0 +1,559 @@
+/* Psychiatric Assessment Scales Document - February 2026 Blue Glow Theme */
+
+.psychiatric-assessment-scales-document {
+  width: 100%;
+  background: #0F1B33;
+  color: #ececf1;
+  padding: 24px;
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 80px);
+  box-sizing: border-box;
+}
+
+/* Header */
+.psychiatric-assessment-scales-document .document-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.psychiatric-assessment-scales-document .header-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.psychiatric-assessment-scales-document .header-title h2 {
+  margin: 0;
+  font-size: 31px;
+  font-weight: 600;
+  color: #60a5fa;
+  text-transform: none !important;
+}
+
+.psychiatric-assessment-scales-document .record-count {
+  font-size: 17px;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.psychiatric-assessment-scales-document .header-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end !important;
+  flex: 0 0 auto !important;
+}
+
+.psychiatric-assessment-scales-document .copy-all-btn,
+.psychiatric-assessment-scales-document .export-pdf-btn {
+  padding: 10px 20px;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  background: transparent;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 0 0 auto !important;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.psychiatric-assessment-scales-document .copy-all-btn:hover,
+.psychiatric-assessment-scales-document .export-pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.psychiatric-assessment-scales-document .copy-all-btn.copied,
+.psychiatric-assessment-scales-document .export-pdf-btn.success {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #fff !important;
+}
+
+/* Search Bar */
+.psychiatric-assessment-scales-document .search-container {
+  margin-bottom: 24px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.psychiatric-assessment-scales-document .search-bar {
+  flex: 1;
+  padding: 12px 16px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 17px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.psychiatric-assessment-scales-document .search-bar:focus {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.psychiatric-assessment-scales-document .search-bar::placeholder {
+  color: #9ca3af;
+}
+
+.psychiatric-assessment-scales-document .clear-search {
+  padding: 10px 20px;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  background: transparent;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.psychiatric-assessment-scales-document .clear-search:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+/* Highlight - CRITICAL: mark must stay inline */
+.psychiatric-assessment-scales-document mark {
+  display: inline !important;
+  background-color: #fef08a !important;
+  color: #000 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  font-weight: inherit !important;
+  border-radius: 0 !important;
+}
+
+/* Records Container */
+.psychiatric-assessment-scales-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.psychiatric-assessment-scales-document .record-card {
+  background: rgba(96, 165, 250, 0.04);
+  border: 2px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.psychiatric-assessment-scales-document .record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.psychiatric-assessment-scales-document .record-header h3 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 600;
+  color: #ececf1;
+  text-transform: none !important;
+}
+
+.psychiatric-assessment-scales-document .record-header-badges {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.psychiatric-assessment-scales-document .date-badge {
+  font-size: 17px;
+  color: #93c5fd;
+  font-weight: 500;
+}
+
+/* Field Container */
+.psychiatric-assessment-scales-document .field-container {
+  margin-bottom: 20px;
+}
+
+.psychiatric-assessment-scales-document .field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.psychiatric-assessment-scales-document .field-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  text-transform: none !important;
+}
+
+/* Section Copy Button */
+.psychiatric-assessment-scales-document .section-copy-btn {
+  padding: 6px 14px;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  background: transparent;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.psychiatric-assessment-scales-document .section-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+}
+
+.psychiatric-assessment-scales-document .section-copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* Mini-Cards Container (Outer Blue Glow Box) */
+.psychiatric-assessment-scales-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Individual Mini Card */
+.psychiatric-assessment-scales-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Nested Subtitle (Light Bright Blue) */
+.psychiatric-assessment-scales-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* Nested OBJECT (results) — recursive group + nested mini cards */
+.psychiatric-assessment-scales-document .nested-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(96, 165, 250, 0.2);
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.psychiatric-assessment-scales-document .nested-mini-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Numbered Row (Very Dark Blue Background) */
+.psychiatric-assessment-scales-document .numbered-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+/* Row Content */
+.psychiatric-assessment-scales-document .row-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Content Value */
+.psychiatric-assessment-scales-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Copy Button */
+.psychiatric-assessment-scales-document .copy-btn {
+  background-color: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.psychiatric-assessment-scales-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+}
+
+.psychiatric-assessment-scales-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* Empty State */
+.psychiatric-assessment-scales-document .empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #9ca3af;
+  font-size: 19px;
+}
+
+.psychiatric-assessment-scales-document .no-data-message {
+  text-align: center;
+  padding: 32px;
+  color: #9ca3af;
+  font-size: 17px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+}
+
+/* ========================= EDITING — Inline Edit UI ========================= */
+
+/* Editable row content — hover effect */
+.psychiatric-assessment-scales-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.psychiatric-assessment-scales-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.06);
+}
+
+.psychiatric-assessment-scales-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Edit indicator (pencil + tag) — appears on hover */
+.psychiatric-assessment-scales-document .edit-indicator {
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #60a5fa;
+  margin-top: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.psychiatric-assessment-scales-document .edit-tag {
+  font-size: 10px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Modified row — amber border for pending approval */
+.psychiatric-assessment-scales-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+.psychiatric-assessment-scales-document .modified-badge {
+  font-size: 11px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* Inline edit row */
+.psychiatric-assessment-scales-document .numbered-row.edit-row {
+  flex-direction: column;
+  padding: 12px 16px;
+}
+
+.psychiatric-assessment-scales-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.psychiatric-assessment-scales-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid rgba(96, 165, 250, 0.5);
+  border-radius: 8px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.psychiatric-assessment-scales-document .edit-textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+.psychiatric-assessment-scales-document .edit-textarea:disabled {
+  opacity: 0.6;
+}
+
+.psychiatric-assessment-scales-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.psychiatric-assessment-scales-document .edit-save-btn {
+  background: linear-gradient(135deg, #667eea 0%, #2563eb 100%);
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 7px 20px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.psychiatric-assessment-scales-document .edit-save-btn:hover {
+  background: linear-gradient(135deg, #5a6fe8 0%, #1d4ed8 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.psychiatric-assessment-scales-document .edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.psychiatric-assessment-scales-document .edit-cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  color: #94a3b8;
+  padding: 7px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.psychiatric-assessment-scales-document .edit-cancel-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #cbd5e1;
+}
+
+.psychiatric-assessment-scales-document .edit-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Approve button — yellow pending, green approved */
+.psychiatric-assessment-scales-document .approve-btn {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  border-radius: 6px;
+  color: #eab308;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.psychiatric-assessment-scales-document .approve-btn:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.6);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.15);
+}
+
+.psychiatric-assessment-scales-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.psychiatric-assessment-scales-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+.psychiatric-assessment-scales-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Header right actions — copy + approve */
+.psychiatric-assessment-scales-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}

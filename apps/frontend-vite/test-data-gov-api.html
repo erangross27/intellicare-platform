@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test data.gov.il API with JSONP</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .search-box {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        input {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .result-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-right: 4px solid #28a745;
+            border-radius: 4px;
+        }
+        .error {
+            color: #dc3545;
+            padding: 10px;
+            background: #f8d7da;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #155724;
+            padding: 10px;
+            background: #d4edda;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .loading {
+            color: #0c5460;
+            padding: 10px;
+            background: #d1ecf1;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 בדיקת API של data.gov.il עם JSONP</h1>
+        
+        <div class="search-box">
+            <h2>חיפוש רחובות לפי עיר</h2>
+            <input type="text" id="citySearch" placeholder="הקלד שם עיר (למשל: נס ציונה)" value="נס ציונה">
+            <button onclick="searchCity()">חפש</button>
+            <button onclick="testAll()">הרץ כל הבדיקות</button>
+        </div>
+
+        <div class="stats" id="stats"></div>
+        
+        <div id="status"></div>
+        <div id="results" class="results"></div>
+
+        <h2>בדיקות אוטומטיות</h2>
+        <div id="tests"></div>
+    </div>
+
+    <script>
+        const RESOURCE_ID = '9ad3862c-8391-4b2f-84a4-2d4c68625f4b';
+        const API_URL = 'https://data.gov.il/api/3/action/datastore_search';
+        
+        // Helper function to make JSONP requests
+        function dataGovRequest(params, callback) {
+            const data = {
+                resource_id: RESOURCE_ID,
+                ...params
+            };
+            
+            return $.ajax({
+                url: API_URL,
+                data: data,
+                dataType: 'jsonp',
+                success: callback,
+                error: function(xhr, status, error) {
+                    console.error('JSONP Error:', error);
+                    showError('שגיאה בקריאה ל-API: ' + error);
+                }
+            });
+        }
+        
+        function showLoading(message = 'טוען...') {
+            $('#status').html(`<div class="loading">${message}</div>`);
+        }
+        
+        function showSuccess(message) {
+            $('#status').html(`<div class="success">${message}</div>`);
+        }
+        
+        function showError(message) {
+            $('#status').html(`<div class="error">${message}</div>`);
+        }
+        
+        // Search for a city
+        function searchCity() {
+            const city = $('#citySearch').val();
+            if (!city) {
+                showError('אנא הזן שם עיר');
+                return;
+            }
+            
+            showLoading(`מחפש רחובות ב${city}...`);
+            
+            dataGovRequest({
+                q: city,
+                limit: 20
+            }, function(data) {
+                if (data.success) {
+                    showSuccess(`נמצאו ${data.result.total} רשומות עבור "${city}"`);
+                    
+                    let html = `<h3>רחובות ב${city}:</h3>`;
+                    const streets = {};
+                    
+                    // Group by street name to avoid duplicates
+                    data.result.records.forEach(record => {
+                        const streetName = record['שם_רחוב'];
+                        const cityName = record['שם_ישוב'];
+                        
+                        if (cityName && cityName.includes(city)) {
+                            if (!streets[streetName]) {
+                                streets[streetName] = {
+                                    name: streetName,
+                                    code: record['סמל_רחוב'],
+                                    city: cityName,
+                                    cityCode: record['סמל_ישוב']
+                                };
+                            }
+                        }
+                    });
+                    
+                    Object.values(streets).forEach(street => {
+                        html += `<div class="result-item">
+                            <strong>${street.name}</strong> 
+                            (קוד: ${street.code}) - 
+                            ${street.city} (קוד עיר: ${street.cityCode})
+                        </div>`;
+                    });
+                    
+                    $('#results').html(html);
+                    
+                    // Update stats
+                    updateStats({
+                        totalRecords: data.result.total,
+                        uniqueStreets: Object.keys(streets).length,
+                        cityCode: Object.values(streets)[0]?.cityCode
+                    });
+                } else {
+                    showError('התגובה מה-API לא הצליחה');
+                }
+            });
+        }
+        
+        function updateStats(stats) {
+            let html = '';
+            if (stats.totalRecords !== undefined) {
+                html += `<div class="stat-card">
+                    <div class="stat-value">${stats.totalRecords}</div>
+                    <div class="stat-label">סה"כ רשומות</div>
+                </div>`;
+            }
+            if (stats.uniqueStreets !== undefined) {
+                html += `<div class="stat-card">
+                    <div class="stat-value">${stats.uniqueStreets}</div>
+                    <div class="stat-label">רחובות ייחודיים</div>
+                </div>`;
+            }
+            if (stats.cityCode !== undefined) {
+                html += `<div class="stat-card">
+                    <div class="stat-value">${stats.cityCode}</div>
+                    <div class="stat-label">קוד עיר</div>
+                </div>`;
+            }
+            $('#stats').html(html);
+        }
+        
+        // Run all tests
+        function testAll() {
+            $('#tests').html('');
+            
+            const tests = [
+                { name: 'בדיקת חיבור בסיסית', func: testBasicConnection },
+                { name: 'חיפוש דוד לנדאו', func: testDavidLandau },
+                { name: 'ספירת רחובות בערים גדולות', func: testMajorCities },
+                { name: 'בדיקת שדות זמינים', func: testAvailableFields }
+            ];
+            
+            let currentTest = 0;
+            
+            function runNextTest() {
+                if (currentTest < tests.length) {
+                    const test = tests[currentTest];
+                    $('#tests').append(`<h3>${test.name}</h3><div id="test${currentTest}"></div>`);
+                    test.func(`#test${currentTest}`, () => {
+                        currentTest++;
+                        setTimeout(runNextTest, 500);
+                    });
+                }
+            }
+            
+            runNextTest();
+        }
+        
+        function testBasicConnection(containerId, callback) {
+            dataGovRequest({
+                limit: 1
+            }, function(data) {
+                if (data.success) {
+                    $(containerId).html(`
+                        <div class="success">
+                            ✅ חיבור מוצלח!<br>
+                            סה"כ רשומות במאגר: ${data.result.total.toLocaleString()}<br>
+                            שדות זמינים: ${data.result.fields.map(f => f.id).join(', ')}
+                        </div>
+                    `);
+                } else {
+                    $(containerId).html('<div class="error">❌ החיבור נכשל</div>');
+                }
+                callback();
+            });
+        }
+        
+        function testDavidLandau(containerId, callback) {
+            dataGovRequest({
+                q: 'דוד לנדאו נס ציונה',
+                limit: 5
+            }, function(data) {
+                if (data.success && data.result.records.length > 0) {
+                    const record = data.result.records[0];
+                    $(containerId).html(`
+                        <div class="success">
+                            ✅ נמצא רחוב דוד לנדאו!<br>
+                            עיר: ${record['שם_ישוב']}<br>
+                            רחוב: ${record['שם_רחוב']}<br>
+                            קוד רחוב: ${record['סמל_רחוב']}
+                        </div>
+                    `);
+                } else {
+                    $(containerId).html('<div class="error">❌ לא נמצא רחוב דוד לנדאו</div>');
+                }
+                callback();
+            });
+        }
+        
+        function testMajorCities(containerId, callback) {
+            const cities = ['ירושלים', 'תל אביב-יפו', 'חיפה'];
+            let results = [];
+            let completed = 0;
+            
+            cities.forEach(city => {
+                dataGovRequest({
+                    q: city,
+                    limit: 0
+                }, function(data) {
+                    if (data.success) {
+                        results.push(`${city}: ${data.result.total} רשומות`);
+                    }
+                    completed++;
+                    
+                    if (completed === cities.length) {
+                        $(containerId).html(`
+                            <div class="success">
+                                ✅ ערים גדולות:<br>
+                                ${results.join('<br>')}
+                            </div>
+                        `);
+                        callback();
+                    }
+                });
+            });
+        }
+        
+        function testAvailableFields(containerId, callback) {
+            dataGovRequest({
+                limit: 1
+            }, function(data) {
+                if (data.success && data.result.records[0]) {
+                    const record = data.result.records[0];
+                    const fields = Object.keys(record);
+                    
+                    // Check for postal code fields
+                    const postalFields = fields.filter(f => 
+                        f.includes('מיקוד') || f.includes('zip') || f.includes('postal')
+                    );
+                    
+                    $(containerId).html(`
+                        <div class="success">
+                            שדות זמינים: ${fields.join(', ')}<br>
+                            ${postalFields.length > 0 
+                                ? `✅ נמצאו שדות מיקוד: ${postalFields.join(', ')}` 
+                                : '❌ לא נמצאו שדות מיקוד במאגר זה'}
+                        </div>
+                    `);
+                } else {
+                    $(containerId).html('<div class="error">❌ לא ניתן לקרוא שדות</div>');
+                }
+                callback();
+            });
+        }
+        
+        // Auto-run on load
+        $(document).ready(function() {
+            console.log('Page loaded, ready to test API');
+            // Auto search for נס ציונה
+            searchCity();
+        });
+    </script>
+</body>
+</html>

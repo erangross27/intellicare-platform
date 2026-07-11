@@ -1,0 +1,685 @@
+/**
+ * DiagnosesDocument.css - December 2025
+ *
+ * Blue theme mini-card pattern with proper hierarchy.
+ * Font sizes: section-title 19px > nested-subtitle 17px > content-value 14px
+ */
+
+/* ========== DOCUMENT CONTAINER ========== */
+.diagnoses-document {
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  background: #0F1B33;
+  color: #ececf1;
+  padding: 24px;
+  min-height: 100%;
+}
+
+/* ========== DOCUMENT HEADER - Three Row Layout ========== */
+.diagnoses-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #565869;
+}
+
+.diagnoses-document .document-title {
+  margin: 0;
+  font-size: 31px;
+  font-weight: 700;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+.diagnoses-document .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+/* Action Buttons (Copy All, PDF) - TRANSPARENT bg, BLUE border */
+.diagnoses-document .header-actions .copy-btn,
+.diagnoses-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.diagnoses-document .header-actions .copy-btn:hover,
+.diagnoses-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.diagnoses-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* ========== SEARCH CONTAINER ========== */
+.diagnoses-document .search-container {
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.diagnoses-document .search-input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  padding: 10px 36px 10px 14px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 14px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.diagnoses-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.diagnoses-document .search-input::placeholder {
+  color: #9ca3af;
+}
+
+.diagnoses-document .clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.diagnoses-document .clear-search:hover {
+  color: #ececf1;
+}
+
+.diagnoses-document .search-results-count {
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: right;
+}
+
+/* ========== RECORDS CONTAINER ========== */
+.diagnoses-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ========== STATUS GROUP (Active, Chronic, Resolved, Ruled Out) ========== */
+.diagnoses-document .status-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.diagnoses-document .group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.diagnoses-document .group-header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.diagnoses-document .group-title {
+  font-size: 25px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+.diagnoses-document .group-count {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Status-specific group colors */
+.diagnoses-document .status-group.active .group-title {
+  color: #60a5fa;
+}
+
+.diagnoses-document .status-group.chronic .group-title {
+  color: #fbbf24;
+}
+
+.diagnoses-document .status-group.chronic .group-count {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.diagnoses-document .status-group.resolved .group-title {
+  color: #22c55e;
+}
+
+.diagnoses-document .status-group.resolved .group-count {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.diagnoses-document .status-group.ruled-out .group-title {
+  color: #f87171;
+}
+
+.diagnoses-document .status-group.ruled-out .group-count {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.diagnoses-document .diagnoses-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ========== DIAGNOSIS RECORD (Main Card) ========== */
+.diagnoses-document .diagnosis-record {
+  background: rgba(96, 165, 250, 0.05);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* ========== RECORD HEADER ========== */
+.diagnoses-document .record-header {
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.diagnoses-document .header-top-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Status Badges */
+.diagnoses-document .status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.diagnoses-document .status-badge.active {
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.diagnoses-document .status-badge.chronic {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.diagnoses-document .status-badge.resolved {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.diagnoses-document .status-badge.ruled_out,
+.diagnoses-document .status-badge.ruled-out {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.diagnoses-document .date-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Copy Diagnosis Button - rightmost position */
+.diagnoses-document .copy-diagnosis-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.diagnoses-document .copy-diagnosis-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+/* SOLID BLUE for copied state - NOT GREEN! */
+.diagnoses-document .copy-diagnosis-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.diagnoses-document .record-title {
+  font-size: 25px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  line-height: 1.4;
+}
+
+/* ========== SECTION ========== */
+.diagnoses-document .section {
+  margin-bottom: 16px;
+}
+
+/* ========== MINI-CARDS CONTAINER (Outer Blue Glow Box) ========== */
+.diagnoses-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ========== SECTION HEADER (Inside mini-cards-container) ========== */
+.diagnoses-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Level 1: Section Title - BIGGEST (19px) */
+.diagnoses-document .section-title {
+  font-size: 21px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== REC-MINI-CARD (Individual Mini Card) ========== */
+.diagnoses-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Level 2: Nested Subtitle - MEDIUM (17px) - LIGHT BRIGHT BLUE */
+.diagnoses-document .nested-subtitle {
+  font-size: 19px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* ========== NESTED MINI-CARD (labeled sub-group within a field) ========== */
+.diagnoses-document .nested-mini-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Sub-label: the parsed "Label:" header inside a nested-mini-card */
+.diagnoses-document .nested-subtitle.sub-label {
+  font-size: 16px;
+  padding-left: 0;
+  opacity: 0.9;
+  border-bottom: none;
+  margin-bottom: 2px;
+  padding-bottom: 2px;
+}
+
+/* ========== NUMBERED ROW (Very Dark Blue Background) ========== */
+.diagnoses-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.diagnoses-document .row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Level 3: Content Value - READABLE (14px) */
+.diagnoses-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* ========== COPY BUTTONS ========== */
+.diagnoses-document .copy-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.diagnoses-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+/* SOLID BLUE for copied state - NOT GREEN! */
+.diagnoses-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========== SEARCH HIGHLIGHT (Mark Element) ========== */
+.diagnoses-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* ========== NO DATA STATE ========== */
+.diagnoses-document .no-data {
+  text-align: center;
+  padding: 48px 24px;
+  color: #9ca3af;
+  font-size: 16px;
+  background: rgba(96, 165, 250, 0.05);
+  border: 2px dashed rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .diagnoses-document {
+    padding: 16px;
+  }
+
+  .diagnoses-document .document-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .diagnoses-document .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .diagnoses-document .section-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .diagnoses-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .diagnoses-document .copy-btn {
+    align-self: flex-end;
+  }
+
+  .diagnoses-document .header-top-row {
+    justify-content: flex-start;
+  }
+
+  .diagnoses-document .group-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+}
+
+/* ===== EDITING STYLES ===== */
+
+/* Editable row hover */
+.diagnoses-document .row-content.editable {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+.diagnoses-document .row-content.editable:hover {
+  background-color: rgba(59, 130, 246, 0.06);
+}
+
+/* Edit indicator (pencil + "edit" tag) */
+.diagnoses-document .edit-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  color: #3b82f6;
+  font-size: 11px;
+}
+.diagnoses-document .row-content.editable:hover .edit-indicator {
+  opacity: 0.7;
+}
+.diagnoses-document .edit-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Modified badge */
+.diagnoses-document .modified-badge {
+  font-size: 11px;
+  color: #f59e0b;
+  padding: 2px 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 4px;
+  margin-top: 4px;
+}
+.diagnoses-document .numbered-row.modified {
+  border-left: 3px solid #f59e0b;
+  padding-left: 8px;
+}
+
+/* Edit row (textarea mode) */
+.diagnoses-document .edit-row {
+  flex-direction: column;
+  gap: 8px;
+}
+.diagnoses-document .edit-field-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.diagnoses-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 10px;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  background: #0f172a;
+  color: #e2e8f0;
+  outline: none;
+  box-sizing: border-box;
+}
+.diagnoses-document .edit-textarea:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+.diagnoses-document .edit-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+}
+.diagnoses-document .edit-save-btn {
+  padding: 4px 14px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.diagnoses-document .edit-save-btn:hover {
+  background: #2563eb;
+}
+.diagnoses-document .edit-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.diagnoses-document .edit-cancel-btn {
+  padding: 4px 14px;
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.diagnoses-document .edit-cancel-btn:hover {
+  background: #1e293b;
+}
+
+/* Approve button — subtle outline style matching Allergies */
+.diagnoses-document .approve-btn {
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+.diagnoses-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Pending Approve — YELLOW (edits staged, awaiting approval) */
+.diagnoses-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+.diagnoses-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+/* Approved — GREEN */
+.diagnoses-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+/* Enum dropdown editor (e.g. Type: primary/secondary) */
+.diagnoses-document .edit-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  background: #0d1b2a;
+  color: #ececf1;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Header right actions — copy + approve grouped */
+.diagnoses-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

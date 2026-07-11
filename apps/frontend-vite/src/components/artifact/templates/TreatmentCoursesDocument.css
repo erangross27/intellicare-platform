@@ -1,0 +1,546 @@
+/* TreatmentCoursesDocument.css - December 2025 Standards - Blue-Only Mini-Card Pattern */
+
+/* Document Container */
+.treatment-courses-document {
+  padding: 0;
+  margin: -24px;
+  background-color: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  min-height: 100%;
+  padding: 24px;
+}
+
+/* ============== DOCUMENT HEADER - 3 Row Layout ============== */
+
+.treatment-courses-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.treatment-courses-document .header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.treatment-courses-document .document-title {
+  font-size: 27px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+.treatment-courses-document .header-meta {
+  font-size: 17px;
+  color: #a1a1aa;
+}
+
+.treatment-courses-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  flex-direction: row !important;
+  flex-shrink: 0;
+}
+
+/* Action Buttons - Header Copy All and PDF buttons (December 2025) */
+.treatment-courses-document .header-actions .copy-btn,
+.treatment-courses-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  height: 36px;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.treatment-courses-document .header-actions .copy-btn:hover,
+.treatment-courses-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #3b82f6;
+}
+
+/* Solid blue for copied state - NOT GREEN! */
+.treatment-courses-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* PDF button loading state */
+.treatment-courses-document .header-actions .pdf-btn.loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Search Container */
+.treatment-courses-document .search-container {
+  position: relative;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.treatment-courses-document .search-input {
+  width: 100%;
+  padding: 14px 40px 14px 16px;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  background: #0d1929;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 17px;
+  box-sizing: border-box;
+}
+
+.treatment-courses-document .search-input::placeholder {
+  color: #71717a;
+}
+
+.treatment-courses-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.treatment-courses-document .clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #71717a;
+  font-size: 23px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.treatment-courses-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* Records Container */
+.treatment-courses-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+/* Record Card */
+.treatment-courses-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #565869;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.treatment-courses-document .record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #565869;
+}
+
+.treatment-courses-document .record-title {
+  font-size: 21px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+.treatment-courses-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.treatment-courses-document .record-date {
+  font-size: 16px;
+  color: #a1a1aa;
+  background: rgba(37, 99, 235, 0.1);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+/* ============== SECTION ============== */
+
+.treatment-courses-document .section {
+  margin-bottom: 20px;
+}
+
+/* Mini Cards Container - OUTER blue glow box */
+.treatment-courses-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.treatment-courses-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Section Title - Level 1: BIGGEST (19px) */
+.treatment-courses-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  text-transform: none !important;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Safety Title - Red for complications */
+.treatment-courses-document .section-title.safety-title {
+  color: #ef4444;
+}
+
+/* Copy Section Button */
+.treatment-courses-document .copy-section-btn {
+  padding: 6px 14px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.treatment-courses-document .copy-section-btn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+}
+
+.treatment-courses-document .copy-section-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* Mini Card Pattern (December 2025) - for grouped items like Discharge Instructions */
+.treatment-courses-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Nested Subtitle - Level 2: MEDIUM (17px) - LIGHT BRIGHT BLUE #93c5fd */
+.treatment-courses-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* Numbered Row - VERY DARK BLUE background (#0d1929) */
+.treatment-courses-document .numbered-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  gap: 12px;
+}
+
+.treatment-courses-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Content Value - Level 3: Readable size (16px) */
+.treatment-courses-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* Narrative text for hospital course */
+.treatment-courses-document .narrative-text {
+  white-space: pre-wrap;
+}
+
+/* Copy Button - Row Level */
+.treatment-courses-document .copy-btn {
+  background-color: transparent;
+  color: #ececf1;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.treatment-courses-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+}
+
+.treatment-courses-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* Search Highlight */
+.treatment-courses-document .search-highlight,
+.treatment-courses-document mark.search-highlight {
+  background-color: #fbbf24;
+  color: #000;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+/* Empty State */
+.treatment-courses-document .empty-state,
+.treatment-courses-document .no-results {
+  text-align: center;
+  padding: 48px 24px;
+  color: #71717a;
+  font-size: 19px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .treatment-courses-document .document-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .treatment-courses-document .header-actions {
+    width: 100%;
+  }
+
+  .treatment-courses-document .action-btn {
+    flex: 1;
+  }
+
+  .treatment-courses-document .record-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .treatment-courses-document .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .treatment-courses-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .treatment-courses-document .copy-btn {
+    align-self: flex-end;
+  }
+
+  .treatment-courses-document .timeline-cards,
+  .treatment-courses-document .status-cards {
+    flex-direction: column;
+  }
+
+  .treatment-courses-document .rec-mini-card {
+    min-width: 100%;
+  }
+}
+
+/* ============== EDITING STYLES ============== */
+
+.treatment-courses-document .edit-row {
+  background: rgba(59, 130, 246, 0.08) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+.treatment-courses-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+}
+.treatment-courses-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 12px;
+  background: #0a1628;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+.treatment-courses-document .edit-textarea:focus {
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+.treatment-courses-document .edit-input-date {
+  width: 100%;
+  padding: 8px 12px;
+  background: #0a1628;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+.treatment-courses-document .edit-input-date:focus {
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+.treatment-courses-document .edit-input-date::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+.treatment-courses-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.treatment-courses-document .edit-save-btn {
+  padding: 4px 16px;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 4px;
+  color: #86efac;
+  font-size: 13px;
+  cursor: pointer;
+}
+.treatment-courses-document .edit-save-btn:hover {
+  background: rgba(34, 197, 94, 0.25);
+}
+.treatment-courses-document .edit-cancel-btn {
+  padding: 4px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  color: #fca5a5;
+  font-size: 13px;
+  cursor: pointer;
+}
+.treatment-courses-document .edit-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+.treatment-courses-document .row-content.editable {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.treatment-courses-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+.treatment-courses-document .edit-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  color: rgba(96, 165, 250, 0.5);
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.treatment-courses-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+.treatment-courses-document .edit-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.treatment-courses-document .modified-badge {
+  font-size: 11px;
+  color: #fbbf24;
+  padding: 2px 8px;
+  margin-top: 4px;
+  background: rgba(251, 191, 36, 0.08);
+  border-radius: 4px;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+.treatment-courses-document .numbered-row.modified {
+  border-left: 3px solid #fbbf24;
+}
+.treatment-courses-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.treatment-courses-document .approve-btn {
+  padding: 4px 12px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 4px;
+  color: #86efac;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.treatment-courses-document .approve-btn:hover {
+  background: rgba(34, 197, 94, 0.15);
+}

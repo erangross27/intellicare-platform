@@ -1,0 +1,59 @@
+🔍 Scanning for database security violations...
+
+================================================================================
+DATABASE SECURITY VIOLATION REPORT
+================================================================================
+
+Total violations found: 133
+Files with violations: 67
+
+TOP VIOLATORS:
+--------------------------------------------------------------------------------
+  11 violations: services\zeroTrustService.js
+   7 violations: services\agentServiceExtended.js
+   6 violations: services\keyManagementService.js
+   5 violations: delete-all-documents.js
+   5 violations: routes\medicalData.js
+   4 violations: fix-medical-data-route.js
+   4 violations: models\Insurance.js
+   4 violations: services\immutableAuditService.js
+   3 violations: fix-patient-data.js
+   3 violations: models\Prescription.js
+
+================================================================================
+CRITICAL VIOLATIONS (Direct Database Access):
+--------------------------------------------------------------------------------
+
+📍 fix-medical-data-route.js:73
+   // Fix 3: Replace new model().save() patterns
+
+📍 fix-medical-data-route.js:87
+   console.log(`✅ Replaced ${modelName}.save() with SecureDataAccess.insert()`);
+
+================================================================================
+RECOMMENDED FIXES:
+--------------------------------------------------------------------------------
+
+1. Replace direct database access with SecureDataAccess:
+   ❌ WRONG: const db = await databaseFactory.getClinicDatabase(clinicId);
+   ✅ RIGHT: await SecureDataAccess.query('collection', filter, options, context);
+
+2. Replace direct model operations:
+   ❌ WRONG: await Model.save();
+   ✅ RIGHT: await SecureDataAccess.update('collection', filter, update, context);
+
+3. Replace environment variable access:
+   ❌ WRONG: const key = SecureConfigService.get("API_KEY");
+   ✅ RIGHT: const key = config.apiKey; // Use config module
+
+4. Files requiring immediate attention:
+
+   - services\zeroTrustService.js (11 violations)
+   - services\agentServiceExtended.js (7 violations)
+   - services\keyManagementService.js (6 violations)
+   - delete-all-documents.js (5 violations)
+   - routes\medicalData.js (5 violations)
+
+📄 Detailed report saved to: C:\Users\Eran Gross\IntelliCare\backend\scripts\database-violations-report.json
+
+================================================================================

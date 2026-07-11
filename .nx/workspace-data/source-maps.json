@@ -1,0 +1,202 @@
+{
+  "apps/backend-api/libs/billing-insurance": {
+    "root": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "name": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "$schema": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "sourceRoot": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "projectType": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "tags": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.scope:billing": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.type:context": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.compliance:pci": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.compliance:sox": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "implicitDependencies": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ],
+    "targets": [
+      "apps/backend-api/libs/billing-insurance/project.json",
+      "nx/core/project-json"
+    ]
+  },
+  "apps/backend-api/libs/clinical-care": {
+    "root": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "name": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "$schema": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "sourceRoot": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "projectType": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "tags": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.scope:clinical": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.type:context": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.compliance:fda": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.compliance:fhir": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "implicitDependencies": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ],
+    "targets": [
+      "apps/backend-api/libs/clinical-care/project.json",
+      "nx/core/project-json"
+    ]
+  },
+  "apps/backend-api/libs/medical-records": {
+    "root": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "name": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "$schema": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "sourceRoot": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "projectType": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "tags": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.scope:records": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.type:context": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.compliance:hipaa": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.compliance:dicom": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.compliance:hl7": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "implicitDependencies": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ],
+    "targets": [
+      "apps/backend-api/libs/medical-records/project.json",
+      "nx/core/project-json"
+    ]
+  },
+  "apps/backend-api/libs/patient-management": {
+    "root": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ],
+    "name": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ],
+    "$schema": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ],
+    "sourceRoot": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ],
+    "projectType": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ],
+    "tags": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.scope:patient": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.type:context": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ],
+    "tags.compliance:hipaa": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ],
+    "implicitDependencies": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ],
+    "targets": [
+      "apps/backend-api/libs/patient-management/project.json",
+      "nx/core/project-json"
+    ]
+  }
+}

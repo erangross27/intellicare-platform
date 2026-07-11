@@ -1,0 +1,85 @@
+{
+  "serviceId": "security-training-service",
+  "serviceName": "Security Training Service",
+  "description": "Manages security training compliance and tracking",
+  "version": "1.0.0",
+  "owner": "Security Team",
+  "contactEmail": "security@intellicare.com",
+  
+  "authentication": {
+    "requireApiKey": true,
+    "requireMFA": false,
+    "tokenRotationDays": 90
+  },
+  
+  "permissions": {
+    "allowedClinics": ["*"],
+    "allowedCollections": [
+      "users",
+      "trainingrecords",
+      "securitycourses",
+      "audit_logs"
+    ],
+    "operations": {
+      "users": ["query", "update"],
+      "trainingrecords": ["query", "insert", "update"],
+      "securitycourses": ["query"],
+      "audit_logs": ["insert"]
+    },
+    "fieldAccess": {
+      "users": {
+        "allowed": ["_id", "email", "name", "role", "trainingStatus"],
+        "denied": ["password", "ssn", "financialInfo"]
+      }
+    }
+  },
+  
+  "dataGovernance": {
+    "dataClassification": "internal",
+    "piiAccess": true,
+    "phiAccess": false,
+    "financialDataAccess": false,
+    "auditLevel": "detailed",
+    "dataRetentionDays": 1095
+  },
+  
+  "rateLimits": {
+    "queriesPerMinute": 100,
+    "queriesPerHour": 5000,
+    "maxRecordsPerQuery": 1000,
+    "maxConcurrentQueries": 10,
+    "burstAllowance": 20
+  },
+  
+  "security": {
+    "requireEncryption": true,
+    "ipWhitelist": [],
+    "ipBlacklist": [],
+    "allowedTimeWindows": [],
+    "geoRestrictions": {
+      "allowedCountries": ["US", "IL"],
+      "blockedCountries": []
+    }
+  },
+  
+  "criticality": "medium",
+  "tags": ["security", "training", "compliance"],
+  
+  "monitoring": {
+    "enableMetrics": true,
+    "enableAlerting": true,
+    "alertThresholds": {
+      "errorRate": 0.05,
+      "latencyP95": 1000,
+      "violationCount": 5
+    }
+  },
+  
+  "compliance": {
+    "hipaaCompliant": true,
+    "gdprCompliant": true,
+    "encryptionRequired": true,
+    "rightToErasure": true,
+    "dataPortability": true
+  }
+}

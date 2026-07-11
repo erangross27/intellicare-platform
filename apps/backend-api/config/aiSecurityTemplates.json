@@ -1,0 +1,244 @@
+{
+  "secureTemplates": {
+    "databaseQuery": {
+      "description": "Secure database query template",
+      "correct": "const SecureDataAccess = require('./services/secureDataAccess');\nconst result = await SecureDataAccess.query('collection', { field: value }, { fields: ['allowed', 'fields'] });",
+      "incorrect": [
+        "mongoose.connection.db.collection('name').find()",
+        "db.admin().listDatabases()",
+        "Model.find({ $where: 'this.field == value' })"
+      ]
+    },
+    "apiCall": {
+      "description": "Secure API call template",
+      "correct": "const secureApiClient = require('./services/secureApiClient');\nconst response = await secureApiClient.request('/endpoint', { method: 'GET', headers: { /* validated */ } });",
+      "incorrect": [
+        "fetch(url)",
+        "axios.get(url)",
+        "http.request(options)"
+      ]
+    },
+    "fileOperation": {
+      "description": "Secure file operation template",
+      "correct": "const secureFileSystem = require('./services/secureFileSystem');\nconst content = await secureFileSystem.readFile('path/to/file', { encoding: 'utf8' });",
+      "incorrect": [
+        "fs.readFileSync('.env')",
+        "require('fs').readFile('../../../etc/passwd')",
+        "fs.unlinkSync('important.file')"
+      ]
+    },
+    "errorHandling": {
+      "description": "Secure error handling template",
+      "correct": "try {\n  // operation\n} catch (error) {\n  const sanitizedError = errorSanitizer.sanitize(error);\n  await immutableAuditService.addAuditEntry({ action: 'ERROR', details: sanitizedError });\n  throw new SecureError('Operation failed', { code: 'SAFE_ERROR' });\n}",
+      "incorrect": [
+        "console.log(error)",
+        "res.send(error.stack)",
+        "throw error"
+      ]
+    },
+    "authentication": {
+      "description": "Secure authentication template",
+      "correct": "const authService = require('./services/authService');\nconst isValid = await authService.validateToken(token, { checkExpiry: true, verifySignature: true });",
+      "incorrect": [
+        "if (token === 'admin') { /* allow */ }",
+        "jwt.decode(token)",
+        "req.headers.authorization"
+      ]
+    },
+    "inputValidation": {
+      "description": "Secure input validation template",
+      "correct": "const validator = require('./utils/validator');\nconst sanitized = validator.sanitize(input, { type: 'string', maxLength: 255, pattern: /^[a-zA-Z0-9]+$/ });",
+      "incorrect": [
+        "eval(userInput)",
+        "new Function(userInput)",
+        "innerHTML = userInput"
+      ]
+    },
+    "encryption": {
+      "description": "Secure encryption template",
+      "correct": "const encryptionService = require('./services/encryptionService');\nconst encrypted = await encryptionService.encrypt(data, { algorithm: 'AES-256-GCM' });",
+      "incorrect": [
+        "Buffer.from(data).toString('base64')",
+        "data.split('').reverse().join('')",
+        "btoa(data)"
+      ]
+    },
+    "sessionManagement": {
+      "description": "Secure session management template",
+      "correct": "const sessionManager = require('./services/sessionManager');\nconst session = await sessionManager.create({ userId, practiceId, secure: true, httpOnly: true });",
+      "incorrect": [
+        "req.session.userId = userId",
+        "localStorage.setItem('user', JSON.stringify(user))",
+        "document.cookie = 'session=' + sessionId"
+      ]
+    }
+  },
+  "forbiddenPatterns": [
+    {
+      "pattern": "eval\\s*\\(",
+      "reason": "Code injection vulnerability",
+      "severity": "critical",
+      "alternative": "Use JSON.parse() or specific parsing functions"
+    },
+    {
+      "pattern": "new\\s+Function\\s*\\(",
+      "reason": "Code injection vulnerability",
+      "severity": "critical",
+      "alternative": "Use predefined functions or switch statements"
+    },
+    {
+      "pattern": "process\\.env",
+      "reason": "Direct environment access",
+      "severity": "high",
+      "alternative": "Use config module with validation"
+    },
+    {
+      "pattern": "child_process",
+      "reason": "Command injection risk",
+      "severity": "critical",
+      "alternative": "Use specific safe exec functions with validation"
+    },
+    {
+      "pattern": "mongoose\\.connection\\.db",
+      "reason": "Direct database manipulation",
+      "severity": "high",
+      "alternative": "Use SecureDataAccess service"
+    },
+    {
+      "pattern": "\\$where",
+      "reason": "MongoDB code injection",
+      "severity": "critical",
+      "alternative": "Use standard MongoDB query operators"
+    },
+    {
+      "pattern": "__proto__",
+      "reason": "Prototype pollution",
+      "severity": "critical",
+      "alternative": "Use Object.create() or class inheritance"
+    },
+    {
+      "pattern": "innerHTML",
+      "reason": "XSS vulnerability",
+      "severity": "high",
+      "alternative": "Use textContent or createElement"
+    },
+    {
+      "pattern": "document\\.write",
+      "reason": "XSS vulnerability",
+      "severity": "high",
+      "alternative": "Use DOM manipulation methods"
+    },
+    {
+      "pattern": "\\.\\.\\/",
+      "reason": "Path traversal",
+      "severity": "high",
+      "alternative": "Use absolute paths with validation"
+    },
+    {
+      "pattern": "require\\s*\\(\\s*[^'\"]",
+      "reason": "Dynamic require",
+      "severity": "high",
+      "alternative": "Use static requires"
+    },
+    {
+      "pattern": "import\\s*\\(",
+      "reason": "Dynamic import",
+      "severity": "medium",
+      "alternative": "Use static imports"
+    },
+    {
+      "pattern": "setTimeout\\s*\\(\\s*['\"]",
+      "reason": "String-based timeout",
+      "severity": "medium",
+      "alternative": "Use function reference"
+    },
+    {
+      "pattern": "setInterval\\s*\\(\\s*['\"]",
+      "reason": "String-based interval",
+      "severity": "medium",
+      "alternative": "Use function reference"
+    },
+    {
+      "pattern": "javascript:",
+      "reason": "JavaScript protocol XSS",
+      "severity": "high",
+      "alternative": "Use proper event handlers"
+    },
+    {
+      "pattern": "data:text\\/html",
+      "reason": "Data URI XSS",
+      "severity": "high",
+      "alternative": "Use proper content loading"
+    },
+    {
+      "pattern": "onclick\\s*=",
+      "reason": "Inline event handler XSS",
+      "severity": "medium",
+      "alternative": "Use addEventListener"
+    }
+  ],
+  "requiredPatterns": [
+    {
+      "context": "database_operation",
+      "required": ["SecureDataAccess", "immutableAuditService"],
+      "message": "Database operations must use SecureDataAccess and include audit logging"
+    },
+    {
+      "context": "api_call",
+      "required": ["secureApiClient", "try.*catch"],
+      "message": "API calls must use secureApiClient with error handling"
+    },
+    {
+      "context": "authentication",
+      "required": ["authService", "validateToken"],
+      "message": "Authentication must use authService.validateToken"
+    },
+    {
+      "context": "error_handling",
+      "required": ["try.*catch", "immutableAuditService", "sanitize"],
+      "message": "Error handling must include try-catch, logging, and sanitization"
+    },
+    {
+      "context": "file_operation",
+      "required": ["secureFileSystem", "validatePath"],
+      "message": "File operations must use secureFileSystem with path validation"
+    }
+  ],
+  "codeReviewRules": [
+    {
+      "rule": "no_hardcoded_secrets",
+      "check": "password|secret|key|token|api[_-]?key",
+      "message": "Never hardcode secrets. Use environment variables or secret management service"
+    },
+    {
+      "rule": "audit_all_operations",
+      "check": "create|update|delete|modify|remove",
+      "message": "All data modifications must include audit logging"
+    },
+    {
+      "rule": "validate_all_inputs",
+      "check": "req\\.(body|query|params)",
+      "message": "All user inputs must be validated and sanitized"
+    },
+    {
+      "rule": "secure_session_config",
+      "check": "session|cookie",
+      "message": "Sessions must use secure, httpOnly, and sameSite flags"
+    },
+    {
+      "rule": "no_console_logs",
+      "check": "console\\.(log|error|warn)",
+      "message": "Use proper logging service instead of console"
+    }
+  ],
+  "exampleImplementations": {
+    "securePatientQuery": {
+      "description": "Example of secure patient data query",
+      "code": "// ✅ SECURE IMPLEMENTATION\nconst SecureDataAccess = require('./services/secureDataAccess');\nconst immutableAuditService = require('./services/immutableAuditService');\n\nasync function getPatientData(patientId, practiceId, userId) {\n  try {\n    // Validate inputs\n    if (!patientId || !practiceId || !userId) {\n      throw new ValidationError('Missing required parameters');\n    }\n\n    // Log access attempt\n    await immutableAuditService.addAuditEntry({\n      action: 'PATIENT_ACCESS',\n      userId,\n      patientId,\n      practiceId,\n      timestamp: new Date()\n    });\n\n    // Secure query with field restriction\n    const patient = await SecureDataAccess.query('patients', \n      { _id: patientId, practiceId },\n      { \n        fields: ['name', 'dateOfBirth', 'medicalHistory'],\n        excludeFields: ['ssn', 'insurance.policyNumber']\n      }\n    );\n\n    if (!patient) {\n      throw new NotFoundError('Patient not found');\n    }\n\n    return patient;\n  } catch (error) {\n    // Log error securely\n    await immutableAuditService.addAuditEntry({\n      action: 'PATIENT_ACCESS_ERROR',\n      error: error.message,\n      userId,\n      patientId\n    });\n\n    // Return sanitized error\n    throw new SecureError('Unable to retrieve patient data');\n  }\n}"
+    },
+    "secureAPIEndpoint": {
+      "description": "Example of secure API endpoint",
+      "code": "// ✅ SECURE API ENDPOINT\nconst express = require('express');\nconst authMiddleware = require('./middleware/auth');\nconst rateLimiter = require('./middleware/rateLimiter');\nconst validator = require('./utils/validator');\nconst SecureDataAccess = require('./services/secureDataAccess');\n\nrouter.post('/api/patients',\n  authMiddleware.requireAuth,\n  authMiddleware.requireRole(['doctor', 'admin']),\n  rateLimiter.limit({ requests: 10, per: 'minute' }),\n  async (req, res) => {\n    try {\n      // Validate and sanitize input\n      const sanitizedData = validator.sanitize(req.body, {\n        name: { type: 'string', required: true, maxLength: 100 },\n        dateOfBirth: { type: 'date', required: true },\n        email: { type: 'email', required: false }\n      });\n\n      // Add practice context\n      sanitizedData.practiceId = req.user.practiceId;\n      sanitizedData.createdBy = req.user.id;\n\n      // Create with secure service\n      const patient = await SecureDataAccess.create('patients', sanitizedData);\n\n      // Log creation\n      await immutableAuditService.addAuditEntry({\n        action: 'PATIENT_CREATED',\n        userId: req.user.id,\n        patientId: patient._id,\n        practiceId: req.user.practiceId\n      });\n\n      // Return sanitized response\n      res.status(201).json({\n        success: true,\n        data: {\n          id: patient._id,\n          name: patient.name\n        }\n      });\n    } catch (error) {\n      // Handle error securely\n      const safeError = errorHandler.handle(error);\n      res.status(safeError.status).json({\n        success: false,\n        error: safeError.message\n      });\n    }\n  }\n);"
+    }
+  }
+}

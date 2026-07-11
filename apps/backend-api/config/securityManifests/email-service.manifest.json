@@ -1,0 +1,27 @@
+{
+  "serviceId": "email-service",
+  "serviceName": "Email Service",
+  "description": "Handles email notifications and communications",
+  "permissions": [
+    "email:send",
+    "template:read",
+    "patient:read",
+    "metrics:write"
+  ],
+  "allowedClinics": [
+    "*"
+  ],
+  "dataAccessPatterns": [
+    "patients.findOne({ email })",
+    "templates.find({ type: \"email\" })",
+    "emailQueue.process()"
+  ],
+  "schedules": [
+    {
+      "cron": "*/5 * * * *",
+      "description": "Process queue every 5 minutes"
+    }
+  ],
+  "criticality": "medium",
+  "requiresMFA": false
+}

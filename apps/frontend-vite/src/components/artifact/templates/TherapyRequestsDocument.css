@@ -1,0 +1,483 @@
+/* Therapy Requests Document - December 2025 */
+/* Blue-only theme with Comfortaa font */
+
+.therapy-requests-document {
+  font-family: 'Comfortaa', sans-serif;
+  color: #ececf1;
+  padding: 24px;
+  background: #0F1B33;
+  min-height: 100%;
+}
+
+.therapy-requests-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ececf1;
+  margin-bottom: 20px;
+  font-family: 'Comfortaa', sans-serif;
+  border-bottom: 3px solid #2563eb;
+  padding-bottom: 12px;
+}
+
+/* Header Controls - Three Row Layout */
+.therapy-requests-document .header-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.therapy-requests-document .action-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.therapy-requests-document .action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.therapy-requests-document .action-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #3b82f6;
+}
+
+.therapy-requests-document .action-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Record Container */
+.therapy-requests-document .record-container {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.therapy-requests-document .record-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin-bottom: 20px;
+  font-family: 'Comfortaa', sans-serif;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+  padding-bottom: 10px;
+}
+
+/* Section Styling */
+.therapy-requests-document .section {
+  margin-bottom: 20px;
+}
+
+.therapy-requests-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.therapy-requests-document .section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+  margin: 0;
+}
+
+.therapy-requests-document .section-copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #4b5563;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.therapy-requests-document .section-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.therapy-requests-document .section-copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Mini Cards Container */
+.therapy-requests-document .mini-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.therapy-requests-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.therapy-requests-document .nested-subtitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin-bottom: 10px;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Numbered Row */
+.therapy-requests-document .numbered-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.therapy-requests-document .numbered-row:last-child {
+  margin-bottom: 0;
+}
+
+.therapy-requests-document .row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.therapy-requests-document .content-value {
+  font-size: 14px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Status Badge Styling */
+.therapy-requests-document .status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.therapy-requests-document .status-badge.status-yes {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.therapy-requests-document .status-badge.status-no {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Copy Button */
+.therapy-requests-document .copy-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #4b5563;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.therapy-requests-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.therapy-requests-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Search Highlight */
+.therapy-requests-document mark {
+  background-color: #fbbf24;
+  color: #1a1b26;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+/* No Data / No Results Messages */
+.therapy-requests-document .no-data-message,
+.therapy-requests-document .no-results-message {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 16px;
+  padding: 40px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========================= EDITING — Inline Edit UI ========================= */
+
+/* Editable row content — hover effect */
+.therapy-requests-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.therapy-requests-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.06);
+}
+
+.therapy-requests-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Edit indicator (pencil + tag) — appears on hover */
+.therapy-requests-document .edit-indicator {
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #60a5fa;
+  margin-top: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.therapy-requests-document .edit-tag {
+  font-size: 10px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Modified row — amber border for pending approval */
+.therapy-requests-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+.therapy-requests-document .modified-badge {
+  font-size: 11px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* Inline edit row */
+.therapy-requests-document .numbered-row.edit-row {
+  flex-direction: column;
+  padding: 12px 16px;
+}
+
+.therapy-requests-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.therapy-requests-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #1a1b26;
+  border: 2px solid rgba(96, 165, 250, 0.5);
+  border-radius: 8px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.therapy-requests-document .edit-textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+.therapy-requests-document .edit-textarea:disabled {
+  opacity: 0.6;
+}
+
+.therapy-requests-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.therapy-requests-document .edit-save-btn {
+  background: linear-gradient(135deg, #667eea 0%, #2563eb 100%);
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 7px 20px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.therapy-requests-document .edit-save-btn:hover {
+  background: linear-gradient(135deg, #5a6fe8 0%, #1d4ed8 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.therapy-requests-document .edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.therapy-requests-document .edit-cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  color: #94a3b8;
+  padding: 7px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.therapy-requests-document .edit-cancel-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #cbd5e1;
+}
+
+.therapy-requests-document .edit-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Approve button — yellow pending, green approved */
+.therapy-requests-document .approve-btn {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  border-radius: 6px;
+  color: #eab308;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.therapy-requests-document .approve-btn:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.6);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.15);
+}
+
+.therapy-requests-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.therapy-requests-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+.therapy-requests-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Header right actions — copy + approve */
+.therapy-requests-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .therapy-requests-document {
+    padding: 16px;
+  }
+
+  .therapy-requests-document .record-container {
+    padding: 16px;
+  }
+
+  .therapy-requests-document .action-buttons {
+    flex-direction: column;
+  }
+
+  .therapy-requests-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .therapy-requests-document .copy-btn {
+    align-self: flex-end;
+  }
+}

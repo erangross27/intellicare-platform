@@ -1,0 +1,22 @@
+# MongoDB Configuration - AUTHENTICATION ENABLED
+# Location: C:\Program Files\MongoDB\Server\[version]\bin\mongod.cfg
+
+storage:
+  dbPath: C:\Program Files\MongoDB\Server\5.0\data
+  journal:
+    enabled: true
+
+systemLog:
+  destination: file
+  path: C:\Program Files\MongoDB\Server\5.0\log\mongod.log
+  logAppend: true
+
+net:
+  port: 27017
+  bindIp: 127.0.0.1
+
+security:
+  authorization: enabled  # THIS ENABLES AUTHENTICATION!
+
+replication:
+  replSetName: rs0  # Keep your replica set config

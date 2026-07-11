@@ -1,0 +1,539 @@
+/**
+ * Function Optimization Service
+ * Manages and optimizes thousands of functions across the platform
+ * Implements lazy loading, caching, and intelligent function selection
+ */
+
+const crypto = require('crypto');
+const serviceAccountManager = require('./serviceAccountManager');
+
+class FunctionOptimizationService {
+  constructor() {
+    this.serviceToken = null;
+    // Function registry with performance metrics
+    this.registry = new Map();
+
+    // Category-based function groups
+    this.categories = {
+      essential: new Set(),      // Always load (< 20 functions)
+      common: new Set(),          // Load for 80% of queries (< 100 functions)
+      specialized: new Set(),     // Load on demand (rest)
+      medical: new Set()          // Medical functions (911)
+    };
+
+    // Performance metrics
+    this.metrics = {
+      functionCalls: new Map(),   // Track usage frequency
+      loadTimes: new Map(),       // Track load times
+      lastUsed: new Map()         // Track last usage
+    };
+
+    // Cached function sets for quick access
+    this.cache = {
+      patient: null,
+      appointment: null,
+      medical: null,
+      user: null,
+      billing: null,
+      minimal: null  // Ultra-minimal set for simple queries
+    };
+
+    // Precompiled function signatures (reduces size by 70%)
+    this.signatures = new Map();
+
+    this.initialized = false;
+  }
+
+  /**
+   * Initialize the service and build function registry
+   */
+  async initialize() {
+    if (this.initialized) return;
+
+    console.log('🚀 Initializing Function Optimization Service...');
+
+    // Authenticate service first
+    try {
+      this.serviceToken = await serviceAccountManager.authenticate('function-optimization-service');
+      console.log('✅ Function Optimization Service authenticated');
+    } catch (error) {
+      console.warn('⚠️ Function Optimization Service authentication failed:', error.message);
+      // Continue without authentication - functions will still work
+    }
+
+    // Build the registry
+    await this.buildRegistry();
+
+    // Categorize functions
+    await this.categorizeFunctions();
+
+    // Precompile signatures
+    await this.precompileSignatures();
+
+    // Load essential functions into memory
+    await this.preloadEssentials();
+
+    this.initialized = true;
+    console.log('✅ Function Optimization Service ready');
+    console.log(`  → Total functions: ${this.registry.size}`);
+    console.log(`  → Essential: ${this.categories.essential.size}`);
+    console.log(`  → Common: ${this.categories.common.size}`);
+    console.log(`  → Specialized: ${this.categories.specialized.size}`);
+    console.log(`  → Medical: ${this.categories.medical.size}`);
+  }
+
+  /**
+   * Build the complete function registry
+   */
+  async buildRegistry() {
+    // Import function sources (singleton instance)
+    const aiHelpers = require('./utils/aiHelpers');
+    const { medicalCategoryFunctions } = require('./generatedMedicalFunctions');
+
+    // Register platform functions
+    const platformFunctions = aiHelpers.getAllPlatformFunctions('en', 'USA');
+    platformFunctions.forEach(func => {
+      this.registry.set(func.name, {
+        ...func,
+        source: 'platform',
+        size: JSON.stringify(func).length,
+        hash: this.hashFunction(func)
+      });
+    });
+
+    // Register medical functions (but don't load them yet)
+    Object.keys(medicalCategoryFunctions).forEach(funcName => {
+      this.registry.set(funcName, {
+        name: funcName,
+        source: 'medical',
+        lazy: true,  // Mark for lazy loading
+        loader: () => medicalCategoryFunctions[funcName]
+      });
+      this.categories.medical.add(funcName);
+    });
+  }
+
+  /**
+   * Categorize functions based on usage patterns
+   */
+  async categorizeFunctions() {
+    // Essential functions (always load)
+    const essentialNames = [
+      'listAllPatients', 'searchPatientsByName', 'getPatientDetails',
+      'addPatient', 'updatePatient', 'getAppointments', 'scheduleAppointment',
+      'searchUsers', 'getAllUsers', 'createUser'
+    ];
+
+    // Common functions (load for most queries)
+    const commonPatterns = [
+      /^get/, /^list/, /^search/, /^find/, /^create/, /^update/, /^delete/
+    ];
+
+    this.registry.forEach((func, name) => {
+      if (essentialNames.includes(name)) {
+        this.categories.essential.add(name);
+      } else if (commonPatterns.some(p => p.test(name))) {
+        this.categories.common.add(name);
+      } else if (!this.categories.medical.has(name)) {
+        this.categories.specialized.add(name);
+      }
+    });
+  }
+
+  /**
+   * Precompile function signatures for faster loading
+   */
+  async precompileSignatures() {
+    this.registry.forEach((func, name) => {
+      if (!func.lazy) {
+        // Create minimal signature (just name and parameter names)
+        const signature = {
+          name: func.name,
+          params: func.parameters?.properties ?
+            Object.keys(func.parameters.properties) : []
+        };
+        this.signatures.set(name, signature);
+      }
+    });
+  }
+
+  /**
+   * Preload essential functions
+   */
+  async preloadEssentials() {
+    const essentials = {};
+
+    for (const name of this.categories.essential) {
+      const func = this.registry.get(name);
+      if (func && !func.lazy) {
+        essentials[name] = func;
+      }
+    }
+
+    this.cache.minimal = essentials;
+    console.log(`⚡ Preloaded ${Object.keys(essentials).length} essential functions`);
+  }
+
+  /**
+   * Get functions optimized for a specific query
+   */
+  getFunctionsForQuery(query, options = {}) {
+    const {
+      maxFunctions = 50,
+      includemedical = false,
+      category = null
+    } = options;
+
+    // Ultra-fast path for simple queries
+    const queryLower = query.toLowerCase().trim();
+
+    // Check for list/show patients patterns (with typo tolerance)
+    if (/^(list|show|display|get)\s+(all\s+)?(patient|patinet|paitnet|patients|patinets|paitnets)/i.test(queryLower)) {
+      console.log('⚡ ULTRA-FAST: List patients query detected');
+      return this.loadFunctions(['listAllPatients', 'countPatients']);
+    }
+
+    // Check for count patterns
+    if (/^(count|how many)\s+(patient|patients)/i.test(queryLower)) {
+      console.log('⚡ ULTRA-FAST: Count patients query detected');
+      return this.loadFunctions(['countPatients']);
+    }
+
+    // Check for search patterns
+    if (/^(search|find|look for)\s+(patient|patients)|(find|search).*by name/i.test(queryLower)) {
+      console.log('⚡ ULTRA-FAST: Search patients query detected');
+      return this.loadFunctions(['searchPatientsByName', 'findPatient', 'searchPatients']);
+    }
+
+    // Check for add patterns
+    if (/^(add|create|new|register)\s+(a\s+)?(patient|patients)/i.test(queryLower)) {
+      console.log('⚡ ULTRA-FAST: Add patient query detected');
+      return this.loadFunctions(['addPatient']);
+    }
+
+    // Category-based loading
+    if (category) {
+      return this.getFunctionsByCategory(category, maxFunctions);
+    }
+
+    // Smart selection based on query keywords - but be more selective
+    const selectedFunctions = this.selectFunctionsByKeywords(query, Math.min(maxFunctions, 10), includemedical);
+
+    // If we're about to return too many functions for a simple query, limit it
+    if (selectedFunctions.length > 15 && !query.includes('complex') && !query.includes('multiple')) {
+      console.log(`⚠️ Limiting functions from ${selectedFunctions.length} to 10 for simple query`);
+      return selectedFunctions.slice(0, 10);
+    }
+
+    return selectedFunctions;
+  }
+
+  /**
+   * Load specific functions by name
+   */
+  loadFunctions(names) {
+    const functions = [];
+    let totalSize = 0;
+
+    for (const name of names) {
+      const func = this.registry.get(name);
+      if (func) {
+        let loadedFunc;
+        if (func.lazy && func.loader) {
+          // Lazy load the function
+          loadedFunc = func.loader();
+          // Cache it for next time
+          this.registry.set(name, { ...loadedFunc, source: func.source });
+        } else {
+          loadedFunc = func;
+        }
+
+        // Convert to Claude format (input_schema instead of parameters)
+        try {
+          const claudeFunc = this.convertToClaudeFormat(loadedFunc);
+          const funcSize = JSON.stringify(claudeFunc).length;
+          totalSize += funcSize;
+
+          // Log large functions
+          if (funcSize > 1000) {
+            console.log(`⚠️ Large function: ${name} = ${funcSize} bytes`);
+          }
+
+          functions.push(claudeFunc);
+        } catch (error) {
+          console.error(`Error converting function ${name} to Claude format:`, error);
+          console.log('Function data:', JSON.stringify(loadedFunc, null, 2).substring(0, 500));
+        }
+
+        // Track usage
+        this.trackUsage(name);
+      }
+    }
+
+    // Log total size
+    console.log(`📊 Loaded ${functions.length} functions, total size: ${totalSize} bytes (~${Math.round(totalSize/4)} tokens)`);
+
+    // Log which function is at index 33 for debugging
+    if (functions.length > 33) {
+      console.log(`DEBUG: Function at index 33 is: ${functions[33].name}`);
+    }
+
+    return functions;
+  }
+
+  /**
+   * Convert function to Claude's expected format
+   */
+  convertToClaudeFormat(func) {
+    // Claude expects input_schema, not parameters
+    const claudeFunc = {
+      name: func.name,
+      description: func.description || `Function ${func.name}`
+    };
+
+    // Get the schema from parameters or input_schema
+    let schema = func.parameters || func.input_schema;
+
+    // Ensure schema is valid JSON Schema 2020-12
+    if (schema) {
+      // Clean up the schema to ensure compatibility
+      schema = this.cleanSchema(schema);
+    } else {
+      // Default schema if none provided
+      schema = {
+        type: "object",
+        properties: {},
+        required: []
+      };
+    }
+
+    claudeFunc.input_schema = schema;
+    return claudeFunc;
+  }
+
+  /**
+   * Clean schema to ensure JSON Schema 2020-12 compatibility
+   */
+  cleanSchema(schema) {
+    try {
+      // Create a deep copy to avoid modifying original
+      const cleaned = JSON.parse(JSON.stringify(schema));
+
+      // Ensure it has type: object at root
+      if (!cleaned.type) {
+        cleaned.type = 'object';
+      }
+
+      // Ensure properties exists
+      if (!cleaned.properties) {
+        cleaned.properties = {};
+      }
+
+      // Ensure required is an array or remove it
+      if (cleaned.required) {
+        if (!Array.isArray(cleaned.required)) {
+          delete cleaned.required;
+        } else {
+          // Filter out non-existent properties from required
+          cleaned.required = cleaned.required.filter(prop =>
+            cleaned.properties && cleaned.properties[prop]
+          );
+        }
+      }
+
+      // Remove any non-standard fields that might cause issues
+      delete cleaned.$schema;
+      delete cleaned.id;
+      delete cleaned.$id;
+      delete cleaned.additionalProperties; // Can cause issues with Claude
+
+      // Clean up properties recursively
+      if (cleaned.properties) {
+        for (const key in cleaned.properties) {
+          const prop = cleaned.properties[key];
+          if (prop && typeof prop === 'object') {
+            // Clean nested schemas recursively
+            if (prop.type === 'object' && prop.properties) {
+              cleaned.properties[key] = this.cleanSchema(prop);
+            } else {
+              // Ensure each property has a type
+              if (!prop.type && !prop.oneOf && !prop.anyOf && !prop.allOf && !prop.$ref) {
+                prop.type = 'string'; // Default to string if no type specified
+              }
+
+              // Remove invalid enum values
+              if (prop.enum !== undefined) {
+                if (!Array.isArray(prop.enum) || prop.enum.length === 0) {
+                  delete prop.enum;
+                }
+              }
+
+              // Remove problematic fields
+              delete prop.$schema;
+              delete prop.$id;
+              delete prop.id;
+              delete prop.required; // Remove invalid 'required' property from individual fields
+
+              // Fix array items
+              if (prop.type === 'array' && prop.items) {
+                if (prop.items.type === 'object' && prop.items.properties) {
+                  prop.items = this.cleanSchema(prop.items);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return cleaned;
+    } catch (error) {
+      console.error('Error cleaning schema:', error);
+      // Return a minimal valid schema as fallback
+      return {
+        type: 'object',
+        properties: {},
+        required: []
+      };
+    }
+  }
+
+  /**
+   * Get functions by category
+   */
+  getFunctionsByCategory(category, limit = 50) {
+    // Check cache first
+    if (this.cache[category]) {
+      return this.cache[category];
+    }
+
+    const functions = [];
+    const categorySet = this.categories[category] || new Set();
+
+    let count = 0;
+    for (const name of categorySet) {
+      if (count >= limit) break;
+
+      const func = this.registry.get(name);
+      if (func && !func.lazy) {
+        // Convert to Claude format
+        const claudeFunc = this.convertToClaudeFormat(func);
+        functions.push(claudeFunc);
+        count++;
+      }
+    }
+
+    // Cache the result
+    this.cache[category] = functions;
+    return functions;
+  }
+
+  /**
+   * Select functions based on keywords
+   */
+  selectFunctionsByKeywords(query, limit = 50, includeMedical = false) {
+    const keywords = query.toLowerCase().split(/\s+/);
+    const scores = new Map();
+
+    // Score each function based on keyword matches
+    this.registry.forEach((func, name) => {
+      // Skip medical functions unless requested
+      if (!includeMedical && this.categories.medical.has(name)) {
+        return;
+      }
+
+      let score = 0;
+      const nameLower = name.toLowerCase();
+
+      keywords.forEach(keyword => {
+        if (nameLower.includes(keyword)) {
+          score += 10;  // High score for name match
+        }
+        if (func.description && func.description.toLowerCase().includes(keyword)) {
+          score += 5;   // Medium score for description match
+        }
+      });
+
+      // Boost essential and common functions
+      if (this.categories.essential.has(name)) score += 20;
+      if (this.categories.common.has(name)) score += 10;
+
+      // Boost frequently used functions
+      const usage = this.metrics.functionCalls.get(name) || 0;
+      score += Math.min(usage, 10);  // Up to 10 points for usage
+
+      if (score > 0) {
+        scores.set(name, score);
+      }
+    });
+
+    // Sort by score and return top functions
+    const sorted = Array.from(scores.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([name]) => name);
+
+    return this.loadFunctions(sorted);
+  }
+
+  /**
+   * Track function usage for optimization
+   */
+  trackUsage(functionName) {
+    const current = this.metrics.functionCalls.get(functionName) || 0;
+    this.metrics.functionCalls.set(functionName, current + 1);
+    this.metrics.lastUsed.set(functionName, Date.now());
+  }
+
+  /**
+   * Get performance report
+   */
+  getPerformanceReport() {
+    const topUsed = Array.from(this.metrics.functionCalls.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20);
+
+    return {
+      totalFunctions: this.registry.size,
+      categories: {
+        essential: this.categories.essential.size,
+        common: this.categories.common.size,
+        specialized: this.categories.specialized.size,
+        medical: this.categories.medical.size
+      },
+      topUsedFunctions: topUsed,
+      cacheStatus: Object.keys(this.cache).reduce((acc, key) => {
+        acc[key] = this.cache[key] ? 'loaded' : 'empty';
+        return acc;
+      }, {})
+    };
+  }
+
+  /**
+   * Hash function for cache invalidation
+   */
+  hashFunction(func) {
+    const str = JSON.stringify(func);
+    return crypto.createHash('md5').update(str).digest('hex').substring(0, 8);
+  }
+
+  /**
+   * Clear caches (for updates)
+   */
+  clearCache(category = null) {
+    if (category) {
+      this.cache[category] = null;
+    } else {
+      Object.keys(this.cache).forEach(key => {
+        this.cache[key] = null;
+      });
+    }
+    console.log(`🧹 Cleared cache${category ? ` for ${category}` : ' (all categories)'}`);
+  }
+}
+
+// Create singleton instance
+const instance = new FunctionOptimizationService();
+
+// Export both instance and the method for external use
+module.exports = instance;
+module.exports.convertToClaudeFormat = instance.convertToClaudeFormat.bind(instance);

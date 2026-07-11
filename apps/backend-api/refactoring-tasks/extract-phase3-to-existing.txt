@@ -1,0 +1,56 @@
+# Phase 3 - Extract remaining functions to EXISTING services
+
+## Add to patientService.js:
+- deletePatientInternal (patient deletion)
+- countPatients (patient counting)
+- getPatientMedications (patient medications - currently separate, should be in patient service)
+
+## Add to appointmentService.js:
+- getAppointmentDetails (appointment helper)
+- suggestAlternativeSlots (scheduling helper)
+
+## Add to providerService.js:
+- lookupProvider (provider lookup)
+- removeProviderInfo (provider management)
+
+## Add to documentService.js:
+- uploadDocument (document upload)
+- analyzeDocument (document analysis)
+- saveExtractedDocumentData (document extraction - this is the 8K line function!)
+
+## Add to communicationService.js:
+- createChatSession (chat management)
+- searchChatHistory (chat search)
+- processMessage (message processing)
+
+## NEW SERVICE - consentPrivacyService.js:
+- recordConsent
+- updateConsent
+- revokeConsent
+- checkConsentStatus
+- exportAnonymizedData
+- reIdentifyData
+- getVendorList
+- assessVendorRisk
+- addBusinessAssociate
+
+## NEW SERVICE - systemAdminService.js:
+- generateComplianceReport
+- runBackup
+- getSystemHealth
+- exportAuditLogs
+
+## NEW SERVICE - displayService.js (UI formatting):
+- listPatientMedicalCategories
+- openArtifactPanelWithCategory
+
+## KEEP IN agentServiceV4.js (CORE ONLY):
+- initialize
+- processChatMessage
+- processChatMessageImpl
+- getRelevantFunctions
+- executeFunction
+- _executeFunctionInternal
+- callAPI
+- handleDirectDatabaseOperation
+- safeServiceCall

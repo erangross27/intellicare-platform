@@ -1,0 +1,9 @@
+{
+  "name": "medical-records",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/medical-records", 
+  "projectType": "library",
+  "targets": {},
+  "tags": ["scope:records", "type:context", "compliance:hipaa", "compliance:dicom", "compliance:hl7"],
+  "implicitDependencies": []
+}

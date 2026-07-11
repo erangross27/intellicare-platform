@@ -1,0 +1,535 @@
+/* Patient Provider Document - December 2025 */
+/* Blue theme with mini-card pattern */
+
+.patient-provider-document {
+  background: #0F1B33;
+  color: #ececf1;
+  padding: 24px;
+  font-family: 'Comfortaa', sans-serif;
+  border-radius: 8px;
+  direction: ltr;
+  text-align: left;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.patient-provider-document * { direction: ltr; }
+
+/* ========== DOCUMENT HEADER - Column Layout ========== */
+.patient-provider-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.patient-provider-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== HEADER ACTIONS - Row Layout, Right-Aligned ========== */
+.patient-provider-document .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.patient-provider-document .header-actions .copy-btn,
+.patient-provider-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.patient-provider-document .header-actions .copy-btn:hover,
+.patient-provider-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: #3b82f6;
+}
+
+.patient-provider-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========== SEARCH CONTAINER ========== */
+.patient-provider-document .search-container {
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.patient-provider-document .search-input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  padding: 10px 36px 10px 14px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 14px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.patient-provider-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.patient-provider-document .search-input::placeholder {
+  color: #8e8ea0;
+}
+
+.patient-provider-document .clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #8e8ea0;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.patient-provider-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* ========== RECORDS CONTAINER ========== */
+.patient-provider-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ========== INDIVIDUAL RECORD ========== */
+.patient-provider-document .provider-record {
+  background: rgba(96, 165, 250, 0.05);
+  border: 2px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* ========== RECORD HEADER ========== */
+.patient-provider-document .record-header {
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.patient-provider-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.patient-provider-document .record-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== SECTION ========== */
+.patient-provider-document .section {
+  margin-bottom: 20px;
+}
+
+/* ========== MINI CARDS CONTAINER - Outer blue glow box ========== */
+.patient-provider-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ========== SECTION HEADER - Inside mini-cards-container with blue separator ========== */
+.patient-provider-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* ========== SECTION TITLE - Level 1: BIGGEST (19px) ========== */
+.patient-provider-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========== REC MINI CARD - Individual item box ========== */
+.patient-provider-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ========== NESTED SUBTITLE - Level 2: MEDIUM (17px) ========== */
+.patient-provider-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* ========== NUMBERED ROW - Very dark blue background ========== */
+.patient-provider-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* ========== ROW CONTENT ========== */
+.patient-provider-document .row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ========== CONTENT VALUE - Level 3: (16px) ========== */
+.patient-provider-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ========== META TEXT ========== */
+.patient-provider-document .meta-text {
+  color: #8e8ea0;
+  font-size: 14px;
+}
+
+/* ========== COPY BUTTONS - Row/Section level ========== */
+.patient-provider-document .copy-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.patient-provider-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+/* ========== SOLID BLUE for copied state - NOT GREEN! ========== */
+.patient-provider-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========== SEARCH HIGHLIGHT ========== */
+.patient-provider-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* ========== NO DATA / NO RESULTS ========== */
+.patient-provider-document .no-data,
+.patient-provider-document .no-results {
+  text-align: center;
+  color: #8e8ea0;
+  font-size: 16px;
+  padding: 40px 20px;
+}
+
+/* ========== EDITING STYLES ========== */
+
+/* Editable row-content */
+.patient-provider-document .row-content.editable {
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.patient-provider-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+/* Edit indicator */
+.patient-provider-document .edit-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #60a5fa;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.patient-provider-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Edit field container */
+.patient-provider-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.patient-provider-document .edit-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: #1e1f2a;
+  border: 2px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  resize: vertical;
+  box-sizing: border-box;
+  min-height: 60px;
+}
+
+.patient-provider-document .edit-textarea:focus {
+  outline: none;
+  border-color: #93bbfc;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+.patient-provider-document .edit-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #1e1f2a;
+  border: 2px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+.patient-provider-document .edit-input:focus {
+  outline: none;
+  border-color: #93bbfc;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+/* Edit actions */
+.patient-provider-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.patient-provider-document .save-btn {
+  padding: 6px 16px;
+  background: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  border-radius: 4px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.patient-provider-document .save-btn:hover {
+  background: rgba(37, 99, 235, 0.3);
+  border-color: #60a5fa;
+}
+
+.patient-provider-document .save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.patient-provider-document .cancel-btn {
+  padding: 6px 16px;
+  background: transparent;
+  color: #a1a1aa;
+  border: 1px solid #565869;
+  border-radius: 4px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.patient-provider-document .cancel-btn:hover {
+  background: rgba(86, 88, 105, 0.3);
+  color: #ececf1;
+}
+
+/* Edit row */
+.patient-provider-document .edit-row {
+  flex-direction: column !important;
+}
+
+/* Modified badge */
+.patient-provider-document .modified-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+  margin-left: 16px;
+}
+
+/* Approve button base — capitalize (not uppercase), Blue-glow theme */
+.patient-provider-document .approve-btn {
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 4px;
+  transition: all 0.2s ease;
+}
+
+.patient-provider-document .approve-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Pending approve — yellow/amber */
+.patient-provider-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.patient-provider-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+}
+
+/* After approval: green */
+.patient-provider-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.patient-provider-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.7);
+}
+
+/* Header right actions — column so approve button sits BELOW copy */
+.patient-provider-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+@media (max-width: 768px) {
+  .patient-provider-document {
+    padding: 16px;
+  }
+
+  .patient-provider-document .document-title {
+    font-size: 24px;
+  }
+
+  .patient-provider-document .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .patient-provider-document .header-actions .copy-btn,
+  .patient-provider-document .header-actions .pdf-btn {
+    width: 100%;
+  }
+
+  .patient-provider-document .provider-record {
+    padding: 16px;
+  }
+
+  .patient-provider-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .patient-provider-document .copy-btn {
+    align-self: flex-start;
+  }
+}

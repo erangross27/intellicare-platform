@@ -1,0 +1,60 @@
+{
+  "serviceId": "security-monitoring-service",
+  "serviceName": "Security Monitoring Service",
+  "description": "Real-time security monitoring and threat detection",
+  "permissions": [
+    "audit:read",
+    "security:write",
+    "alert:send",
+    "metrics:write"
+  ],
+  "allowedClinics": [
+    "*"
+  ],
+  "dataAccessPatterns": [
+    "auditLogs.find({ type: \"security_event\" })",
+    "threats.insert(threatData)",
+    "alerts.send({ priority: \"high\" })"
+  ],
+  "schedules": [
+    {
+      "cron": "realtime",
+      "description": "Continuous monitoring"
+    }
+  ],
+  "criticality": "critical",
+  "requiresMFA": true,
+  "allowedOperations": [
+    "monitorSecurityEvents",
+    "detectThreats",
+    "sendSecurityAlert",
+    "analyzeAuditLogs",
+    "generateSecurityReport",
+    "blockSuspiciousActivity",
+    "escalateIncident",
+    "emitSecurityEvent"
+  ],
+  "securityRequirements": {
+    "encryption": true,
+    "audit": true,
+    "accessControl": "strict",
+    "dataRetention": "7_years"
+  },
+  "dependencies": [
+    "immutableAuditService",
+    "threatDetectionService",
+    "incidentResponseService"
+  ],
+  "integrations": [
+    {
+      "service": "threatDetectionService",
+      "purpose": "Threat analysis coordination",
+      "permissions": ["security:read", "alert:send"]
+    },
+    {
+      "service": "incidentResponseService", 
+      "purpose": "Incident escalation",
+      "permissions": ["security:write", "alert:send"]
+    }
+  ]
+}

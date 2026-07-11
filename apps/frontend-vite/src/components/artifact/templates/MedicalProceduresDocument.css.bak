@@ -1,0 +1,346 @@
+.medical-procedures-document {
+  padding: 24px;
+  background: #343541;
+  color: #ececf1;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+}
+
+.procedures-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #565869;
+}
+
+.document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #4a9eff;
+  margin: 0;
+}
+
+.procedures-summary {
+  font-size: 14px;
+  color: #c5c5d2;
+  background: #2d2e38;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #565869;
+}
+
+.procedures-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.procedure-card {
+  background: #2d2e38;
+  border: 1px solid #565869;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.procedure-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.procedure-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #565869;
+}
+
+.procedure-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #4a9eff;
+  margin: 0;
+}
+
+.urgency-badge {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.urgency-high {
+  background: #ef4444;
+  color: #fff;
+}
+
+.urgency-medium {
+  background: #faa500;
+  color: #fff;
+}
+
+.urgency-low {
+  background: #10a37f;
+  color: #fff;
+}
+
+.procedure-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-row {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.info-item {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-item.full-width {
+  min-width: 100%;
+}
+
+.info-label {
+  color: #8e8e9e;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: auto;
+  display: block;
+}
+
+.info-value {
+  color: #ececf1;
+  font-size: 14px;
+  font-weight: 400;
+  display: block;
+}
+
+.procedure-section {
+  background: #3e3f4b;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  border: 1px solid #565869;
+}
+
+.procedure-section.complications {
+  background: #3e2828;
+  border-color: #ef4444;
+}
+
+.procedure-section.notes {
+  background: #2a3a4f;
+  border-color: #4a9eff;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4a9eff;
+  margin: 0 0 12px 0;
+}
+
+.section-content {
+  color: #ececf1;
+  font-size: 14px;
+  line-height: 1.8;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.procedure-metadata {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #565869;
+}
+
+.metadata-item {
+  font-size: 12px;
+  color: #c5c5d2;
+  background: #3e3f4b;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.metadata-item.ai-processed {
+  background: #1e4938;
+  color: #10a37f;
+  font-weight: 600;
+}
+
+.section-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+}
+
+.section-list li {
+  padding: 10px 12px;
+  margin: 4px 0;
+  background: #3e3f4b;
+  border-left: 3px solid #4a9eff;
+  border-radius: 4px;
+  color: #ececf1;
+  font-size: 14px;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 18px;
+  color: #c5c5d2;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.empty-subtext {
+  font-size: 14px;
+  color: #8e8e9e;
+  margin: 0;
+}
+
+/* Action Buttons */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-button {
+  background: linear-gradient(135deg, #565869 0%, #40414f 100%);
+  color: #ececf1;
+  border: 1px solid #667eea;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.action-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.action-button:active {
+  transform: scale(0.98);
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-button.copy-all.copied,
+.action-button.export-pdf.exported {
+  background: #9ca3af;
+}
+
+/* Copy Button for Individual Procedures */
+.procedure-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copy-button {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.copy-button:hover {
+  background: #40414f;
+  color: #ececf1;
+}
+
+.copy-button.copied {
+  color: #10a37f;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .procedures-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .action-button {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .procedure-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .procedure-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .info-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .info-item {
+    min-width: 100%;
+  }
+}

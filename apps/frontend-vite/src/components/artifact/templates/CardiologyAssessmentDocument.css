@@ -1,0 +1,667 @@
+/* Cardiology Assessment Document - December 2025 */
+/* Bar Chart + Mini-Card Pattern */
+
+.cardiology-assessment-document {
+  padding: 24px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ========== Collection Title ========== */
+.cardiology-assessment-document .collection-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0 0 20px 0;
+  text-transform: none !important;
+}
+
+/* ========== Header Actions ========== */
+.cardiology-assessment-document .header-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cardiology-assessment-document .action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cardiology-assessment-document .action-btn:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #3b82f6;
+}
+
+.cardiology-assessment-document .action-btn.copied,
+.cardiology-assessment-document .action-btn.exported {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.cardiology-assessment-document .action-btn:disabled {
+  background: #565869;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ========== Search Container ========== */
+.cardiology-assessment-document .search-container {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.cardiology-assessment-document .search-input {
+  width: 100%;
+  padding: 14px 40px 14px 16px;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  background: #0d1929;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 17px;
+  box-sizing: border-box;
+}
+
+.cardiology-assessment-document .search-input::placeholder {
+  color: #71717a;
+}
+
+.cardiology-assessment-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.cardiology-assessment-document .clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #71717a;
+  font-size: 23px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.cardiology-assessment-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* ========== Empty State ========== */
+.cardiology-assessment-document .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.cardiology-assessment-document .empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.cardiology-assessment-document .empty-text {
+  font-size: 19px;
+  color: #c5c5d2;
+  margin: 0;
+}
+
+.cardiology-assessment-document .no-results {
+  text-align: center;
+  padding: 48px 24px;
+  color: #71717a;
+  font-size: 19px;
+}
+
+/* ========== Records Container ========== */
+.cardiology-assessment-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-top: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ========== Document Card ========== */
+.cardiology-assessment-document .document-card {
+  background: #1e1f2e;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ========== Document Card Header ========== */
+.cardiology-assessment-document .document-card-header {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(96, 165, 250, 0.1) 100%);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 16px 20px;
+}
+
+.cardiology-assessment-document .header-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.cardiology-assessment-document .date-badge {
+  background: rgba(37, 99, 235, 0.2);
+  color: #93c5fd;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cardiology-assessment-document .status-badge {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cardiology-assessment-document .status-active {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.cardiology-assessment-document .status-completed {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+.cardiology-assessment-document .document-card-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* ========== Document Card Body ========== */
+.cardiology-assessment-document .document-card-body {
+  padding: 20px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ========== Section Container ========== */
+.cardiology-assessment-document .section-container {
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.cardiology-assessment-document .section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0 0 12px 0;
+  text-transform: none !important;
+}
+
+/* ========== Chart Section ========== */
+.cardiology-assessment-document .chart-section {
+  margin-bottom: 24px;
+  padding: 0 20px;
+}
+
+.cardiology-assessment-document .chart-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+/* ========== Chart Legend ========== */
+.cardiology-assessment-document .chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+  flex-wrap: wrap;
+}
+
+.cardiology-assessment-document .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardiology-assessment-document .legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.cardiology-assessment-document .legend-item span {
+  font-size: 13px;
+  color: #c5c5d2;
+}
+
+/* ========== Chart Category ========== */
+.cardiology-assessment-document .chart-category {
+  margin-bottom: 20px;
+}
+
+.cardiology-assessment-document .chart-category:last-child {
+  margin-bottom: 0;
+}
+
+.cardiology-assessment-document .category-header {
+  font-size: 15px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(37, 99, 235, 0.15);
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+/* ========== Bar Chart Row ========== */
+.cardiology-assessment-document .bar-chart-row {
+  margin-bottom: 16px;
+}
+
+.cardiology-assessment-document .bar-chart-row:last-child {
+  margin-bottom: 0;
+}
+
+.cardiology-assessment-document .bar-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ececf1;
+  margin-bottom: 6px;
+}
+
+.cardiology-assessment-document .bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cardiology-assessment-document .bar-background {
+  flex: 1;
+  height: 24px;
+  background: #0d1929;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.cardiology-assessment-document .bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.cardiology-assessment-document .bar-value {
+  min-width: 60px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ececf1;
+}
+
+.cardiology-assessment-document .bar-interpretation {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* ========== Numbered Rows Wrapper (Outer Blue Glow) ========== */
+.cardiology-assessment-document .numbered-rows-wrapper {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardiology-assessment-document .domain-groups-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ========== Mini Card ========== */
+.cardiology-assessment-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardiology-assessment-document .nested-subtitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #60a5fa;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+.cardiology-assessment-document .numbered-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 6px;
+}
+
+.cardiology-assessment-document .row-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cardiology-assessment-document .content-value {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #ececf1;
+}
+
+.cardiology-assessment-document .mini-card-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+/* ========== Recommendation Date Badge ========== */
+.cardiology-assessment-document .rec-date-badge {
+  background: rgba(37, 99, 235, 0.2);
+  color: #93c5fd;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+/* ========== Copy Button ========== */
+.cardiology-assessment-document .copy-btn {
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  min-width: 55px;
+  text-align: center;
+  font-family: inherit;
+}
+
+.cardiology-assessment-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+}
+
+.cardiology-assessment-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========== Search Highlighting ========== */
+.cardiology-assessment-document mark {
+  background-color: #fef08a;
+  color: #000;
+  padding: 1px 2px;
+  margin: 0;
+  font-weight: inherit;
+  border-radius: 2px;
+}
+
+/* ========== Editing Styles ========== */
+.cardiology-assessment-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+  margin-bottom: 12px;
+}
+
+.cardiology-assessment-document .header-right-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cardiology-assessment-document .row-content.editable {
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.cardiology-assessment-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.cardiology-assessment-document .edit-indicator {
+  color: rgba(96, 165, 250, 0.5);
+  margin-left: 8px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cardiology-assessment-document .row-content.editable:hover .edit-indicator {
+  color: #60a5fa;
+}
+
+.cardiology-assessment-document .edit-row {
+  background: rgba(96, 165, 250, 0.12) !important;
+  border-color: #60a5fa !important;
+}
+
+.cardiology-assessment-document .edit-field-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardiology-assessment-document .edit-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  background: #1a1b2e;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.cardiology-assessment-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.cardiology-assessment-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.cardiology-assessment-document .save-btn {
+  background: rgba(37, 99, 235, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(37, 99, 235, 0.4);
+  border-radius: 4px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.cardiology-assessment-document .save-btn:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.3);
+  border-color: #3b82f6;
+}
+
+.cardiology-assessment-document .save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cardiology-assessment-document .cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid rgba(156, 163, 175, 0.3);
+  border-radius: 4px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.cardiology-assessment-document .cancel-btn:hover {
+  background: rgba(156, 163, 175, 0.1);
+  border-color: #9ca3af;
+}
+
+.cardiology-assessment-document .approve-btn {
+  background: rgba(34, 197, 94, 0.08);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.cardiology-assessment-document .approve-btn:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: #22c55e;
+}
+
+.cardiology-assessment-document .approve-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cardiology-assessment-document .modified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #fbbf24;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.cardiology-assessment-document .numbered-row.modified {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+  .cardiology-assessment-document {
+    padding: 16px;
+  }
+
+  .cardiology-assessment-document .collection-title {
+    font-size: 26px;
+  }
+
+  .cardiology-assessment-document .document-card-title {
+    font-size: 18px;
+  }
+
+  .cardiology-assessment-document .header-actions {
+    flex-wrap: wrap;
+  }
+
+  .cardiology-assessment-document .chart-legend {
+    gap: 12px;
+  }
+
+  .cardiology-assessment-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cardiology-assessment-document .copy-btn {
+    align-self: flex-end;
+  }
+}
+
+/* ── Recursive nested-object editor (stressTest, results) ── */
+.cardiology-assessment-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.cardiology-assessment-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.cardiology-assessment-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.cardiology-assessment-document .editable-row { cursor: pointer; }
+.cardiology-assessment-document .editable-row:hover .edit-indicator { opacity: 1; }
+.cardiology-assessment-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
+.cardiology-assessment-document .edit-select option { background: #0F1B33; color: #ececf1; }
+.cardiology-assessment-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.cardiology-assessment-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.cardiology-assessment-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
+.cardiology-assessment-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }

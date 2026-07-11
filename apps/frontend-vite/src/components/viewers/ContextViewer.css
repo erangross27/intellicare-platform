@@ -1,0 +1,166 @@
+.context-viewer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+.context-viewer.rtl {
+  direction: rtl;
+}
+
+.context-viewer.ltr {
+  direction: ltr;
+}
+
+/* Tab Navigation */
+.context-tabs {
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e1e4e8;
+  padding: 0;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.tab-button {
+  flex: 1;
+  min-width: 80px;
+  padding: 12px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.tab-button:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.tab-button.active {
+  color: #2563eb;
+  background: white;
+  border-bottom-color: #2563eb;
+}
+
+.tab-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tab-icon {
+  font-size: 20px;
+}
+
+.tab-label {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Content Area */
+.context-content {
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+}
+
+.context-content.full-height {
+  height: 100%;
+}
+
+/* Agent Response Card */
+.agent-response-card {
+  height: 100%;
+  padding: 24px;
+  overflow-y: auto;
+  background: #ffffff;
+}
+
+.agent-response-content {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  font-size: 15px;
+  line-height: 1.6;
+  color: #1f2937;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.agent-response-content h3 {
+  margin: 0 0 16px 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.agent-response-content ul,
+.agent-response-content ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.agent-response-content li {
+  margin: 6px 0;
+}
+
+/* Empty State */
+.no-patient-selected {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state {
+  text-align: center;
+  color: #9ca3af;
+}
+
+.empty-icon {
+  font-size: 48px;
+  opacity: 0.5;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Medical History */
+.medical-history {
+  padding: 20px;
+}
+
+.medical-history h3 {
+  margin: 0 0 20px 0;
+  color: #1f2937;
+  font-size: 18px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .context-tabs {
+    padding: 0;
+  }
+  
+  .tab-button {
+    padding: 10px 6px;
+    font-size: 11px;
+  }
+  
+  .tab-icon {
+    font-size: 18px;
+  }
+}

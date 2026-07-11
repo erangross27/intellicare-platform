@@ -1,0 +1,521 @@
+/**
+ * AutopsyReportsDocument.css
+ * Blue glow theme with inline editing support
+ */
+
+/* Container */
+.autopsy-reports-document {
+  padding: 20px;
+  background: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  min-height: 100%;
+}
+
+/* Header — block layout, buttons below title */
+.autopsy-reports-document .document-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #2563eb;
+}
+
+.autopsy-reports-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.autopsy-reports-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  margin-top: 10px;
+}
+
+/* Records Container */
+.autopsy-reports-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.autopsy-reports-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.autopsy-reports-document .record-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.autopsy-reports-document .record-meta-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.autopsy-reports-document .record-title-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.autopsy-reports-document .record-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.autopsy-reports-document .record-date {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+/* Section */
+.autopsy-reports-document .section {
+  margin-bottom: 20px;
+}
+
+/* Section Header — INSIDE mini-cards-container */
+.autopsy-reports-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.autopsy-reports-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Header Right Actions — column layout (copy on top, approve below) */
+.autopsy-reports-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Mini Cards Container */
+.autopsy-reports-document .mini-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+/* Rec Mini Card */
+.autopsy-reports-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.autopsy-reports-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 4px;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+/* Numbered Row */
+.autopsy-reports-document .numbered-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.autopsy-reports-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.autopsy-reports-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ==================== EDITING STYLES ==================== */
+
+/* Editable row — pencil icon on hover */
+.autopsy-reports-document .editable-row {
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.autopsy-reports-document .editable-row:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.autopsy-reports-document .edit-indicator {
+  opacity: 0;
+  color: #60a5fa;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.autopsy-reports-document .editable-row:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Modified row — blue glow */
+.autopsy-reports-document .numbered-row.modified {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.15);
+}
+
+/* Edit field container */
+.autopsy-reports-document .edit-field-container {
+  width: 100%;
+}
+
+.autopsy-reports-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.autopsy-reports-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+.autopsy-reports-document input.edit-date {
+  width: 100%;
+  display: block;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  color-scheme: dark;
+}
+
+.autopsy-reports-document input.edit-date:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+.autopsy-reports-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.autopsy-reports-document .save-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.autopsy-reports-document .save-btn:hover {
+  background: #3b82f6;
+}
+
+.autopsy-reports-document .cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.autopsy-reports-document .cancel-btn:hover {
+  border-color: #9ca3af;
+  color: #ececf1;
+}
+
+/* Modified badge */
+.autopsy-reports-document .modified-badge {
+  font-size: 11px;
+  color: #facc15;
+  padding: 2px 8px;
+  font-style: italic;
+}
+
+.autopsy-reports-document .modified-badge.added {
+  color: #4ade80;
+}
+
+/* ==================== APPROVE BUTTON ==================== */
+
+.autopsy-reports-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+/* Pending — YELLOW */
+.autopsy-reports-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.autopsy-reports-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+/* Approved — GREEN */
+.autopsy-reports-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.autopsy-reports-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+/* ==================== COPY BUTTON ==================== */
+
+.autopsy-reports-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.autopsy-reports-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.autopsy-reports-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Header Copy All / Export PDF buttons */
+.autopsy-reports-document .header-actions .copy-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.autopsy-reports-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ==================== BAR CHART ==================== */
+
+.autopsy-reports-document .chart-category {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.autopsy-reports-document .category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+.autopsy-reports-document .category-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none;
+}
+
+.autopsy-reports-document .category-description {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+  text-align: right;
+}
+
+.autopsy-reports-document .bar-chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+}
+
+.autopsy-reports-document .bar-chart-row:hover {
+  border-color: #60a5fa;
+}
+
+.autopsy-reports-document .bar-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.autopsy-reports-document .bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.autopsy-reports-document .bar-background {
+  flex: 1;
+  height: 24px;
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #565869;
+}
+
+.autopsy-reports-document .bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.autopsy-reports-document .bar-value {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.autopsy-reports-document .bar-interpretation {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Highlight */
+.autopsy-reports-document mark {
+  background: #fbbf24;
+  color: #000;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+/* Empty State */
+.autopsy-reports-document .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .autopsy-reports-document {
+    padding: 16px;
+  }
+
+  .autopsy-reports-document .document-title {
+    font-size: 22px;
+  }
+
+  .autopsy-reports-document .header-actions {
+    flex-direction: column;
+  }
+}
+/* Sub-field label */
+.autopsy-reports-document .sub-field-label { font-size: 13px; font-weight: 600; color: #93c5fd; margin-right: 8px; flex-shrink: 0; }

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Region Detection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-result {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .label {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .true { color: #4caf50; }
+        .false { color: #f44336; }
+    </style>
+</head>
+<body>
+    <h1>🌍 Region Detection Test</h1>
+
+    <div class="test-result">
+        <div class="label">Browser Language</div>
+        <div class="value" id="browserLang"></div>
+    </div>
+
+    <div class="test-result">
+        <div class="label">All Languages</div>
+        <div class="value" id="allLangs"></div>
+    </div>
+
+    <div class="test-result">
+        <div class="label">Timezone</div>
+        <div class="value" id="timezone"></div>
+    </div>
+
+    <div class="test-result">
+        <div class="label">Date Format (March 15, 2024)</div>
+        <div class="value" id="dateFormat"></div>
+    </div>
+
+    <div class="test-result">
+        <div class="label">Is US User?</div>
+        <div class="value" id="isUS"></div>
+    </div>
+
+    <div class="test-result">
+        <div class="label">Is Israeli User?</div>
+        <div class="value" id="isIsraeli"></div>
+    </div>
+
+    <div class="test-result">
+        <div class="label">Language Switcher Visible?</div>
+        <div class="value" id="showSwitcher"></div>
+    </div>
+
+    <div class="test-result">
+        <div class="label">Available Languages</div>
+        <div class="value" id="availableLangs"></div>
+    </div>
+
+    <script type="module">
+        // Import the region detector functions
+        const isLikelyUSUser = () => {
+            try {
+                const browserLang = navigator.language || navigator.userLanguage || '';
+                const isEnglishUS = browserLang.toLowerCase().includes('en-us');
+
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+                const isUSTimezone = timezone.includes('America/') &&
+                                    !timezone.includes('America/Toronto') &&
+                                    !timezone.includes('America/Mexico');
+
+                const dateFormat = new Intl.DateTimeFormat(browserLang).format(new Date('2024-03-15'));
+                const isUSDateFormat = dateFormat.startsWith('3/');
+
+                const languages = navigator.languages || [navigator.language];
+                const hasHebrew = languages.some(lang => lang.toLowerCase().includes('he'));
+
+                if (hasHebrew) return false;
+                if (isUSTimezone && isEnglishUS) return true;
+                if (isEnglishUS && isUSDateFormat) return true;
+                if (isUSTimezone) return true;
+
+                return false;
+            } catch (error) {
+                console.error('Error detecting region:', error);
+                return false;
+            }
+        };
+
+        const isLikelyIsraeliUser = () => {
+            try {
+                const browserLang = navigator.language || navigator.userLanguage || '';
+                const languages = navigator.languages || [navigator.language];
+                const hasHebrew = languages.some(lang => lang.toLowerCase().includes('he'));
+
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+                const isIsraelTimezone = timezone.includes('Jerusalem') || timezone.includes('Israel');
+
+                return hasHebrew || isIsraelTimezone;
+            } catch (error) {
+                console.error('Error detecting Israeli user:', error);
+                return false;
+            }
+        };
+
+        // Display results
+        document.getElementById('browserLang').textContent = navigator.language || 'Not available';
+        document.getElementById('allLangs').textContent = (navigator.languages || []).join(', ') || 'Not available';
+        document.getElementById('timezone').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Not available';
+        document.getElementById('dateFormat').textContent = new Intl.DateTimeFormat(navigator.language).format(new Date('2024-03-15'));
+
+        const isUS = isLikelyUSUser();
+        const isIsraeli = isLikelyIsraeliUser();
+        const showSwitcher = !isUS;
+        const availableLangs = isUS ? ['English only'] : ['English', 'Hebrew'];
+
+        document.getElementById('isUS').innerHTML = `<span class="${isUS}">${isUS}</span>`;
+        document.getElementById('isIsraeli').innerHTML = `<span class="${isIsraeli}">${isIsraeli}</span>`;
+        document.getElementById('showSwitcher').innerHTML = `<span class="${showSwitcher}">${showSwitcher}</span>`;
+        document.getElementById('availableLangs').textContent = availableLangs.join(', ');
+    </script>
+</body>
+</html>

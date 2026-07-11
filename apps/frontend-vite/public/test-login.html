@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test IntelliCare Login</title>
+    <style>
+        body {
+            font-family: Arial;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test IntelliCare Login & Token</h1>
+    
+    <button onclick="testLogin()">1. Test Login</button>
+    <button onclick="checkToken()">2. Check Stored Token</button>
+    <button onclick="testChat()">3. Test Chat API</button>
+    
+    <div id="result" class="result">Click the buttons in order to test...</div>
+
+    <script>
+        async function testLogin() {
+            const div = document.getElementById('result');
+            div.innerHTML = 'Testing login...\n';
+            
+            try {
+                // Use relative URL when served from React app
+                const response = await fetch('/api/clinic-auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-clinic-subdomain': 'developer'
+                    },
+                    body: JSON.stringify({
+                        email: 'eran@gross.support',
+                        password: 'Mk!p93Mk!p93'
+                    })
+                });
+                
+                const text = await response.text();
+                console.log('Raw response:', text);
+                
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    div.innerHTML += '<span class="error">Failed to parse response as JSON:</span>\n' + text;
+                    return;
+                }
+                
+                if (result.success) {
+                    // Store everything
+                    sessionStorage.setItem('token', result.token);
+                    localStorage.setItem('clinicSubdomain', 'developer');
+                    
+                    div.innerHTML += '<span class="success">✅ Login successful!</span>\n\n';
+                    div.innerHTML += 'User: ' + result.user.fullName + '\n';
+                    div.innerHTML += 'Email: ' + result.user.email + '\n';
+                    div.innerHTML += 'Clinic: ' + result.clinic.name + '\n\n';
+                    div.innerHTML += 'Token (first 100 chars):\n' + result.token.substring(0, 100) + '...\n\n';
+                    div.innerHTML += 'Token stored in sessionStorage: ' + (sessionStorage.getItem('token') ? '✅' : '❌');
+                } else {
+                    div.innerHTML += '<span class="error">Login failed:</span>\n' + JSON.stringify(result, null, 2);
+                }
+            } catch (error) {
+                div.innerHTML += '<span class="error">Error:</span> ' + error.message;
+            }
+        }
+        
+        function checkToken() {
+            const div = document.getElementById('result');
+            const token = sessionStorage.getItem('token');
+            
+            if (!token) {
+                div.innerHTML = '<span class="error">No token in sessionStorage!</span>\n';
+                div.innerHTML += 'Please click "Test Login" first.';
+                return;
+            }
+            
+            div.innerHTML = 'Token found in sessionStorage:\n\n';
+            div.innerHTML += 'Length: ' + token.length + ' characters\n';
+            div.innerHTML += 'Parts (split by "."): ' + token.split('.').length + ' (should be 3)\n\n';
+            
+            const parts = token.split('.');
+            if (parts.length === 3) {
+                div.innerHTML += '✅ Token structure looks valid (3 parts)\n\n';
+                div.innerHTML += 'Header: ' + parts[0].substring(0, 30) + '...\n';
+                div.innerHTML += 'Payload: ' + parts[1].substring(0, 30) + '...\n';
+                div.innerHTML += 'Signature: ' + parts[2].substring(0, 30) + '...\n';
+            } else {
+                div.innerHTML += '<span class="error">❌ Invalid token structure!</span>\n';
+                div.innerHTML += 'Token content: ' + token.substring(0, 200);
+            }
+        }
+        
+        async function testChat() {
+            const div = document.getElementById('result');
+            const token = sessionStorage.getItem('token');
+            
+            if (!token) {
+                div.innerHTML = '<span class="error">No token found!</span>\n';
+                div.innerHTML += 'Please login first.';
+                return;
+            }
+            
+            div.innerHTML = 'Testing chat API with token...\n\n';
+            
+            try {
+                // Use relative URL when served from React app
+                const response = await fetch('/api/agent/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': token,
+                        'x-clinic-subdomain': 'developer'
+                    },
+                    body: JSON.stringify({
+                        message: 'שלום',
+                        sessionId: Date.now().toString(),
+                        language: 'he'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    div.innerHTML += '<span class="success">✅ Chat API working!</span>\n\n';
+                    div.innerHTML += 'Response:\n' + JSON.stringify(result, null, 2);
+                } else {
+                    div.innerHTML += '<span class="error">❌ Chat API error ' + response.status + ':</span>\n';
+                    div.innerHTML += JSON.stringify(result, null, 2);
+                }
+            } catch (error) {
+                div.innerHTML += '<span class="error">Error:</span> ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,768 @@
+/**
+ * AddictionMedicineConsultationsDocument.css
+ * December 2025 Template - Blue Theme
+ *
+ * Font Hierarchy:
+ * - section-title: 19px (Level 1 - BIGGEST)
+ * - nested-subtitle: 17px (Level 2 - MEDIUM)
+ * - content-value: 16px (Level 3 - READABLE)
+ *
+ * Colors:
+ * - numbered-row bg: #0d1929
+ * - nested-subtitle: #93c5fd
+ * - borders: rgba(96, 165, 250, 0.3)
+ * - copy-btn.copied: #2563eb (SOLID BLUE)
+ */
+
+/* Parent Container */
+.addiction-medicine-consultations-document {
+  padding: 24px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ============================================
+   DOCUMENT HEADER - Column Layout
+   ============================================ */
+.addiction-medicine-consultations-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.addiction-medicine-consultations-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Header Actions - Row Layout, Right-Aligned */
+.addiction-medicine-consultations-document .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.addiction-medicine-consultations-document .header-actions .copy-btn,
+.addiction-medicine-consultations-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addiction-medicine-consultations-document .header-actions .copy-btn:hover,
+.addiction-medicine-consultations-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #60a5fa;
+}
+
+.addiction-medicine-consultations-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ============================================
+   SEARCH
+   ============================================ */
+.addiction-medicine-consultations-document .search-container {
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.addiction-medicine-consultations-document .search-input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  padding: 10px 36px 10px 14px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 14px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.addiction-medicine-consultations-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.addiction-medicine-consultations-document .search-input::placeholder {
+  color: #9ca3af;
+}
+
+.addiction-medicine-consultations-document .clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.addiction-medicine-consultations-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* Search Results Count */
+.addiction-medicine-consultations-document .search-results-count {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: rgba(96, 165, 250, 0.1);
+  border-radius: 6px;
+}
+
+/* Search Highlight */
+.addiction-medicine-consultations-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* No Data Message */
+.addiction-medicine-consultations-document .no-data-message {
+  font-size: 16px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+/* ============================================
+   CONSULTATIONS LIST
+   ============================================ */
+.addiction-medicine-consultations-document .consultations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ============================================
+   CONSULTATION CARD
+   ============================================ */
+.addiction-medicine-consultations-document .consultation-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 2px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Record Header */
+.addiction-medicine-consultations-document .record-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.addiction-medicine-consultations-document .record-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.addiction-medicine-consultations-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.addiction-medicine-consultations-document .date-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.15);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ============================================
+   SECTIONS
+   ============================================ */
+.addiction-medicine-consultations-document .section {
+  margin-bottom: 8px;
+}
+
+/* Mini Cards Container - Outer wrapper with blue glow */
+.addiction-medicine-consultations-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Section Header - Inside mini-cards-container */
+.addiction-medicine-consultations-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Subsection Header - Inside rec-mini-card */
+.addiction-medicine-consultations-document .subsection-header {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.addiction-medicine-consultations-document .subsection-header .nested-subtitle {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* Section Title - Level 1: BIGGEST (19px) */
+.addiction-medicine-consultations-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Rec Mini Card - Individual item box */
+.addiction-medicine-consultations-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Nested Subtitle - Level 2: MEDIUM (17px) */
+.addiction-medicine-consultations-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* Nested Mini Card - Level 3: wraps a sub-label + its value (triple-nested) */
+.addiction-medicine-consultations-document .nested-mini-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Sub-label - Level 3 subtitle inside a nested-mini-card (15px, no underline) */
+.addiction-medicine-consultations-document .nested-subtitle.sub-label {
+  font-size: 15px;
+  padding-left: 0;
+  opacity: 0.9;
+  border-bottom: none;
+  margin-bottom: 2px;
+  padding-bottom: 2px;
+}
+
+/* Numbered Row - VERY DARK BLUE background */
+.addiction-medicine-consultations-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Row Content */
+.addiction-medicine-consultations-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+/* Field Label - for inline labels */
+.addiction-medicine-consultations-document .field-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Content Value - Level 3: READABLE (16px) */
+.addiction-medicine-consultations-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ============================================
+   COPY BUTTONS
+   ============================================ */
+.addiction-medicine-consultations-document .copy-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.addiction-medicine-consultations-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+/* SOLID BLUE for copied state - NOT GREEN! */
+.addiction-medicine-consultations-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Section Copy Button */
+.addiction-medicine-consultations-document .section-header .copy-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+/* ============================================
+   BAR CHART VISUALIZATION
+   ============================================ */
+
+/* Chart Container */
+.addiction-medicine-consultations-document .chart-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+/* Chart Legend */
+.addiction-medicine-consultations-document .chart-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.addiction-medicine-consultations-document .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.addiction-medicine-consultations-document .legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.addiction-medicine-consultations-document .legend-text {
+  font-size: 12px;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Main Score Bar */
+.addiction-medicine-consultations-document .main-score-bar {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.addiction-medicine-consultations-document .main-score-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.addiction-medicine-consultations-document .main-score-label {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.addiction-medicine-consultations-document .main-score-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.addiction-medicine-consultations-document .main-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.addiction-medicine-consultations-document .main-bar-background {
+  flex: 1;
+  height: 28px;
+  background: #0d1929;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.addiction-medicine-consultations-document .main-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.addiction-medicine-consultations-document .main-score-interpretation {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 8px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Symptom Bars */
+.addiction-medicine-consultations-document .symptom-bars-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 16px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.addiction-medicine-consultations-document .symptom-bars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.addiction-medicine-consultations-document .symptom-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.addiction-medicine-consultations-document .symptom-label {
+  font-size: 13px;
+  color: #ececf1;
+  min-width: 140px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.addiction-medicine-consultations-document .symptom-bar-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.addiction-medicine-consultations-document .symptom-bar-background {
+  flex: 1;
+  height: 16px;
+  background: #0d1929;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.addiction-medicine-consultations-document .symptom-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.addiction-medicine-consultations-document .symptom-score {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ececf1;
+  min-width: 30px;
+  text-align: right;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .addiction-medicine-consultations-document {
+    padding: 16px;
+  }
+
+  .addiction-medicine-consultations-document .document-title {
+    font-size: 24px;
+  }
+
+  .addiction-medicine-consultations-document .header-actions {
+    flex-wrap: wrap;
+  }
+
+  .addiction-medicine-consultations-document .consultation-card {
+    padding: 16px;
+  }
+
+  .addiction-medicine-consultations-document .record-title {
+    font-size: 18px;
+  }
+
+  .addiction-medicine-consultations-document .section-title {
+    font-size: 17px;
+  }
+
+  .addiction-medicine-consultations-document .nested-subtitle {
+    font-size: 15px;
+  }
+
+  .addiction-medicine-consultations-document .content-value {
+    font-size: 14px;
+  }
+
+  .addiction-medicine-consultations-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .addiction-medicine-consultations-document .copy-btn {
+    align-self: flex-end;
+  }
+}
+
+/* ============================================
+   INLINE EDITING
+   ============================================ */
+
+/* Header Right Actions — Copy Section + Approve side by side */
+.addiction-medicine-consultations-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Editable row cursor */
+.addiction-medicine-consultations-document .row-content.editable {
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.addiction-medicine-consultations-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+/* Edit Indicator */
+.addiction-medicine-consultations-document .edit-indicator {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(96, 165, 250, 0.5);
+  margin-left: 6px;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.addiction-medicine-consultations-document .row-content.editable:hover .edit-indicator {
+  color: #60a5fa;
+}
+
+/* Edit Row */
+.addiction-medicine-consultations-document .numbered-row.edit-row {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+}
+
+/* Edit Field Container */
+.addiction-medicine-consultations-document .edit-field-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Edit Textarea */
+.addiction-medicine-consultations-document .edit-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  background: #1a1b26;
+  border: 1px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 15px;
+  font-family: 'Comfortaa', sans-serif;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.addiction-medicine-consultations-document .edit-textarea:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+/* Edit Actions */
+.addiction-medicine-consultations-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.addiction-medicine-consultations-document .edit-save-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.addiction-medicine-consultations-document .edit-save-btn:hover {
+  background: #3b82f6;
+}
+
+.addiction-medicine-consultations-document .edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.addiction-medicine-consultations-document .edit-cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.addiction-medicine-consultations-document .edit-cancel-btn:hover {
+  color: #ececf1;
+  border-color: #9ca3af;
+}
+
+/* Modified Row */
+.addiction-medicine-consultations-document .numbered-row.modified {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+/* Modified Badge */
+.addiction-medicine-consultations-document .modified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #fbbf24;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Approve Button — Yellow (pending edits) */
+.addiction-medicine-consultations-document .approve-btn {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.addiction-medicine-consultations-document .approve-btn:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+/* Approve Button — Green (approved) */
+.addiction-medicine-consultations-document .approve-btn.approved {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.addiction-medicine-consultations-document .approve-btn.approved:hover {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.addiction-medicine-consultations-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

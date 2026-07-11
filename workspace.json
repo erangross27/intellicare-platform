@@ -1,0 +1,91 @@
+{
+  "version": 2,
+  "projects": {
+    "backend-api": {
+      "root": "apps/backend-api",
+      "sourceRoot": "apps/backend-api",
+      "projectType": "application",
+      "targets": {
+        "serve": {
+          "executor": "@nrwl/node:execute",
+          "options": {
+            "buildTarget": "backend-api:build"
+          }
+        }
+      }
+    },
+    "frontend-vite": {
+      "root": "apps/frontend-vite",
+      "sourceRoot": "apps/frontend-vite/src",
+      "projectType": "application",
+      "targets": {
+        "serve": {
+          "executor": "@nrwl/js:node",
+          "options": {
+            "buildTarget": "frontend-vite:build"
+          }
+        }
+      }
+    },
+    "patient-management": {
+      "root": "libs/patient-management",
+      "sourceRoot": "libs/patient-management",
+      "projectType": "library"
+    },
+    "clinical-care": {
+      "root": "libs/clinical-care",
+      "sourceRoot": "libs/clinical-care",
+      "projectType": "library"
+    },
+    "medical-records": {
+      "root": "libs/medical-records",
+      "sourceRoot": "libs/medical-records",
+      "projectType": "library"
+    },
+    "billing-insurance": {
+      "root": "libs/billing-insurance",
+      "sourceRoot": "libs/billing-insurance",
+      "projectType": "library"
+    },
+    "compliance-security": {
+      "root": "libs/compliance-security",
+      "sourceRoot": "libs/compliance-security",
+      "projectType": "library"
+    },
+    "communication": {
+      "root": "libs/communication",
+      "sourceRoot": "libs/communication",
+      "projectType": "library"
+    },
+    "ai-analytics": {
+      "root": "libs/ai-analytics",
+      "sourceRoot": "libs/ai-analytics",
+      "projectType": "library"
+    },
+    "infrastructure": {
+      "root": "libs/infrastructure",
+      "sourceRoot": "libs/infrastructure",
+      "projectType": "library"
+    },
+    "integration": {
+      "root": "libs/integration",
+      "sourceRoot": "libs/integration",
+      "projectType": "library"
+    },
+    "learning-training": {
+      "root": "libs/learning-training",
+      "sourceRoot": "libs/learning-training",
+      "projectType": "library"
+    },
+    "operations": {
+      "root": "libs/operations",
+      "sourceRoot": "libs/operations",
+      "projectType": "library"
+    },
+    "shared": {
+      "root": "libs/shared",
+      "sourceRoot": "libs/shared",
+      "projectType": "library"
+    }
+  }
+}

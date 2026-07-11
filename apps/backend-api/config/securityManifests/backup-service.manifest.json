@@ -1,0 +1,30 @@
+{
+  "serviceId": "backup-service",
+  "serviceName": "Backup Service",
+  "description": "Automated database and file backups",
+  "permissions": [
+    "database:read",
+    "backup:write",
+    "metrics:write"
+  ],
+  "allowedClinics": [
+    "*"
+  ],
+  "dataAccessPatterns": [
+    "db.collection.find({})",
+    "backup.write(data)",
+    "backup.verify(checksum)"
+  ],
+  "schedules": [
+    {
+      "cron": "0 1 * * *",
+      "description": "Daily at 1 AM"
+    },
+    {
+      "cron": "0 0 * * 0",
+      "description": "Weekly full backup Sunday midnight"
+    }
+  ],
+  "criticality": "critical",
+  "requiresMFA": true
+}

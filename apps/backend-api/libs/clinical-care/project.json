@@ -1,0 +1,9 @@
+{
+  "name": "clinical-care",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json", 
+  "sourceRoot": "libs/clinical-care",
+  "projectType": "library",
+  "targets": {},
+  "tags": ["scope:clinical", "type:context", "compliance:fda", "compliance:fhir"],
+  "implicitDependencies": []
+}

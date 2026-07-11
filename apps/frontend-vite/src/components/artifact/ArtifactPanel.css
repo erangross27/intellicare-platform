@@ -1,0 +1,149 @@
+/* ArtifactPanel - Split screen artifact viewer styling (like Claude.ai) */
+
+.artifact-panel {
+  /* Flex layout - width handled by parent wrapper */
+  width: 100%; /* Fill parent wrapper */
+  height: 100%;
+  background: #060A14; /* Backdrop field behind document card (richer blue-dark navy) */
+  border-left: 1px solid #28395C;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative; /* Required for absolute positioned close button */
+  min-width: 0;
+}
+
+/* Panel states - not needed for flex layout */
+.artifact-panel.closed {
+  display: none;
+}
+
+.artifact-panel.open {
+  display: flex;
+}
+
+/* Close button */
+.artifact-close-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #28395C;
+  background: #0E1626;
+  color: #E9EFFA;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 36px;
+  text-align: center;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.artifact-close-button:hover {
+  background: #3D8BFF;
+  color: #04122e;
+  border-color: #3D8BFF;
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(61, 139, 255, 0.3);
+}
+
+.artifact-close-button:active {
+  transform: scale(0.95);
+  background: #173a78;
+  color: #E9EFFA;
+}
+
+/* Content area */
+.artifact-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px;
+  padding-top: 80px; /* Space for close button */
+  width: calc(100% - 120px); /* Reserve 120px for right sidebar */
+  max-width: calc(100% - 120px);
+}
+
+/* GLOBAL FIX: Prevent all document templates from overflowing */
+/* This applies to all templates with pattern *-document class */
+.artifact-content > div[class*="-document"] {
+  max-width: 100% !important;    /* Prevent overflow beyond artifact panel */
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Ensure all template internal elements also respect width constraints */
+.artifact-content div[class*="-card"],
+.artifact-content div[class*="-section"],
+.artifact-content div[class*="-row"],
+.artifact-content div[class*="-container"] {
+  max-width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Smooth scrolling */
+.artifact-content {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbar */
+.artifact-content::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+.artifact-content {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .artifact-panel {
+    width: 60%;
+  }
+}
+
+@media (max-width: 768px) {
+  .artifact-panel {
+    width: 100%;
+  }
+
+  .artifact-content {
+    padding: 16px;
+    padding-top: 56px;
+  }
+}
+
+/* Level transition animations */
+.artifact-level-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.artifact-level-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.artifact-level-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.artifact-level-exit-active {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}

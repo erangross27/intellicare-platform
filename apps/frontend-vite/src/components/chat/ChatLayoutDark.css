@@ -1,0 +1,282 @@
+/* Dark Professional Theme - Dark Blue */
+
+.chat-layout-dark {
+  display: flex;
+  height: 100vh; /* Full viewport height without navigation */
+  width: 100%;
+  background-color: #0f172a; /* Dark blue background */
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.chat-layout-dark.rtl {
+  flex-direction: row-reverse;
+}
+
+/* Context Panel - Clean, no tabs */
+.context-panel-dark {
+  width: 45%;
+  min-width: 400px;
+  max-width: 800px;
+  background: #1e293b; /* Slightly lighter dark blue */
+  border-right: 1px solid #334155;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  animation: slideIn 0.3s ease;
+  overflow: hidden;
+}
+
+.rtl .context-panel-dark {
+  border-right: none;
+  border-left: 1px solid #30363d;
+}
+
+/* Minimal close button */
+.close-panel-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+  background: transparent;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+}
+
+.rtl .close-panel-btn {
+  right: auto;
+  left: 16px;
+}
+
+.close-panel-btn:hover {
+  background: #334155;
+  color: #e2e8f0;
+  border-color: #64748b;
+}
+
+/* Context content area */
+.context-content-dark {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+  background: transparent;
+}
+
+/* Hide scrollbars but keep functionality */
+.context-content-dark::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Chat Panel */
+.chat-panel-dark {
+  flex: 1;
+  background: #0f172a; /* Dark blue background */
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.chat-panel-dark.full-width {
+  width: 100%;
+}
+
+.chat-panel-dark.with-context {
+  width: auto;
+}
+
+/* Animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.rtl @keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Override ChatInterface styles for dark theme */
+.chat-panel-dark .chat-container {
+  background: #0d1117 !important;
+}
+
+.chat-panel-dark .messages-container {
+  background: #0d1117 !important;
+}
+
+.chat-panel-dark .input-container {
+  background: #161b22 !important;
+  border-top: 1px solid #30363d !important;
+  box-shadow: none !important;
+}
+
+.chat-panel-dark input,
+.chat-panel-dark textarea {
+  background: #0d1117 !important;
+  border: 1px solid #30363d !important;
+  color: #c9d1d9 !important;
+}
+
+.chat-panel-dark input:focus,
+.chat-panel-dark textarea:focus {
+  border-color: #58a6ff !important;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1) !important;
+}
+
+/* Message bubbles dark theme */
+.chat-panel-dark .message-user {
+  background: linear-gradient(135deg, #1f6feb 0%, #1158c7 100%) !important;
+  color: #ffffff !important;
+}
+
+.chat-panel-dark .message-agent {
+  background: #161b22 !important;
+  border: 1px solid #30363d !important;
+  color: #c9d1d9 !important;
+}
+
+/* Button styles */
+.chat-panel-dark button {
+  background: #21262d !important;
+  border: 1px solid #30363d !important;
+  color: #c9d1d9 !important;
+}
+
+.chat-panel-dark button:hover {
+  background: #30363d !important;
+  border-color: #8b949e !important;
+}
+
+.chat-panel-dark button.primary {
+  background: linear-gradient(135deg, #1f6feb 0%, #1158c7 100%) !important;
+  border: none !important;
+  color: white !important;
+}
+
+.chat-panel-dark button.primary:hover {
+  background: linear-gradient(135deg, #388bfd 0%, #1f6feb 100%) !important;
+}
+
+/* Override viewer styles for dark theme */
+.context-panel-dark .patient-card,
+.context-panel-dark .document-viewer,
+.context-panel-dark .lab-results-viewer,
+.context-panel-dark .medication-tracker {
+  background: #161b22 !important;
+  color: #c9d1d9 !important;
+  border: none !important;
+  height: 100%;
+}
+
+.context-panel-dark h1,
+.context-panel-dark h2,
+.context-panel-dark h3,
+.context-panel-dark h4 {
+  color: #f0f6fc !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.context-panel-dark .card,
+.context-panel-dark .panel {
+  background: #0d1117 !important;
+  border: 1px solid #30363d !important;
+}
+
+/* Sidebar for chat history */
+.chat-panel-dark .sidebar {
+  background: #010409 !important;
+  border-right: 1px solid #30363d !important;
+}
+
+.rtl .chat-panel-dark .sidebar {
+  border-right: none !important;
+  border-left: 1px solid #30363d !important;
+}
+
+.chat-panel-dark .sidebar-item {
+  background: transparent !important;
+  border: none !important;
+  color: #8b949e !important;
+}
+
+.chat-panel-dark .sidebar-item:hover {
+  background: #161b22 !important;
+  color: #c9d1d9 !important;
+}
+
+.chat-panel-dark .sidebar-item.active {
+  background: #1f6feb !important;
+  color: white !important;
+}
+
+/* Loading states */
+.chat-panel-dark .loading-spinner {
+  border-color: #30363d !important;
+  border-top-color: #58a6ff !important;
+}
+
+/* Tooltips */
+.chat-panel-dark .tooltip {
+  background: #1c2128 !important;
+  border: 1px solid #30363d !important;
+  color: #c9d1d9 !important;
+  box-shadow: 0 8px 24px rgba(1, 4, 9, 0.8) !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .context-panel-dark {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .chat-panel-dark.with-context {
+    display: none;
+  }
+}
+
+/* Remove all gradients and unnecessary decorations */
+.chat-panel-dark *:not(button.primary) {
+  background-image: none !important;
+}
+
+/* Clean focus states */
+.chat-panel-dark *:focus {
+  outline: 2px solid #58a6ff;
+  outline-offset: -2px;
+}
+
+/* Remove animations except for essential ones */
+.chat-panel-dark * {
+  animation: none !important;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s !important;
+}

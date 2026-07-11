@@ -1,0 +1,420 @@
+.intraoperative-records-document {
+  padding: 24px;
+  background: #2d2e38;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.intraoperative-records-document .document-header {
+  border-bottom: 3px solid #1976d2;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.intraoperative-records-document .document-header h1 {
+  font-size: 28px;
+  color: #1976d2;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.intraoperative-records-document .document-date {
+  color: #c5c5d2;
+  font-size: 14px;
+}
+
+/* Patient Demographics */
+.intraoperative-records-document .patient-demographics {
+  background: #ececf1;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.intraoperative-records-document .patient-demographics h2 {
+  font-size: 18px;
+  color: #ececf1;
+  margin: 0 0 12px 0;
+  font-weight: 600;
+}
+
+.intraoperative-records-document .demographics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.intraoperative-records-document .demographic-item {
+  display: flex;
+  gap: 8px;
+}
+
+.intraoperative-records-document .demographic-item .label {
+  font-weight: 600;
+  color: #555;
+}
+
+.intraoperative-records-document .demographic-item .value {
+  color: #ececf1;
+}
+
+/* Sections */
+.intraoperative-records-document .section {
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  background: #3e3f4b;
+}
+
+.intraoperative-records-document .section h2 {
+  font-size: 20px;
+  color: #1976d2;
+  margin: 0 0 16px 0;
+  font-weight: 600;
+  border-bottom: 2px solid #1976d2;
+  padding-bottom: 8px;
+}
+
+/* Procedure Grid */
+.intraoperative-records-document .procedure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.intraoperative-records-document .info-card {
+  background: #2d2e38;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #1976d2;
+}
+
+.intraoperative-records-document .info-card h3 {
+  font-size: 14px;
+  color: #c5c5d2;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.intraoperative-records-document .info-card p {
+  margin: 0;
+  color: #ececf1;
+  font-size: 16px;
+}
+
+/* Surgical Team */
+.intraoperative-records-document .team-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.intraoperative-records-document .team-member {
+  background: #2d2e38;
+  padding: 12px;
+  border-radius: 6px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.intraoperative-records-document .team-member .role {
+  font-weight: 600;
+  color: #1976d2;
+  min-width: 180px;
+}
+
+.intraoperative-records-document .team-member .name {
+  color: #ececf1;
+}
+
+/* Anesthesia */
+.intraoperative-records-document .anesthesia-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.intraoperative-records-document .detail-item {
+  background: #2d2e38;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.intraoperative-records-document .detail-item strong {
+  color: #1976d2;
+  margin-right: 8px;
+}
+
+/* Timeline */
+.intraoperative-records-document .timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.intraoperative-records-document .timeline-item {
+  background: #2d2e38;
+  padding: 16px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-left: 4px solid #4caf50;
+}
+
+.intraoperative-records-document .time-label {
+  font-size: 12px;
+  color: #c5c5d2;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.intraoperative-records-document .time-value {
+  font-size: 16px;
+  color: #ececf1;
+  font-weight: 500;
+}
+
+/* Content Boxes */
+.intraoperative-records-document .content-box {
+  background: #2d2e38;
+  padding: 16px;
+  border-radius: 6px;
+  line-height: 1.6;
+}
+
+.intraoperative-records-document .content-box p {
+  margin: 0;
+  color: #ececf1;
+}
+
+/* Findings */
+.intraoperative-records-document .findings-box {
+  border-left: 4px solid #ff9800;
+}
+
+.intraoperative-records-document .findings-box ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.intraoperative-records-document .findings-box li {
+  margin-bottom: 8px;
+  color: #ececf1;
+}
+
+.intraoperative-records-document .finding-item {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #fff3e0;
+  border-radius: 4px;
+}
+
+.intraoperative-records-document .finding-item strong {
+  color: #f57c00;
+  text-transform: capitalize;
+}
+
+/* Complications */
+.intraoperative-records-document .complications-box {
+  border-left: 4px solid #d32f2f;
+}
+
+.intraoperative-records-document .no-complications {
+  color: #388e3c;
+  font-weight: 500;
+  margin: 0;
+}
+
+.intraoperative-records-document .has-complications {
+  color: #d32f2f;
+  font-weight: 500;
+  margin: 0;
+}
+
+.intraoperative-records-document .complications-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.intraoperative-records-document .complication-item {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #ffebee;
+  border-radius: 4px;
+  color: #ececf1;
+}
+
+.intraoperative-records-document .complication-item > div > div {
+  margin-bottom: 6px;
+}
+
+.intraoperative-records-document .complication-item strong {
+  color: #d32f2f;
+}
+
+/* Specimens */
+.intraoperative-records-document .specimens-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.intraoperative-records-document .specimen-card {
+  background: #2d2e38;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #9c27b0;
+}
+
+.intraoperative-records-document .specimen-card > div {
+  margin-bottom: 6px;
+}
+
+.intraoperative-records-document .specimen-card strong {
+  color: #9c27b0;
+  margin-right: 6px;
+}
+
+/* Blood Loss */
+.intraoperative-records-document .blood-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.intraoperative-records-document .blood-item {
+  background: #2d2e38;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #e91e63;
+}
+
+.intraoperative-records-document .blood-item strong {
+  color: #e91e63;
+  margin-right: 8px;
+}
+
+/* Outcome */
+.intraoperative-records-document .outcome-box {
+  border-left: 4px solid #4caf50;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Badges */
+.intraoperative-records-document .severity-badge,
+.intraoperative-records-document .outcome-badge,
+.intraoperative-records-document .status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Severity Badges */
+.intraoperative-records-document .severity-badge.severity-high {
+  background-color: #ffebee;
+  color: #d32f2f;
+  border: 1px solid #d32f2f;
+}
+
+.intraoperative-records-document .severity-badge.severity-moderate {
+  background-color: #fff3e0;
+  color: #f57c00;
+  border: 1px solid #f57c00;
+}
+
+.intraoperative-records-document .severity-badge.severity-low {
+  background-color: #e8f5e9;
+  color: #388e3c;
+  border: 1px solid #388e3c;
+}
+
+/* Outcome Badges */
+.intraoperative-records-document .outcome-badge.outcome-success {
+  background-color: #e8f5e9;
+  color: #388e3c;
+  border: 1px solid #388e3c;
+}
+
+.intraoperative-records-document .outcome-badge.outcome-moderate {
+  background-color: #fff3e0;
+  color: #f57c00;
+  border: 1px solid #f57c00;
+}
+
+.intraoperative-records-document .outcome-badge.outcome-poor {
+  background-color: #ffebee;
+  color: #d32f2f;
+  border: 1px solid #d32f2f;
+}
+
+/* Status Badges */
+.intraoperative-records-document .status-badge.status-completed {
+  background-color: #e8f5e9;
+  color: #388e3c;
+  border: 1px solid #388e3c;
+}
+
+.intraoperative-records-document .status-badge.status-ongoing {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+}
+
+.intraoperative-records-document .status-badge.status-cancelled {
+  background-color: #ececf1;
+  color: #757575;
+  border: 1px solid #757575;
+}
+
+/* Footer */
+.intraoperative-records-document .document-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #565869;
+}
+
+.intraoperative-records-document .source-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #c5c5d2;
+}
+
+.intraoperative-records-document .ai-badge {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .intraoperative-records-document {
+    padding: 16px;
+  }
+
+  .intraoperative-records-document .document-header h1 {
+    font-size: 24px;
+  }
+
+  .intraoperative-records-document .procedure-grid,
+  .intraoperative-records-document .anesthesia-grid,
+  .intraoperative-records-document .timeline-grid,
+  .intraoperative-records-document .blood-grid,
+  .intraoperative-records-document .specimens-grid {
+    grid-template-columns: 1fr;
+  }
+}

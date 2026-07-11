@@ -1,0 +1,568 @@
+/**
+ * Acute Kidney Injury Document CSS
+ * Blue-only color scheme, Comfortaa font, text-transform: none !important
+ */
+
+.acute-kidney-injury-document {
+  padding: 24px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Document Title - 31px BIGGEST */
+.acute-kidney-injury-document .document-title {
+  font-size: 31px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0 0 20px 0;
+  text-transform: none !important;
+}
+
+/* Document Header */
+.acute-kidney-injury-document .document-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #565869;
+}
+
+.acute-kidney-injury-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  flex-direction: row !important;
+}
+
+/* Search Container */
+.acute-kidney-injury-document .search-container {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.acute-kidney-injury-document .search-input {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 17px;
+  font-family: 'Comfortaa', sans-serif;
+  box-sizing: border-box;
+}
+
+.acute-kidney-injury-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.acute-kidney-injury-document .search-input::placeholder {
+  color: #9ca3af;
+}
+
+.acute-kidney-injury-document .clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 23px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.acute-kidney-injury-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* Empty State */
+.acute-kidney-injury-document .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.acute-kidney-injury-document .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.acute-kidney-injury-document .empty-text {
+  color: #9ca3af;
+  font-size: 19px;
+}
+
+/* No Results */
+.acute-kidney-injury-document .no-results {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+}
+
+/* Records List */
+.acute-kidney-injury-document .records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.acute-kidney-injury-document .record-card {
+  background: #1e1f2e;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Card Header */
+.acute-kidney-injury-document .card-header {
+  display: flex;
+  flex-direction: column !important;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(96, 165, 250, 0.08) 100%);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.acute-kidney-injury-document .header-top-row {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+  width: 100% !important;
+}
+
+.acute-kidney-injury-document .header-top-row .date-badge {
+  margin-bottom: 0 !important;
+  display: inline-flex !important;
+}
+
+/* Card Title - 23px */
+.acute-kidney-injury-document .card-title {
+  font-size: 23px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Card Content */
+.acute-kidney-injury-document .card-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Badges */
+.acute-kidney-injury-document .date-badge {
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Stage Badge - Orange/Amber accent for severity */
+.acute-kidney-injury-document .stage-badge {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid #f59e0b;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Sections */
+.acute-kidney-injury-document .section {
+  margin-bottom: 0;
+}
+
+/* Section Header — INSIDE numbered-rows-wrapper */
+.acute-kidney-injury-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Section Title - 19px BLUE */
+.acute-kidney-injury-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Mini Cards Container */
+.acute-kidney-injury-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Individual Mini Card */
+.acute-kidney-injury-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Numbered Row */
+.acute-kidney-injury-document .numbered-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  gap: 12px;
+}
+
+.acute-kidney-injury-document .row-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+/* Nested Subtitle - 17px LIGHT BRIGHT BLUE */
+.acute-kidney-injury-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+
+/* Content Value - 17px WHITE */
+.acute-kidney-injury-document .content-value {
+  font-size: 17px;
+  color: #ececf1;
+  line-height: 1.6;
+}
+
+/* Section Copy Button */
+.acute-kidney-injury-document .section-copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.acute-kidney-injury-document .section-copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: #60a5fa;
+}
+
+.acute-kidney-injury-document .section-copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Copy Button (Row Level) */
+.acute-kidney-injury-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.acute-kidney-injury-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: #60a5fa;
+}
+
+.acute-kidney-injury-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Search Highlight */
+.acute-kidney-injury-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* No Data Message */
+.acute-kidney-injury-document .no-data-message {
+  color: #9ca3af;
+  font-size: 16px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+/* ─── Editing Styles ────────────────────────────────────────── */
+
+/* Header right actions — column layout: copy on top, approve below */
+.acute-kidney-injury-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Edit field container — MUST have width: 100% */
+.acute-kidney-injury-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Edit textarea */
+.acute-kidney-injury-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  background: #0d1929;
+  color: #ececf1;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.acute-kidney-injury-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+}
+
+/* Edit actions (Save / Cancel) */
+.acute-kidney-injury-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.acute-kidney-injury-document .save-btn {
+  padding: 6px 16px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.acute-kidney-injury-document .save-btn:hover {
+  background: #1d4ed8;
+}
+
+.acute-kidney-injury-document .save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.acute-kidney-injury-document .cancel-btn {
+  padding: 6px 16px;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.acute-kidney-injury-document .cancel-btn:hover {
+  background: rgba(75, 85, 99, 0.2);
+  color: #ececf1;
+}
+
+/* Editable row content — cursor pointer + edit indicator */
+.acute-kidney-injury-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+}
+
+.acute-kidney-injury-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.05);
+  border-radius: 4px;
+}
+
+.acute-kidney-injury-document .edit-indicator {
+  margin-left: 8px;
+  color: rgba(96, 165, 250, 0.4);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.acute-kidney-injury-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Modified row — yellow border + tint */
+.acute-kidney-injury-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+/* Modified badge — styled badge below numbered-row */
+.acute-kidney-injury-document .modified-badge {
+  font-size: 11px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.acute-kidney-injury-document .modified-badge.added {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* Approve button — base */
+.acute-kidney-injury-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+/* Pending Approve — YELLOW */
+.acute-kidney-injury-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.acute-kidney-injury-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+/* Approved — GREEN */
+.acute-kidney-injury-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.acute-kidney-injury-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+/* ═══════ Nested OBJECT field rendering (urinaryIndices, results) ═══════ */
+.acute-kidney-injury-document .nested-mini-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.acute-kidney-injury-document .nested-group {
+  margin-top: 6px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(96, 165, 250, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.acute-kidney-injury-document .nested-subtitle.sub-label {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.acute-kidney-injury-document .edit-select {
+  width: 100%;
+  padding: 10px;
+  background: #0F1B33;
+  border: 2px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+  cursor: pointer;
+  appearance: auto;
+}
+.acute-kidney-injury-document .edit-select option {
+  background: #0F1B33;
+  color: #ececf1;
+}
+.acute-kidney-injury-document .edit-input {
+  width: 100%;
+  padding: 10px;
+  background: #0F1B33;
+  border: 2px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+}

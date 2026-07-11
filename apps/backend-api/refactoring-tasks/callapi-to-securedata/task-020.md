@@ -1,0 +1,21 @@
+# Task 20: Refactor callAPI to SecureDataAccess
+
+**Status:** ❌ Not Started
+**File:** agentServiceV4.js
+**Line:** 11777
+**Endpoint:** GET /communication/campaign-analytics
+
+## Current Implementation
+```javascript
+// Line 11777
+return await this.callAPI('/communication/campaign-analytics', 'GET', args, practiceContext);
+```
+
+## Analysis Needed
+- [ ] Determine if this is a database operation or infrastructure service
+- [ ] If database: Identify collection(s) and refactor to SecureDataAccess
+- [ ] If infrastructure: Mark as "INFRASTRUCTURE" and keep as callAPI
+- [ ] If external service: Mark as "EXTERNAL SERVICE" and keep as callAPI
+
+## Notes
+<!-- Add implementation notes here -->

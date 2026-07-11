@@ -1,0 +1,18 @@
+/* BluePhonePicker — themed US phone-number picker.
+   Self-scoped under .blue-phone-picker so it drops into any template's edit container.
+   Theme matches BlueDatePicker/BlueDiplotypePicker (#0F1B33 / #60a5fa / #93c5fd / #2563eb, Comfortaa). */
+.blue-phone-picker { background: #0F1B33; border: 2px solid #60a5fa; border-radius: 8px; padding: 14px; width: 100%; box-sizing: border-box; font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; }
+
+.blue-phone-picker .bpp-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.blue-phone-picker .bpp-sep { font-size: 20px; font-weight: 700; color: #60a5fa; }
+.blue-phone-picker .bpp-dash { padding: 0 2px; }
+
+.blue-phone-picker .bpp-seg { padding: 8px 10px; background: #0d1929; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; font-weight: 700; text-align: center; letter-spacing: 1px; outline: none; box-sizing: border-box; }
+.blue-phone-picker .bpp-seg::placeholder { color: #6b7a99; letter-spacing: 1px; }
+.blue-phone-picker .bpp-seg:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2); }
+.blue-phone-picker .bpp-area { width: 64px; }
+.blue-phone-picker .bpp-prefix { width: 64px; }
+.blue-phone-picker .bpp-line { width: 82px; }
+
+.blue-phone-picker .bpp-result { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(96, 165, 250, 0.2); text-align: center; font-size: 13px; color: #93c5fd; }
+.blue-phone-picker .bpp-result strong { color: #ffffff; font-size: 16px; letter-spacing: 0.5px; }

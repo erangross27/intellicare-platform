@@ -1,0 +1,333 @@
+.patient-card {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.patient-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.patient-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.patient-card::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.patient-card::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.patient-card.rtl {
+  direction: rtl;
+}
+
+.patient-card.ltr {
+  direction: ltr;
+}
+
+/* Header Section */
+.patient-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  color: white;
+  position: relative;
+}
+
+.patient-avatar {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.patient-basic-info {
+  flex: 1;
+}
+
+.patient-basic-info h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.patient-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  opacity: 0.95;
+}
+
+.patient-status {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rtl .patient-status {
+  right: auto;
+  left: 16px;
+}
+
+.patient-status.active {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+/* Info Sections */
+.info-section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.section-header {
+  padding: 14px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.section-header:hover {
+  background: #f3f4f6;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-icon {
+  color: #6b7280;
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+.section-content {
+  padding: 16px;
+}
+
+/* Info Rows */
+.info-row {
+  display: flex;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  min-width: 120px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.info-value {
+  flex: 1;
+  color: #1f2937;
+  font-size: 13px;
+}
+
+/* Insurance Card */
+.insurance-card {
+  padding: 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 8px;
+  color: white;
+  text-align: center;
+}
+
+.insurance-provider {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Vitals Grid */
+.vitals-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.vital-item {
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.vital-label {
+  display: block;
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.vital-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.vital-unit {
+  display: block;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+/* Allergies */
+.allergy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.allergy-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.allergy-item.critical {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.allergy-item.moderate {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.allergy-name {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.allergy-severity {
+  padding: 2px 8px;
+  background: white;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.action-button {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #374151;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.action-button:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.action-button.primary {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.action-button.primary:hover {
+  background: #1d4ed8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .patient-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .patient-meta {
+    justify-content: center;
+  }
+  
+  .patient-status {
+    position: static;
+    margin-top: 12px;
+  }
+  
+  .vitals-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .quick-actions {
+    flex-direction: column;
+  }
+  
+  .action-button {
+    width: 100%;
+  }
+}

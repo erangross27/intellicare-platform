@@ -1,0 +1,61 @@
+{
+  "plugins": ["@nrwl/nx"],
+  "rules": {
+    "@nrwl/nx/enforce-module-boundaries": [
+      "error",
+      {
+        "enforceBuildableLibDependency": true,
+        "depConstraints": [
+          {
+            "sourceTag": "scope:patient",
+            "onlyDependOnLibsWithTags": ["scope:shared"]
+          },
+          {
+            "sourceTag": "scope:clinical",
+            "onlyDependOnLibsWithTags": ["scope:patient", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:medical",
+            "onlyDependOnLibsWithTags": ["scope:patient", "scope:clinical", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:billing",
+            "onlyDependOnLibsWithTags": ["scope:patient", "scope:clinical", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:compliance",
+            "onlyDependOnLibsWithTags": ["*"]
+          },
+          {
+            "sourceTag": "scope:communication",
+            "onlyDependOnLibsWithTags": ["scope:patient", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:ai",
+            "onlyDependOnLibsWithTags": ["scope:patient", "scope:clinical", "scope:medical", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:infrastructure",
+            "onlyDependOnLibsWithTags": ["scope:shared"]
+          },
+          {
+            "sourceTag": "scope:integration",
+            "onlyDependOnLibsWithTags": ["scope:shared"]
+          },
+          {
+            "sourceTag": "scope:learning",
+            "onlyDependOnLibsWithTags": ["scope:patient", "scope:clinical", "scope:ai", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:operations",
+            "onlyDependOnLibsWithTags": ["scope:infrastructure", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:shared",
+            "onlyDependOnLibsWithTags": []
+          }
+        ]
+      }
+    ]
+  }
+}

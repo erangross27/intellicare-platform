@@ -1,0 +1,31 @@
+{
+  "serviceId": "report-generator",
+  "serviceName": "Report Generator Service",
+  "description": "Generates medical reports and documents",
+  "permissions": [
+    "patient:read",
+    "document:write",
+    "template:read",
+    "metrics:write"
+  ],
+  "allowedClinics": [
+    "*"
+  ],
+  "dataAccessPatterns": [
+    "patients.aggregate(reportQuery)",
+    "documents.create(reportData)",
+    "templates.render(data)"
+  ],
+  "schedules": [
+    {
+      "cron": "0 6 * * *",
+      "description": "Daily reports at 6 AM"
+    },
+    {
+      "cron": "0 0 1 * *",
+      "description": "Monthly reports on 1st"
+    }
+  ],
+  "criticality": "medium",
+  "requiresMFA": false
+}

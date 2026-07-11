@@ -1,0 +1,40 @@
+      1 [2025-09-15T18:03:47.230Z] ERROR: ❌ Authentication failed for medical-parsing-service: Service medical-parsing-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:47.200Z] ERROR: ❌ Service medical-parsing-service not found in database
+      1 [2025-09-15T18:03:47.160Z] ERROR: ❌ SECURITY VIOLATION: No valid ServiceAccount found for service 'drug-information-service' - ACCESS DENIED
+      1 [2025-09-15T18:03:47.135Z] ERROR: ❌ Authentication failed for drug-information-service: Service drug-information-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:47.115Z] ERROR: ❌ Service drug-information-service not found in database
+      1 [2025-09-15T18:03:47.078Z] ERROR: ❌ Authentication failed for calendar-sync-service: Service calendar-sync-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:47.052Z] ERROR: ❌ Service calendar-sync-service not found in database
+      1 [2025-09-15T18:03:45.767Z] ERROR: Failed to load payer configurations: SECURITY: Unauthorized service access attempt
+      1 [2025-09-15T18:03:45.718Z] ERROR: ❌ SECURITY VIOLATION: No valid ServiceAccount found for service 'billing-service' - ACCESS DENIED
+      1 [2025-09-15T18:03:45.694Z] ERROR: Failed to load billing codes: SECURITY: Unauthorized service access attempt
+      1 [2025-09-15T18:03:45.674Z] ERROR: ❌ SECURITY VIOLATION: No valid ServiceAccount found for service 'billing-service' - ACCESS DENIED
+      1 [2025-09-15T18:03:45.654Z] ERROR: ❌ Authentication failed for billing-service: Service billing-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:45.623Z] ERROR: ❌ Service billing-service not found in database
+      1 [2025-09-15T18:03:43.379Z] ERROR: ❌ Authentication failed for sms-service: Service sms-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:43.361Z] ERROR: ❌ Service sms-service not found in database
+      1 [2025-09-15T18:03:43.340Z] ERROR: ❌ Authentication failed for patient-portal-messaging-service: Service patient-portal-messaging-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:43.317Z] ERROR: ❌ Service patient-portal-messaging-service not found in database
+      1 [2025-09-15T18:03:43.211Z] ERROR: ❌ Authentication failed for sms-service: Service sms-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:43.184Z] ERROR: ❌ Service sms-service not found in database
+      1 [2025-09-15T18:03:43.161Z] ERROR: ❌ Authentication failed for bulk-communication-service: Service bulk-communication-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:43.137Z] ERROR: ❌ Service bulk-communication-service not found in database
+      1 [2025-09-15T18:03:43.074Z] ERROR: ❌ Authentication failed for sms-service: Service sms-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:43.044Z] ERROR: ❌ Service sms-service not found in database
+      1 [2025-09-15T18:03:42.914Z] ERROR: ❌ Authentication failed for communication-audit-service: Service communication-audit-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:42.891Z] ERROR: ❌ Service communication-audit-service not found in database
+      1 [2025-09-15T18:03:42.819Z] ERROR: ❌ SECURITY VIOLATION: No valid ServiceAccount found for service 'webhook-management-service' - ACCESS DENIED
+      1 [2025-09-15T18:03:42.800Z] ERROR: ❌ Authentication failed for webhook-management-service: Service webhook-management-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:42.784Z] ERROR: ❌ Service webhook-management-service not found in database
+      1 [2025-09-15T18:03:42.752Z] ERROR: ❌ Authentication failed for external-api-gateway-service: Service external-api-gateway-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:42.736Z] ERROR: ❌ Service external-api-gateway-service not found in database
+      1 [2025-09-15T18:03:42.674Z] ERROR: ❌ Authentication failed for blue-button-oauth-service: Service blue-button-oauth-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:42.647Z] ERROR: ❌ Service blue-button-oauth-service not found in database
+      1 [2025-09-15T18:03:41.946Z] ERROR: ❌ Authentication failed for zero-knowledge-auth-service: Service zero-knowledge-auth-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:41.924Z] ERROR: ❌ Service zero-knowledge-auth-service not found in database
+      1 [2025-09-15T18:03:41.879Z] ERROR: ❌ Authentication failed for threat-detection-service: Service threat-detection-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:41.856Z] ERROR: ❌ Service threat-detection-service not found in database
+      1 [2025-09-15T18:03:41.727Z] ERROR: ❌ Authentication failed for mfa: Service mfa not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:41.716Z] ERROR: ❌ Service mfa not found in database
+      1 [2025-09-15T18:03:41.657Z] ERROR: ❌ Authentication failed for security-audit-service: Service security-audit-service not found. Please register it using register-all-services.js
+      1 [2025-09-15T18:03:41.644Z] ERROR: ❌ Service security-audit-service not found in database

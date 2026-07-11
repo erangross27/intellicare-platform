@@ -1,0 +1,436 @@
+import React, { useState, useMemo } from 'react';
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
+import PDFDocumentTemplate from '../PDFDocumentTemplate';
+import SearchBar from '../components/SearchBar';
+import './ImagingReportsDocument.css';
+
+/**
+ * Imaging Reports Document - Medical imaging results display
+ * Displays imaging findings, impressions, and recommendations with copy/PDF/search functionality
+ */
+const ImagingReportsDocument = ({ document: doc }) => {
+  const [copiedSection, setCopiedSection] = useState(null);
+  const [exportStatus, setExportStatus] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  console.log('[ImagingReportsDocument] Received document:', doc);
+
+  if (!doc) {
+    return (
+      <div className="imaging-reports-document">
+        <div className="empty-state">
+          <div className="empty-icon">⚠️</div>
+          <p className="empty-text">No imaging report data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Unwrap data structure
+  const data = doc.documentData || doc.data || doc;
+
+  // Handle wrapped structure from optimizedMedicalFunctions
+  const imagingReports = data.imaging_reports || (Array.isArray(data) ? data : [data]);
+
+  console.log('[ImagingReportsDocument] Processing imaging reports:', imagingReports.length, imagingReports);
+
+  // Build searchable content from entire document
+  const searchableContent = useMemo(() => {
+    if (!data) return '';
+
+    let content = [];
+
+    // Basic info
+    content.push(data.imagingType || '', data.bodyPart || '', data.radiologist || '', data.facility || '');
+
+    // Findings and impression
+    content.push(data.findings || '', data.impression || '', data.technique || '');
+
+    // Recommendations
+    if (data.recommendations && Array.isArray(data.recommendations)) {
+      data.recommendations.forEach(rec => content.push(rec));
+    }
+
+    // Contrast info
+    if (data.contrast) {
+      content.push(data.contrast.used || '', data.contrast.type || '', data.contrast.volume || '');
+    }
+
+    return content.filter(Boolean).join(' ').toLowerCase();
+  }, [data]);
+
+  // Check if search matches
+  const matchesSearch = useMemo(() => {
+    if (!searchTerm.trim()) return true;
+    return searchableContent.includes(searchTerm.toLowerCase());
+  }, [searchTerm, searchableContent]);
+
+  // Highlight matching text in yellow
+  const highlightText = (text) => {
+    if (!text || !searchTerm.trim()) return text;
+
+    const textStr = String(text);
+    const searchLower = searchTerm.toLowerCase();
+    const textLower = textStr.toLowerCase();
+
+    if (!textLower.includes(searchLower)) return textStr;
+
+    const parts = [];
+    let lastIndex = 0;
+    let index = textLower.indexOf(searchLower);
+
+    while (index !== -1) {
+      // Add text before match
+      if (index > lastIndex) {
+        parts.push(textStr.substring(lastIndex, index));
+      }
+      // Add highlighted match
+      parts.push(
+        <mark key={`highlight-${index}-${lastIndex}`} style={{ backgroundColor: '#fef08a', color: '#1f2937', padding: '2px 4px', borderRadius: '2px' }}>
+          {textStr.substring(index, index + searchTerm.length)}
+        </mark>
+      );
+      lastIndex = index + searchTerm.length;
+      index = textLower.indexOf(searchLower, lastIndex);
+    }
+
+    // Add remaining text
+    if (lastIndex < textStr.length) {
+      parts.push(textStr.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : textStr;
+  };
+
+  // Format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Split text into sentences, but protect title abbreviations
+  const splitIntoSentences = (text) => {
+    if (!text) return [];
+    const protectedText = text.replace(/\b(Mr|Mrs|Ms|Dr|Prof|Sr|Jr)\./g, '$1<<<TITLE>>>');
+    const sentences = protectedText.split(/\.(?=\s+[A-Z0-9])/);
+    return sentences
+      .map(s => s.replace(/<<<TITLE>>>/g, '.').trim())
+      .filter(s => s.length > 0);
+  };
+
+  // Copy section to clipboard
+  const copySection = (sectionId) => {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+
+    const text = section.innerText || section.textContent;
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+      document.execCommand('copy');
+      setCopiedSection(sectionId);
+      setTimeout(() => setCopiedSection(null), 3000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+
+    document.body.removeChild(textarea);
+  };
+
+  // Copy entire document
+  const copyAll = () => {
+    const allSections = document.querySelectorAll('.imaging-section');
+    const texts = [];
+
+    allSections.forEach(section => {
+      const text = section.innerText || section.textContent;
+      if (text) texts.push(text);
+    });
+
+    const textarea = document.createElement('textarea');
+    textarea.value = texts.join('\n\n');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+      document.execCommand('copy');
+      setCopiedSection('all');
+      setTimeout(() => setCopiedSection(null), 3000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+
+    document.body.removeChild(textarea);
+  };
+
+  // Export to PDF
+  const exportToPDF = async () => {
+    try {
+      setExportStatus('exporting');
+
+      // Get patient name if available
+      let patientName = data.patientName || rawData.patientName || null;
+
+      // Prepare document for PDF
+      const pdfDocument = {
+        ...data,
+        category: 'imaging_reports',
+        formattedDate: formatDate(data.date || data.documentDate)
+      };
+
+      // Generate PDF blob using PDFDocumentTemplate
+      const blob = await pdf(
+        <PDFDocumentTemplate
+          category="imaging_reports"
+          categoryDisplay="Imaging Report"
+          documents={[pdfDocument]}
+          patientName={patientName}
+        />
+      ).toBlob();
+
+      // Download the PDF
+      const fileName = `Imaging_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+      saveAs(blob, fileName);
+
+      setExportStatus('exported');
+      setTimeout(() => setExportStatus(null), 3000);
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+      alert(`PDF Export Error: ${err.message}`);
+      setExportStatus(null);
+    }
+  };
+
+  return (
+    <div className="imaging-reports-document">
+      {/* Search Bar */}
+      <SearchBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        placeholder="Search imaging report (findings, impression, body part...)"
+        totalCount={1}
+        filteredCount={matchesSearch ? 1 : 0}
+      />
+
+      {/* Empty Search State */}
+      {!matchesSearch && searchTerm && (
+        <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+          <p style={{ fontSize: '16px' }}>No content found for "{searchTerm}"</p>
+          <p style={{ fontSize: '14px', marginTop: '8px' }}>Try a different search term</p>
+        </div>
+      )}
+
+      {/* All Document Content - Only show if matches search */}
+      {matchesSearch && (
+        <>
+          {/* Header */}
+          <div className="document-header">
+            <div className="header-title-section">
+              <h2>Imaging Report</h2>
+              {data.imagingType && (
+                <span className="imaging-type-badge">
+                  {highlightText(data.imagingType.toUpperCase())}
+                </span>
+              )}
+            </div>
+            <div className="header-actions">
+              <button
+                className={`copy-all-button ${copiedSection === 'all' ? 'copied' : ''}`}
+                onClick={copyAll}
+              >
+                {copiedSection === 'all' ? 'Copied' : 'Copy All'}
+              </button>
+              <button
+                className={`export-pdf-button ${exportStatus === 'exported' ? 'exported' : ''}`}
+                onClick={exportToPDF}
+                disabled={exportStatus === 'exporting'}
+              >
+                {exportStatus === 'exported' ? 'Exported' : exportStatus === 'exporting' ? 'Exporting...' : 'Export PDF'}
+              </button>
+            </div>
+          </div>
+
+          {/* Study Information */}
+          <div className="imaging-section study-info-section" id="study-info-section">
+            <div className="section-header">
+              <h3>Study Information</h3>
+              <button
+                className={`copy-button ${copiedSection === 'study-info-section' ? 'copied' : ''}`}
+                onClick={() => copySection('study-info-section')}
+              >
+                {copiedSection === 'study-info-section' ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+            <div className="study-info-grid">
+              {(data.date || data.documentDate) && (
+                <div className="info-field">
+                  <strong>Study Date:</strong> {highlightText(formatDate(data.date || data.documentDate))}
+                </div>
+              )}
+              {data.bodyPart && (
+                <div className="info-field">
+                  <strong>Body Part:</strong> {highlightText(data.bodyPart)}
+                </div>
+              )}
+              {data.imagingType && (
+                <div className="info-field">
+                  <strong>Modality:</strong> {highlightText(data.imagingType)}
+                </div>
+              )}
+              {data.radiologist && (
+                <div className="info-field">
+                  <strong>Radiologist:</strong> {highlightText(data.radiologist)}
+                </div>
+              )}
+              {data.facility && (
+                <div className="info-field">
+                  <strong>Facility:</strong> {highlightText(data.facility)}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Technique */}
+          {data.technique && (
+            <div className="imaging-section technique-section" id="technique-section">
+              <div className="section-header">
+                <h3>🔬 Technique</h3>
+                <button
+                  className={`copy-button ${copiedSection === 'technique-section' ? 'copied' : ''}`}
+                  onClick={() => copySection('technique-section')}
+                >
+                  {copiedSection === 'technique-section' ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <div className="narrative-text">
+                {splitIntoSentences(data.technique).map((sentence, idx) => (
+                  <p key={idx}>{highlightText(sentence + (sentence.endsWith('.') ? '' : '.'))}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Contrast */}
+          {data.contrast && (data.contrast.used || data.contrast.type || data.contrast.volume) && (
+            <div className="imaging-section contrast-section" id="contrast-section">
+              <div className="section-header">
+                <h3>💉 Contrast</h3>
+                <button
+                  className={`copy-button ${copiedSection === 'contrast-section' ? 'copied' : ''}`}
+                  onClick={() => copySection('contrast-section')}
+                >
+                  {copiedSection === 'contrast-section' ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <div className="contrast-grid">
+                {data.contrast.used && (
+                  <div className="info-field">
+                    <strong>Used:</strong> {highlightText(String(data.contrast.used))}
+                  </div>
+                )}
+                {data.contrast.type && (
+                  <div className="info-field">
+                    <strong>Type:</strong> {highlightText(data.contrast.type)}
+                  </div>
+                )}
+                {data.contrast.volume && (
+                  <div className="info-field">
+                    <strong>Volume:</strong> {highlightText(data.contrast.volume)}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Findings */}
+          {data.findings && (
+            <div className="imaging-section findings-section" id="findings-section">
+              <div className="section-header">
+                <h3>📋 Findings</h3>
+                <button
+                  className={`copy-button ${copiedSection === 'findings-section' ? 'copied' : ''}`}
+                  onClick={() => copySection('findings-section')}
+                >
+                  {copiedSection === 'findings-section' ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <div className="narrative-text">
+                {splitIntoSentences(data.findings).map((sentence, idx) => (
+                  <p key={idx}>{highlightText(sentence + (sentence.endsWith('.') ? '' : '.'))}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Impression */}
+          {data.impression && (
+            <div className="imaging-section impression-section" id="impression-section">
+              <div className="section-header">
+                <h3>🎯 Impression</h3>
+                <button
+                  className={`copy-button ${copiedSection === 'impression-section' ? 'copied' : ''}`}
+                  onClick={() => copySection('impression-section')}
+                >
+                  {copiedSection === 'impression-section' ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <div className="impression-content">
+                {splitIntoSentences(data.impression).map((sentence, idx) => (
+                  <p key={idx}>{highlightText(sentence + (sentence.endsWith('.') ? '' : '.'))}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {data.recommendations && data.recommendations.length > 0 && (
+            <div className="imaging-section recommendations-section" id="recommendations-section">
+              <div className="section-header">
+                <h3>💡 Recommendations ({data.recommendations.length})</h3>
+                <button
+                  className={`copy-button ${copiedSection === 'recommendations-section' ? 'copied' : ''}`}
+                  onClick={() => copySection('recommendations-section')}
+                >
+                  {copiedSection === 'recommendations-section' ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <div className="recommendations-list">
+                {data.recommendations.map((rec, idx) => (
+                  <div key={idx} className="recommendation-item">
+                    <span className="recommendation-bullet">•</span>
+                    <span className="recommendation-text">{highlightText(rec)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Document Footer */}
+          <div className="document-footer">
+            {data.source && <span>Source: {data.source}</span>}
+            {data.aiProcessed && <span className="ai-badge">AI-Processed Report</span>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default ImagingReportsDocument;

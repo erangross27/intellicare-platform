@@ -1,0 +1,73 @@
+{
+  "version": "2.0",
+  "lastUpdated": "2025-08-12T20:20:40.146Z",
+  "verifiedCodes": {
+    "נס ציונה": {
+      "דוד לנדאו": {
+        "ranges": [
+          {
+            "from": 1,
+            "to": 999,
+            "code": "7405954"
+          }
+        ],
+        "default": "7405954"
+      },
+      "הרצל": {
+        "ranges": [],
+        "default": "7401001"
+      },
+      "ויצמן": {
+        "ranges": [],
+        "default": "7403001"
+      },
+      "רוטשילד": {
+        "ranges": [],
+        "default": "7402001"
+      }
+    },
+    "תל אביב-יפו": {
+      "דיזנגוף": {
+        "ranges": [
+          {
+            "from": 1,
+            "to": 99,
+            "code": "6436501"
+          },
+          {
+            "from": 100,
+            "to": 199,
+            "code": "6436502"
+          },
+          {
+            "from": 200,
+            "to": 999,
+            "code": "6436503"
+          }
+        ],
+        "default": "6436501"
+      },
+      "אבן גבירול": {
+        "ranges": [],
+        "default": "6426701"
+      },
+      "רוטשילד": {
+        "ranges": [],
+        "default": "6578801"
+      }
+    }
+  },
+  "lookupMethod": "dynamic",
+  "fallbackBehavior": "manual_entry",
+  "validationRules": {
+    "format": "7_digits",
+    "regex": "^\\d{7}$"
+  },
+  "sources": [
+    {
+      "name": "Israel Post",
+      "url": "https://doar.israelpost.co.il/en/locatezip",
+      "type": "manual_lookup"
+    }
+  ]
+}

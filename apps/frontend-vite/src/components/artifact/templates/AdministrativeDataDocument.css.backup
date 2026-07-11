@@ -1,0 +1,390 @@
+/* Administrative Data Document - Professional Card Style */
+
+.administrative-data-document {
+  padding: 24px;
+  background: #343541;
+  color: #ececf1;
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 18px;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+}
+
+/* Document Header */
+.document-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #565869;
+}
+
+.document-header h2 {
+  font-size: 32px;
+  font-weight: 600;
+  color: #10a37f;
+  margin: 0 0 8px 0;
+}
+
+.document-subtitle {
+  font-size: 16px;
+  color: #c5c5d2;
+  margin: 0;
+}
+
+/* Header Actions */
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Search Bar */
+.search-container {
+  margin-bottom: 24px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #40414f;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 16px;
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Consolas', monospace;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #10a37f;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Copy All Button */
+.administrative-data-document .copy-all-button {
+  background: #565869 !important;
+  color: #ececf1 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: none !important;
+  transform: none !important;
+  animation: none !important;
+  will-change: auto !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  min-width: 120px !important;
+  text-align: center !important;
+}
+
+.administrative-data-document .copy-all-button:hover {
+  background: #6b7280 !important;
+  transform: none !important;
+}
+
+.administrative-data-document .copy-all-button:active {
+  transform: none !important;
+  animation: none !important;
+  outline: none !important;
+}
+
+.administrative-data-document .copy-all-button:focus {
+  outline: none !important;
+  transform: none !important;
+}
+
+.administrative-data-document .copy-all-button.copied {
+  color: #ececf1 !important;
+  transform: none !important;
+}
+
+/* Export PDF Button */
+.administrative-data-document .export-pdf-button {
+  background: #565869 !important;
+  color: #ececf1 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: none !important;
+  transform: none !important;
+  animation: none !important;
+  min-width: 125px !important;
+  text-align: center !important;
+}
+
+.administrative-data-document .export-pdf-button:hover {
+  background: #6b7280 !important;
+  transform: none !important;
+}
+
+.administrative-data-document .export-pdf-button:active {
+  transform: none !important;
+  animation: none !important;
+}
+
+.administrative-data-document .export-pdf-button.exported {
+  background: #10a37f !important;
+  transform: none !important;
+}
+
+.administrative-data-document .export-pdf-button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 16px;
+  color: #c5c5d2;
+  margin: 0;
+}
+
+/* Content Sections */
+.content-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Section Card */
+.section-card {
+  background: #3e3f4b;
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.2s ease;
+  border: 1px solid #565869;
+}
+
+.section-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Color-coded section borders */
+.section-card.patient-identification {
+  border-left: 6px solid #10a37f;
+}
+
+.section-card.admission-discharge {
+  border-left: 6px solid #5dade2;
+}
+
+.section-card.clinical-info {
+  border-left: 6px solid #9b59b6;
+}
+
+.section-card.care-team {
+  border-left: 6px solid #f39c12;
+}
+
+.section-card.legal-directives {
+  border-left: 6px solid #e74c3c;
+}
+
+.section-card.signature {
+  border-left: 6px solid #95a5a6;
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #565869;
+}
+
+.section-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #ececf1;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Copy Button */
+.copy-button {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: center;
+}
+
+.copy-button:hover {
+  background: #40414f;
+  color: #ececf1;
+  border-color: #10a37f;
+}
+
+.copy-button.copied {
+  color: #10a37f;
+}
+
+/* Section Content */
+.section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Data Row */
+.data-row {
+  display: flex;
+  padding: 10px 12px;
+  background: rgba(52, 53, 65, 0.5);
+  border-radius: 6px;
+  border-left: 3px solid #565869;
+}
+
+.data-row.highlight {
+  background: rgba(16, 163, 127, 0.1);
+  border-left-color: #10a37f;
+}
+
+/* Data Label and Value */
+.data-label {
+  font-weight: 600;
+  color: #10a37f;
+  min-width: 200px;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.data-value {
+  color: #ececf1;
+  flex: 1;
+  font-size: 16px;
+  word-break: break-word;
+}
+
+.data-value.empty {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Boolean Values */
+.data-value .boolean-value {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.data-value .boolean-value.true {
+  background: rgba(34, 197, 94, 0.25);
+  color: #22c55e;
+  border: 1px solid #22c55e;
+}
+
+.data-value .boolean-value.false {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+/* Highlight (Search Results) */
+mark {
+  background-color: #ffd700;
+  color: #000;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+/* Signature Section Special Styling */
+.signature-content {
+  text-align: center;
+  padding: 20px;
+}
+
+.signature-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ececf1;
+  margin-bottom: 8px;
+  font-family: 'Brush Script MT', cursive, 'Courier New', monospace;
+}
+
+.signature-date {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .document-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .section-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .copy-button {
+    width: 100%;
+  }
+
+  .data-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .data-label {
+    min-width: unset;
+  }
+
+  .document-header h2 {
+    font-size: 26px;
+  }
+
+  .section-title {
+    font-size: 20px;
+  }
+}

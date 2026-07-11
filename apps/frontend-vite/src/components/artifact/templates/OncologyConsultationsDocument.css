@@ -1,0 +1,108 @@
+/**
+ * OncologyConsultationsDocument.css - Blue Glow Mini-Card Pattern
+ * March 2026 — Complete rewrite with inline editing styles
+ *
+ * Based on standard pattern:
+ * - Outer blue glow container: rgba(96, 165, 250, 0.08) bg + 2px solid rgba(96, 165, 250, 0.3) border
+ * - Mini-cards: same blue glow styling
+ * - Numbered rows: #0d1929 very dark blue background
+ * - Nested subtitles: #93c5fd light bright blue, 17px, NO uppercase
+ * - Section titles: #60a5fa, 19px
+ * - Font: 'Comfortaa', sans-serif
+ */
+
+/* ========== DOCUMENT CONTAINER ========== */
+.oncology-consultations-document { font-family: 'Comfortaa', 'Segoe UI', sans-serif; background: #0F1B33; color: #ececf1; padding: 24px; min-height: 100%; width: 100% !important; box-sizing: border-box; direction: ltr; text-align: left; }
+.oncology-consultations-document * { direction: ltr; }
+
+/* ========== DOCUMENT HEADER ========== */
+.oncology-consultations-document .document-header { display: flex !important; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #565869; flex-wrap: wrap; gap: 12px; }
+.oncology-consultations-document .document-title { margin: 0; font-size: 31px; font-weight: 700; color: #ececf1; font-family: 'Comfortaa', sans-serif; text-transform: none !important; }
+.oncology-consultations-document .header-actions { display: flex !important; flex-direction: row !important; gap: 12px; align-items: center !important; }
+
+/* ========== SEARCH ========== */
+.oncology-consultations-document .search-container { margin-bottom: 20px; }
+.oncology-consultations-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.oncology-consultations-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.oncology-consultations-document .search-input::placeholder { color: #9ca3af; }
+.oncology-consultations-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
+
+/* ========== RECORDS CONTAINER ========== */
+.oncology-consultations-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+
+/* ========== RECORD CARD ========== */
+.oncology-consultations-document .record-card { background: rgba(96, 165, 250, 0.05); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 12px; padding: 20px; width: 100% !important; box-sizing: border-box; }
+
+/* ========== RECORD HEADER ========== */
+.oncology-consultations-document .record-header { margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(96, 165, 250, 0.3); }
+.oncology-consultations-document .record-meta-row { display: flex; gap: 8px; margin-bottom: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+.oncology-consultations-document .record-date { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; background: rgba(96, 165, 250, 0.2); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.4); }
+.oncology-consultations-document .record-source { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; background: rgba(96, 165, 250, 0.2); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.4); }
+.oncology-consultations-document .record-name { font-size: 22px; font-weight: 700; color: #ececf1; margin: 0; text-transform: none !important; font-family: 'Comfortaa', sans-serif; line-height: 1.4; }
+
+/* ========== SECTION ========== */
+.oncology-consultations-document .section { margin-bottom: 16px; }
+
+/* ========== SECTION HEADER ========== */
+.oncology-consultations-document .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(96, 165, 250, 0.4); }
+.oncology-consultations-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+/* Level 1: Section Title - BIGGEST (19px) - BLUE */
+.oncology-consultations-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; font-family: 'Comfortaa', sans-serif; }
+
+/* ========== MINI-CARDS CONTAINER (Outer Blue Glow Box) ========== */
+.oncology-consultations-document .mini-cards-container { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; width: 100% !important; box-sizing: border-box; }
+
+/* ========== REC-MINI-CARD (Individual Mini Card) ========== */
+.oncology-consultations-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; width: 100% !important; box-sizing: border-box; }
+
+/* Level 2: Nested Subtitle - MEDIUM (17px) - LIGHT BRIGHT BLUE */
+.oncology-consultations-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; font-family: 'Comfortaa', sans-serif; padding-bottom: 6px; border-bottom: 1px solid rgba(96, 165, 250, 0.2); margin-bottom: 4px; }
+
+/* ========== NUMBERED ROW (Very Dark Blue Background) ========== */
+.oncology-consultations-document .numbered-row { background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 6px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; width: 100% !important; box-sizing: border-box; }
+.oncology-consultations-document .row-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+
+/* Level 3: Content Value - SMALLEST (14px) */
+.oncology-consultations-document .content-value { font-size: 16px; line-height: 1.6; color: #ececf1; }
+
+/* ========== PERFORMANCE STATUS ========== */
+.oncology-consultations-document .bar-interpretation { font-size: 12px; font-weight: 600; margin-top: 2px; }
+
+/* ========== COPY BUTTONS ========== */
+.oncology-consultations-document .copy-btn { background: transparent; color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0; transition: all 0.2s ease; font-family: 'Comfortaa', sans-serif; min-width: 55px; text-decoration: none; }
+.oncology-consultations-document .copy-btn:hover { background: rgba(96, 165, 250, 0.15); border-color: #60a5fa; }
+.oncology-consultations-document .copy-btn.copied { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+.oncology-consultations-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
+
+/* ========== INLINE EDITING ========== */
+.oncology-consultations-document .editable-row { cursor: pointer; }
+.oncology-consultations-document .editable-row:hover .edit-indicator { opacity: 1; }
+.oncology-consultations-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.oncology-consultations-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.oncology-consultations-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.oncology-consultations-document .modified-badge.added { color: #4ade80; }
+.oncology-consultations-document .edit-field-container { width: 100%; }
+.oncology-consultations-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.oncology-consultations-document .num-stepper-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.oncology-consultations-document .num-step { width: 44px; flex-shrink: 0; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; font-family: 'Comfortaa', sans-serif; display: flex; align-items: center; justify-content: center; }
+.oncology-consultations-document .num-step:disabled { opacity: 0.5; cursor: not-allowed; }
+.oncology-consultations-document .edit-number { flex: 1; width: auto; min-width: 0; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; text-align: center; -moz-appearance: textfield; appearance: textfield; }
+.oncology-consultations-document .edit-number::-webkit-inner-spin-button, .oncology-consultations-document .edit-number::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.oncology-consultations-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
+.oncology-consultations-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
+.oncology-consultations-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.oncology-consultations-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.oncology-consultations-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.oncology-consultations-document .approve-btn { text-transform: capitalize; }
+.oncology-consultations-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.oncology-consultations-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+
+/* ========== EMPTY STATE ========== */
+.oncology-consultations-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
+
+/* ========== SEARCH HIGHLIGHTING ========== */
+.oncology-consultations-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) { .oncology-consultations-document .document-header { padding-bottom: 12px; } .oncology-consultations-document .document-title { font-size: 24px; } .oncology-consultations-document .header-actions { flex-direction: column; } .oncology-consultations-document .numbered-row { flex-direction: column; gap: 8px; } .oncology-consultations-document .copy-btn { align-self: flex-end; } .oncology-consultations-document .section-header { flex-wrap: wrap; gap: 8px; } .oncology-consultations-document .nested-subtitle { font-size: 15px; } .oncology-consultations-document .content-value { font-size: 13px; } }

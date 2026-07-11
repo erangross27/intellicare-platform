@@ -1,0 +1,49 @@
+.direct-grid-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #060A14; /* Matches artifact backdrop navy (was grey #343541) */
+}
+
+.direct-grid-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: rgba(96, 165, 250, 0.12);
+  border-bottom: 1px solid #4d4d4f;
+}
+
+.direct-grid-header .back-button {
+  background: transparent;
+  border: none;
+  color: #ececf1;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.direct-grid-header .back-button:hover {
+  background: #565869;
+}
+
+.direct-grid-header h2 {
+  flex: 1;
+  margin: 0;
+  color: #ececf1;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.direct-grid-header .grid-stats {
+  color: #8e8ea0;
+  font-size: 14px;
+}
+
+.direct-grid-content {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}

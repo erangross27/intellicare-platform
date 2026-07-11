@@ -1,0 +1,195 @@
+.follow-up-intelligence-document {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: #343541;
+  max-width: 100%;
+  padding: 24px;
+}
+
+.follow-up-intelligence-document .document-header {
+  border-bottom: 3px solid #ff6f00;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.follow-up-intelligence-document .document-header h2 {
+  margin: 0 0 8px 0;
+  color: #ff6f00;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.follow-up-intelligence-document .document-date {
+  color: #c5c5d2;
+  font-size: 14px;
+}
+
+.follow-up-intelligence-document .patient-info-section {
+  background: #ececf1;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.follow-up-intelligence-document .patient-info-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #ececf1;
+}
+
+.follow-up-intelligence-document .patient-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.follow-up-intelligence-document .section {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  border: 2px solid #ff9800;
+}
+
+.follow-up-intelligence-document .section h3 {
+  margin: 0 0 16px 0;
+  font-size: 22px;
+  color: #e65100;
+}
+
+.follow-up-intelligence-document .deadlines-list,
+.follow-up-intelligence-document .prioritization-list,
+.follow-up-intelligence-document .coordination-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.follow-up-intelligence-document .deadline-card,
+.follow-up-intelligence-document .priority-card,
+.follow-up-intelligence-document .coordination-card {
+  background: #fff3e0;
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 4px solid #ff9800;
+}
+
+.follow-up-intelligence-document .deadline-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.follow-up-intelligence-document .deadline-date {
+  background: #ffebee;
+  color: #c62828;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.follow-up-intelligence-document .deadline-reason,
+.follow-up-intelligence-document .deadline-consequences {
+  font-size: 14px;
+  margin-top: 6px;
+  color: #444;
+}
+
+.follow-up-intelligence-document .priority-header {
+  display: flex;
+  gap: 16px;
+}
+
+.follow-up-intelligence-document .priority-number {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: #ff9800;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.follow-up-intelligence-document .priority-content {
+  flex: 1;
+}
+
+.follow-up-intelligence-document .priority-task {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.follow-up-intelligence-document .priority-rationale {
+  font-size: 14px;
+  color: #444;
+}
+
+.priority-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+
+.priority-badge.priority-high {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef5350;
+}
+
+.priority-badge.priority-medium {
+  background-color: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ff9800;
+}
+
+.priority-badge.priority-low {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #66bb6a;
+}
+
+.follow-up-intelligence-document .coordination-department {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #343541;
+}
+
+.follow-up-intelligence-document .coordination-action {
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 8px;
+}
+
+.follow-up-intelligence-document .document-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
+}
+
+.follow-up-intelligence-document .source-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #c5c5d2;
+}
+
+.follow-up-intelligence-document .ai-badge {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}

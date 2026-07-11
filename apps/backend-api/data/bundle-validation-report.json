@@ -1,0 +1,304 @@
+{
+  "timestamp": "2025-09-15T05:54:58.101Z",
+  "totalValidFunctions": 1352,
+  "bundles": {
+    "scheduling_bundle": {
+      "totalFunctions": 25,
+      "validFunctions": [
+        "scheduleAppointment",
+        "scheduleProviderMeeting",
+        "rescheduleAppointment",
+        "cancelAppointment",
+        "findAvailableSlots",
+        "getProviderSchedule",
+        "getAppointments",
+        "getTodayAppointments",
+        "searchUsers",
+        "getProviders",
+        "searchPatientsByName",
+        "findPatient",
+        "getPatientDetails",
+        "listAllPatients",
+        "countPatients",
+        "getProviderAvailability",
+        "getProviderSpecialties"
+      ],
+      "invalidFunctions": [
+        "checkConflicts",
+        "getUpcomingAppointments",
+        "searchPatients",
+        "getClinicHours",
+        "sendAppointmentReminder",
+        "confirmAppointment",
+        "getWaitlist",
+        "addToWaitlist"
+      ],
+      "coverage": 68,
+      "status": "WARNING"
+    },
+    "medical_bundle": {
+      "totalFunctions": 40,
+      "validFunctions": [
+        "recommendTreatment",
+        "checkDrugInteractions",
+        "prescribeMedication",
+        "createPrescription",
+        "refillPrescription",
+        "orderLabTest",
+        "interpretLabResults",
+        "analyzeVitalSigns",
+        "checkDrugAllergy",
+        "getMedicalHistory",
+        "getMedications",
+        "getAllergies",
+        "getVitalSigns",
+        "getLabResults",
+        "getImagingResults",
+        "getPrescriptions",
+        "getVaccinations",
+        "getPatientConditions",
+        "createProgressNote",
+        "addMedicalHistory",
+        "checkPatientsForAllergies"
+      ],
+      "invalidFunctions": [
+        "diagnoseSymptoms",
+        "assessRiskFactors",
+        "generateDifferentialDiagnosis",
+        "getPatientHistory",
+        "getPatientMedications",
+        "getPatientAllergies",
+        "getFamilyHistory",
+        "getSurgicalHistory",
+        "getPreviousDiagnoses",
+        "updateMedicalRecord",
+        "updateHistory",
+        "documentPhysicalExam",
+        "updateProblemList",
+        "createTreatmentPlan",
+        "generateReferral",
+        "validateMedication",
+        "checkContraindications",
+        "verifyDosage",
+        "reviewMedicationList"
+      ],
+      "coverage": 53,
+      "status": "WARNING"
+    },
+    "patient_bundle": {
+      "totalFunctions": 20,
+      "validFunctions": [
+        "addPatient",
+        "updatePatient",
+        "deletePatientBySearch",
+        "getPatientDetails",
+        "searchPatientsByName",
+        "findPatient",
+        "listAllPatients",
+        "countPatients",
+        "restorePatient",
+        "importPatientsFromCSV"
+      ],
+      "invalidFunctions": [
+        "deletePatient",
+        "searchPatients",
+        "updatePatientInfo",
+        "updatePatientContact",
+        "updatePatientInsurance",
+        "updatePatientEmergencyContact",
+        "mergePatientRecords",
+        "archivePatient",
+        "validatePatientData",
+        "exportPatientData"
+      ],
+      "coverage": 50,
+      "status": "WARNING"
+    },
+    "document_bundle": {
+      "totalFunctions": 30,
+      "validFunctions": [
+        "uploadDocument",
+        "retrievePendingUpload",
+        "processUploadedDocuments",
+        "analyzeDocument",
+        "getDocuments",
+        "searchDocuments",
+        "deleteDocument",
+        "categorizeDocument",
+        "batchAnalyzeDocuments"
+      ],
+      "invalidFunctions": [
+        "retrieveUpload",
+        "analyzeBatchDocuments",
+        "analyzeXray",
+        "analyzeMRI",
+        "analyzeCTScan",
+        "analyzeUltrasound",
+        "analyzeEKG",
+        "compareImages",
+        "getImagingHistory",
+        "generateRadiologyReport",
+        "extractLabValues",
+        "parseReport",
+        "summarizeDocument",
+        "extractMedications",
+        "extractDiagnoses",
+        "extractProcedures",
+        "linkDocumentToPatient",
+        "bulkUpload",
+        "processDocumentQueue",
+        "getProcessingStatus",
+        "retryFailedDocuments"
+      ],
+      "coverage": 30,
+      "status": "CRITICAL"
+    },
+    "admin_bundle": {
+      "totalFunctions": 25,
+      "validFunctions": [
+        "createInvoice",
+        "recordPayment",
+        "verifyInsurance"
+      ],
+      "invalidFunctions": [
+        "processPayment",
+        "generateBill",
+        "calculateCharges",
+        "applyDiscount",
+        "processRefund",
+        "getPaymentHistory",
+        "sendPaymentReminder",
+        "reconcilePayments",
+        "checkEligibility",
+        "submitClaim",
+        "checkClaimStatus",
+        "processAuthorization",
+        "getPriorAuthorization",
+        "appealDenial",
+        "getInsuranceInfo",
+        "updateInsuranceInfo",
+        "calculateCopay",
+        "generateReport",
+        "exportData",
+        "getStatistics",
+        "auditLog",
+        "systemStatus"
+      ],
+      "coverage": 12,
+      "status": "CRITICAL"
+    },
+    "collaboration_bundle": {
+      "totalFunctions": 20,
+      "validFunctions": [
+        "scheduleProviderMeeting",
+        "getProviderMeetings",
+        "createReferral",
+        "getReferrals",
+        "updateReferralStatus"
+      ],
+      "invalidFunctions": [
+        "cancelProviderMeeting",
+        "updateProviderMeeting",
+        "sendMeetingInvite",
+        "recordMeetingNotes",
+        "shareCase",
+        "requestConsultation",
+        "trackReferral",
+        "sendReferral",
+        "receiveReferral",
+        "completeReferral",
+        "getReferralHistory",
+        "sendMessage",
+        "getMessages",
+        "createNote",
+        "shareDocument"
+      ],
+      "coverage": 25,
+      "status": "CRITICAL"
+    },
+    "reporting_bundle": {
+      "totalFunctions": 20,
+      "validFunctions": [
+        "generatePatientReport",
+        "generateClinicReport",
+        "generateComplianceReport",
+        "getClinicStatistics"
+      ],
+      "invalidFunctions": [
+        "generateFinancialReport",
+        "generateQualityMetrics",
+        "createCustomReport",
+        "scheduleReport",
+        "exportReport",
+        "emailReport",
+        "archiveReport",
+        "getPatientStatistics",
+        "getProviderMetrics",
+        "getAppointmentAnalytics",
+        "getRevenueAnalytics",
+        "getTrendAnalysis",
+        "getPredictiveInsights",
+        "getBenchmarks",
+        "getKPIs",
+        "getDashboardData"
+      ],
+      "coverage": 20,
+      "status": "CRITICAL"
+    },
+    "general_bundle": {
+      "totalFunctions": 15,
+      "validFunctions": [
+        "searchUsers",
+        "searchDocuments",
+        "findPatient",
+        "getClinicInfo"
+      ],
+      "invalidFunctions": [
+        "searchPatients",
+        "getHelp",
+        "getProviderInfo",
+        "getSystemStatus",
+        "getUserProfile",
+        "getNotifications",
+        "sendMessage",
+        "createNote",
+        "setReminder",
+        "exportData",
+        "printDocument"
+      ],
+      "coverage": 27,
+      "status": "CRITICAL"
+    }
+  },
+  "summary": {
+    "totalBundles": 8,
+    "criticalIssues": [
+      {
+        "bundle": "document_bundle",
+        "coverage": 30,
+        "message": "Only 30% of functions exist"
+      },
+      {
+        "bundle": "admin_bundle",
+        "coverage": 12,
+        "message": "Only 12% of functions exist"
+      },
+      {
+        "bundle": "collaboration_bundle",
+        "coverage": 25,
+        "message": "Only 25% of functions exist"
+      },
+      {
+        "bundle": "reporting_bundle",
+        "coverage": 20,
+        "message": "Only 20% of functions exist"
+      },
+      {
+        "bundle": "general_bundle",
+        "coverage": 27,
+        "message": "Only 27% of functions exist"
+      }
+    ],
+    "overallCoverage": 37
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "rules": {
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-script-url": "error",
+    "no-with": "error",
+    "no-alert": "error",
+    "no-console": ["error", { "allow": ["warn", "error", "info"] }],
+    "no-debugger": "error",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "no-undef": "error",
+    "strict": ["error", "global"],
+    "no-var": "error",
+    "prefer-const": "error",
+    "no-prototype-builtins": "error",
+    "no-extend-native": "error",
+    "no-native-reassign": "error",
+    "no-param-reassign": "error",
+    "no-shadow": "error",
+    "no-shadow-restricted-names": "error",
+    "no-use-before-define": "error",
+    "curly": ["error", "all"],
+    "eqeqeq": ["error", "always"],
+    "no-throw-literal": "error",
+    "no-return-await": "error",
+    "require-await": "error",
+    "no-async-promise-executor": "error",
+    "no-await-in-loop": "warn",
+    "no-promise-executor-return": "error",
+    "security/detect-eval-with-expression": "error",
+    "security/detect-non-literal-fs-filename": "warn",
+    "security/detect-non-literal-regexp": "warn",
+    "security/detect-non-literal-require": "error",
+    "security/detect-object-injection": "warn",
+    "security/detect-possible-timing-attacks": "warn",
+    "security/detect-pseudoRandomBytes": "error",
+    "security/detect-unsafe-regex": "error",
+    "security/detect-buffer-noassert": "error",
+    "security/detect-child-process": "warn",
+    "security/detect-disable-mustache-escape": "error",
+    "security/detect-no-csrf-before-method-override": "error",
+    "security/detect-bidi-characters": "error",
+    "no-process-env": ["error", { "allowList": ["NODE_ENV"] }]
+  },
+  "plugins": [
+    "security"
+  ],
+  "extends": [
+    "eslint:recommended",
+    "plugin:security/recommended"
+  ],
+  "overrides": [
+    {
+      "files": ["*.js"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["child_process"],
+                "message": "Direct child_process usage is forbidden. Use secure exec service."
+              },
+              {
+                "group": ["crypto"],
+                "message": "Use encryptionService instead of direct crypto module."
+              }
+            ]
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "process",
+            "property": "env",
+            "message": "Direct process.env access is forbidden. Use config module."
+          },
+          {
+            "object": "mongoose",
+            "property": "connection",
+            "message": "Direct database connection is forbidden. Use SecureDataAccess."
+          },
+          {
+            "object": "document",
+            "property": "write",
+            "message": "document.write is forbidden. Use DOM manipulation methods."
+          },
+          {
+            "property": "innerHTML",
+            "message": "innerHTML is forbidden. Use textContent or createElement."
+          },
+          {
+            "property": "__proto__",
+            "message": "__proto__ is forbidden. Use Object.create()."
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "CallExpression[callee.name='eval']",
+            "message": "eval() is completely forbidden. Use JSON.parse or specific parsers."
+          },
+          {
+            "selector": "NewExpression[callee.name='Function']",
+            "message": "new Function() is forbidden. Use predefined functions."
+          },
+          {
+            "selector": "CallExpression[callee.name='require'][arguments.0.type!='Literal']",
+            "message": "Dynamic require is forbidden. Use static requires."
+          },
+          {
+            "selector": "CallExpression[callee.property.name='readFileSync']",
+            "message": "Synchronous file operations are forbidden. Use async alternatives."
+          },
+          {
+            "selector": "CallExpression[callee.property.name='writeFileSync']",
+            "message": "Synchronous file operations are forbidden. Use async alternatives."
+          },
+          {
+            "selector": "MemberExpression[object.object.name='mongoose'][object.property.name='connection'][property.name='db']",
+            "message": "Direct MongoDB access is forbidden. Use SecureDataAccess service."
+          },
+          {
+            "selector": "Literal[value=/\\$where/]",
+            "message": "$where operator is forbidden. Use standard MongoDB operators."
+          },
+          {
+            "selector": "Literal[value=/\\$function/]",
+            "message": "$function operator is forbidden. Use standard MongoDB operators."
+          },
+          {
+            "selector": "CallExpression[callee.name='setTimeout'][arguments.0.type='Literal']",
+            "message": "String-based setTimeout is forbidden. Use function reference."
+          },
+          {
+            "selector": "CallExpression[callee.name='setInterval'][arguments.0.type='Literal']",
+            "message": "String-based setInterval is forbidden. Use function reference."
+          }
+        ]
+      }
+    }
+  ],
+  "globals": {
+    "require": "readonly",
+    "module": "readonly",
+    "exports": "readonly",
+    "process": "readonly",
+    "__dirname": "readonly",
+    "__filename": "readonly",
+    "Buffer": "readonly",
+    "console": "readonly",
+    "setTimeout": "readonly",
+    "setInterval": "readonly",
+    "clearTimeout": "readonly",
+    "clearInterval": "readonly",
+    "Promise": "readonly"
+  },
+  "parserOptions": {
+    "ecmaVersion": 2021,
+    "sourceType": "script"
+  },
+  "env": {
+    "node": true,
+    "es2021": true
+  }
+}

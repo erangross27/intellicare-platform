@@ -1,0 +1,21 @@
+{
+  "languages": [
+    {
+      "code": "en",
+      "name": "English",
+      "isRTL": false,
+      "file": "en.json",
+      "translationCount": 929
+    },
+    {
+      "code": "he",
+      "name": "עברית",
+      "isRTL": true,
+      "file": "he.json",
+      "translationCount": 980
+    }
+  ],
+  "exportedAt": "2025-08-09T16:52:55.630Z",
+  "totalLanguages": 2,
+  "source": "STATIC_FILES"
+}

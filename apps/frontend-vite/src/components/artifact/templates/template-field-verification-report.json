@@ -1,0 +1,1217 @@
+{
+  "timestamp": "2025-11-07T23:08:14.490Z",
+  "completed": [
+    "LabResultsDocument.jsx",
+    "MedicationsListDocument.jsx",
+    "DiagnosesListDocument.jsx",
+    "ImagingReportsDocument.jsx",
+    "VitalSignsDocument.jsx",
+    "AllergiesDocument.jsx",
+    "PrescriptionsDocument.jsx"
+  ],
+  "verified": [
+    {
+      "template": "EchoReportsDocument.jsx",
+      "collection": "echo_reports"
+    }
+  ],
+  "needsUpdate": [
+    {
+      "template": "AdministrativeDataDocument.jsx",
+      "collection": "administrative_data",
+      "missingFields": [
+        "administrative_data",
+        "data",
+        "pdf",
+        "_type"
+      ],
+      "schemaFields": [
+        "category",
+        "mrn",
+        "accountNumber",
+        "insurance",
+        "primaryCareProvider",
+        "emergencyContact",
+        "codeStatus",
+        "advancedDirectives",
+        "powerOfAttorney",
+        "admissionDate"
+      ]
+    },
+    {
+      "template": "AllergySkinTestingDocument.jsx",
+      "collection": "allergy_skin_testing",
+      "missingFields": [
+        "prickTest",
+        "intradermal",
+        "patch",
+        "testDate",
+        "performedBy",
+        "allergen",
+        "result",
+        "medications",
+        "_type",
+        "length",
+        "data"
+      ],
+      "schemaFields": [
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results",
+        "notes"
+      ]
+    },
+    {
+      "template": "BrainTumorCharacteristicsDocument.jsx",
+      "collection": "brain_tumor_characteristics",
+      "missingFields": [
+        "brain_tumor_characteristics",
+        "data",
+        "analysisDate",
+        "analyzedBy",
+        "whoGrade",
+        "pathology",
+        "idh1Status",
+        "mgmtMethylation",
+        "ki67Index",
+        "molecularClassification",
+        "location",
+        "size",
+        "edema",
+        "massEffect",
+        "enhancement",
+        "_type",
+        "length"
+      ],
+      "schemaFields": [
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results",
+        "notes"
+      ]
+    },
+    {
+      "template": "CareGapsDocument.jsx",
+      "collection": "care_gaps",
+      "missingFields": [
+        "care_gaps",
+        "data",
+        "documentData",
+        "patientName"
+      ],
+      "schemaFields": [
+        "screenings",
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results"
+      ]
+    },
+    {
+      "template": "ChallengeTestsDocument.jsx",
+      "collection": "challenge_tests",
+      "missingFields": [
+        "challenge_tests",
+        "patientName",
+        "_id",
+        "_index"
+      ],
+      "schemaFields": [
+        "testDate",
+        "food",
+        "drug",
+        "aspirin",
+        "exercise",
+        "protocol",
+        "reactions",
+        "outcome",
+        "threshold",
+        "supervisedBy"
+      ]
+    },
+    {
+      "template": "ClinicalDecisionSupportDocument.jsx",
+      "collection": "clinical_decision_support",
+      "missingFields": [
+        "clinical_decision_support",
+        "severity",
+        "urgency",
+        "data",
+        "type",
+        "patientName"
+      ],
+      "schemaFields": [
+        "riskAssessment",
+        "redFlags",
+        "drugInteractions",
+        "contraindications",
+        "date"
+      ]
+    },
+    {
+      "template": "ClinicalScoresDocument.jsx",
+      "collection": "clinical_scores",
+      "missingFields": [
+        "clinical_scores",
+        "data",
+        "diagnosis",
+        "scores",
+        "_type"
+      ],
+      "schemaFields": [
+        "CHA2DS2VASc",
+        "HASBLED",
+        "TIMI",
+        "GRACE",
+        "HEART",
+        "CURB65",
+        "PESI",
+        "MELD",
+        "ChildPugh",
+        "eGFR"
+      ]
+    },
+    {
+      "template": "ComponentAllergenTestingDocument.jsx",
+      "collection": "component_allergen_testing",
+      "missingFields": [
+        "allergens",
+        "testDate",
+        "orderedBy",
+        "majorAllergens",
+        "minorAllergens",
+        "panallergens",
+        "_type",
+        "interpretation",
+        "clinicalRelevance",
+        "length",
+        "data",
+        "_index"
+      ],
+      "schemaFields": [
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results",
+        "notes"
+      ]
+    },
+    {
+      "template": "ConsultationNotesDocument.jsx",
+      "collection": "consultation_notes",
+      "missingFields": [
+        "documentData",
+        "data",
+        "consultation_notes",
+        "assessmentAndPlan",
+        "consultingPhysician",
+        "referringPhysician",
+        "reasonForConsult",
+        "findings",
+        "consultDate",
+        "provider",
+        "specialty",
+        "referringSpecialty",
+        "facility",
+        "department",
+        "clinicalImpression",
+        "prognosis",
+        "match",
+        "content",
+        "patientName",
+        "_id",
+        "substring",
+        "replace",
+        "split",
+        "aiProcessed"
+      ],
+      "schemaFields": [
+        "date",
+        "consultingSpecialty",
+        "consultingProvider",
+        "reasonForConsultation",
+        "chiefComplaint",
+        "historyOfPresentIllness",
+        "reviewOfSystems",
+        "physicalExamination",
+        "assessment",
+        "plan"
+      ]
+    },
+    {
+      "template": "DoctorsMedicationRecommendationsDocument.jsx",
+      "collection": "doctors_medication_recommendations",
+      "missingFields": [
+        "doctors_medication_recommendations",
+        "data"
+      ],
+      "schemaFields": [
+        "date",
+        "medication",
+        "dosage",
+        "frequency",
+        "duration",
+        "indication",
+        "route",
+        "priority",
+        "provider"
+      ]
+    },
+    {
+      "template": "FamilyMeetingNotesDocument.jsx",
+      "collection": "family_meeting_notes",
+      "missingFields": [
+        "family_meeting_notes",
+        "data",
+        "_type",
+        "_index",
+        "value"
+      ],
+      "schemaFields": [
+        "attendees",
+        "discussionPoints",
+        "familyConcerns",
+        "decisions",
+        "supportNeeded",
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings"
+      ]
+    },
+    {
+      "template": "FollowUpAppointmentsDocument.jsx",
+      "collection": "follow_up_appointments",
+      "missingFields": [
+        "follow_up_appointments",
+        "patientName",
+        "aiProcessed",
+        "documentData",
+        "data"
+      ],
+      "schemaFields": [
+        "specialty",
+        "provider",
+        "date",
+        "time",
+        "timing",
+        "location",
+        "reason",
+        "type",
+        "instructions",
+        "isScheduled"
+      ]
+    },
+    {
+      "template": "FunctionalAssessmentsDocument.jsx",
+      "collection": "functional_assessments",
+      "missingFields": [
+        "functional_assessments",
+        "data",
+        "mobilityAids",
+        "adlScore",
+        "adlItems",
+        "iadlScore",
+        "iadlItems",
+        "_type",
+        "value",
+        "_index",
+        "name"
+      ],
+      "schemaFields": [
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results",
+        "notes"
+      ]
+    },
+    {
+      "template": "FunctionalMriStudiesDocument.jsx",
+      "collection": "functional_mri_studies",
+      "missingFields": [
+        "functional_mri_studies",
+        "data",
+        "scanDate",
+        "interpretedBy",
+        "technique",
+        "acquisitionParameters",
+        "tasks",
+        "eloquentAreas",
+        "languageLateralization",
+        "motorMapping",
+        "sensoryMapping",
+        "memoryAreas",
+        "visualAreas",
+        "type",
+        "proximityToLesion",
+        "surgicalRisk"
+      ],
+      "schemaFields": [
+        "recommendations",
+        "reportDate",
+        "reportType",
+        "clinicalIndication",
+        "findings",
+        "urgency",
+        "followUp"
+      ]
+    },
+    {
+      "template": "GuidelineComplianceDocument.jsx",
+      "collection": "guideline_compliance",
+      "missingFields": [
+        "guideline_compliance",
+        "data",
+        "patientName",
+        "toLowerCase"
+      ],
+      "schemaFields": [
+        "guidelines",
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results"
+      ]
+    },
+    {
+      "template": "HematologyConsultationsDocument.jsx",
+      "collection": "hematology_consultations",
+      "missingFields": [
+        "hematology_consultations",
+        "data",
+        "chemotherapy",
+        "supportiveCare",
+        "prognosis",
+        "clinicalTrials",
+        "growthFactors",
+        "_type",
+        "consultationDate",
+        "hematologistName",
+        "providerSpecialty",
+        "facilityName",
+        "chiefComplaint",
+        "bloodDisorder",
+        "stagingClassification",
+        "treatmentPlan",
+        "transfusionSupport",
+        "transplantEligibility",
+        "followUp",
+        "regimen",
+        "intent",
+        "drugs",
+        "value"
+      ],
+      "schemaFields": [
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results",
+        "notes"
+      ]
+    },
+    {
+      "template": "HistoryPresentIllnessDocument.jsx",
+      "collection": "history_present_illness",
+      "missingFields": [
+        "history_present_illness",
+        "endsWith",
+        "toUpperCase",
+        "length",
+        "replace",
+        "match",
+        "content",
+        "_sectionIndex",
+        "_itemIndex"
+      ],
+      "schemaFields": [
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results",
+        "notes"
+      ]
+    },
+    {
+      "template": "HomeMonitoringDocument.jsx",
+      "collection": "home_monitoring",
+      "missingFields": [
+        "home_monitoring",
+        "data",
+        "bloodGlucose",
+        "_type"
+      ],
+      "schemaFields": [
+        "bloodPressure",
+        "glucose",
+        "weight",
+        "oxygenSaturation",
+        "peakFlow",
+        "symptoms",
+        "date",
+        "type",
+        "provider",
+        "facility"
+      ]
+    },
+    {
+      "template": "ImagingOrdersDocument.jsx",
+      "collection": "imaging_orders",
+      "missingFields": [
+        "documentData",
+        "data",
+        "imaging_orders"
+      ],
+      "schemaFields": [
+        "recommendations",
+        "orderDate",
+        "scheduledDate",
+        "completedDate",
+        "imagingModality",
+        "anatomicalRegion",
+        "bodyPart",
+        "clinicalIndication",
+        "contrast",
+        "contrastAllergy"
+      ]
+    },
+    {
+      "template": "IntelligentRecommendationsDocument.jsx",
+      "collection": "intelligent_recommendations",
+      "missingFields": [
+        "action",
+        "rationale",
+        "priority",
+        "evidence",
+        "timeframe",
+        "expectedOutcome",
+        "goal",
+        "interventions",
+        "timeline",
+        "successMetrics",
+        "screening",
+        "indication",
+        "guidelines",
+        "concern",
+        "recommendation",
+        "patientName",
+        "_type",
+        "backupOptions",
+        "dueDate"
+      ],
+      "schemaFields": [
+        "immediate",
+        "shortTerm",
+        "longTerm",
+        "preventive",
+        "psychoBehavioralSupport",
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings"
+      ]
+    },
+    {
+      "template": "LabOrdersDocument.jsx",
+      "collection": "lab_orders",
+      "missingFields": [
+        "lab_orders",
+        "data",
+        "orders",
+        "_type"
+      ],
+      "schemaFields": [
+        "recommendations",
+        "orderDate",
+        "collectionDate",
+        "completedDate",
+        "labPanel",
+        "individualTests",
+        "clinicalIndication",
+        "urgency",
+        "specimenType",
+        "collectionMethod"
+      ]
+    },
+    {
+      "template": "MedicalProceduresDocument.jsx",
+      "collection": "medical_procedures",
+      "missingFields": [
+        "patientName",
+        "documentData",
+        "data",
+        "procedures",
+        "medicalprocedures",
+        "medical_procedures"
+      ],
+      "schemaFields": [
+        "date",
+        "procedureName",
+        "procedureType",
+        "provider",
+        "facility",
+        "findings",
+        "technique",
+        "complications",
+        "outcome",
+        "specimens"
+      ]
+    },
+    {
+      "template": "MedicationOptimizationDocument.jsx",
+      "collection": "medication_optimization",
+      "missingFields": [
+        "documentData",
+        "data",
+        "medication_optimization",
+        "costAnalysis",
+        "simplificationOpportunities",
+        "adherenceRisk",
+        "currentRegimen",
+        "alternatives",
+        "costSaving",
+        "monitoringRequired",
+        "newPrescriptions",
+        "doseAdjustments",
+        "discontinuations",
+        "drugDrugInteractionCheck",
+        "guidelineAlignment",
+        "optimizationOpportunities",
+        "drugInteractions",
+        "duplicateTherapies",
+        "dosingRecommendations",
+        "costOptimization",
+        "adherenceIssues",
+        "monitoringRecommendations",
+        "therapeuticAlternatives",
+        "medication",
+        "estimatedCost",
+        "insuranceCoverage",
+        "valueAssessment",
+        "suggestion",
+        "estimatedSavings",
+        "patientName",
+        "_type",
+        "_recordIdx",
+        "_medIdx",
+        "aiProcessed"
+      ],
+      "schemaFields": [
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results",
+        "notes"
+      ]
+    },
+    {
+      "template": "MentalStatusExamsDocument.jsx",
+      "collection": "mental_status_exams",
+      "missingFields": [
+        "mental_status_exams",
+        "data",
+        "mood",
+        "insight",
+        "judgment",
+        "appearance",
+        "behavior",
+        "speech",
+        "affect",
+        "thoughtProcess",
+        "thoughtContent",
+        "cognition",
+        "perceptualDisturbances"
+      ],
+      "schemaFields": [
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results",
+        "notes"
+      ]
+    },
+    {
+      "template": "MonitoringPlansDocument.jsx",
+      "collection": "monitoring_plans",
+      "missingFields": [
+        "monitoring_plans",
+        "data",
+        "_type"
+      ],
+      "schemaFields": [
+        "date",
+        "laboratory",
+        "imaging",
+        "clinicalAssessments",
+        "frequency",
+        "parameters",
+        "provider",
+        "specialty"
+      ]
+    },
+    {
+      "template": "NeurosurgeryConsultationsDocument.jsx",
+      "collection": "neurosurgery_consultations",
+      "missingFields": [
+        "neurosurgery_consultations",
+        "data",
+        "consultationDate",
+        "neurosurgeonName",
+        "lesionLocation",
+        "proposedProcedure",
+        "surgicalApproach",
+        "neuronavigationSystem",
+        "safeResectionBoundaries",
+        "intraoperativeMappingProtocol",
+        "colorCoding",
+        "oncologicImpact",
+        "imagingLimitations",
+        "comparisonToStandardMRI",
+        "structuralMriSequences",
+        "prognosis",
+        "_type",
+        "risks",
+        "eloquentAreas",
+        "awakeCase",
+        "neuromonitoring",
+        "length"
+      ],
+      "schemaFields": [
+        "recommendations",
+        "consultDate",
+        "referralReason",
+        "chiefComplaint",
+        "examFindings",
+        "diagnosis",
+        "treatmentPlan",
+        "followUpPlan"
+      ]
+    },
+    {
+      "template": "PatientSpecificCarePlanDocument.jsx",
+      "collection": "patient_specific_care_plan",
+      "missingFields": [
+        "patient_specific_care_plan",
+        "barrierAssessment",
+        "goalsOfCare",
+        "data",
+        "patientName",
+        "age",
+        "gender",
+        "functionalStatus",
+        "primaryConditions",
+        "socialFactors",
+        "integratedApproach",
+        "prioritization",
+        "interactions"
+      ],
+      "schemaFields": [
+        "tailoredInterventions",
+        "lifestyleModifications",
+        "comorbidityManagement",
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan"
+      ]
+    },
+    {
+      "template": "PsychosocialAssessmentDocument.jsx",
+      "collection": "psychosocial_assessment",
+      "missingFields": [
+        "psychosocial_assessments",
+        "data",
+        "assessmentDate",
+        "_type",
+        "text",
+        "pdf"
+      ],
+      "schemaFields": [
+        "edinburghScore",
+        "anxietyScreening",
+        "domesticViolenceScreen",
+        "socialSupport",
+        "substanceUseScreen",
+        "housingStability",
+        "financialConcerns",
+        "relationshipStress",
+        "previousPostpartumDepression",
+        "date"
+      ]
+    },
+    {
+      "template": "PulmonaryFunctionTestsDocument.jsx",
+      "collection": "pulmonary_function_tests",
+      "missingFields": [
+        "pulmonary_function_tests",
+        "_type",
+        "length"
+      ],
+      "schemaFields": [
+        "testDate",
+        "preBronchodilator",
+        "postBronchodilator",
+        "reversibility",
+        "interpretation",
+        "dlco",
+        "lungVolumes",
+        "predictedPostoperativeFev1",
+        "comprehensiveLungVolumes",
+        "dlcoComprehensive"
+      ]
+    },
+    {
+      "template": "RecommendationsDocument.jsx",
+      "collection": "recommendations",
+      "missingFields": [
+        "recommendations",
+        "data"
+      ],
+      "schemaFields": [
+        "__simpleType",
+        "date",
+        "medication",
+        "dosage",
+        "frequency",
+        "duration",
+        "indication",
+        "route",
+        "priority",
+        "provider"
+      ]
+    },
+    {
+      "template": "ReferralsDocument.jsx",
+      "collection": "referrals",
+      "missingFields": [
+        "referrals",
+        "data"
+      ],
+      "schemaFields": [
+        "specialty",
+        "reason",
+        "urgency",
+        "status",
+        "provider",
+        "notes",
+        "date",
+        "referringProvider"
+      ]
+    },
+    {
+      "template": "RiskFactorsDocument.jsx",
+      "collection": "risk_factors",
+      "missingFields": [
+        "risk_factors",
+        "data"
+      ],
+      "schemaFields": [
+        "factor",
+        "category",
+        "severity",
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan"
+      ]
+    },
+    {
+      "template": "SmokingCessationProgramDocument.jsx",
+      "collection": "smoking_cessation_program",
+      "missingFields": [
+        "documentData",
+        "data",
+        "smoking_cessation_program"
+      ],
+      "schemaFields": [
+        "__simpleType",
+        "recommendations",
+        "assessmentDate",
+        "programType",
+        "findings",
+        "goals",
+        "progress",
+        "followUp"
+      ]
+    },
+    {
+      "template": "SocialWorkNotesDocument.jsx",
+      "collection": "social_work_notes",
+      "missingFields": [
+        "documentData",
+        "data",
+        "social_work_notes"
+      ],
+      "schemaFields": [
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan",
+        "recommendations",
+        "results",
+        "notes"
+      ]
+    },
+    {
+      "template": "TractographyStudiesDocument.jsx",
+      "collection": "tractography_studies",
+      "missingFields": [
+        "tractography_studies",
+        "data",
+        "studyDate",
+        "interpretedBy",
+        "sequences",
+        "fiberTractsReconstructed",
+        "software",
+        "fractionalAnisotropy",
+        "corticospinalTract",
+        "arcuateFasciculus",
+        "opticRadiation",
+        "corpusCallosum",
+        "cingulum",
+        "superiorLongitudinalFasciculus",
+        "_type",
+        "lesionRelationship",
+        "displacement",
+        "infiltration",
+        "name",
+        "value",
+        "length"
+      ],
+      "schemaFields": [
+        "recommendations",
+        "reportDate",
+        "reportType",
+        "clinicalIndication",
+        "findings",
+        "urgency",
+        "followUp"
+      ]
+    },
+    {
+      "template": "TreatmentCoursesDocument.jsx",
+      "collection": "treatment_courses",
+      "missingFields": [
+        "documentData",
+        "data",
+        "treatment_courses",
+        "type",
+        "date",
+        "provider",
+        "facility",
+        "assessment",
+        "plan",
+        "results",
+        "notes",
+        "status"
+      ],
+      "schemaFields": [
+        "recommendations",
+        "reportDate",
+        "reportType",
+        "clinicalIndication",
+        "findings",
+        "urgency",
+        "followUp"
+      ]
+    },
+    {
+      "template": "TreatmentPlansDocument.jsx",
+      "collection": "treatment_plans",
+      "missingFields": [
+        "treatment_plans",
+        "data",
+        "_type",
+        "_index",
+        "goal"
+      ],
+      "schemaFields": [
+        "date",
+        "immediateInterventions",
+        "pendingProcedures",
+        "rehabilitationReferrals",
+        "longTermGoals",
+        "shortTermGoals",
+        "provider",
+        "specialty"
+      ]
+    },
+    {
+      "template": "TrendingAnalysisDocument.jsx",
+      "collection": "trending_analysis",
+      "missingFields": [
+        "documentData",
+        "data",
+        "patientName",
+        "age",
+        "gender",
+        "dateOfBirth",
+        "trends",
+        "labResultsTrends",
+        "_type",
+        "interpretation",
+        "trend",
+        "latestValue",
+        "documentDate",
+        "length"
+      ],
+      "schemaFields": [
+        "vitalSignsTrends",
+        "labTrends",
+        "diseaseProgression",
+        "date",
+        "type",
+        "provider",
+        "facility",
+        "findings",
+        "assessment",
+        "plan"
+      ]
+    },
+    {
+      "template": "VaccinationRecordsDocument.jsx",
+      "collection": "vaccination_records",
+      "missingFields": [
+        "vaccination_records",
+        "data",
+        "status",
+        "notes",
+        "_index"
+      ],
+      "schemaFields": [
+        "date",
+        "vaccine",
+        "manufacturer",
+        "lotNumber",
+        "site",
+        "dose",
+        "series",
+        "administeredBy",
+        "facility",
+        "reactions"
+      ]
+    }
+  ],
+  "noSchema": [
+    {
+      "template": "AdditionalDataDocument.jsx",
+      "collection": "additional_data"
+    },
+    {
+      "template": "AllergiesAssessmentDocument.jsx",
+      "collection": "allergies_assessment"
+    },
+    {
+      "template": "AllergyImmunologyDocument.jsx",
+      "collection": "allergy_immunology"
+    },
+    {
+      "template": "AnesthesiaDocument.jsx",
+      "collection": "anesthesia"
+    },
+    {
+      "template": "AsthmaAssessmentDocument.jsx",
+      "collection": "asthma_assessment"
+    },
+    {
+      "template": "BloodSmearsDocument.jsx",
+      "collection": "blood_smears"
+    },
+    {
+      "template": "BoneMarrowStudiesDocument.jsx",
+      "collection": "bone_marrow_studies"
+    },
+    {
+      "template": "CardiologyAdmissionDocument.jsx",
+      "collection": "cardiology_admission"
+    },
+    {
+      "template": "ColorectalColonoscopiesDocument.jsx",
+      "collection": "colorectal_colonoscopies"
+    },
+    {
+      "template": "ColorectalSurgeryConsultationsDocument.jsx",
+      "collection": "colorectal_surgery_consultations"
+    },
+    {
+      "template": "DischargeSummaryDocument.jsx",
+      "collection": "discharge_summary"
+    },
+    {
+      "template": "FollowUpIntelligenceDocument.jsx",
+      "collection": "follow_up_intelligence"
+    },
+    {
+      "template": "GIRiskAssessmentDocument.jsx",
+      "collection": "girisk_assessment"
+    },
+    {
+      "template": "HospitalDischargeDocument.jsx",
+      "collection": "hospital_discharge"
+    },
+    {
+      "template": "IntraoperativeMonitoringDocument.jsx",
+      "collection": "intraoperative_monitoring"
+    },
+    {
+      "template": "IntraoperativeRecordsDocument.jsx",
+      "collection": "intraoperative_records"
+    },
+    {
+      "template": "LifestyleAssessmentsDocument.jsx",
+      "collection": "lifestyle_assessments"
+    },
+    {
+      "template": "MedicalHistoryDocument.jsx",
+      "collection": "medical_history"
+    },
+    {
+      "template": "MedicationDocument.jsx",
+      "collection": "medication"
+    },
+    {
+      "template": "MentalStatusExamDocument.jsx",
+      "collection": "mental_status_exam"
+    },
+    {
+      "template": "OutcomesPredictionsDocument.jsx",
+      "collection": "outcomes_predictions"
+    },
+    {
+      "template": "OutcomesPredictionsSmartDocument.jsx",
+      "collection": "outcomes_predictions_smart"
+    },
+    {
+      "template": "PatientCarePlanDocument.jsx",
+      "collection": "patient_care_plan"
+    },
+    {
+      "template": "PatientDetailsDocument.jsx",
+      "collection": "patient_details"
+    },
+    {
+      "template": "PatientDocument.jsx",
+      "collection": "patient"
+    },
+    {
+      "template": "PatientEducationContextDocument.jsx",
+      "collection": "patient_education_context"
+    },
+    {
+      "template": "PatientEducationDocument.jsx",
+      "collection": "patient_education"
+    },
+    {
+      "template": "PatientProviderDocument.jsx",
+      "collection": "patient_provider"
+    },
+    {
+      "template": "PlasticSurgeryConsultationsDocument.jsx",
+      "collection": "plastic_surgery_consultations"
+    },
+    {
+      "template": "PreventiveBiomarkersDocument.jsx",
+      "collection": "preventive_biomarkers"
+    },
+    {
+      "template": "PreventiveMedicineAssessmentsDocument.jsx",
+      "collection": "preventive_medicine_assessments"
+    },
+    {
+      "template": "PrognosisRecordsDocument.jsx",
+      "collection": "prognosis_records"
+    },
+    {
+      "template": "PsychiatricEvaluationDocument.jsx",
+      "collection": "psychiatric_evaluation"
+    },
+    {
+      "template": "PsychosocialAssessmentsDocument.jsx",
+      "collection": "psychosocial_assessments"
+    },
+    {
+      "template": "RemindersDocument.jsx",
+      "collection": "reminders"
+    },
+    {
+      "template": "RiskCalculatorsDocument.jsx",
+      "collection": "risk_calculators"
+    },
+    {
+      "template": "ScreeningComplianceDocument.jsx",
+      "collection": "screening_compliance"
+    },
+    {
+      "template": "SpecificIgeTestingDocument.jsx",
+      "collection": "specific_ige_testing"
+    },
+    {
+      "template": "TableDocument.jsx",
+      "collection": "table"
+    }
+  ],
+  "errors": []
+}

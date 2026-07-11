@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear IntelliCare Cookies</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        .status {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍪 Clear IntelliCare Cookies</h1>
+        
+        <div class="info status">
+            <p><strong>Instructions:</strong></p>
+            <ol style="text-align: left;">
+                <li>Open this file in your browser on the IntelliCare domain</li>
+                <li>Navigate to: <code>http://stanford.intellicare.health:3000</code> (or your clinic subdomain)</li>
+                <li>Open browser DevTools (F12)</li>
+                <li>Go to Console tab</li>
+                <li>Click the button below to clear cookies</li>
+                <li>Then try logging in again from the root domain</li>
+            </ol>
+        </div>
+
+        <button onclick="clearAllCookies()">Clear All Cookies</button>
+        
+        <div id="status"></div>
+
+        <script>
+            async function clearAllCookies() {
+                const statusDiv = document.getElementById('status');
+                
+                try {
+                    // Get all cookies
+                    const cookies = document.cookie.split(';');
+                    let clearedCookies = [];
+                    
+                    // Clear each cookie
+                    cookies.forEach(cookie => {
+                        const eqPos = cookie.indexOf('=');
+                        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                        if (name) {
+                            // Clear cookie for current domain
+                            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                            // Clear cookie for parent domain
+                            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.intellicare.health`;
+                            // Clear cookie for current host
+                            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
+                            clearedCookies.push(name);
+                        }
+                    });
+                    
+                    // Also call the backend to clear server-side
+                    try {
+                        const response = await fetch('/api/clinic-auth/clear-cookies', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        const data = await response.json();
+                        console.log('Backend response:', data);
+                    } catch (err) {
+                        console.log('Backend clear failed (expected if not on subdomain):', err);
+                    }
+                    
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = `
+                        <h3>✅ Cookies Cleared Successfully!</h3>
+                        <p>Cleared ${clearedCookies.length} cookies:</p>
+                        <pre>${clearedCookies.join(', ') || 'No cookies found'}</pre>
+                        <p>Current cookies after clear:</p>
+                        <pre>${document.cookie || 'No cookies'}</pre>
+                        <p><strong>Next steps:</strong></p>
+                        <ol style="text-align: left;">
+                            <li>Navigate to <a href="http://intellicare.health:3000">http://intellicare.health:3000</a></li>
+                            <li>Try logging in again</li>
+                        </ol>
+                    `;
+                    
+                } catch (error) {
+                    statusDiv.className = 'status error';
+                    statusDiv.innerHTML = `
+                        <h3>❌ Error</h3>
+                        <pre>${error.message}</pre>
+                    `;
+                }
+            }
+            
+            // Show current cookies on load
+            window.onload = function() {
+                const statusDiv = document.getElementById('status');
+                const cookies = document.cookie;
+                if (cookies) {
+                    statusDiv.className = 'status info';
+                    statusDiv.innerHTML = `
+                        <h3>Current Cookies:</h3>
+                        <pre>${cookies}</pre>
+                        <p>Domain: ${window.location.hostname}</p>
+                    `;
+                }
+            };
+        </script>
+    </div>
+</body>
+</html>

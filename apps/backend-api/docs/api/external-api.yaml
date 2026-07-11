@@ -1,0 +1,1745 @@
+openapi: 3.0.3
+info:
+  title: IntelliCare External Healthcare API
+  version: 1.0.0
+  description: |
+    Comprehensive healthcare integration API providing access to drug information, 
+    provider directories, clinical research, regulatory compliance, and webhook management.
+    
+    ## Features
+    - **Drug Information**: FDA drug database integration with safety alerts
+    - **Provider Directory**: CMS and BetterDoctor provider search and verification
+    - **Clinical Research**: NIH clinical trials and PubMed literature search
+    - **Regulatory Compliance**: FDA alerts, HIPAA/HITECH compliance monitoring
+    - **Webhook Management**: Secure webhook processing with HMAC validation
+    
+    ## Authentication
+    All endpoints require valid authentication via:
+    - **Bearer Token**: Include `Authorization: Bearer <token>` header
+    - **Service API Key**: For service-to-service calls, use `X-API-Key` header
+    
+    ## Rate Limits
+    - **Standard endpoints**: 100 requests per minute
+    - **Search endpoints**: 50 requests per minute  
+    - **Webhook endpoints**: 500 requests per minute
+    
+    ## Error Handling
+    All endpoints return consistent error format with multi-language support (English/Hebrew).
+  
+  contact:
+    name: IntelliCare API Support
+    url: https://intellicare.health/support
+    email: api-support@intellicare.health
+  
+  license:
+    name: IntelliCare Healthcare License
+    url: https://intellicare.health/license
+
+servers:
+  - url: https://intellicare.health/api
+    description: Production server
+  - url: https://staging.intellicare.health/api
+    description: Staging server
+  - url: http://localhost:5000/api
+    description: Development server
+
+security:
+  - BearerAuth: []
+  - ServiceApiKey: []
+
+tags:
+  - name: Drug Information
+    description: FDA drug database integration and safety information
+  - name: Provider Directory
+    description: Healthcare provider search and network verification
+  - name: Clinical Research
+    description: Clinical trials and medical literature search
+  - name: Regulatory Compliance
+    description: FDA alerts and compliance monitoring
+  - name: API Health
+    description: External API health monitoring and testing
+  - name: Webhooks
+    description: Secure webhook receivers with HMAC validation
+
+paths:
+  # ========== DRUG INFORMATION ENDPOINTS ==========
+  
+  /external/drugs/search:
+    get:
+      tags:
+        - Drug Information
+      summary: Search drug information
+      description: Search FDA drug database by name or NDC number
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Drug name or generic term to search
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+            example: "aspirin"
+        - name: ndc
+          in: query
+          required: false
+          description: National Drug Code (10-11 digits)
+          schema:
+            type: string
+            pattern: '^\d{10,11}$'
+            example: "0002-1430-01"
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: Drug search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrugSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimit'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/drugs/safety-check:
+    post:
+      tags:
+        - Drug Information
+      summary: Check drug safety
+      description: Get drug safety profile and adverse event information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - drugName
+              properties:
+                drugName:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: "acetaminophen"
+              example:
+                drugName: "acetaminophen"
+      responses:
+        '200':
+          description: Drug safety information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrugSafetyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/drugs/interaction-check:
+    post:
+      tags:
+        - Drug Information
+      summary: Check drug interactions
+      description: Check for interactions between multiple medications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - medications
+              properties:
+                medications:
+                  type: array
+                  minItems: 2
+                  maxItems: 20
+                  items:
+                    type: string
+                    minLength: 2
+                    maxLength: 100
+                  example: ["aspirin", "warfarin", "lisinopril"]
+      responses:
+        '200':
+          description: Drug interaction analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrugInteractionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/drugs/validate-prescription:
+    post:
+      tags:
+        - Drug Information
+      summary: Validate prescription
+      description: Validate prescription information and check for issues
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrescriptionValidationRequest'
+      responses:
+        '200':
+          description: Prescription validation results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriptionValidationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ========== PROVIDER DIRECTORY ENDPOINTS ==========
+  
+  /external/providers/search:
+    get:
+      tags:
+        - Provider Directory
+      summary: Search healthcare providers
+      description: Search CMS provider directory by specialty, location, and insurance
+      parameters:
+        - name: specialty
+          in: query
+          description: Medical specialty to search for
+          schema:
+            type: string
+            maxLength: 100
+            example: "cardiology"
+        - name: location
+          in: query
+          description: Geographic location (city, state, or ZIP code)
+          schema:
+            type: string
+            maxLength: 200
+            example: "California"
+        - name: insuranceNetwork
+          in: query
+          description: Insurance network or plan name
+          schema:
+            type: string
+            maxLength: 100
+            example: "Aetna HMO"
+        - name: radius
+          in: query
+          description: Search radius in miles
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: limit
+          in: query
+          description: Maximum number of results
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Provider search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/providers/{npi}:
+    get:
+      tags:
+        - Provider Directory
+      summary: Get provider by NPI
+      description: Retrieve detailed provider information by NPI number
+      parameters:
+        - name: npi
+          in: path
+          required: true
+          description: National Provider Identifier (10 digits)
+          schema:
+            type: string
+            pattern: '^\d{10}$'
+            example: "1234567890"
+      responses:
+        '200':
+          description: Provider details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderDetailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/providers/verify-network:
+    post:
+      tags:
+        - Provider Directory
+      summary: Verify insurance network
+      description: Verify if provider is in specific insurance network
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - providerNPI
+                - insurancePlan
+              properties:
+                providerNPI:
+                  type: string
+                  pattern: '^\d{10}$'
+                  example: "1234567890"
+                insurancePlan:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: "Aetna HMO"
+      responses:
+        '200':
+          description: Network verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkVerificationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/providers/specialties:
+    get:
+      tags:
+        - Provider Directory
+      summary: Get medical specialties
+      description: Retrieve list of available medical specialties
+      responses:
+        '200':
+          description: List of medical specialties
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecialtiesResponse'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ========== CLINICAL RESEARCH ENDPOINTS ==========
+  
+  /external/research/clinical-trials:
+    get:
+      tags:
+        - Clinical Research
+      summary: Search clinical trials
+      description: Search NIH clinical trials database
+      parameters:
+        - name: condition
+          in: query
+          required: true
+          description: Medical condition or disease
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 200
+            example: "diabetes"
+        - name: intervention
+          in: query
+          description: Treatment or intervention type
+          schema:
+            type: string
+            maxLength: 200
+            example: "insulin therapy"
+        - name: location
+          in: query
+          description: Geographic location
+          schema:
+            type: string
+            maxLength: 200
+            example: "California"
+        - name: phase
+          in: query
+          description: Clinical trial phase
+          schema:
+            type: string
+            enum: [PHASE1, PHASE2, PHASE3, PHASE4]
+        - name: recruitmentStatus
+          in: query
+          description: Trial recruitment status
+          schema:
+            type: string
+            default: "RECRUITING"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Clinical trial search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicalTrialResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/research/match-patient:
+    post:
+      tags:
+        - Clinical Research
+      summary: Match patient to clinical trials
+      description: Find clinical trials suitable for specific patient profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientTrialMatchRequest'
+      responses:
+        '200':
+          description: Patient trial matching results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientTrialMatchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/research/literature:
+    get:
+      tags:
+        - Clinical Research
+      summary: Search medical literature
+      description: Search PubMed medical literature database
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: Search query for medical literature
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 500
+            example: "covid-19 treatment"
+        - name: publishedAfter
+          in: query
+          description: Only include articles published after this date
+          schema:
+            type: string
+            format: date-time
+        - name: studyTypes
+          in: query
+          description: Comma-separated list of study types
+          schema:
+            type: string
+            example: "clinical-trial,meta-analysis"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Medical literature search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiteratureSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ========== REGULATORY COMPLIANCE ENDPOINTS ==========
+  
+  /external/compliance/fda-alerts:
+    get:
+      tags:
+        - Regulatory Compliance
+      summary: Get FDA safety alerts
+      description: Retrieve FDA safety alerts and recalls
+      parameters:
+        - name: alertType
+          in: query
+          schema:
+            type: string
+            enum: [all, drug_recalls, device_recalls]
+            default: all
+        - name: dateFrom
+          in: query
+          description: Start date for alert search
+          schema:
+            type: string
+            format: date-time
+        - name: classification
+          in: query
+          description: FDA recall classification
+          schema:
+            type: string
+            enum: ["Class I", "Class II", "Class III"]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: FDA safety alerts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FDAAlertResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/compliance/generate-report:
+    post:
+      tags:
+        - Regulatory Compliance
+      summary: Generate compliance report
+      description: Generate comprehensive compliance report for organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceReportRequest'
+      responses:
+        '200':
+          description: Compliance report generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceReportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ========== API HEALTH ENDPOINTS ==========
+  
+  /external/health:
+    get:
+      tags:
+        - API Health
+      summary: Get API health status
+      description: Check health status of all external API providers
+      parameters:
+        - name: providerId
+          in: query
+          description: Specific provider to check (optional)
+          schema:
+            type: string
+            enum: [fda, cms, nih, betterdoctor]
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatusResponse'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/test-connection/{providerId}:
+    post:
+      tags:
+        - API Health
+      summary: Test API connection
+      description: Test connection to specific external API provider
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [fda, cms, nih, betterdoctor]
+      responses:
+        '200':
+          description: Connection test results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTestResponse'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /external/cache:
+    delete:
+      tags:
+        - API Health
+      summary: Clear API cache
+      description: Clear external API response cache
+      parameters:
+        - name: providerId
+          in: query
+          description: Specific provider cache to clear (optional)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cache cleared successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  # ========== WEBHOOK ENDPOINTS ==========
+  
+  /webhooks/{providerId}/events:
+    post:
+      tags:
+        - Webhooks
+      summary: Generic webhook receiver
+      description: |
+        Secure webhook endpoint for receiving events from external healthcare providers.
+        Requires HMAC SHA-256 signature validation.
+      security: []  # Webhooks use HMAC, not Bearer auth
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          description: Healthcare API provider identifier
+          schema:
+            type: string
+            enum: [fda, cms, nih, betterdoctor]
+        - name: X-Hub-Signature-256
+          in: header
+          required: true
+          description: HMAC SHA-256 signature for webhook validation
+          schema:
+            type: string
+            pattern: '^sha256=[a-f0-9]{64}$'
+        - name: X-Signature-256
+          in: header
+          required: false
+          description: Alternative signature header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEventRequest'
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookProcessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/WebhookUnauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /webhooks/fda/drug-alerts:
+    post:
+      tags:
+        - Webhooks
+      summary: FDA drug alert webhook
+      description: Specialized webhook for FDA drug safety alerts
+      security: []
+      parameters:
+        - name: X-Hub-Signature-256
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FDADrugAlertWebhook'
+      responses:
+        '200':
+          description: Alert processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookProcessResponse'
+
+  /webhooks/status:
+    get:
+      tags:
+        - Webhooks
+      summary: Get webhook status
+      description: Get webhook processing status and statistics
+      responses:
+        '200':
+          description: Webhook system status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookStatusResponse'
+
+  /webhooks/events:
+    get:
+      tags:
+        - Webhooks
+      summary: Get webhook event history
+      description: Retrieve webhook event history with filtering
+      parameters:
+        - name: providerId
+          in: query
+          schema:
+            type: string
+        - name: eventType
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, processing, completed, failed]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+      responses:
+        '200':
+          description: Webhook event history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookHistoryResponse'
+
+# ========== COMPONENTS ==========
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+    
+    ServiceApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Service-to-service API key
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    WebhookUnauthorized:
+      description: Webhook unauthorized - invalid HMAC signature
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/MultiLanguageText'
+              code:
+                type: string
+                enum: [MISSING_SIGNATURE, INVALID_SIGNATURE, PROVIDER_NOT_CONFIGURED]
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    RateLimit:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+    
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ========== COMMON SCHEMAS ==========
+    
+    MultiLanguageText:
+      type: object
+      properties:
+        en:
+          type: string
+        he:
+          type: string
+      required: [en, he]
+      example:
+        en: "Operation completed successfully"
+        he: "הפעולה הושלמה בהצלחה"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/MultiLanguageText'
+        details:
+          type: array
+          items:
+            type: object
+        code:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+      required: [success, data]
+
+    # ========== DRUG INFORMATION SCHEMAS ==========
+    
+    DrugSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                drugs:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Drug'
+                totalResults:
+                  type: integer
+                searchTerm:
+                  type: string
+
+    Drug:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Aspirin"
+        ndc:
+          type: string
+          example: "0002-1430-01"
+        manufacturer:
+          type: string
+          example: "Bayer Corporation"
+        activeIngredients:
+          type: array
+          items:
+            type: string
+        dosageForm:
+          type: string
+          example: "tablet"
+        strength:
+          type: string
+          example: "325mg"
+        fdaApplicationNumber:
+          type: string
+        approvalDate:
+          type: string
+          format: date
+
+    DrugSafetyResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                drugName:
+                  type: string
+                safetyProfile:
+                  $ref: '#/components/schemas/SafetyProfile'
+                adverseEvents:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AdverseEvent'
+                recalls:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/DrugRecall'
+
+    SafetyProfile:
+      type: object
+      properties:
+        riskLevel:
+          type: string
+          enum: [LOW, MODERATE, HIGH, CRITICAL]
+        commonSideEffects:
+          type: array
+          items:
+            type: string
+        seriousSideEffects:
+          type: array
+          items:
+            type: string
+        contraindications:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+
+    AdverseEvent:
+      type: object
+      properties:
+        eventType:
+          type: string
+        severity:
+          type: string
+        frequency:
+          type: string
+        description:
+          type: string
+        reportDate:
+          type: string
+          format: date
+
+    DrugRecall:
+      type: object
+      properties:
+        recallNumber:
+          type: string
+        classification:
+          type: string
+          enum: ["Class I", "Class II", "Class III"]
+        reason:
+          type: string
+        recallDate:
+          type: string
+          format: date
+        status:
+          type: string
+
+    DrugInteractionResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                interactions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/DrugInteraction'
+                riskAssessment:
+                  $ref: '#/components/schemas/InteractionRiskAssessment'
+
+    DrugInteraction:
+      type: object
+      properties:
+        drug1:
+          type: string
+        drug2:
+          type: string
+        severity:
+          type: string
+          enum: [MINOR, MODERATE, MAJOR]
+        description:
+          type: string
+        mechanism:
+          type: string
+        recommendation:
+          type: string
+        evidence:
+          type: string
+
+    InteractionRiskAssessment:
+      type: object
+      properties:
+        overallRisk:
+          type: string
+          enum: [LOW, MODERATE, HIGH, CRITICAL]
+        criticalInteractions:
+          type: integer
+        majorInteractions:
+          type: integer
+        moderateInteractions:
+          type: integer
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    PrescriptionValidationRequest:
+      type: object
+      required:
+        - drugName
+      properties:
+        drugName:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "amoxicillin"
+        ndc:
+          type: string
+          pattern: '^\d{10,11}$'
+        dosage:
+          type: string
+          maxLength: 200
+          example: "500mg twice daily"
+        existingMedications:
+          type: array
+          items:
+            type: string
+          example: ["lisinopril", "metformin"]
+
+    PrescriptionValidationResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                isValid:
+                  type: boolean
+                warnings:
+                  type: array
+                  items:
+                    type: string
+                interactions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/DrugInteraction'
+                dosageVerification:
+                  type: object
+                  properties:
+                    isValidDosage:
+                      type: boolean
+                    recommendedDosage:
+                      type: string
+                contraindications:
+                  type: array
+                  items:
+                    type: string
+
+    # ========== PROVIDER DIRECTORY SCHEMAS ==========
+    
+    ProviderSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                providers:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Provider'
+                totalResults:
+                  type: integer
+                searchCriteria:
+                  type: object
+
+    Provider:
+      type: object
+      properties:
+        npi:
+          type: string
+          example: "1234567890"
+        name:
+          type: string
+          example: "Dr. John Smith"
+        specialty:
+          type: string
+          example: "Cardiology"
+        address:
+          $ref: '#/components/schemas/Address'
+        phone:
+          type: string
+        insuranceNetworks:
+          type: array
+          items:
+            type: string
+        qualityScore:
+          type: number
+          minimum: 0
+          maximum: 5
+        acceptingNewPatients:
+          type: boolean
+        credentials:
+          type: array
+          items:
+            type: string
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        country:
+          type: string
+
+    ProviderDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              allOf:
+                - $ref: '#/components/schemas/Provider'
+                - type: object
+                  properties:
+                    education:
+                      type: array
+                      items:
+                        type: object
+                    boardCertifications:
+                      type: array
+                      items:
+                        type: string
+                    hospitalAffiliations:
+                      type: array
+                      items:
+                        type: string
+                    languagesSpoken:
+                      type: array
+                      items:
+                        type: string
+
+    NetworkVerificationResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                isInNetwork:
+                  type: boolean
+                confidence:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                networkDetails:
+                  type: object
+                lastVerified:
+                  type: string
+                  format: date-time
+
+    SpecialtiesResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                specialties:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      category:
+                        type: string
+
+    # ========== CLINICAL RESEARCH SCHEMAS ==========
+    
+    ClinicalTrialResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                trials:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ClinicalTrial'
+                totalResults:
+                  type: integer
+
+    ClinicalTrial:
+      type: object
+      properties:
+        nctId:
+          type: string
+          example: "NCT12345678"
+        title:
+          type: string
+        briefSummary:
+          type: string
+        phase:
+          type: string
+          enum: [PHASE1, PHASE2, PHASE3, PHASE4]
+        status:
+          type: string
+          enum: [RECRUITING, COMPLETED, TERMINATED, SUSPENDED]
+        condition:
+          type: string
+        intervention:
+          type: string
+        sponsor:
+          type: string
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrialLocation'
+        eligibilityCriteria:
+          type: object
+          properties:
+            inclusionCriteria:
+              type: array
+              items:
+                type: string
+            exclusionCriteria:
+              type: array
+              items:
+                type: string
+        contactInfo:
+          type: object
+
+    TrialLocation:
+      type: object
+      properties:
+        facility:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country:
+          type: string
+        status:
+          type: string
+
+    PatientTrialMatchRequest:
+      type: object
+      required:
+        - patientId
+        - condition
+      properties:
+        patientId:
+          type: string
+          minLength: 1
+          maxLength: 100
+        condition:
+          type: string
+          minLength: 2
+          maxLength: 200
+        age:
+          type: integer
+          minimum: 0
+          maximum: 150
+        gender:
+          type: string
+          enum: [male, female, other]
+        location:
+          type: string
+          maxLength: 200
+
+    PatientTrialMatchResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                matches:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      trial:
+                        $ref: '#/components/schemas/ClinicalTrial'
+                      matchScore:
+                        type: number
+                        minimum: 0
+                        maximum: 1
+                      matchReasons:
+                        type: array
+                        items:
+                          type: string
+
+    LiteratureSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                articles:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/MedicalArticle'
+                totalResults:
+                  type: integer
+
+    MedicalArticle:
+      type: object
+      properties:
+        pmid:
+          type: string
+        title:
+          type: string
+        authors:
+          type: array
+          items:
+            type: string
+        journal:
+          type: string
+        publishDate:
+          type: string
+          format: date
+        abstract:
+          type: string
+        doi:
+          type: string
+        studyType:
+          type: string
+        relevanceScore:
+          type: number
+
+    # ========== REGULATORY COMPLIANCE SCHEMAS ==========
+    
+    FDAAlertResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                alerts:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/FDAAlert'
+
+    FDAAlert:
+      type: object
+      properties:
+        alertId:
+          type: string
+        alertType:
+          type: string
+          enum: [drug_recall, device_recall, safety_communication]
+        title:
+          type: string
+        description:
+          type: string
+        classification:
+          type: string
+          enum: ["Class I", "Class II", "Class III"]
+        dateIssued:
+          type: string
+          format: date
+        affectedProducts:
+          type: array
+          items:
+            type: string
+        actionRequired:
+          type: string
+        riskLevel:
+          type: string
+          enum: [LOW, MODERATE, HIGH, CRITICAL]
+
+    ComplianceReportRequest:
+      type: object
+      required:
+        - organizationId
+      properties:
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 100
+        dateFrom:
+          type: string
+          format: date-time
+        dateTo:
+          type: string
+          format: date-time
+        frameworks:
+          type: array
+          items:
+            type: string
+            enum: [HIPAA, HITECH, GDPR]
+          default: [HIPAA, HITECH]
+        includeRecommendations:
+          type: boolean
+          default: true
+
+    ComplianceReportResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                report:
+                  $ref: '#/components/schemas/ComplianceReport'
+
+    ComplianceReport:
+      type: object
+      properties:
+        organizationId:
+          type: string
+        generatedDate:
+          type: string
+          format: date-time
+        reportPeriod:
+          type: object
+          properties:
+            startDate:
+              type: string
+              format: date-time
+            endDate:
+              type: string
+              format: date-time
+        score:
+          type: object
+          properties:
+            overall:
+              type: number
+              minimum: 0
+              maximum: 100
+            hipaa:
+              type: number
+              minimum: 0
+              maximum: 100
+            hitech:
+              type: number
+              minimum: 0
+              maximum: 100
+        frameworks:
+          type: object
+          additionalProperties:
+            type: object
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              priority:
+                type: string
+                enum: [LOW, MEDIUM, HIGH, CRITICAL]
+              title:
+                type: string
+              description:
+                type: string
+              framework:
+                type: string
+
+    # ========== API HEALTH SCHEMAS ==========
+    
+    HealthStatusResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                overall:
+                  type: string
+                  enum: [healthy, degraded, unhealthy]
+                providers:
+                  type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/ProviderHealth'
+                lastUpdated:
+                  type: string
+                  format: date-time
+
+    ProviderHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        responseTime:
+          type: number
+        uptime:
+          type: number
+        rateLimit:
+          type: object
+          properties:
+            remaining:
+              type: integer
+            resetTime:
+              type: string
+              format: date-time
+        lastError:
+          type: string
+        circuitBreakerStatus:
+          type: string
+          enum: [closed, open, half-open]
+
+    ConnectionTestResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                providerId:
+                  type: string
+                status:
+                  type: string
+                  enum: [connected, failed]
+                responseTime:
+                  type: number
+                timestamp:
+                  type: string
+                  format: date-time
+                details:
+                  type: object
+
+    # ========== WEBHOOK SCHEMAS ==========
+    
+    WebhookEventRequest:
+      type: object
+      required:
+        - eventType
+        - data
+      properties:
+        eventType:
+          type: string
+          minLength: 1
+          maxLength: 100
+        eventId:
+          type: string
+          maxLength: 100
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+      example:
+        eventType: "provider_update"
+        eventId: "evt_12345"
+        timestamp: "2025-01-15T10:30:00Z"
+        data:
+          npi: "1234567890"
+          updateType: "address_change"
+
+    WebhookProcessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        eventId:
+          type: string
+        processed:
+          type: boolean
+        message:
+          $ref: '#/components/schemas/MultiLanguageText'
+      example:
+        success: true
+        eventId: "evt_12345"
+        processed: true
+        message:
+          en: "Webhook received and queued for processing"
+          he: "Webhook התקבל והוכנס לתור לעיבוד"
+
+    FDADrugAlertWebhook:
+      type: object
+      required:
+        - alertType
+        - drugName
+        - severity
+      properties:
+        alertType:
+          type: string
+          enum: [recall, safety_communication, drug_shortage]
+        drugName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        ndc:
+          type: string
+          pattern: '^\d{10,11}$'
+        severity:
+          type: string
+          enum: ["Class I", "Class II", "Class III"]
+        description:
+          type: string
+        affectedLots:
+          type: array
+          items:
+            type: string
+        distributors:
+          type: array
+          items:
+            type: string
+        actionRequired:
+          type: string
+        recallDate:
+          type: string
+          format: date
+        firmName:
+          type: string
+        recallNumber:
+          type: string
+
+    WebhookStatusResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                processingStats:
+                  type: object
+                  properties:
+                    totalProcessed:
+                      type: integer
+                    successful:
+                      type: integer
+                    failed:
+                      type: integer
+                    pending:
+                      type: integer
+                queueStatus:
+                  type: object
+                  properties:
+                    queueLength:
+                      type: integer
+                    processing:
+                      type: integer
+                lastProcessed:
+                  type: string
+                  format: date-time
+
+    WebhookHistoryResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                events:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      eventId:
+                        type: string
+                      providerId:
+                        type: string
+                      eventType:
+                        type: string
+                      status:
+                        type: string
+                        enum: [pending, processing, completed, failed]
+                      timestamp:
+                        type: string
+                        format: date-time
+                      processedAt:
+                        type: string
+                        format: date-time
+                      retryCount:
+                        type: integer
+                      errorMessage:
+                        type: string
+                totalCount:
+                  type: integer
+                hasMore:
+                  type: boolean

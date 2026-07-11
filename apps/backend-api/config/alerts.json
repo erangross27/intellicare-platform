@@ -1,0 +1,44 @@
+{
+  "alerts": {
+    "directDatabaseAccess": {
+      "severity": "critical",
+      "autoBlock": true,
+      "notifyAdmins": true
+    },
+    "failedServiceAuth": {
+      "severity": "high",
+      "autoBlock": false,
+      "notifyAdmins": true
+    },
+    "rateLimitExceeded": {
+      "severity": "medium",
+      "autoBlock": true,
+      "notifyAdmins": false
+    },
+    "unsignedRequest": {
+      "severity": "high",
+      "autoBlock": true,
+      "notifyAdmins": true
+    },
+    "sqlInjection": {
+      "severity": "critical",
+      "autoBlock": true,
+      "notifyAdmins": true
+    },
+    "sessionHijack": {
+      "severity": "critical",
+      "autoBlock": true,
+      "notifyAdmins": true
+    },
+    "aiViolation": {
+      "severity": "high",
+      "autoBlock": true,
+      "notifyAdmins": true
+    },
+    "multipleViolations": {
+      "severity": "critical",
+      "autoBlock": true,
+      "notifyAdmins": true
+    }
+  }
+}

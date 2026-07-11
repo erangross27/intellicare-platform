@@ -1,0 +1,333 @@
+.clinical-decision-support-document {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: #343541;
+  max-width: 100%;
+  padding: 24px;
+}
+
+/* Header */
+.clinical-decision-support-document .document-header {
+  border-bottom: 3px solid #d32f2f;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.clinical-decision-support-document .document-header h2 {
+  margin: 0 0 8px 0;
+  color: #d32f2f;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.clinical-decision-support-document .document-date {
+  color: #c5c5d2;
+  font-size: 14px;
+}
+
+/* Patient Info */
+.clinical-decision-support-document .patient-info-section {
+  background: #ececf1;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.clinical-decision-support-document .patient-info-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #ececf1;
+}
+
+.clinical-decision-support-document .patient-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+/* Severity Badges */
+.severity-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+
+.severity-badge.severity-high {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef5350;
+}
+
+.severity-badge.severity-moderate {
+  background-color: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ff9800;
+}
+
+.severity-badge.severity-low {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #66bb6a;
+}
+
+/* Urgency Badges */
+.urgency-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+
+.urgency-badge.urgency-high {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef5350;
+}
+
+.urgency-badge.urgency-moderate {
+  background-color: #fff8e1;
+  color: #f57c00;
+  border: 1px solid #ffa726;
+}
+
+.urgency-badge.urgency-low {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #42a5f5;
+}
+
+/* Risk Assessment Section */
+.clinical-decision-support-document .risk-assessment-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #fff;
+  border: 2px solid #ff9800;
+  border-radius: 8px;
+}
+
+.clinical-decision-support-document .risk-assessment-section h3 {
+  margin: 0 0 16px 0;
+  color: #e65100;
+  font-size: 20px;
+}
+
+.clinical-decision-support-document .overall-risk {
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.clinical-decision-support-document .risk-factors h4 {
+  margin: 16px 0 12px 0;
+  color: #ececf1;
+  font-size: 16px;
+}
+
+.clinical-decision-support-document .risk-factors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clinical-decision-support-document .risk-factor-item {
+  background: #3e3f4b;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #ff9800;
+}
+
+.clinical-decision-support-document .risk-factor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.clinical-decision-support-document .risk-factor-evidence {
+  color: #555;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.clinical-decision-support-document .mitigating-factors {
+  margin-top: 16px;
+}
+
+.clinical-decision-support-document .mitigating-factors h4 {
+  margin: 0 0 8px 0;
+  color: #2e7d32;
+  font-size: 16px;
+}
+
+.clinical-decision-support-document .mitigating-factors ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+/* Red Flags Section */
+.clinical-decision-support-document .red-flags-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #ffebee;
+  border: 3px solid #d32f2f;
+  border-radius: 8px;
+}
+
+.clinical-decision-support-document .red-flags-section h3 {
+  margin: 0 0 16px 0;
+  color: #c62828;
+  font-size: 20px;
+}
+
+.clinical-decision-support-document .red-flags-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clinical-decision-support-document .red-flag-item {
+  background: #fff;
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 6px solid #d32f2f;
+}
+
+.clinical-decision-support-document .red-flag-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.clinical-decision-support-document .red-flag-action,
+.clinical-decision-support-document .red-flag-timeframe {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #ececf1;
+}
+
+/* Drug Interactions Section */
+.clinical-decision-support-document .drug-interactions-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #fff;
+  border: 2px solid #7b1fa2;
+  border-radius: 8px;
+}
+
+.clinical-decision-support-document .drug-interactions-section h3 {
+  margin: 0 0 16px 0;
+  color: #7b1fa2;
+  font-size: 20px;
+}
+
+.clinical-decision-support-document .drug-interactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clinical-decision-support-document .drug-interaction-item {
+  background: #f3e5f5;
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 4px solid #7b1fa2;
+}
+
+.clinical-decision-support-document .drug-interaction-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.clinical-decision-support-document .interacting-medications {
+  flex: 1;
+  font-size: 15px;
+}
+
+.clinical-decision-support-document .clinical-effect,
+.clinical-decision-support-document .interaction-recommendation {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #ececf1;
+}
+
+/* Contraindications Section */
+.clinical-decision-support-document .contraindications-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #fff;
+  border: 2px solid #c62828;
+  border-radius: 8px;
+}
+
+.clinical-decision-support-document .contraindications-section h3 {
+  margin: 0 0 16px 0;
+  color: #c62828;
+  font-size: 20px;
+}
+
+.clinical-decision-support-document .contraindications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clinical-decision-support-document .contraindication-item {
+  background: #ffebee;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #c62828;
+}
+
+/* Recommendations Section */
+.clinical-decision-support-document .recommendations-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #e8f5e9;
+  border: 2px solid #388e3c;
+  border-radius: 8px;
+}
+
+.clinical-decision-support-document .recommendations-section h3 {
+  margin: 0 0 12px 0;
+  color: #2e7d32;
+  font-size: 20px;
+}
+
+.clinical-decision-support-document .recommendations-section ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+/* Footer */
+.clinical-decision-support-document .document-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
+}
+
+.clinical-decision-support-document .source-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #c5c5d2;
+}
+
+.clinical-decision-support-document .ai-badge {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}

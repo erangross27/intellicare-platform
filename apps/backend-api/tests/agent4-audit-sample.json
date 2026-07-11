@@ -1,0 +1,135 @@
+[
+  {
+    "timestamp": "2025-08-22T14:45:00.428Z",
+    "role": "admin",
+    "function": "prescribe",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.429Z",
+    "role": "admin",
+    "function": "viewPatient",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.429Z",
+    "role": "doctor",
+    "function": "deletePatient",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.429Z",
+    "role": "doctor",
+    "function": "modifyConfig",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.429Z",
+    "role": "nurse",
+    "function": "deletePatient",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.429Z",
+    "role": "nurse",
+    "function": "modifyConfig",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.429Z",
+    "role": "nurse",
+    "function": "prescribe",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.429Z",
+    "role": "guest",
+    "function": "deletePatient",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.429Z",
+    "role": "guest",
+    "function": "modifyConfig",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.429Z",
+    "role": "guest",
+    "function": "prescribe",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.429Z",
+    "role": "guest",
+    "function": "viewPatient",
+    "result": "BLOCKED",
+    "reason": "Insufficient permissions"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.430Z",
+    "type": "DANGEROUS_OPERATION",
+    "code": "eval(\"malicious\")",
+    "result": "BLOCKED",
+    "error": "eval is disabled"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.430Z",
+    "type": "DANGEROUS_OPERATION",
+    "code": "mongoose.connection.db.admin()",
+    "result": "BLOCKED",
+    "error": "Direct DB access blocked"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.430Z",
+    "type": "DANGEROUS_OPERATION",
+    "code": "fetch(\"/api/patients\")",
+    "result": "BLOCKED",
+    "error": "Unsigned request blocked"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.430Z",
+    "type": "DANGEROUS_OPERATION",
+    "code": "require(\"fs\").readFileSync(\".env\")",
+    "result": "BLOCKED",
+    "error": "File system access blocked"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.430Z",
+    "type": "DANGEROUS_OPERATION",
+    "code": "process.env.SECRET_KEY",
+    "result": "BLOCKED",
+    "error": "process.env access blocked"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.430Z",
+    "type": "DANGEROUS_OPERATION",
+    "code": "new Function(\"code\")",
+    "result": "BLOCKED",
+    "error": "Function constructor blocked"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.430Z",
+    "type": "DANGEROUS_OPERATION",
+    "code": "require(\"child_process\").exec()",
+    "result": "BLOCKED",
+    "error": "child_process blocked"
+  },
+  {
+    "timestamp": "2025-08-22T14:45:00.430Z",
+    "type": "DANGEROUS_OPERATION",
+    "code": "{ $where: \"this.admin\" }",
+    "result": "BLOCKED",
+    "error": "$where operator blocked"
+  }
+]

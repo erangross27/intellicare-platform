@@ -1,0 +1,217 @@
+.patient-document {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  font-size: 19px;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+}
+
+/* Header */
+.patient-header {
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #565869;
+}
+
+.patient-name-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.patient-name {
+  font-size: 31px;
+  font-weight: 600;
+  color: #343541;
+  margin: 0;
+}
+
+.patient-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.patient-status.status-active {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.patient-status.status-inactive {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.patient-status.status-unknown {
+  background-color: #ececf1;
+  color: #757575;
+}
+
+.patient-id {
+  font-size: 17px;
+  color: #c5c5d2;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+}
+
+/* Sections */
+.document-section {
+  margin-bottom: 28px;
+}
+
+.section-title {
+  font-size: 21px;
+  font-weight: 600;
+  color: #ececf1;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #565869;
+}
+
+/* Detail Grid */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #c5c5d2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 18px;
+  color: #343541;
+  line-height: 1.5;
+}
+
+/* Address */
+.address-content {
+  font-size: 18px;
+  color: #343541;
+  line-height: 1.8;
+}
+
+.address-content div {
+  margin-bottom: 4px;
+}
+
+/* Clinical Summary */
+.clinical-summary {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+}
+
+.clinical-summary p {
+  margin: 0;
+  font-size: 18px;
+  color: #ececf1;
+  line-height: 1.8;
+}
+
+/* Medical Records Grid */
+.medical-records-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.record-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: #ececf1;
+  border-radius: 6px;
+  border-left: 3px solid #4caf50;
+}
+
+.record-category {
+  font-size: 17px;
+  color: #ececf1;
+  font-weight: 500;
+}
+
+.record-count {
+  font-size: 17px;
+  color: #c5c5d2;
+  font-weight: 600;
+}
+
+/* Footer */
+.document-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #565869;
+  display: flex;
+  gap: 8px;
+  font-size: 16px;
+  color: #c5c5d2;
+}
+
+.footer-label {
+  font-weight: 600;
+}
+
+.footer-value {
+  color: #8e8e9e;
+}
+
+/* Clinical Note */
+.clinical-note {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.clinical-note.warning {
+  background-color: #fff3e0;
+  border-left: 4px solid #ff9800;
+  color: #e65100;
+}
+
+.clinical-note strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .patient-document {
+    padding: 16px;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-name {
+    font-size: 27px;
+  }
+
+  .medical-records-grid {
+    grid-template-columns: 1fr;
+  }
+}

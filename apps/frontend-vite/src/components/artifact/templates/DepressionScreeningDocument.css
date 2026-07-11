@@ -1,0 +1,680 @@
+/* Depression Screening Document - December 2025 REBUILD */
+/* Blue theme | Comfortaa font | Mini-card pattern */
+
+.depression-screening-document {
+  font-family: 'Comfortaa', sans-serif;
+  color: #ececf1;
+  padding: 24px;
+  background: #0F1B33;
+  min-height: 100%;
+}
+
+/* ========================= DOCUMENT HEADER ========================= */
+
+.depression-screening-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.depression-screening-document .document-title {
+  font-size: 31px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+.depression-screening-document .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+/* Header Action Buttons (Copy All, PDF) */
+.depression-screening-document .header-actions .copy-btn,
+.depression-screening-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.depression-screening-document .header-actions .copy-btn:hover,
+.depression-screening-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.depression-screening-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========================= SEARCH ========================= */
+
+.depression-screening-document .search-container {
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.depression-screening-document .search-input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  padding: 10px 36px 10px 14px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 14px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.depression-screening-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.depression-screening-document .search-input::placeholder {
+  color: #9ca3af;
+}
+
+.depression-screening-document .search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.depression-screening-document .search-clear:hover {
+  color: #ececf1;
+}
+
+/* ========================= RECORDS ========================= */
+
+.depression-screening-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.depression-screening-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #565869;
+}
+
+/* ========================= RECORD HEADER ========================= */
+
+.depression-screening-document .record-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.depression-screening-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.depression-screening-document .date-badge {
+  font-size: 14px;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.15);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.depression-screening-document .record-title {
+  font-size: 23px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0 0 12px 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+/* ========================= SECTIONS ========================= */
+
+.depression-screening-document .section {
+  margin-bottom: 20px;
+}
+
+/* Mini-cards Container - OUTER blue glow box */
+.depression-screening-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Section Header - INSIDE mini-cards-container with blue separator */
+.depression-screening-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Section Title - Level 1: BIGGEST (19px) */
+.depression-screening-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========================= MINI CARDS ========================= */
+
+/* Rec Mini Card - Individual item box */
+.depression-screening-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Nested Subtitle - Level 2: MEDIUM (17px) */
+.depression-screening-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* Numbered Row - VERY DARK BLUE background */
+.depression-screening-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 7px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.depression-screening-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;      /* vertical: middle of the row */
+  justify-content: flex-start; /* horizontal: stay left */
+  text-align: left;
+  gap: 8px;
+}
+
+/* Content Value - Level 3 (16px) */
+.depression-screening-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ========================= COPY BUTTONS ========================= */
+
+.depression-screening-document .copy-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.depression-screening-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+/* SOLID BLUE for copied state - NOT GREEN! */
+.depression-screening-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ========================= BAR CHART ========================= */
+
+.depression-screening-document .chart-container {
+  background: rgba(96, 165, 250, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.depression-screening-document .chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+  flex-wrap: wrap;
+}
+
+.depression-screening-document .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.depression-screening-document .legend-color {
+  width: 16px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.depression-screening-document .legend-text {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.depression-screening-document .bar-chart-row {
+  margin-bottom: 16px;
+}
+
+.depression-screening-document .bar-chart-row:last-child {
+  margin-bottom: 0;
+}
+
+.depression-screening-document .bar-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.depression-screening-document .bar-category-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.depression-screening-document .bar-category-value {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.depression-screening-document .bar-interpretation {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.depression-screening-document .bar-container {
+  width: 100%;
+}
+
+.depression-screening-document .bar-background {
+  width: 100%;
+  height: 24px;
+  background: #0d1929;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #374151;
+}
+
+.depression-screening-document .bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease-out;
+}
+
+/* ========================= SEARCH HIGHLIGHT ========================= */
+
+.depression-screening-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* ========================= EMPTY/NO RESULTS ========================= */
+
+.depression-screening-document .empty-state,
+.depression-screening-document .no-results {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* ========================= EDITING — Inline Edit UI ========================= */
+
+/* Editable row content — hover effect.
+   Column layout (value + edit tag stacked): in column mode the axes swap —
+   align-items = HORIZONTAL (keep left), justify-content = VERTICAL (center). */
+.depression-screening-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center !important;
+  gap: 0;
+}
+
+.depression-screening-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.06);
+}
+
+.depression-screening-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Edit indicator (pencil + tag) — appears on hover.
+   ABSOLUTE so its hidden (opacity:0) box takes NO layout space — otherwise it
+   reserves a line below the value and pushes the text to the top of the row. */
+.depression-screening-document .edit-indicator {
+  opacity: 0;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #60a5fa;
+  margin-top: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.depression-screening-document .edit-tag {
+  font-size: 10px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Modified row — amber border for pending approval */
+.depression-screening-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+.depression-screening-document .modified-badge {
+  font-size: 11px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* Inline edit row */
+.depression-screening-document .numbered-row.edit-row {
+  flex-direction: column;
+  padding: 12px 16px;
+}
+
+.depression-screening-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.depression-screening-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid rgba(96, 165, 250, 0.5);
+  border-radius: 8px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.depression-screening-document .edit-textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+.depression-screening-document .edit-textarea:disabled {
+  opacity: 0.6;
+}
+
+/* Enum / Yes-No dropdown */
+.depression-screening-document .edit-select {
+  width: 100%;
+  background: #0d1929;
+  border: 2px solid rgba(96, 165, 250, 0.5);
+  border-radius: 8px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  padding: 12px 14px;
+  outline: none;
+  cursor: pointer;
+  appearance: auto;
+  box-sizing: border-box;
+}
+.depression-screening-document .edit-select:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.depression-screening-document .edit-select option { background: #0d1929; color: #ececf1; }
+
+/* Number stepper — canonical −/+ 40px buttons + full-width centered input (clamped >=0 in JS) */
+.depression-screening-document .num-stepper-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.depression-screening-document .num-step { flex: 0 0 auto; width: 40px; height: 40px; font-size: 20px; line-height: 1; background: #0d1929; border: 2px solid #60a5fa; border-radius: 8px; color: #93c5fd; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; font-family: 'Comfortaa', sans-serif; }
+.depression-screening-document .num-step:hover { background: rgba(96, 165, 250, 0.2); }
+.depression-screening-document .edit-number { flex: 1; min-width: 0; background: #0d1929; border: 2px solid rgba(96, 165, 250, 0.5); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; padding: 12px 14px; outline: none; text-align: center; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.depression-screening-document .edit-number:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.depression-screening-document .edit-number::-webkit-outer-spin-button,
+.depression-screening-document .edit-number::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.depression-screening-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.depression-screening-document .edit-save-btn {
+  background: linear-gradient(135deg, #667eea 0%, #2563eb 100%);
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 7px 20px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.depression-screening-document .edit-save-btn:hover {
+  background: linear-gradient(135deg, #5a6fe8 0%, #1d4ed8 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.depression-screening-document .edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.depression-screening-document .edit-cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  color: #94a3b8;
+  padding: 7px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.depression-screening-document .edit-cancel-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #cbd5e1;
+}
+
+.depression-screening-document .edit-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Approve button — yellow pending, green approved */
+.depression-screening-document .approve-btn {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  border-radius: 6px;
+  color: #eab308;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.depression-screening-document .approve-btn:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.6);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.15);
+}
+
+.depression-screening-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.depression-screening-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+.depression-screening-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Header right actions — copy + approve */
+.depression-screening-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ========================= RESPONSIVE ========================= */
+
+@media (max-width: 768px) {
+  .depression-screening-document .document-header {
+    gap: 12px;
+  }
+
+  .depression-screening-document .header-actions {
+    width: 100%;
+    justify-content: flex-start !important;
+  }
+
+  .depression-screening-document .record-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .depression-screening-document .numbered-row {
+    flex-direction: column;
+    /* in column mode align-items:center would center children HORIZONTALLY — keep left */
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .depression-screening-document .copy-btn {
+    align-self: flex-end;
+  }
+
+  .depression-screening-document .chart-legend {
+    gap: 12px;
+  }
+}

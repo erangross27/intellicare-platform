@@ -1,0 +1,52 @@
+{
+  "mongodb": {
+    "host": "localhost",
+    "port": 27017,
+    "encrypted": true,
+    "databases_to_backup": [
+      "intellicare_practice_global",
+      "intellicare_practice_yale"
+    ]
+  },
+  "redis": {
+    "host": "localhost",
+    "port": 6379
+  },
+  "files": {
+    "paths": [
+      "/home/erangross/Development/IntelliCare/.env",
+      "/home/erangross/Development/IntelliCare/apps/backend-api/.env",
+      "/home/erangross/Development/IntelliCare/package.json",
+      "/home/erangross/Development/IntelliCare/apps/backend-api/package.json",
+      "/home/erangross/Development/IntelliCare/apps/frontend-vite/package.json",
+      "/home/erangross/Development/IntelliCare/CLAUDE.md",
+      "/etc/mongod.conf",
+      "/etc/redis/redis.conf"
+    ]
+  },
+  "code": {
+    "directories": [
+      "/home/erangross/Development/IntelliCare"
+    ],
+    "exclude_patterns": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "*.log",
+      "*.tmp",
+      ".cache",
+      "coverage",
+      ".next",
+      ".nuxt",
+      ".vscode",
+      ".idea"
+    ]
+  },
+  "backup": {
+    "directory": "/home/erangross/backups",
+    "compress": true,
+    "remove_encryption": true,
+    "include_restore_script": true
+  }
+}

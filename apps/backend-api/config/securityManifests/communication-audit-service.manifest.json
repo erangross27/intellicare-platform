@@ -1,0 +1,89 @@
+{
+  "serviceId": "communication-audit-service",
+  "serviceName": "Communication Audit Service",
+  "description": "HIPAA-compliant audit logging for all patient communications",
+  "version": "1.0.0",
+  "owner": "Compliance Team",
+  "contactEmail": "compliance@intellicare.com",
+  
+  "authentication": {
+    "requireApiKey": true,
+    "requireMFA": false,
+    "tokenRotationDays": 90
+  },
+  
+  "permissions": {
+    "allowedClinics": ["*"],
+    "allowedCollections": [
+      "communicationaudits",
+      "audit_logs",
+      "patients",
+      "appointments"
+    ],
+    "operations": {
+      "communicationaudits": ["query", "insert", "update"],
+      "audit_logs": ["insert"],
+      "patients": ["query"],
+      "appointments": ["query"]
+    },
+    "fieldAccess": {
+      "patients": {
+        "allowed": ["_id", "name", "email", "phone"],
+        "denied": ["ssn", "medicalHistory", "insurance"]
+      },
+      "appointments": {
+        "allowed": ["_id", "scheduledDate", "scheduledTime", "patientId"],
+        "denied": ["notes", "diagnosis"]
+      }
+    }
+  },
+  
+  "dataGovernance": {
+    "dataClassification": "restricted",
+    "piiAccess": true,
+    "phiAccess": true,
+    "financialDataAccess": false,
+    "auditLevel": "full",
+    "dataRetentionDays": 2555
+  },
+  
+  "rateLimits": {
+    "queriesPerMinute": 500,
+    "queriesPerHour": 20000,
+    "maxRecordsPerQuery": 10000,
+    "maxConcurrentQueries": 50,
+    "burstAllowance": 100
+  },
+  
+  "security": {
+    "requireEncryption": true,
+    "ipWhitelist": [],
+    "ipBlacklist": [],
+    "allowedTimeWindows": [],
+    "geoRestrictions": {
+      "allowedCountries": ["US", "IL"],
+      "blockedCountries": []
+    }
+  },
+  
+  "criticality": "critical",
+  "tags": ["compliance", "audit", "hipaa", "communication"],
+  
+  "monitoring": {
+    "enableMetrics": true,
+    "enableAlerting": true,
+    "alertThresholds": {
+      "errorRate": 0.01,
+      "latencyP95": 500,
+      "violationCount": 3
+    }
+  },
+  
+  "compliance": {
+    "hipaaCompliant": true,
+    "gdprCompliant": true,
+    "encryptionRequired": true,
+    "rightToErasure": false,
+    "dataPortability": true
+  }
+}

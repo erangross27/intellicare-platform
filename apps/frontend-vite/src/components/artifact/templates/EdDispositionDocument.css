@@ -1,0 +1,72 @@
+/* EdDispositionDocument.css — March 2026 Blue glow editing theme */
+.ed-disposition-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.ed-disposition-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
+.ed-disposition-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
+.ed-disposition-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
+.ed-disposition-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+.ed-disposition-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
+.ed-disposition-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
+.ed-disposition-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
+.ed-disposition-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
+.ed-disposition-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
+.ed-disposition-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
+.ed-disposition-document .section { margin-top: 16px; }
+.ed-disposition-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
+.ed-disposition-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
+.ed-disposition-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
+.ed-disposition-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+.ed-disposition-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.ed-disposition-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
+.ed-disposition-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
+.ed-disposition-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
+.ed-disposition-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
+.ed-disposition-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
+.ed-disposition-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
+.ed-disposition-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
+.ed-disposition-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
+.ed-disposition-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: white; }
+.ed-disposition-document .editable-row { cursor: pointer; }
+.ed-disposition-document .editable-row:hover .edit-indicator { opacity: 1; }
+.ed-disposition-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.ed-disposition-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.ed-disposition-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.ed-disposition-document .modified-badge.added { color: #4ade80; }
+.ed-disposition-document .edit-field-container { width: 100%; }
+.ed-disposition-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.ed-disposition-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
+.ed-disposition-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+.ed-disposition-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.ed-disposition-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.ed-disposition-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.ed-disposition-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.ed-disposition-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.ed-disposition-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.ed-disposition-document .search-container { margin-bottom: 20px; }
+.ed-disposition-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.ed-disposition-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.ed-disposition-document .search-input::placeholder { color: #9ca3af; }
+.ed-disposition-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
+.ed-disposition-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
+.ed-disposition-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
+.ed-disposition-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.ed-disposition-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.ed-disposition-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.ed-disposition-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
+.ed-disposition-document .edit-select option { background: #0F1B33; color: #ececf1; }
+.ed-disposition-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.ed-disposition-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.ed-disposition-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
+@media (max-width: 768px) { .ed-disposition-document .document-header { padding-bottom: 12px; } .ed-disposition-document .document-title { font-size: 24px; } .ed-disposition-document .header-actions { flex-direction: column; } }
+
+/* ═══════ CANONICAL ONE-PASS ADDITIONS (July 2026) ═══════ */
+.ed-disposition-document { direction: ltr; text-align: left; }
+.ed-disposition-document * { direction: ltr; }
+.ed-disposition-document .approve-btn { text-transform: capitalize; letter-spacing: 0.3px; margin-top: 4px; }
+.ed-disposition-document .edit-actions { justify-content: flex-start; }
+.ed-disposition-document .num-stepper-row { display: flex; align-items: center; gap: 10px; }
+.ed-disposition-document .num-step { width: 36px; height: 36px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.5); border-radius: 8px; color: #93c5fd; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer; transition: all 0.15s ease; }
+.ed-disposition-document .num-step:hover { background: rgba(96, 165, 250, 0.25); border-color: #60a5fa; }
+.ed-disposition-document .num-step:disabled { opacity: 0.5; cursor: not-allowed; }
+.ed-disposition-document .num-stepper-input { flex: 1 1 auto; min-width: 0; text-align: center; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; font-weight: 600; padding: 8px; outline: none; box-sizing: border-box; }
+.ed-disposition-document .num-stepper-input:focus { box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.ed-disposition-document .num-stepper-unit { font-size: 15px; color: #93c5fd; white-space: nowrap; }

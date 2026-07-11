@@ -1,0 +1,77 @@
+{
+  "serviceId": "disaster-recovery-service",
+  "serviceName": "Disaster Recovery Service",
+  "description": "Manages backups, failover, and disaster recovery operations",
+  "version": "1.0.0",
+  "owner": "Infrastructure Team",
+  "contactEmail": "infrastructure@intellicare.com",
+  
+  "authentication": {
+    "requireApiKey": true,
+    "requireMFA": true,
+    "tokenRotationDays": 30
+  },
+  
+  "permissions": {
+    "allowedClinics": ["*"],
+    "allowedCollections": ["*"],
+    "operations": {
+      "*": ["query", "insert", "update"]
+    },
+    "fieldAccess": {
+      "*": {
+        "allowed": ["*"],
+        "denied": []
+      }
+    }
+  },
+  
+  "dataGovernance": {
+    "dataClassification": "restricted",
+    "piiAccess": true,
+    "phiAccess": true,
+    "financialDataAccess": true,
+    "auditLevel": "full",
+    "dataRetentionDays": 2555
+  },
+  
+  "rateLimits": {
+    "queriesPerMinute": 1000,
+    "queriesPerHour": 50000,
+    "maxRecordsPerQuery": 100000,
+    "maxConcurrentQueries": 100,
+    "burstAllowance": 200
+  },
+  
+  "security": {
+    "requireEncryption": true,
+    "ipWhitelist": [],
+    "ipBlacklist": [],
+    "allowedTimeWindows": [],
+    "geoRestrictions": {
+      "allowedCountries": ["US", "IL"],
+      "blockedCountries": []
+    }
+  },
+  
+  "criticality": "critical",
+  "tags": ["infrastructure", "backup", "disaster-recovery"],
+  
+  "monitoring": {
+    "enableMetrics": true,
+    "enableAlerting": true,
+    "alertThresholds": {
+      "errorRate": 0.01,
+      "latencyP95": 10000,
+      "violationCount": 1
+    }
+  },
+  
+  "compliance": {
+    "hipaaCompliant": true,
+    "gdprCompliant": true,
+    "encryptionRequired": true,
+    "rightToErasure": false,
+    "dataPortability": true
+  }
+}

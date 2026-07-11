@@ -1,0 +1,372 @@
+.trending-analysis-document {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: #343541;
+  max-width: 100%;
+  padding: 24px;
+}
+
+/* Header */
+.trending-analysis-document .document-header {
+  border-bottom: 3px solid #7b1fa2;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.trending-analysis-document .document-header h2 {
+  margin: 0 0 8px 0;
+  color: #7b1fa2;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.trending-analysis-document .document-date {
+  color: #c5c5d2;
+  font-size: 14px;
+}
+
+/* Patient Info */
+.trending-analysis-document .patient-info-section {
+  background: #ececf1;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.trending-analysis-document .patient-info-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #ececf1;
+}
+
+.trending-analysis-document .patient-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+/* Trend Indicators */
+.trend-indicator {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.trend-indicator.trend-up {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef5350;
+}
+
+.trend-indicator.trend-down {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #66bb6a;
+}
+
+.trend-indicator.trend-stable {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #42a5f5;
+}
+
+/* Action Badges */
+.action-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.action-badge.action-required {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef5350;
+}
+
+.action-badge.action-monitor {
+  background-color: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ff9800;
+}
+
+.action-badge.action-none {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #66bb6a;
+}
+
+/* Trends Sections */
+.trending-analysis-document .trends-section {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.trending-analysis-document .lab-trends-section {
+  border: 2px solid #1976d2;
+}
+
+.trending-analysis-document .lab-trends-section h3 {
+  margin: 0 0 20px 0;
+  color: #1565c0;
+  font-size: 22px;
+}
+
+.trending-analysis-document .vitals-trends-section {
+  border: 2px solid #d32f2f;
+}
+
+.trending-analysis-document .vitals-trends-section h3 {
+  margin: 0 0 20px 0;
+  color: #c62828;
+  font-size: 22px;
+}
+
+/* Trends Grid */
+.trending-analysis-document .trends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* Trend Cards */
+.trending-analysis-document .trend-card {
+  background: #3e3f4b;
+  border-radius: 8px;
+  padding: 16px;
+  border-left: 4px solid #ccc;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.trending-analysis-document .trend-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.trending-analysis-document .lab-trend-card {
+  border-left-color: #1976d2;
+}
+
+.trending-analysis-document .vital-trend-card {
+  border-left-color: #d32f2f;
+}
+
+.trending-analysis-document .trend-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #565869;
+}
+
+.trending-analysis-document .test-name,
+.trending-analysis-document .parameter-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #343541;
+  flex: 1;
+}
+
+.trending-analysis-document .trend-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trending-analysis-document .latest-value {
+  font-size: 15px;
+}
+
+.trending-analysis-document .trend-interpretation,
+.trending-analysis-document .trend-significance {
+  font-size: 14px;
+  color: #444;
+  line-height: 1.5;
+}
+
+.trending-analysis-document .trend-action {
+  margin-top: 4px;
+}
+
+/* Disease Progression Section */
+.trending-analysis-document .disease-progression-section {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: #fff;
+  border: 2px solid #388e3c;
+  border-radius: 8px;
+}
+
+.trending-analysis-document .disease-progression-section h3 {
+  margin: 0 0 20px 0;
+  color: #2e7d32;
+  font-size: 22px;
+}
+
+.trending-analysis-document .disease-progression-section h4 {
+  margin: 16px 0 12px 0;
+  color: #ececf1;
+  font-size: 18px;
+}
+
+.trending-analysis-document .trajectory-overview {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #e8f5e9;
+  border-radius: 6px;
+}
+
+.trending-analysis-document .trajectory-text {
+  margin-top: 8px;
+  font-size: 15px;
+  color: #343541;
+  line-height: 1.6;
+}
+
+/* Timeline */
+.trending-analysis-document .key-events-timeline {
+  margin-bottom: 24px;
+}
+
+.trending-analysis-document .timeline {
+  position: relative;
+  padding-left: 40px;
+}
+
+.trending-analysis-document .timeline::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: #388e3c;
+}
+
+.trending-analysis-document .timeline-event {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.trending-analysis-document .timeline-marker {
+  position: absolute;
+  left: -33px;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #388e3c;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #388e3c;
+}
+
+.trending-analysis-document .timeline-content {
+  background: #3e3f4b;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 3px solid #388e3c;
+}
+
+.trending-analysis-document .event-date {
+  font-size: 13px;
+  color: #c5c5d2;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.trending-analysis-document .event-description {
+  font-size: 15px;
+  color: #343541;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.trending-analysis-document .event-impact {
+  font-size: 14px;
+  color: #444;
+}
+
+/* Prognosis */
+.trending-analysis-document .prognosis-section {
+  padding: 16px;
+  background: #e8f5e9;
+  border-radius: 6px;
+}
+
+.trending-analysis-document .prognosis-content {
+  font-size: 15px;
+  color: #343541;
+  line-height: 1.6;
+}
+
+/* Summary Statistics */
+.trending-analysis-document .summary-statistics {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #4a9eff 0%, #764ba2 100%);
+  border-radius: 8px;
+  color: white;
+}
+
+.trending-analysis-document .summary-statistics h3 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  color: white;
+}
+
+.trending-analysis-document .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.trending-analysis-document .stat-item {
+  text-align: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+}
+
+.trending-analysis-document .stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.trending-analysis-document .stat-label {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+/* Footer */
+.trending-analysis-document .document-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
+}
+
+.trending-analysis-document .source-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #c5c5d2;
+}
+
+.trending-analysis-document .ai-badge {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}

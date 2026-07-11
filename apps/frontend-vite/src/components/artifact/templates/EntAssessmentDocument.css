@@ -1,0 +1,443 @@
+/* EntAssessmentDocument.css - March 2026 Blue Glow Theme with Inline Editing */
+
+.ent-assessment-document {
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  background: #0F1B33;
+  color: #ececf1;
+  padding: 24px;
+  border-radius: 12px;
+  min-height: 100%;
+  direction: ltr;
+}
+
+.ent-assessment-document * { direction: ltr; }
+
+/* ============== DOCUMENT HEADER ============== */
+.ent-assessment-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.ent-assessment-document .document-title {
+  font-size: 27px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+.ent-assessment-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  flex-direction: row !important;
+}
+
+.ent-assessment-document .header-actions .copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  height: 36px;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.ent-assessment-document .header-actions .copy-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #3b82f6;
+}
+
+.ent-assessment-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* ============== SEARCH ============== */
+.ent-assessment-document .search-container {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.ent-assessment-document .search-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  background: #0d1929;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 17px;
+  box-sizing: border-box;
+}
+
+.ent-assessment-document .search-input::placeholder { color: #71717a; }
+.ent-assessment-document .search-input:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); }
+
+.ent-assessment-document .search-results {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* ============== RECORDS ============== */
+.ent-assessment-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ent-assessment-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #565869;
+  box-sizing: border-box;
+}
+
+.ent-assessment-document .record-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #565869;
+}
+
+.ent-assessment-document .record-name {
+  font-size: 21px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+/* ============== SECTIONS ============== */
+.ent-assessment-document .section {
+  margin-bottom: 20px;
+}
+
+.ent-assessment-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ent-assessment-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.ent-assessment-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  text-transform: none !important;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.ent-assessment-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+/* ============== MINI CARD ============== */
+.ent-assessment-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ent-assessment-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+.ent-assessment-document .content-subtitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #93c5fd;
+  font-family: 'Comfortaa', sans-serif;
+  margin-bottom: 2px;
+}
+
+/* audiometry-style key:value on ONE line (freq label + threshold value together) */
+.ent-assessment-document .row-content.inline-kv {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ent-assessment-document .inline-kv .content-subtitle {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.ent-assessment-document .inline-kv .content-subtitle::after {
+  content: ' -';
+}
+
+/* ============== NUMBERED ROW ============== */
+.ent-assessment-document .numbered-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.ent-assessment-document .numbered-row:last-child { margin-bottom: 0; }
+
+.ent-assessment-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ent-assessment-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* ============== COPY BUTTON ============== */
+.ent-assessment-document .copy-btn {
+  background-color: transparent;
+  color: #ececf1;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.ent-assessment-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+}
+
+.ent-assessment-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* ============== EDITABLE ROW ============== */
+.ent-assessment-document .editable-row {
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ent-assessment-document .editable-row:hover {
+  background: rgba(96, 165, 250, 0.12);
+  border-color: #60a5fa;
+}
+
+.ent-assessment-document .edit-indicator {
+  color: #60a5fa;
+  font-size: 14px;
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.ent-assessment-document .editable-row:hover .edit-indicator { opacity: 1; }
+
+.ent-assessment-document .edit-field-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ent-assessment-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  background: #1e1f2e;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.ent-assessment-document .edit-textarea:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); }
+
+.ent-assessment-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.ent-assessment-document .save-btn {
+  padding: 6px 16px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.ent-assessment-document .save-btn:hover { background: #1d4ed8; }
+.ent-assessment-document .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ent-assessment-document .cancel-btn {
+  padding: 6px 16px;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ent-assessment-document .cancel-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: #9ca3af; }
+
+/* ============== MODIFIED / APPROVE ============== */
+.ent-assessment-document .numbered-row.modified {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.ent-assessment-document .modified-badge {
+  font-size: 11px;
+  color: #f59e0b;
+  font-style: italic;
+  padding: 2px 0;
+}
+
+.ent-assessment-document .modified-badge.added {
+  color: #22c55e;
+}
+
+.ent-assessment-document .approve-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  text-transform: capitalize;
+}
+
+.ent-assessment-document .approve-btn.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid #f59e0b;
+}
+
+.ent-assessment-document .approve-btn.pending:hover {
+  background: rgba(245, 158, 11, 0.25);
+}
+
+.ent-assessment-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid #22c55e;
+  cursor: default;
+}
+
+/* ============== SAVE ERROR ============== */
+.ent-assessment-document .save-error {
+  color: #ef4444;
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+/* ============== EMPTY / SEARCH ============== */
+.ent-assessment-document .empty-state,
+.ent-assessment-document .no-results {
+  text-align: center;
+  padding: 48px 24px;
+  color: #71717a;
+  font-size: 19px;
+}
+
+.ent-assessment-document mark {
+  background: #fbbf24;
+  color: #1e1f2e;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+/* ============== RESPONSIVE ============== */
+@media (max-width: 768px) {
+  .ent-assessment-document .document-header { flex-direction: column; gap: 16px; }
+  .ent-assessment-document .header-actions { width: 100%; }
+  .ent-assessment-document .header-actions .copy-btn { flex: 1; }
+  .ent-assessment-document .record-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .ent-assessment-document .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .ent-assessment-document .numbered-row { flex-direction: column; gap: 8px; }
+  .ent-assessment-document .copy-btn { align-self: flex-end; }
+  .ent-assessment-document .rec-mini-card { min-width: 100%; }
+}

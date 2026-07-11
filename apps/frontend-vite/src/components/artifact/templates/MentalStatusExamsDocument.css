@@ -1,0 +1,618 @@
+/* MentalStatusExamsDocument - February 2026 Rebuild
+ *
+ * Font Hierarchy:
+ * - document-title: 32px
+ * - section-title: 19px (Level 1 - BIGGEST)
+ * - record-title: 20px
+ * - nested-subtitle: 17px (Level 2 - MEDIUM)
+ * - content-value: 16px (Level 3)
+ */
+
+.mental-status-exams-document {
+  padding: 24px;
+  background: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+}
+
+.mental-status-exams-document * {
+  box-sizing: border-box;
+}
+
+/* =====================================================================
+   DOCUMENT HEADER - 3 Rows: Title, Actions, Search
+   ===================================================================== */
+
+.mental-status-exams-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.mental-status-exams-document .document-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+/* Header Actions - Row Layout, Right-Aligned */
+.mental-status-exams-document .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.mental-status-exams-document .header-actions .copy-btn,
+.mental-status-exams-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  white-space: nowrap;
+  height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mental-status-exams-document .header-actions .copy-btn:hover,
+.mental-status-exams-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #60a5fa;
+}
+
+.mental-status-exams-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Search Container */
+.mental-status-exams-document .search-container {
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.mental-status-exams-document .search-input {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  padding: 12px 40px 12px 16px;
+  background: #0d1929;
+  border: 1px solid #565869;
+  border-radius: 8px;
+  color: #ececf1;
+  font-size: 15px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.mental-status-exams-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.mental-status-exams-document .search-input::placeholder {
+  color: #9ca3af;
+}
+
+.mental-status-exams-document .clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.mental-status-exams-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* Search Results Count */
+.mental-status-exams-document .search-results-count {
+  color: #9ca3af;
+  font-size: 13px;
+  margin-bottom: 16px;
+  padding: 4px 0;
+}
+
+/* =====================================================================
+   RECORD - Exam record wrapper
+   ===================================================================== */
+
+.mental-status-exams-document .exam-record {
+  margin-bottom: 32px;
+}
+
+/* Record Header */
+.mental-status-exams-document .record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.mental-status-exams-document .record-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.mental-status-exams-document .header-top-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+/* Date Badge */
+.mental-status-exams-document .date-badge {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+/* =====================================================================
+   SECTION - mini-cards-container with section-header INSIDE
+   ===================================================================== */
+
+.mental-status-exams-document .section {
+  margin-bottom: 24px;
+}
+
+/* Mini Cards Container - OUTER blue glow box */
+.mental-status-exams-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Section Header - INSIDE mini-cards-container with BLUE SEPARATOR */
+.mental-status-exams-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Section Title - Level 1: BIGGEST (19px) */
+.mental-status-exams-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* =====================================================================
+   REC-MINI-CARD - Individual field card
+   ===================================================================== */
+
+.mental-status-exams-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* =====================================================================
+   FIELD GROUP - nested-subtitle + numbered-row
+   ===================================================================== */
+
+/* Nested Subtitle - Level 2: MEDIUM (17px) - Field labels */
+.mental-status-exams-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 2px;
+}
+
+/* Numbered Row - VERY DARK BLUE background */
+.mental-status-exams-document .numbered-row {
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Row Content */
+.mental-status-exams-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Content Value - Level 3: READABLE (16px) */
+.mental-status-exams-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* =====================================================================
+   COPY BUTTONS
+   ===================================================================== */
+
+.mental-status-exams-document .copy-btn {
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  transition: all 0.2s ease;
+}
+
+.mental-status-exams-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+}
+
+/* SOLID BLUE for copied state */
+.mental-status-exams-document .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* =====================================================================
+   SEARCH HIGHLIGHT
+   ===================================================================== */
+
+.mental-status-exams-document mark {
+  background: #fbbf24;
+  color: #000000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* =====================================================================
+   EMPTY STATE
+   ===================================================================== */
+
+.mental-status-exams-document .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.mental-status-exams-document .empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.mental-status-exams-document .empty-text {
+  font-size: 18px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* =====================================================================
+   EDITING - Inline Edit UI
+   ===================================================================== */
+
+/* Header right actions - Copy Section + Approve */
+.mental-status-exams-document .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Editable row content - hover effect */
+.mental-status-exams-document .row-content.editable {
+  cursor: pointer;
+  position: relative;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.mental-status-exams-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.06);
+}
+
+.mental-status-exams-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Edit indicator (pencil + tag) - appears on hover */
+.mental-status-exams-document .edit-indicator {
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #60a5fa;
+  margin-top: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.mental-status-exams-document .edit-tag {
+  font-size: 10px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Modified row - amber border for pending approval */
+.mental-status-exams-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+.mental-status-exams-document .modified-badge {
+  font-size: 11px;
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 600;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* Inline edit row */
+.mental-status-exams-document .numbered-row.edit-row {
+  flex-direction: column;
+  padding: 12px 16px;
+}
+
+.mental-status-exams-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.mental-status-exams-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid rgba(96, 165, 250, 0.5);
+  border-radius: 8px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.mental-status-exams-document .edit-textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+.mental-status-exams-document .edit-textarea:disabled {
+  opacity: 0.6;
+}
+
+.mental-status-exams-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.mental-status-exams-document .edit-save-btn {
+  background: linear-gradient(135deg, #667eea 0%, #2563eb 100%);
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 7px 20px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mental-status-exams-document .edit-save-btn:hover {
+  background: linear-gradient(135deg, #5a6fe8 0%, #1d4ed8 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.mental-status-exams-document .edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mental-status-exams-document .edit-cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  color: #94a3b8;
+  padding: 7px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mental-status-exams-document .edit-cancel-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #cbd5e1;
+}
+
+.mental-status-exams-document .edit-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Approve button - yellow default, green when approved */
+.mental-status-exams-document .approve-btn {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 6px;
+  color: #fbbf24;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.mental-status-exams-document .approve-btn:hover {
+  background: rgba(251, 191, 36, 0.25);
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.15);
+}
+
+.mental-status-exams-document .approve-btn.approved {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+.mental-status-exams-document .approve-btn.approved:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+}
+
+.mental-status-exams-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =====================================================================
+   ERROR STATE (legacy class name)
+   ===================================================================== */
+
+.mental-status-exams-document-error {
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  background-color: rgba(96, 165, 250, 0.12);
+  color: #9ca3af;
+  padding: 80px 24px;
+  text-align: center;
+  font-size: 18px;
+}
+
+/* =====================================================================
+   RESPONSIVE
+   ===================================================================== */
+
+@media (max-width: 768px) {
+  .mental-status-exams-document {
+    padding: 16px;
+  }
+
+  .mental-status-exams-document .document-title {
+    font-size: 26px;
+  }
+
+  .mental-status-exams-document .section-title {
+    font-size: 17px;
+  }
+
+  .mental-status-exams-document .record-title {
+    font-size: 18px;
+  }
+
+  .mental-status-exams-document .nested-subtitle {
+    font-size: 15px;
+  }
+
+  .mental-status-exams-document .content-value {
+    font-size: 15px;
+  }
+
+  .mental-status-exams-document .header-actions {
+    flex-wrap: wrap;
+  }
+
+  .mental-status-exams-document .header-actions .copy-btn,
+  .mental-status-exams-document .header-actions .pdf-btn {
+    min-width: 100px;
+    font-size: 12px;
+  }
+
+  .mental-status-exams-document .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .mental-status-exams-document .header-right-actions {
+    margin-left: 0;
+  }
+}

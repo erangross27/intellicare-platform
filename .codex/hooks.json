@@ -1,0 +1,89 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/erangross/dev/IntelliCare/claude-hooks/pre-tool-use.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/erangross/dev/IntelliCare/claude-hooks/post-tool-use.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/erangross/dev/IntelliCare/claude-hooks/session-precompact.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/erangross/dev/IntelliCare/claude-hooks/session-startup.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/erangross/dev/IntelliCare/claude-hooks/session-startup.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/erangross/dev/IntelliCare/claude-hooks/session-compact.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/erangross/dev/IntelliCare/claude-hooks/session-compact.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/erangross/dev/IntelliCare/claude-hooks/user-prompt-search.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/erangross/dev/IntelliCare/claude-hooks/session-topic-change.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

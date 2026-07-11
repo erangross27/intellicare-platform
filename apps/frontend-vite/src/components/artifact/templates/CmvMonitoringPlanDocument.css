@@ -1,0 +1,466 @@
+/* CMV Monitoring Plan Document - Blue Glow Theme with Editing */
+
+.cmv-monitoring-plan {
+  padding: 24px;
+  color: #ececf1;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  background: #0F1B33;
+}
+
+/* Document Header */
+.cmv-monitoring-plan .document-header {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #2563eb;
+  display: block;
+}
+
+.cmv-monitoring-plan .document-title {
+  font-size: 35px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 10px 0;
+  text-transform: none !important;
+}
+
+.cmv-monitoring-plan .header-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* Record Card */
+.cmv-monitoring-plan .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid #2a2b36;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+/* Record Header */
+.cmv-monitoring-plan .record-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(96, 165, 250, 0.08) 100%);
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.cmv-monitoring-plan .record-meta-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.cmv-monitoring-plan .record-title-row {
+  display: block;
+}
+
+.cmv-monitoring-plan .record-name {
+  font-size: 23px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Date Badge */
+.cmv-monitoring-plan .record-date {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Card Content */
+.cmv-monitoring-plan .card-content {
+  padding: 20px;
+}
+
+/* Mini Cards Container (section wrapper) */
+.cmv-monitoring-plan .mini-cards-container {
+  background: rgba(37, 99, 235, 0.05);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 24px;
+}
+
+.cmv-monitoring-plan .mini-cards-container:last-child {
+  margin-bottom: 0;
+}
+
+/* Section Header (inside mini-cards-container) */
+.cmv-monitoring-plan .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.cmv-monitoring-plan .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.cmv-monitoring-plan .section-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Rec Mini Card */
+.cmv-monitoring-plan .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.cmv-monitoring-plan .rec-mini-card:last-child {
+  margin-bottom: 0;
+}
+
+/* Nested Subtitle */
+.cmv-monitoring-plan .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 4px;
+  text-transform: none !important;
+}
+
+/* Numbered Row */
+.cmv-monitoring-plan .numbered-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.cmv-monitoring-plan .numbered-row:last-child {
+  margin-bottom: 0;
+}
+
+/* Content Value */
+.cmv-monitoring-plan .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.6;
+  flex: 1;
+}
+
+/* Copy Button */
+.cmv-monitoring-plan .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+}
+
+.cmv-monitoring-plan .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.cmv-monitoring-plan .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Header Copy All / Export PDF buttons */
+.cmv-monitoring-plan .header-actions .copy-btn,
+.cmv-monitoring-plan .header-actions .pdf-btn {
+  font-size: 14px;
+  padding: 8px 16px;
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.cmv-monitoring-plan .header-actions .copy-btn:hover,
+.cmv-monitoring-plan .header-actions .pdf-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.cmv-monitoring-plan .header-actions .copy-btn.copied,
+.cmv-monitoring-plan .header-actions .pdf-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Editable Row */
+.cmv-monitoring-plan .editable-row {
+  cursor: pointer;
+  position: relative;
+}
+
+.cmv-monitoring-plan .editable-row:hover {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.cmv-monitoring-plan .editable-row .edit-indicator {
+  opacity: 0;
+  color: #60a5fa;
+  font-size: 14px;
+  margin-left: 6px;
+  transition: opacity 0.2s;
+}
+
+.cmv-monitoring-plan .editable-row:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Edit Field Container */
+.cmv-monitoring-plan .edit-field-container {
+  width: 100%;
+  flex: 1 1 100%;
+  margin-bottom: 6px;
+}
+
+/* Number Stepper (−/+ around the number input) */
+.cmv-monitoring-plan .num-stepper-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.cmv-monitoring-plan .num-step {
+  width: 46px;
+  flex-shrink: 0;
+  background: rgba(96, 165, 250, 0.15);
+  border: 2px solid #60a5fa;
+  border-radius: 6px;
+  color: #93c5fd;
+  font-size: 22px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.cmv-monitoring-plan .num-step:hover {
+  background: rgba(96, 165, 250, 0.35);
+}
+
+.cmv-monitoring-plan .num-step:active {
+  background: rgba(96, 165, 250, 0.5);
+}
+
+.cmv-monitoring-plan .num-step:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cmv-monitoring-plan .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px;
+  background: #1a1b2e;
+  color: #ececf1;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.cmv-monitoring-plan .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+}
+
+.cmv-monitoring-plan .edit-number {
+  flex: 1;
+  min-width: 0;
+  text-align: center; -moz-appearance: textfield; appearance: textfield; }
+
+.cmv-monitoring-plan .edit-number::-webkit-outer-spin-button,
+.cmv-monitoring-plan .edit-number::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.cmv-monitoring-plan .edit-number {
+  -moz-appearance: textfield;
+}
+
+.cmv-monitoring-plan .edit-number,
+.cmv-monitoring-plan .edit-date {
+  width: 100%;
+  padding: 10px;
+  background: #1a1b2e;
+  color: #ececf1;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  box-sizing: border-box;
+}
+
+.cmv-monitoring-plan .edit-number:focus,
+.cmv-monitoring-plan .edit-date:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+}
+
+.cmv-monitoring-plan .edit-select {
+  width: 100%;
+  padding: 10px;
+  background: #0F1B33;
+  border: 2px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.cmv-monitoring-plan .edit-select option {
+  background: #0F1B33;
+  color: #ececf1;
+}
+
+.cmv-monitoring-plan .edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cmv-monitoring-plan .save-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+}
+
+.cmv-monitoring-plan .save-btn:hover {
+  background: #3b82f6;
+}
+
+.cmv-monitoring-plan .cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+}
+
+.cmv-monitoring-plan .cancel-btn:hover {
+  color: #ececf1;
+  border-color: #9ca3af;
+}
+
+/* Modified Badge */
+.cmv-monitoring-plan .modified-badge {
+  font-size: 11px;
+  color: #facc15;
+  padding: 2px 8px;
+  font-style: italic;
+}
+
+.cmv-monitoring-plan .modified-badge.added {
+  color: #4ade80;
+}
+
+.cmv-monitoring-plan .modified {
+  border-left: 3px solid #facc15;
+}
+
+/* Approve Badge */
+.cmv-monitoring-plan .approve-badge {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  transition: all 0.2s ease;
+}
+
+.cmv-monitoring-plan .approve-badge.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.cmv-monitoring-plan .approve-badge.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+}
+
+.cmv-monitoring-plan .approve-badge.pending:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cmv-monitoring-plan .approve-badge.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+  cursor: default;
+}
+
+/* Search Highlight */
+.cmv-monitoring-plan mark {
+  background-color: #fef08a !important;
+  color: #000 !important;
+  padding: 0 2px !important;
+  border-radius: 2px !important;
+}
+
+/* No Data */
+.cmv-monitoring-plan .no-data {
+  color: #9ca3af;
+  font-size: 16px;
+  text-align: center;
+  padding: 40px;
+}

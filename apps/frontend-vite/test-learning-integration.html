@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Learning Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Learning Integration Test</h1>
+    <div id="test-results"></div>
+    <button onclick="testWebSocketConnection()">Test WebSocket Connection</button>
+    <button onclick="testEventEmitter()">Test EventEmitter</button>
+    <button onclick="testLearningComponents()">Test Learning Components</button>
+
+    <script type="module">
+        import learningWebSocketClient from './src/services/learningWebSocketClient.js';
+
+        window.learningWebSocketClient = learningWebSocketClient;
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            document.getElementById('test-results').appendChild(div);
+        }
+
+        window.testWebSocketConnection = async function() {
+            addResult('Testing WebSocket connection...', 'info');
+            try {
+                const status = learningWebSocketClient.getStatus();
+                addResult(`Connection status: ${JSON.stringify(status)}`, 'info');
+                
+                if (!status.connected) {
+                    addResult('Attempting to connect...', 'info');
+                    await learningWebSocketClient.connect();
+                    addResult('✅ WebSocket connected successfully!', 'success');
+                } else {
+                    addResult('✅ WebSocket already connected!', 'success');
+                }
+            } catch (error) {
+                addResult(`❌ WebSocket connection failed: ${error.message}`, 'error');
+            }
+        };
+
+        window.testEventEmitter = function() {
+            addResult('Testing EventEmitter implementation...', 'info');
+            try {
+                let eventFired = false;
+                const testListener = () => { eventFired = true; };
+                
+                learningWebSocketClient.on('test-event', testListener);
+                learningWebSocketClient.emit('test-event');
+                
+                if (eventFired) {
+                    addResult('✅ EventEmitter working correctly!', 'success');
+                } else {
+                    addResult('❌ EventEmitter failed to fire event', 'error');
+                }
+                
+                learningWebSocketClient.removeListener('test-event', testListener);
+            } catch (error) {
+                addResult(`❌ EventEmitter test failed: ${error.message}`, 'error');
+            }
+        };
+
+        window.testLearningComponents = function() {
+            addResult('Testing learning component availability...', 'info');
+            try {
+                // Test if learning methods are available
+                const methods = [
+                    'requestWorkflowPrediction',
+                    'requestSuggestions', 
+                    'requestEfficiencyMetrics',
+                    'sendFeedback',
+                    'subscribe',
+                    'unsubscribe'
+                ];
+                
+                for (const method of methods) {
+                    if (typeof learningWebSocketClient[method] === 'function') {
+                        addResult(`✅ Method ${method} available`, 'success');
+                    } else {
+                        addResult(`❌ Method ${method} missing`, 'error');
+                    }
+                }
+            } catch (error) {
+                addResult(`❌ Component test failed: ${error.message}`, 'error');
+            }
+        };
+
+        // Auto-run basic tests
+        addResult('Learning Integration Test Started', 'info');
+        testEventEmitter();
+        testLearningComponents();
+    </script>
+</body>
+</html>

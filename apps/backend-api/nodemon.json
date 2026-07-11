@@ -1,0 +1,18 @@
+{
+  "watch": [
+    "."
+  ],
+  "ignore": [
+    "node_modules",
+    "scripts/**",
+    "*.log",
+    "*.backup*",
+    "uploads/**",
+    "temp/**",
+    ".git",
+    "services/gridMappings/**",
+    "services/old-schema-files/**"
+  ],
+  "ext": "js,json",
+  "delay": "500"
+}

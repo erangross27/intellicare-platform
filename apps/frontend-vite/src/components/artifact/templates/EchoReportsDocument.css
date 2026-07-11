@@ -1,0 +1,715 @@
+/* EchoReportsDocument.css - December 2025 Standards - Blue-Only Mini-Card Pattern */
+
+/* Document Container */
+.echo-reports-document {
+  padding: 0;
+  margin: -24px;
+  background-color: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  min-height: 100%;
+  padding: 24px;
+}
+
+/* ============== DOCUMENT HEADER - 3 Row Layout ============== */
+
+.echo-reports-document .document-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.echo-reports-document .header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.echo-reports-document .document-title {
+  font-size: 27px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+.echo-reports-document .header-meta {
+  font-size: 17px;
+  color: #a1a1aa;
+}
+
+.echo-reports-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  flex-direction: row !important;
+  flex-shrink: 0;
+}
+
+/* Action Buttons - Header Copy All and PDF buttons (December 2025) */
+.echo-reports-document .header-actions .copy-btn,
+.echo-reports-document .header-actions .pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: 0 0 auto !important;
+  min-width: 120px;
+  height: 36px;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.echo-reports-document .header-actions .copy-btn:hover,
+.echo-reports-document .header-actions .pdf-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #3b82f6;
+}
+
+/* Solid blue for copied state - NOT GREEN! */
+.echo-reports-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* PDF button loading state */
+.echo-reports-document .header-actions .pdf-btn.loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Search Container */
+.echo-reports-document .search-container {
+  position: relative;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.echo-reports-document .search-input {
+  width: 100%;
+  padding: 14px 40px 14px 16px;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  background: #0d1929;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 17px;
+  box-sizing: border-box;
+}
+
+.echo-reports-document .search-input::placeholder {
+  color: #71717a;
+}
+
+.echo-reports-document .search-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.echo-reports-document .clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #71717a;
+  font-size: 23px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.echo-reports-document .clear-search:hover {
+  color: #ececf1;
+}
+
+/* Records Container */
+.echo-reports-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+/* Record Card */
+.echo-reports-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #565869;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.echo-reports-document .record-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #565869;
+}
+
+.echo-reports-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.echo-reports-document .record-title {
+  font-size: 21px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none !important;
+}
+
+.echo-reports-document .record-date {
+  font-size: 16px;
+  color: #a1a1aa;
+  background: rgba(37, 99, 235, 0.1);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+/* ============== SECTION ============== */
+
+.echo-reports-document .section {
+  margin-bottom: 20px;
+}
+
+/* Mini Cards Container - OUTER blue glow box */
+.echo-reports-document .mini-cards-container {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Diagnosis Highlight */
+.echo-reports-document .mini-cards-container.diagnosis-highlight {
+  border-color: #2563eb;
+  border-left-width: 4px;
+}
+
+.echo-reports-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Section Title - Level 1: BIGGEST (19px) */
+.echo-reports-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  text-transform: none !important;
+  margin: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Copy Section Button */
+.echo-reports-document .copy-section-btn {
+  padding: 6px 14px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.echo-reports-document .copy-section-btn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+}
+
+.echo-reports-document .copy-section-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* Mini Card Pattern (December 2025) */
+.echo-reports-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Nested Subtitle - Level 2: MEDIUM (17px) - LIGHT BRIGHT BLUE #93c5fd */
+.echo-reports-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+/* Numbered Row - VERY DARK BLUE background (#0d1929) */
+.echo-reports-document .numbered-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  gap: 12px;
+}
+
+.echo-reports-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Content Value - Level 3: Readable size (14px) - December 2025 Standard */
+.echo-reports-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* Copy Button - Row Level */
+.echo-reports-document .copy-btn {
+  background-color: transparent;
+  color: #ececf1;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.echo-reports-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+}
+
+.echo-reports-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* ============== BAR CHART SECTION ============== */
+
+.echo-reports-document .chart-container {
+  background: rgba(96, 165, 250, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.echo-reports-document .chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+  flex-wrap: wrap;
+}
+
+.echo-reports-document .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.echo-reports-document .legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.echo-reports-document .legend-item span {
+  font-size: 13px;
+  color: #c5c5d2;
+}
+
+.echo-reports-document .chart-category {
+  margin-bottom: 16px;
+}
+
+.echo-reports-document .chart-category:last-child {
+  margin-bottom: 0;
+}
+
+.echo-reports-document .category-header {
+  font-size: 15px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(37, 99, 235, 0.15);
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+.echo-reports-document .bar-chart-row {
+  margin-bottom: 16px;
+}
+
+.echo-reports-document .bar-chart-row:last-child {
+  margin-bottom: 0;
+}
+
+.echo-reports-document .bar-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ececf1;
+  margin-bottom: 6px;
+}
+
+.echo-reports-document .bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.echo-reports-document .bar-background {
+  flex: 1;
+  height: 24px;
+  background: #0d1929;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.echo-reports-document .bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.echo-reports-document .bar-value {
+  min-width: 60px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ececf1;
+}
+
+.echo-reports-document .bar-interpretation {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.echo-reports-document .bar-reference {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+/* Search Highlight */
+.echo-reports-document .search-highlight,
+.echo-reports-document mark.search-highlight {
+  background-color: #fbbf24;
+  color: #000;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+/* Empty State */
+.echo-reports-document .empty-state,
+.echo-reports-document .no-results {
+  text-align: center;
+  padding: 48px 24px;
+  color: #71717a;
+  font-size: 19px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .echo-reports-document .document-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .echo-reports-document .header-actions {
+    width: 100%;
+  }
+
+  .echo-reports-document .header-actions .copy-btn,
+  .echo-reports-document .header-actions .pdf-btn {
+    flex: 1;
+  }
+
+  .echo-reports-document .record-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .echo-reports-document .header-top-row {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .echo-reports-document .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .echo-reports-document .numbered-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .echo-reports-document .copy-btn {
+    align-self: flex-end;
+  }
+
+  .echo-reports-document .rec-mini-card {
+    min-width: 100%;
+  }
+
+  .echo-reports-document .chart-legend {
+    gap: 12px;
+  }
+}
+
+/* ============== EDITING STYLES ============== */
+
+.echo-reports-document .edit-row {
+  background: rgba(59, 130, 246, 0.08) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+.echo-reports-document .edit-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+}
+.echo-reports-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 12px;
+  background: #0a1628;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+.echo-reports-document .edit-textarea:focus {
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+.echo-reports-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+}
+.echo-reports-document .edit-save-btn {
+  padding: 4px 16px;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 4px;
+  color: #86efac;
+  font-size: 13px;
+  cursor: pointer;
+}
+.echo-reports-document .edit-save-btn:hover {
+  background: rgba(34, 197, 94, 0.25);
+}
+.echo-reports-document .edit-cancel-btn {
+  padding: 4px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  color: #fca5a5;
+  font-size: 13px;
+  cursor: pointer;
+}
+.echo-reports-document .edit-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+.echo-reports-document .row-content.editable {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.echo-reports-document .row-content.editable:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+.echo-reports-document .edit-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  color: rgba(96, 165, 250, 0.5);
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.echo-reports-document .row-content.editable:hover .edit-indicator {
+  opacity: 1;
+}
+.echo-reports-document .edit-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.echo-reports-document .modified-badge {
+  font-size: 11px;
+  color: #fbbf24;
+  padding: 2px 8px;
+  margin-top: 4px;
+  background: rgba(251, 191, 36, 0.08);
+  border-radius: 4px;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+.echo-reports-document .numbered-row.modified {
+  border-left: 3px solid #fbbf24;
+}
+.echo-reports-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+/* Approve button — Pending (yellow) → Approved (green), BELOW Copy Section, capitalize */
+.echo-reports-document .approve-btn {
+  margin-top: 4px;
+  padding: 3px 12px;
+  border-radius: 6px;
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+.echo-reports-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+.echo-reports-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+}
+.echo-reports-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+.echo-reports-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+}
+.echo-reports-document .approve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===============================================================
+   CANONICAL ONE-PASS ADDITIONS (July 2026): RTL force, editable-row,
+   number/measure stepper, modified badge
+   =============================================================== */
+
+/* Force LTR everywhere — clinical English content must not mirror on an RTL OS/browser. */
+.echo-reports-document { direction: ltr; text-align: left; }
+.echo-reports-document * { direction: ltr; }
+
+/* Whole editable row is the click target */
+.echo-reports-document .numbered-row.editable-row { cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
+.echo-reports-document .numbered-row.editable-row:hover { background: #12233b; }
+.echo-reports-document .numbered-row.editable-row:hover .edit-indicator { opacity: 1; }
+
+/* Modified badge (yellow) */
+.echo-reports-document .modified-badge {
+  font-size: 11px;
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  font-weight: 600;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* Number / measure stepper (−/+ with unit chip) */
+.echo-reports-document .num-stepper-row { display: flex; align-items: center; gap: 10px; }
+.echo-reports-document .num-step {
+  width: 36px; height: 36px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  border-radius: 8px; color: #93c5fd;
+  font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.echo-reports-document .num-step:hover { background: rgba(96, 165, 250, 0.25); border-color: #60a5fa; }
+.echo-reports-document .num-step:disabled { opacity: 0.5; cursor: not-allowed; }
+.echo-reports-document .num-stepper-input {
+  flex: 1 1 auto; min-width: 0; text-align: center;
+  background: #0d1929;
+  border: 2px solid rgba(96, 165, 250, 0.5);
+  border-radius: 8px; color: #ececf1;
+  font-family: 'Comfortaa', 'Segoe UI', sans-serif;
+  font-size: 15px; font-weight: 600; padding: 7px 8px; outline: none; box-sizing: border-box;
+}
+.echo-reports-document .num-stepper-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.echo-reports-document .num-stepper-unit { font-size: 14px; font-weight: 600; color: #93c5fd; white-space: nowrap; }

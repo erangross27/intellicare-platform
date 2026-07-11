@@ -1,0 +1,7 @@
+# IntelliCare — Enterprise Medical Intelligence Platform
+# https://erangross27.github.io/intellicare-platform/
+
+User-agent: *
+Allow: /
+
+Sitemap: https://erangross27.github.io/intellicare-platform/sitemap.xml

@@ -105,6 +105,9 @@ const toInputDate = (dateValue) => {
   try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
 
+/* stepFor: derive the +/- step from the value's decimal precision (integer → 1) */
+const stepFor = (v) => { const s = String(v); const dot = s.indexOf('.'); if (dot === -1) return 1; const decimals = s.length - dot - 1; return decimals <= 0 ? 1 : Math.pow(10, -decimals); };
+
 /* ═══════ COMPONENT ═══════ */
 const PortPlacementDocument = ({ document: docProp }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -164,7 +167,7 @@ const PortPlacementDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -470,14 +473,15 @@ const PortPlacementDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (NUMBER_FIELDS.includes(f)) {
         if (!numberShows(record, f, idx)) return;
-        text += `${label}: ${val}\n\n`;
+        text += `${label}\n${val}\n\n`;
         return;
       }
       if (DATE_FIELDS.includes(f)) {
@@ -503,16 +507,15 @@ const PortPlacementDocument = ({ document: docProp }) => {
         text += `${label}\n${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text; // drop empty sections so their header never leaks into Copy All
   }, [getFieldValue, hasVal, fmtVal, numberShows, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== SURGICAL PORT PLACEMENT ===\n\n';
     pdfData.forEach((r, idx) => {
       text += `Port Placement ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      if (hasVal(r.date)) text += `Date: ${formatDate(r.date)}\n`;
-      if (hasVal(r.facility)) text += `Facility: ${fmtVal(r.facility)}\n`;
-      if (hasVal(r.date) || hasVal(r.facility)) text += '\n';
+      if (hasVal(r.date)) text += `Date\n${formatDate(r.date)}\n\n`;
+      if (hasVal(r.facility)) text += `Facility\n${fmtVal(r.facility)}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -539,45 +542,16 @@ const PortPlacementDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="number-edit-row">
+                <div className="num-stepper-row">
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const base = parseFloat(editValue); if (isNaN(base)) return; setEditValue(String(Math.max(0, +(base - stepFor(editValue)).toFixed(4)))); }}>&minus;</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const base = parseFloat(editValue); if (isNaN(base)) return; setEditValue(String(Math.max(0, +(base + stepFor(editValue)).toFixed(4)))); }}>+</button>
+                </div>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
-
-  /* ═══════ RENDER: DATE FIELD (date picker) ═══════ */
-  const renderDateField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
-    const displayVal = formatDate(val);
-    const isModified = editedFields[editKey];
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -592,6 +566,9 @@ const PortPlacementDocument = ({ document: docProp }) => {
       </div>
     );
   };
+
+  /* NOTE: `date` renders as a non-editable pill in the record header (not a section field),
+     so there is no editable date widget here — the native date input was removed. */
 
   /* ═══════ RENDER: ARRAY FIELD (per-item editing with dot-path keys) ═══════ */
   const renderArrayField = (record, fn, idx, sid) => {
@@ -797,7 +774,6 @@ const PortPlacementDocument = ({ document: docProp }) => {
           </div>
           {fields.map(f => {
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
-            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
           })}
@@ -822,7 +798,7 @@ const PortPlacementDocument = ({ document: docProp }) => {
         <h2 className="document-title">Surgical Port Placement</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PortPlacementDocumentPDFTemplate document={pdfData} />} fileName={`surgical-port-placement-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PortPlacementDocumentPDFTemplate document={pdfData} />} fileName="Port_Placement.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

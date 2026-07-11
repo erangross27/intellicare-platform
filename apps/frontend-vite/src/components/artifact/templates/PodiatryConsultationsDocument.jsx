@@ -15,6 +15,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PodiatryConsultationsDocumentPDFTemplate from '../pdf-templates/PodiatryConsultationsDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PodiatryConsultationsDocument.css';
 
@@ -87,11 +88,23 @@ const BOOLEAN_FIELDS = [];
 const ARRAY_FIELDS = ['lesserToeDeformities'];
 const STRING_FIELDS = ['chiefPodiatricComplaint', 'pedalPulsesAssessment', 'universityOfTexasWoundClassification', 'diabeticFootInfectionSeverity', 'charcotArthropathyStage', 'semmeswWeinsteinMonofilamentScore', 'firstMtpjRangeOfMotion', 'achillesTendonThompsonTest', 'anteriorDrawerTestAnkle', 'nailDystrophyClassification', 'plantarFasciitisChronicity', 'customOrthoticPrescription', 'offloadingDevicePrescribed'];
 
+/* Number fields where 0 is a sentinel (not-measured / not-applicable), NOT a meaningful zero.
+   ABI/TBI, angles, indices, and questionnaire scores of 0 mean "not obtained" for this batch data.
+   Suppress these so "0" never leaks to UI/Copy/PDF. */
+const SENTINEL_ZERO_FIELDS = ['ankleBrachialIndex', 'toeBrachialIndex', 'vibrationPerceptionThreshold', 'halluxValgusAngle', 'intermetatarsalAngle', 'calcanealPitchAngle', 'talusFirstMetatarsalAngle', 'footPostureIndex', 'manchesterOxfordFootQuestionnaire', 'transcutaneousOxygenPressure', 'wagnerUlcerClassification'];
+const isMeaninglessZero = (fn, v) => SENTINEL_ZERO_FIELDS.includes(fn) && (v === 0 || v === '0');
+
+/* stepFor: decimal-aware increment for the number stepper (integers step by 1, decimals by their last place). */
+const stepFor = (v) => { const s = String(v); const dot = s.indexOf('.'); if (dot === -1) return 1; const decimals = s.length - dot - 1; return decimals <= 0 ? 1 : Math.pow(10, -decimals); };
+
+/* CLAUSE_OPENER: leading conjunctions/adverbs that signal a grammatical clause, NOT a "Label: value" pair. */
+const CLAUSE_OPENER = /^(if|when|while|unless|although|though|because|since|after|before|once|given|whether|should|as|until|provided|assuming|in case)\b/i;
+
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
   const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  if (m && !CLAUSE_OPENER.test(m[1].trim())) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
 
@@ -103,7 +116,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -175,7 +188,7 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -422,12 +435,13 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
-      if (!hasVal(val)) return;
+      if (!hasVal(val) || isMeaninglessZero(f, val)) return;
       if (BOOLEAN_FIELDS.includes(f)) {
         text += `${label}\n${val ? 'Yes' : 'No'}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
@@ -447,17 +461,26 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          const cleaned = strVal.replace(/[;.]+$/, '').trim();
+          const parsedS = parseLabel(cleaned);
+          const commaParts = !parsedS.isLabeled ? splitByComma(cleaned) : null;
+          if (commaParts && commaParts.length >= 3) {
+            text += `${label}\n`;
+            commaParts.forEach((item, i) => { text += `  ${i + 1}. ${item}\n`; });
+            text += '\n';
+          } else {
+            text += `${label}\n${strVal}\n\n`;
+          }
         }
       } else {
         text += `${label}\n${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== PODIATRY CONSULTATIONS ===\n\n';
+    let text = `Podiatry Consultations\n${'='.repeat(40)}\n\n`;
     pdfData.forEach((r, idx) => {
       text += `Podiatry Consultation ${idx + 1}\n${'='.repeat(40)}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
@@ -471,7 +494,7 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
 
   /* ═══════ RENDER: NUMBER FIELD — input[type=number] ═══════ */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val) || isMeaninglessZero(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
@@ -485,7 +508,13 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal) || editValue.trim() === '') { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); } }} />
+              <div className="number-edit-row">
+                <div className="num-stepper-row">
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const base = parseFloat(editValue); if (isNaN(base)) return; setEditValue(String(Math.max(0, +(base - stepFor(editValue)).toFixed(4)))); }}>&minus;</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const base = parseFloat(editValue); if (isNaN(base)) return; setEditValue(String(Math.max(0, +(base + stepFor(editValue)).toFixed(4)))); }}>+</button>
+                </div>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (editValue.trim() === '') { setSaveError('Please enter a valid number'); return; } const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -495,7 +524,7 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -520,10 +549,7 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -533,7 +559,7 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -696,6 +722,46 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey] || editedSentences[`${fn}-${idx}-s0`];
     const showLabelSingle = label.toLowerCase() !== sectionTitle.toLowerCase();
 
+    /* Unlabeled clinical list (>=3 comma items) → split into value-only rows (user prefers aggressive splitting) */
+    const singleClean = strVal.replace(/[;.]+$/, '').trim();
+    const parsedSingle = parseLabel(singleClean);
+    const commaPartsSingle = !parsedSingle.isLabeled ? splitByComma(singleClean) : null;
+    if (commaPartsSingle && commaPartsSingle.length >= 3) {
+      return (
+        <div key={fn} className="rec-mini-card">
+          {showLabelSingle && <div className="nested-subtitle">{highlightText(label)}</div>}
+          {commaPartsSingle.map((ci, ciIdx) => {
+            const commaKey = `${fn}-${idx}-c${ciIdx}`;
+            const ciEditing = editingField === commaKey;
+            const ciBadge = editedSentences[commaKey];
+            if (searchTerm.trim() && !(sectionTitleMatches(sid) || label.toLowerCase().includes(searchTerm.toLowerCase().trim()) || ci.toLowerCase().includes(searchTerm.toLowerCase().trim()))) return null;
+            return (
+              <div key={ciIdx}>
+                <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
+                  {ciEditing ? (
+                    <div className="edit-field-container">
+                      <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      {saveError && <div className="save-error">{saveError}</div>}
+                      <div className="edit-actions">
+                        <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const currentVal2 = String(getFieldValue(record, fn, idx) || '').replace(/[;.]+$/, '').trim(); const items2 = splitByComma(currentVal2); const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s); if (subParts.length > 1) { items2.splice(ciIdx, 1, ...subParts); } else { items2[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); } const rebuilt = items2.join(', '); setSaveError(null); stageFieldDraft(record, fn, idx, sid, rebuilt); const marks = { [commaKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-c${ciIdx + ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                        <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(ci)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(ci, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+                {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     return (
       <div key={fn} className="rec-mini-card">
         {showLabelSingle && <div className="nested-subtitle">{highlightText(label)}</div>}
@@ -729,7 +795,7 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
-      return hasVal(val);
+      return hasVal(val) && !isMeaninglessZero(f, val);
     });
     if (!hasAnyVal) return null;
 
@@ -771,7 +837,7 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Podiatry Consultations</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PodiatryConsultationsDocumentPDFTemplate document={pdfData} />} fileName={`podiatry-consultations-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PodiatryConsultationsDocumentPDFTemplate document={pdfData} />} fileName="Podiatry_Consultations.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -784,11 +850,6 @@ const PodiatryConsultationsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.createdAt)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Podiatry Consultation ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'chief-complaint')}

@@ -1,171 +1,278 @@
 /**
  * PodiatryConsultationsDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt -- LETTER size -- US medical platform
- * Collection: podiatry_consultations
+ * PDF export template for podiatry_consultations collection.
+ * Box-free black & white: hierarchy shown via underlines only (documentTitle / sectionTitle / bare fieldLabel).
+ * Field labels are BARE (no colon) so they render as exact `>Label<` text nodes for JSX/PDF field parity.
+ * Anti-orphan: every sectionTitle is glued to its first body element inside a <View wrap={false}>.
+ * Sentinel-zero numeric fields (extractor defaults) are hidden, mirroring the JSX isMeaninglessZero gate.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, backgroundColor: '#f5f5f5', padding: 12, borderWidth: 2, borderColor: '#000000', borderLeftWidth: 5, borderLeftColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 11, color: '#333333', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, marginBottom: 2 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  page: {
+    padding: 40,
+    fontFamily: 'Helvetica',
+    fontSize: 14,
+    lineHeight: 1.5,
+    color: '#000000',
+    backgroundColor: '#ffffff',
+  },
+  documentTitle: {
+    fontSize: 26,
+    fontFamily: 'Helvetica-Bold',
+    color: '#000000',
+    paddingBottom: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
+    marginBottom: 20,
+    textTransform: 'none',
+  },
+  recordContainer: {
+    marginBottom: 24,
+  },
+  recordTitle: {
+    fontSize: 19,
+    fontFamily: 'Helvetica-Bold',
+    color: '#000000',
+    marginBottom: 12,
+  },
+  section: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: 'Helvetica-Bold',
+    color: '#000000',
+    paddingBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
+    marginBottom: 8,
+    textTransform: 'none',
+  },
+  fieldBox: {
+    marginBottom: 8,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontFamily: 'Helvetica-Bold',
+    color: '#333333',
+    paddingBottom: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#999999',
+    borderBottomStyle: 'solid',
+    marginBottom: 3,
+    textTransform: 'none',
+  },
+  fieldValue: {
+    fontSize: 14,
+    color: '#000000',
+    lineHeight: 1.5,
+  },
+  listItem: {
+    fontSize: 14,
+    color: '#000000',
+    marginBottom: 4,
+    paddingLeft: 8,
+    lineHeight: 1.5,
+  },
+  separator: {
+    marginTop: 20,
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
+  },
+  noData: {
+    fontSize: 14,
+    color: '#000000',
+    textAlign: 'center',
+    marginTop: 40,
+  },
 });
 
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; return true; };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\bvs)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
-const parseLabel = (s) => { const m = s.replace(/[;.]+$/, '').trim().match(/^([A-Za-z][A-Za-z0-9 /()-]{1,40}):\s*(.+)$/s); return m ? { label: m[1].trim(), value: m[2].trim() } : { label: null, value: s }; };
-const renderFieldRow = (label, value) => { if (!hasVal(value)) return null; return (<View style={{ marginBottom: 4 }}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{String(value)}</Text></View>); };
+const FIELD_LABELS = {
+  chiefPodiatricComplaint: 'Chief Podiatric Complaint',
+  ankleBrachialIndex: 'Ankle-Brachial Index',
+  toeBrachialIndex: 'Toe-Brachial Index',
+  pedalPulsesAssessment: 'Pedal Pulses Assessment',
+  transcutaneousOxygenPressure: 'TcPO2 (mmHg)',
+  wagnerUlcerClassification: 'Wagner Ulcer Classification',
+  universityOfTexasWoundClassification: 'UT Wound Classification',
+  diabeticFootInfectionSeverity: 'Diabetic Foot Infection Severity',
+  charcotArthropathyStage: 'Charcot Arthropathy Stage',
+  footPostureIndex: 'Foot Posture Index',
+  manchesterOxfordFootQuestionnaire: 'Manchester-Oxford Foot Questionnaire',
+  semmeswWeinsteinMonofilamentScore: 'Semmes-Weinstein Monofilament Score',
+  vibrationPerceptionThreshold: 'Vibration Perception Threshold',
+  halluxValgusAngle: 'Hallux Valgus Angle',
+  intermetatarsalAngle: 'Intermetatarsal Angle',
+  calcanealPitchAngle: 'Calcaneal Pitch Angle',
+  talusFirstMetatarsalAngle: 'Talus-First Metatarsal Angle',
+  firstMtpjRangeOfMotion: 'First MTPJ Range of Motion',
+  achillesTendonThompsonTest: 'Achilles Tendon Thompson Test',
+  anteriorDrawerTestAnkle: 'Anterior Drawer Test (Ankle)',
+  nailDystrophyClassification: 'Nail Dystrophy Classification',
+  lesserToeDeformities: 'Lesser Toe Deformities',
+  plantarFasciitisChronicity: 'Plantar Fasciitis Chronicity',
+  customOrthoticPrescription: 'Custom Orthotic Prescription',
+  offloadingDevicePrescribed: 'Offloading Device Prescribed',
+};
 
-const renderSentenceField = (label, text, sectionTitle) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(String(text));
-  if (sentences.length === 0) return null;
-  let totalItems = sentences.length;
-  sentences.forEach(s => { const p = parseLabel(s); const rv = p.label ? p.value : s; const ci = (() => { const r2 = []; let c2 = ''; let inQ = false; for (let j = 0; j < rv.length; j++) { const cc = rv[j]; if (cc === '"') { inQ = !inQ; c2 += cc; } else if ((cc === ',' || cc === ';') && !inQ && /\s/.test(rv[j+1] || '')) { const tt = c2.trim(); if (tt) r2.push(tt); c2 = ''; } else { c2 += cc; } } const tt = c2.trim(); if (tt) r2.push(tt); return r2.length > 0 ? r2 : [rv]; })(); if (ci.length > 1) totalItems += ci.length - 1; });
-  let counter = 1;
-  return (<View style={styles.fieldBox} wrap={totalItems > 8 ? undefined : false}>
-    {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-    <Text style={styles.fieldLabel}>{label}</Text>
-    {sentences.map((s, i) => {
-      const p = parseLabel(s);
-      const rawVal = p.label ? p.value : s.replace(/[;.]+$/, '').trim();
-      const cItems = (() => { const r2 = []; let c2 = ''; let inQ = false; for (let j = 0; j < rawVal.length; j++) { const cc = rawVal[j]; if (cc === '"') { inQ = !inQ; c2 += cc; } else if ((cc === ',' || cc === ';') && !inQ && /\s/.test(rawVal[j+1] || '')) { const tt = c2.trim(); if (tt) r2.push(tt); c2 = ''; } else { c2 += cc; } } const tt = c2.trim(); if (tt) r2.push(tt); return r2.length > 0 ? r2 : [rawVal]; })();
-      return (<View key={i} style={{ marginBottom: 3, marginLeft: 8 }}>
-        {p.label && <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 1 }}>{p.label}</Text>}
-        {cItems.length > 1 ? cItems.map((item, ci) => <Text key={ci} style={styles.listItem}>{counter++}. {item.trim()}</Text>) : <Text style={styles.listItem}>{counter++}. {rawVal}</Text>}
-      </View>);
-    })}
-  </View>);
+const SECTIONS = [
+  { title: 'Chief Podiatric Complaint', fields: ['chiefPodiatricComplaint'] },
+  { title: 'Vascular Assessment', fields: ['ankleBrachialIndex', 'toeBrachialIndex', 'pedalPulsesAssessment', 'transcutaneousOxygenPressure'] },
+  { title: 'Classification & Scores', fields: ['wagnerUlcerClassification', 'universityOfTexasWoundClassification', 'diabeticFootInfectionSeverity', 'charcotArthropathyStage', 'footPostureIndex', 'manchesterOxfordFootQuestionnaire'] },
+  { title: 'Neuropathy Assessment', fields: ['semmeswWeinsteinMonofilamentScore', 'vibrationPerceptionThreshold'] },
+  { title: 'Biomechanical Assessment', fields: ['halluxValgusAngle', 'intermetatarsalAngle', 'calcanealPitchAngle', 'talusFirstMetatarsalAngle', 'firstMtpjRangeOfMotion', 'achillesTendonThompsonTest', 'anteriorDrawerTestAnkle'] },
+  { title: 'Nail & Toe Deformities', fields: ['nailDystrophyClassification', 'lesserToeDeformities'] },
+  { title: 'Treatment Plan', fields: ['plantarFasciitisChronicity', 'customOrthoticPrescription', 'offloadingDevicePrescribed'] },
+];
+
+const DATE_FIELDS = [];
+const ARRAY_FIELDS = ['lesserToeDeformities'];
+
+/* Sentinel-zero numeric fields — a stored 0 is an extractor default, not a real reading (mirror of JSX). */
+const SENTINEL_ZERO_FIELDS = [
+  'ankleBrachialIndex', 'toeBrachialIndex', 'vibrationPerceptionThreshold',
+  'halluxValgusAngle', 'intermetatarsalAngle', 'calcanealPitchAngle',
+  'talusFirstMetatarsalAngle', 'footPostureIndex', 'manchesterOxfordFootQuestionnaire',
+  'transcutaneousOxygenPressure', 'wagnerUlcerClassification',
+];
+const isMeaninglessZero = (fn, v) => SENTINEL_ZERO_FIELDS.includes(fn) && (v === 0 || v === '0');
+
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (Array.isArray(v)) return v.filter((x) => x !== null && x !== undefined && String(x).trim() !== '').length > 0;
+  if (typeof v === 'string') return v.trim() !== '';
+  return true;
+};
+
+const visibleFor = (fn, v) => hasVal(v) && !isMeaninglessZero(fn, v);
+
+/* splitByComma: parenthesis-aware, splits only on comma+whitespace (keeps thousands & parens whole). */
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+/* looksLabeled: a leading "Label: value" — mirror of the JSX parseLabel anchor (kept whole, not comma-split). */
+const looksLabeled = (s) => /^[A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?:\s/.test(s);
+
+const fieldBody = (fn, value, keyPrefix, sectionTitle) => {
+  const label = FIELD_LABELS[fn] || fn;
+  const suppressLabel = String(label).trim().toLowerCase() === String(sectionTitle || '').trim().toLowerCase();
+  if (ARRAY_FIELDS.includes(fn)) {
+    const items = (Array.isArray(value) ? value : [value]).filter((x) => x !== null && x !== undefined && String(x).trim() !== '');
+    return (
+      <View key={keyPrefix} style={styles.fieldBox} wrap={false}>
+        {!suppressLabel && <Text style={styles.fieldLabel}>{label}</Text>}
+        {items.map((item, i) => (
+          <Text key={`${keyPrefix}-${i}`} style={styles.listItem}>{i + 1}. {String(item)}</Text>
+        ))}
+      </View>
+    );
+  }
+  /* Unlabeled clinical list (>=3 comma items) → numbered rows, mirroring the JSX aggressive split. */
+  const cleaned = String(value).replace(/[;.]+$/, '').trim();
+  if (!looksLabeled(cleaned)) {
+    const parts = splitByComma(cleaned);
+    if (parts.length >= 3) {
+      return (
+        <View key={keyPrefix} style={styles.fieldBox} wrap={false}>
+          {!suppressLabel && <Text style={styles.fieldLabel}>{label}</Text>}
+          {parts.map((item, i) => (
+            <Text key={`${keyPrefix}-${i}`} style={styles.listItem}>{i + 1}. {item}</Text>
+          ))}
+        </View>
+      );
+    }
+  }
+  const display = String(value);
+  return (
+    <View key={keyPrefix} style={styles.fieldBox} wrap={false}>
+      {!suppressLabel && <Text style={styles.fieldLabel}>{label}</Text>}
+      <Text style={styles.fieldValue}>{display}</Text>
+    </View>
+  );
+};
+
+/* Section — glues the title to its first body element so a title never orphans at a page break. */
+const Section = ({ title, children }) => {
+  const items = React.Children.toArray(children).filter(Boolean);
+  if (items.length === 0) return null;
+  const [first, ...rest] = items;
+  return (
+    <View style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {first}
+      </View>
+      {rest}
+    </View>
+  );
 };
 
 const PodiatryConsultationsDocumentPDFTemplate = ({ document: data }) => {
-  // Handle data unwrapping
-  let records = [];
+  let recordsArray = [];
   if (Array.isArray(data)) {
-    records = data;
+    recordsArray = data;
   } else if (data?.podiatry_consultations && Array.isArray(data.podiatry_consultations)) {
-    records = data.podiatry_consultations;
+    recordsArray = data.podiatry_consultations;
   } else if (data?.documentData) {
     const docData = data.documentData;
     if (Array.isArray(docData)) {
-      records = docData;
-    } else if (docData?.podiatry_consultations) {
-      records = docData.podiatry_consultations;
+      recordsArray = docData;
+    } else if (docData?.podiatry_consultations && Array.isArray(docData.podiatry_consultations)) {
+      recordsArray = docData.podiatry_consultations;
     } else if (docData && typeof docData === 'object') {
-      records = [docData];
+      recordsArray = [docData];
     }
-  } else if (data && typeof data === 'object') {
-    records = [data];
+  } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+    recordsArray = [data];
   }
 
-  if (!records || records.length === 0) {
-    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Podiatry Consultations</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+  if (recordsArray.length === 0) {
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page}>
+          <Text style={styles.documentTitle}>Podiatry Consultations</Text>
+          <Text style={styles.noData}>No podiatry consultation data available</Text>
+        </Page>
+      </Document>
+    );
   }
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Podiatry Consultations</Text></View>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
+        <Text style={styles.documentTitle}>Podiatry Consultations</Text>
+        {recordsArray.map((record, idx) => {
+          const p = `r${idx}`;
+          return (
+            <View key={idx} style={styles.recordContainer}>
+              {idx > 0 && <View style={styles.separator} />}
               <Text style={styles.recordTitle}>{`Podiatry Consultation ${idx + 1}`}</Text>
-              {record.createdAt && <Text style={styles.recordMeta}>{formatDate(record.createdAt)}</Text>}
+              {SECTIONS.map((sec) => (
+                <Section key={sec.title} title={sec.title}>
+                  {sec.fields
+                    .filter((fn) => visibleFor(fn, record[fn]))
+                    .map((fn) => fieldBody(fn, record[fn], `${p}-${fn}`, sec.title))}
+                </Section>
+              ))}
             </View>
-
-            {/* 1. Chief Podiatric Complaint */}
-            {hasVal(record.chiefPodiatricComplaint) && (
-              renderSentenceField('Chief Podiatric Complaint', record.chiefPodiatricComplaint, 'Chief Podiatric Complaint')
-            )}
-
-            {/* 2. Vascular Assessment */}
-            {(hasVal(record.ankleBrachialIndex) || hasVal(record.toeBrachialIndex) || hasVal(record.pedalPulsesAssessment) || hasVal(record.transcutaneousOxygenPressure)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Vascular Assessment</Text>
-                {hasVal(record.ankleBrachialIndex) && renderFieldRow('Ankle-Brachial Index', String(record.ankleBrachialIndex))}
-                {hasVal(record.toeBrachialIndex) && renderFieldRow('Toe-Brachial Index', String(record.toeBrachialIndex))}
-                {renderSentenceField('Pedal Pulses Assessment', record.pedalPulsesAssessment)}
-                {hasVal(record.transcutaneousOxygenPressure) && renderFieldRow('TcPO2 (mmHg)', String(record.transcutaneousOxygenPressure))}
-              </View>
-            )}
-
-            {/* 3. Classification & Scores */}
-            {(hasVal(record.wagnerUlcerClassification) || hasVal(record.universityOfTexasWoundClassification) || hasVal(record.diabeticFootInfectionSeverity) || hasVal(record.charcotArthropathyStage) || hasVal(record.footPostureIndex) || hasVal(record.manchesterOxfordFootQuestionnaire)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Classification and Scores</Text>
-                {hasVal(record.wagnerUlcerClassification) && renderFieldRow('Wagner Ulcer Classification', String(record.wagnerUlcerClassification))}
-                {renderSentenceField('UT Wound Classification', record.universityOfTexasWoundClassification)}
-                {renderSentenceField('Diabetic Foot Infection Severity', record.diabeticFootInfectionSeverity)}
-                {renderSentenceField('Charcot Arthropathy Stage', record.charcotArthropathyStage)}
-                {hasVal(record.footPostureIndex) && renderFieldRow('Foot Posture Index', String(record.footPostureIndex))}
-                {hasVal(record.manchesterOxfordFootQuestionnaire) && renderFieldRow('Manchester-Oxford Foot Questionnaire', String(record.manchesterOxfordFootQuestionnaire))}
-              </View>
-            )}
-
-            {/* 4. Neuropathy Assessment */}
-            {(hasVal(record.semmeswWeinsteinMonofilamentScore) || hasVal(record.vibrationPerceptionThreshold)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Neuropathy Assessment</Text>
-                {renderSentenceField('Semmes-Weinstein Monofilament Score', record.semmeswWeinsteinMonofilamentScore)}
-                {hasVal(record.vibrationPerceptionThreshold) && renderFieldRow('Vibration Perception Threshold', String(record.vibrationPerceptionThreshold))}
-              </View>
-            )}
-
-            {/* 5. Biomechanical Assessment */}
-            {(hasVal(record.halluxValgusAngle) || hasVal(record.intermetatarsalAngle) || hasVal(record.calcanealPitchAngle) || hasVal(record.talusFirstMetatarsalAngle) || hasVal(record.firstMtpjRangeOfMotion) || hasVal(record.achillesTendonThompsonTest) || hasVal(record.anteriorDrawerTestAnkle)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Biomechanical Assessment</Text>
-                {hasVal(record.halluxValgusAngle) && renderFieldRow('Hallux Valgus Angle', String(record.halluxValgusAngle))}
-                {hasVal(record.intermetatarsalAngle) && renderFieldRow('Intermetatarsal Angle', String(record.intermetatarsalAngle))}
-                {hasVal(record.calcanealPitchAngle) && renderFieldRow('Calcaneal Pitch Angle', String(record.calcanealPitchAngle))}
-                {hasVal(record.talusFirstMetatarsalAngle) && renderFieldRow('Talus-First Metatarsal Angle', String(record.talusFirstMetatarsalAngle))}
-                {renderSentenceField('First MTPJ Range of Motion', record.firstMtpjRangeOfMotion)}
-                {renderSentenceField('Achilles Tendon Thompson Test', record.achillesTendonThompsonTest)}
-                {renderSentenceField('Anterior Drawer Test (Ankle)', record.anteriorDrawerTestAnkle)}
-              </View>
-            )}
-
-            {/* 6. Nail & Toe Deformities */}
-            {(hasVal(record.nailDystrophyClassification) || (Array.isArray(record.lesserToeDeformities) && record.lesserToeDeformities.length > 0)) && (
-              <View style={styles.section}>
-                {hasVal(record.nailDystrophyClassification) && (
-                  renderSentenceField('Nail Dystrophy Classification', record.nailDystrophyClassification, 'Nail and Toe Deformities')
-                )}
-                {Array.isArray(record.lesserToeDeformities) && record.lesserToeDeformities.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.lesserToeDeformities.length > 8 ? undefined : false}>
-                    {!hasVal(record.nailDystrophyClassification) && <Text style={styles.sectionTitle}>Nail and Toe Deformities</Text>}
-                    <Text style={styles.fieldLabel}>Lesser Toe Deformities</Text>
-                    {record.lesserToeDeformities.filter(Boolean).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* 7. Treatment Plan */}
-            {(hasVal(record.plantarFasciitisChronicity) || hasVal(record.customOrthoticPrescription) || hasVal(record.offloadingDevicePrescribed)) && (
-              <View style={styles.section}>
-                {renderSentenceField('Plantar Fasciitis Chronicity', record.plantarFasciitisChronicity, 'Treatment Plan')}
-                {renderSentenceField('Custom Orthotic Prescription', record.customOrthoticPrescription, !hasVal(record.plantarFasciitisChronicity) ? 'Treatment Plan' : null)}
-                {renderSentenceField('Offloading Device Prescribed', record.offloadingDevicePrescribed, (!hasVal(record.plantarFasciitisChronicity) && !hasVal(record.customOrthoticPrescription)) ? 'Treatment Plan' : null)}
-              </View>
-            )}
-          </View>
-        ))}
+          );
+        })}
       </Page>
     </Document>
   );

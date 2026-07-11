@@ -14,6 +14,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PolypharmacyReviewsDocumentPDFTemplate from '../pdf-templates/PolypharmacyReviewsDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PolypharmacyReviewsDocument.css';
 
@@ -77,6 +78,9 @@ const SECTION_FIELDS = {
 const BOOLEAN_FIELDS = ['therapeuticDuplicates', 'prescribingCascadeIdentified'];
 const DATE_FIELDS = [];
 const NUMBER_FIELDS = ['medicationCount', 'pillBurdenAssessment', 'medicationAdherenceScore', 'anticholinergicBurdenScore'];
+/* number fields where a stored 0 means "not assessed" (sentinel), NOT a real zero — hide when 0.
+   medicationCount + anticholinergicBurdenScore keep 0 (a real count/burden of 0 is meaningful). */
+const SENTINEL_ZERO_FIELDS = ['medicationAdherenceScore', 'pillBurdenAssessment'];
 const ARRAY_FIELDS = ['patientMedications', 'fallRiskMedications', 'qtProlongingAgents', 'duplicateTherapies', 'adverseDrugReactions', 'drugAllergyContraindications', 'medicationReconciliationDiscrepancies', 'costOptimizationOpportunities'];
 const OBJECT_ARRAY_FIELDS = ['potentialDrugInteractions', 'inappropriateMedications', 'renalFunctionAdjustments', 'hepaticAdjustments', 'monitoringParameters', 'deprescribingCandidates'];
 /* Per-subfield editing config for object-array fields (keys derived from real data + schema) */
@@ -112,6 +116,12 @@ const splitByComma = (text) => {
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
+
+/* decimal-aware step for the num-stepper (1 for integers, 0.1 / 0.01 … matching the value's decimals) */
+const stepFor = (v) => { const s = String(v); const dot = s.indexOf('.'); if (dot === -1) return 1; const decimals = s.length - dot - 1; return decimals <= 0 ? 1 : Math.pow(10, -decimals); };
+
+/* a stored 0 in a SENTINEL_ZERO_FIELDS number means "not assessed" → treat as empty (hide) */
+const isMeaninglessZero = (fn, v) => SENTINEL_ZERO_FIELDS.includes(fn) && (v === 0 || v === '0');
 
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
@@ -194,7 +204,7 @@ const PolypharmacyReviewsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -454,11 +464,13 @@ const PolypharmacyReviewsDocument = ({ document: docProp }) => {
       if (DATE_FIELDS.includes(f)) {
         text += `${label}\n${formatDate(val)}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `${label}\n${val ? 'Yes' : 'No'}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
+        if (isMeaninglessZero(f, val)) return;
+        text += `${label}\n${val}\n\n`;
       } else if (OBJECT_ARRAY_FIELDS.includes(f)) {
-        const items = Array.isArray(val) ? val : [val];
+        const items = Array.isArray(val) ? val.filter(it => it !== null && it !== undefined && it !== '') : [];
+        if (items.length === 0) return;
         text += `${label}\n${items.map((item, i) => `${i + 1}. ${formatObjectItem(item)}`).join('\n')}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
@@ -493,7 +505,7 @@ const PolypharmacyReviewsDocument = ({ document: docProp }) => {
 
   /* ═══════ RENDER: NUMBER FIELD ═══════ */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val) || isMeaninglessZero(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
@@ -507,45 +519,14 @@ const PolypharmacyReviewsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" className="edit-textarea" style={{ minHeight: 'auto', padding: '10px' }} value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="number-edit-row"><div className="num-stepper-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const base = parseFloat(editValue); if (isNaN(base)) return; setEditValue(String(Math.max(0, +(base - stepFor(editValue)).toFixed(4)))); }}>&minus;</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const base = parseFloat(editValue); if (isNaN(base)) return; setEditValue(String(Math.max(0, +(base + stepFor(editValue)).toFixed(4)))); }}>+</button>
+              </div></div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
-
-  /* ═══════ RENDER: DATE FIELD ═══════ */
-  const renderDateField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
-    const displayVal = formatDate(val);
-    const isModified = editedFields[editKey];
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -577,10 +558,7 @@ const PolypharmacyReviewsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -590,7 +568,7 @@ const PolypharmacyReviewsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -891,7 +869,10 @@ const PolypharmacyReviewsDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
-      return hasVal(val);
+      if (!hasVal(val)) return false;
+      if (NUMBER_FIELDS.includes(f) && isMeaninglessZero(f, val)) return false;
+      if (OBJECT_ARRAY_FIELDS.includes(f)) return Array.isArray(val) && val.some(it => it !== null && it !== undefined && it !== '');
+      return true;
     });
     if (!hasAnyVal) return null;
 
@@ -907,7 +888,6 @@ const PolypharmacyReviewsDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
-            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (OBJECT_ARRAY_FIELDS.includes(f)) return renderObjectArrayField(record, f, idx, sid);
@@ -935,7 +915,7 @@ const PolypharmacyReviewsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Polypharmacy Reviews</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PolypharmacyReviewsDocumentPDFTemplate document={pdfData} />} fileName={`polypharmacy-reviews-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PolypharmacyReviewsDocumentPDFTemplate document={pdfData} />} fileName="Polypharmacy_Reviews.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -948,11 +928,6 @@ const PolypharmacyReviewsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.createdAt)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Polypharmacy Review ${idx + 1}`)}</h3>
               {hasVal(record.medicationCount) && <span className="record-subtitle">{record.medicationCount} medications</span>}
             </div>

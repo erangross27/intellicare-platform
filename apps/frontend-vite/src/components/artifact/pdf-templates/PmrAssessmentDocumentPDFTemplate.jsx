@@ -1,178 +1,256 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+/* Box-free black & white generic-recursive renderer.
+   - No box backgrounds/borders; hierarchy shown via underlines only (documentTitle / sectionTitle / fieldLabel).
+   - Field labels are BARE (no colon) so they render as exact `>Label<` text nodes for JSX/PDF field parity.
+   - Anti-orphan: every sectionTitle is glued to its first body element inside a <View wrap={false}>.
+   - Scalars stack label-over-value; arrays render as numbered lists; nested objects/arrays recurse under a subLabel. */
 const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'Helvetica',
-    fontSize: 12,
+    fontSize: 14,
     lineHeight: 1.5,
+    color: '#000000',
     backgroundColor: '#ffffff',
   },
-  documentHeader: {
-    marginBottom: 24,
-    paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: '#333333',
-    borderBottomStyle: 'solid',
-  },
   documentTitle: {
-    fontSize: 20,
+    fontSize: 26,
     fontFamily: 'Helvetica-Bold',
-    color: '#1f2937',
-    textAlign: 'center',
-    marginBottom: 4,
+    color: '#000000',
+    paddingBottom: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
+    marginBottom: 20,
     textTransform: 'none',
   },
   recordContainer: {
     marginBottom: 24,
   },
-  recordHeader: {
-    marginBottom: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333333',
-    borderBottomStyle: 'solid',
-  },
-  recordDateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  recordDate: {
-    fontSize: 11,
-    color: '#6b7280',
-    fontFamily: 'Helvetica',
-  },
-  recordStatus: {
-    fontSize: 11,
-    color: '#333333',
-    fontFamily: 'Helvetica-Bold',
-  },
   recordTitle: {
-    fontSize: 16,
+    fontSize: 19,
     fontFamily: 'Helvetica-Bold',
-    color: '#1f2937',
+    color: '#000000',
+    marginBottom: 12,
   },
   section: {
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
-    color: '#333333',
+    color: '#000000',
+    paddingBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
+    marginBottom: 8,
+    textTransform: 'none',
+  },
+  fieldBox: {
     marginBottom: 8,
   },
-  sectionContent: {
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderStyle: 'solid',
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
-  },
   fieldLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'Helvetica-Bold',
     color: '#333333',
-    width: 180,
+    paddingBottom: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#999999',
+    borderBottomStyle: 'solid',
+    marginBottom: 3,
+    textTransform: 'none',
   },
   fieldValue: {
-    fontSize: 12,
-    color: '#333333',
-    flex: 1,
+    fontSize: 14,
+    color: '#000000',
+    lineHeight: 1.5,
+  },
+  subLabel: {
+    fontSize: 13,
+    fontFamily: 'Helvetica-Bold',
+    color: '#000000',
+    marginTop: 6,
+    marginBottom: 4,
   },
   listItem: {
-    fontSize: 12,
-    color: '#333333',
+    fontSize: 14,
+    color: '#000000',
     marginBottom: 4,
     paddingLeft: 8,
-  },
-  subSectionTitle: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: '#4b5563',
-    marginBottom: 4,
-    marginTop: 6,
+    lineHeight: 1.5,
   },
   separator: {
     marginTop: 20,
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#d1d5db',
+    borderBottomColor: '#000000',
     borderBottomStyle: 'solid',
   },
   noDataText: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 14,
+    color: '#000000',
     textAlign: 'center',
     marginTop: 40,
   },
-  text: {
-    fontSize: 12,
-    color: '#333333',
-    marginBottom: 6,
-    lineHeight: 1.6,
-  },
 });
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return String(dateStr);
-  }
+const KEY_OVERRIDES = {
+  emg: 'EMG',
+  copm: 'COPM',
+  iadls: 'IADLs',
+  adls: 'ADLs',
+  fimScore: 'FIM Score',
+  fimSubscales: 'FIM Subscales',
+  barthel: 'Barthel Index',
+  bergBalance: 'Berg Balance Score',
+  bergBalanceScore: 'Berg Balance Score',
+  timedUpAndGo: 'Timed Up And Go',
+  sixMinuteWalk: 'Six Minute Walk',
+  tenMeterWalkTest: 'Ten Meter Walk Test',
+  fuglMeyerUpperExtremity: 'Fugl-Meyer Upper Extremity',
+  actionResearchArmTest: 'Action Research Arm Test',
+  priorLevelOfFunction: 'Prior Level of Function',
+  mobilityDetails: 'Mobility Details',
+  performanceScore: 'Performance Score',
+  satisfactionScore: 'Satisfaction Score',
+  dietRecommendation: 'Diet Recommendation',
+  aspirationRisk: 'Aspiration Risk',
+  longTermGoal: 'Long Term Goal',
+  anticipatedDisposition: 'Anticipated Disposition',
+  targetedMuscles: 'Targeted Muscles',
 };
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object') {
-    if (val.$date) return formatDate(val.$date);
-    return JSON.stringify(val);
-  }
-  return String(val);
-};
-
-const keyToLabel = (key) => {
-  return key
+const humanizeKey = (key) => {
+  if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key];
+  return String(key)
     .replace(/_/g, ' ')
     .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, str => str.toUpperCase())
-    .trim();
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 };
+
+const NAME_KEYS = ['activity', 'item', 'medication', 'muscle', 'device', 'name', 'title', 'label'];
+
+const isScalar = (v) => v === null || v === undefined || ['string', 'number', 'boolean'].includes(typeof v);
+const isBlank = (v) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
+
+const isEmptyDeep = (v) => {
+  if (isBlank(v)) return true;
+  if (Array.isArray(v)) return v.filter((x) => !isEmptyDeep(x)).length === 0;
+  if (typeof v === 'object') return Object.keys(v).filter((k) => k !== '_id' && !isEmptyDeep(v[k])).length === 0;
+  return false; // numbers (including 0) and booleans are meaningful
+};
+
+const scalarText = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (v === null || v === undefined) return '';
+  return String(v);
+};
+
+const stripNumber = (text) => String(text).replace(/^\d+[.)]\s*/, '').trim();
 
 const splitIntoItems = (text) => {
-  if (!text) return [];
-  const bySemicolon = text.split(/;\s*/).filter(s => s.trim()).map(s => s.trim());
-  if (bySemicolon.length > 1) return bySemicolon;
-  const bySentence = text.split(/(?<=[.!?])\s+/).filter(s => s.trim()).map(s => s.trim());
+  if (!text || typeof text !== 'string') return [];
+  const t = text.trim();
+  if (!t) return [];
+  const bySemi = t.split(/;\s+/).map((s) => s.trim()).filter(Boolean);
+  if (bySemi.length > 1) return bySemi;
+  const bySentence = t.split(/(?<!\d)\.\s+/).map((s) => s.trim()).filter(Boolean);
   if (bySentence.length > 1) return bySentence;
-  return [text.trim()];
+  return [t];
 };
 
-const stripNumber = (text) => text.replace(/^\d+\.\s*/, '');
+const fieldBox = (label, value, key) => (
+  <View key={key} style={styles.fieldBox} wrap={false}>
+    <Text style={styles.fieldLabel}>{label}</Text>
+    <Text style={styles.fieldValue}>{value}</Text>
+  </View>
+);
+
+/* bodyForValue / withSubLabel are mutually recursive; both are only invoked at render time. */
+const withSubLabel = (label, value, keyPrefix) => {
+  const body = bodyForValue(value, keyPrefix);
+  if (body.length === 0) return [];
+  return [<Text key={`${keyPrefix}-sl`} style={styles.subLabel}>{label}</Text>, ...body];
+};
+
+function bodyForValue(value, keyPrefix) {
+  const out = [];
+  if (isEmptyDeep(value)) return out;
+
+  if (Array.isArray(value)) {
+    if (value.every(isScalar)) {
+      value.filter((x) => !isBlank(x)).forEach((item, i) => {
+        out.push(
+          <Text key={`${keyPrefix}-${i}`} style={styles.listItem}>{i + 1}. {stripNumber(scalarText(item))}</Text>
+        );
+      });
+      return out;
+    }
+    value.forEach((item, i) => {
+      if (isEmptyDeep(item)) return;
+      if (isScalar(item)) {
+        out.push(<Text key={`${keyPrefix}-${i}`} style={styles.listItem}>{stripNumber(scalarText(item))}</Text>);
+        return;
+      }
+      const entries = Object.entries(item).filter(([k, v]) => k !== '_id' && !isEmptyDeep(v));
+      const nameKey = NAME_KEYS.find((nk) => entries.some(([k, v]) => k === nk && isScalar(v)));
+      if (nameKey) {
+        out.push(<Text key={`${keyPrefix}-${i}-t`} style={styles.subLabel}>{scalarText(item[nameKey])}</Text>);
+      }
+      entries.filter(([k]) => k !== nameKey).forEach(([k, v]) => {
+        if (isScalar(v)) out.push(fieldBox(humanizeKey(k), scalarText(v), `${keyPrefix}-${i}-${k}`));
+        else out.push(...withSubLabel(humanizeKey(k), v, `${keyPrefix}-${i}-${k}`));
+      });
+    });
+    return out;
+  }
+
+  if (typeof value === 'object') {
+    Object.entries(value).filter(([k, v]) => k !== '_id' && !isEmptyDeep(v)).forEach(([k, v]) => {
+      if (isScalar(v)) out.push(fieldBox(humanizeKey(k), scalarText(v), `${keyPrefix}-${k}`));
+      else out.push(...withSubLabel(humanizeKey(k), v, `${keyPrefix}-${k}`));
+    });
+    return out;
+  }
+
+  out.push(<Text key={keyPrefix} style={styles.fieldValue}>{scalarText(value)}</Text>);
+  return out;
+}
+
+const bodyForText = (text, keyPrefix) =>
+  splitIntoItems(text).map((item, i) => (
+    <Text key={`${keyPrefix}-${i}`} style={styles.listItem}>{i + 1}. {stripNumber(item)}</Text>
+  ));
+
+/* Section — glues the title to its first body element so a title never orphans at a page break. */
+const Section = ({ title, prefix, children }) => {
+  const items = React.Children.toArray(children).filter(Boolean);
+  if (items.length === 0) return null;
+  const [first, ...rest] = items;
+  return (
+    <View style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {first}
+      </View>
+      {rest}
+    </View>
+  );
+};
 
 const PmrAssessmentDocumentPDFTemplate = ({ document: data }) => {
   const unwrapData = (inputData) => {
     if (!inputData) return [];
     if (Array.isArray(inputData)) {
-      if (inputData.length === 1 && inputData[0]?.pmr_assessment) {
-        return inputData[0].pmr_assessment;
-      }
+      if (inputData.length === 1 && inputData[0]?.pmr_assessment) return inputData[0].pmr_assessment;
       return inputData;
     }
-    if (inputData.pmr_assessment) {
-      return inputData.pmr_assessment;
-    }
+    if (inputData.pmr_assessment) return inputData.pmr_assessment;
     return [inputData];
   };
 
@@ -182,446 +260,58 @@ const PmrAssessmentDocumentPDFTemplate = ({ document: data }) => {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>PMR Assessment</Text>
-          </View>
+          <Text style={styles.documentTitle}>PMR Assessment</Text>
           <Text style={styles.noDataText}>No data available</Text>
         </Page>
       </Document>
     );
   }
 
-  const renderObjectSection = (title, obj) => {
-    if (!obj || typeof obj !== 'object') return null;
-    const entries = Object.entries(obj).filter(([k, v]) => safeString(v) && k !== '_id');
-    if (entries.length === 0) return null;
-
-    return (
-      <View style={styles.section} wrap={entries.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {entries.map(([key, value], i) => (
-            <View key={i} style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>{keyToLabel(key)}:</Text>
-              <Text style={styles.fieldValue}>{safeString(value)}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  const renderArraySection = (title, arr) => {
-    if (!arr || !Array.isArray(arr) || arr.length === 0) return null;
-
-    return (
-      <View style={styles.section} wrap={arr.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {arr.map((item, i) => (
-            <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  const renderTextSection = (title, text) => {
-    if (!text) return null;
-    const items = splitIntoItems(text);
-
-    return (
-      <View style={styles.section} wrap={items.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {items.map((item, i) => (
-            <Text key={i} style={styles.listItem}>{i + 1}. {stripNumber(item)}</Text>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  /* Recursive flatten of a (possibly nested) object into label/value rows */
-  const flattenObject = (obj, prefix, rows) => {
-    if (!obj || typeof obj !== 'object') return;
-    Object.entries(obj).filter(([k]) => k !== '_id').forEach(([k, v]) => {
-      if (v === null || v === undefined || v === '') return;
-      if (Array.isArray(v)) {
-        const arr = v.filter(x => safeString(x));
-        if (arr.length === 0) return;
-        rows.push({ label: `${prefix}${keyToLabel(k)}`, value: arr.map(safeString).join(', ') });
-      } else if (typeof v === 'object') {
-        flattenObject(v, `${prefix}${keyToLabel(k)} - `, rows);
-      } else {
-        rows.push({ label: `${prefix}${keyToLabel(k)}`, value: safeString(v) });
-      }
-    });
-  };
-
-  const renderNestedObjectSection = (title, obj) => {
-    if (!obj || typeof obj !== 'object') return null;
-    const rows = [];
-    flattenObject(obj, '', rows);
-    if (rows.length === 0) return null;
-    return (
-      <View style={styles.section} wrap={rows.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {rows.map((r, i) => (
-            <View key={i} style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>{r.label}:</Text>
-              <Text style={styles.fieldValue}>{r.value}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  /* Recommendations — array of {recommendation, date} */
-  const renderRecommendationsSection = (title, arr) => {
-    if (!arr || !Array.isArray(arr)) return null;
-    const recs = arr.filter(r => (r?.recommendation || '').trim());
-    if (recs.length === 0) return null;
-    return (
-      <View style={styles.section} wrap={recs.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {recs.map((r, i) => {
-            const d = (r?.date || '').trim();
-            return (
-              <Text key={i} style={styles.listItem}>{i + 1}. {(r.recommendation || '').trim()}{d ? ` (${d})` : ''}</Text>
-            );
-          })}
-        </View>
-      </View>
-    );
-  };
-
-  const renderStringSection = (title, value) => {
-    if (!value) return null;
-    return (
-      <View style={styles.section} wrap={false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          <Text style={styles.text}>{safeString(value)}</Text>
-        </View>
-      </View>
-    );
-  };
-
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>PMR Assessment</Text>
-        </View>
+        <Text style={styles.documentTitle}>PMR Assessment</Text>
 
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-                {record.status && (
-                  <Text style={styles.recordStatus}>{record.status}</Text>
-                )}
-              </View>
+        {records.map((record, index) => {
+          const p = `r${index}`;
+          const ti = record.therapyInterventions || {};
+          const mm = record.medicalManagement || {};
+          return (
+            <View key={index} style={styles.recordContainer}>
+              {index > 0 && <View style={styles.separator} />}
               <Text style={styles.recordTitle}>PMR Assessment {index + 1}</Text>
-              {record.facility && (
-                <Text style={styles.recordDate}>Facility: {safeString(record.facility)}</Text>
-              )}
-              {record.provider && (
-                <Text style={styles.recordDate}>Provider: {safeString(record.provider)}</Text>
-              )}
+
+              <Section title="Functional History" prefix={p}>{bodyForValue(record.functionalHistory, `${p}-fh`)}</Section>
+              <Section title="Functional Assessment" prefix={p}>{bodyForValue(record.functionalAssessment, `${p}-fa`)}</Section>
+              <Section title="Balance Assessment" prefix={p}>{bodyForValue(record.balanceAssessment, `${p}-ba`)}</Section>
+              <Section title="Gait Analysis" prefix={p}>{bodyForValue(record.gaitAnalysis, `${p}-ga`)}</Section>
+              <Section title="Spasticity Assessment - Ashworth Scale" prefix={p}>{bodyForValue(record.spasticityAssessment?.ashworthScale, `${p}-sa`)}</Section>
+              <Section title="EMG / Nerve Conduction Studies" prefix={p}>{bodyForValue(record.emgStudies, `${p}-emg`)}</Section>
+              <Section title="Orthotic" prefix={p}>{bodyForValue(record.orthotic, `${p}-ort`)}</Section>
+              <Section title="COPM Priority Areas" prefix={p}>{bodyForValue(record.copm?.priorityAreas, `${p}-copm`)}</Section>
+              <Section title="Swallow Study" prefix={p}>{bodyForValue(record.swallowStudy, `${p}-sw`)}</Section>
+              <Section title="Neuropsychological Testing" prefix={p}>{bodyForValue(record.neuropsychologicalTesting, `${p}-np`)}</Section>
+              <Section title="Botulinum Toxin Injections" prefix={p}>{bodyForValue(record.botulinumToxinInjections, `${p}-bt`)}</Section>
+              <Section title="Equipment" prefix={p}>{bodyForValue(record.equipment, `${p}-eq`)}</Section>
+              <Section title="Physical Therapy" prefix={p}>{bodyForValue(ti.physicalTherapy, `${p}-pt`)}</Section>
+              <Section title="Occupational Therapy" prefix={p}>{bodyForValue(ti.occupationalTherapy, `${p}-ot`)}</Section>
+              <Section title="Speech Therapy" prefix={p}>{bodyForValue(ti.speechTherapy, `${p}-st`)}</Section>
+              <Section title="Psychology" prefix={p}>{bodyForValue(ti.psychology, `${p}-psy`)}</Section>
+              <Section title="Pharmacologic Plan" prefix={p}>{bodyForValue(mm.pharmacologicPlan, `${p}-pp`)}</Section>
+              <Section title="Spasticity Medications" prefix={p}>{bodyForValue(mm.spasticityMedications, `${p}-sm`)}</Section>
+              <Section title="Support Groups" prefix={p}>{bodyForValue(record.supportGroups, `${p}-sg`)}</Section>
+              <Section title="Discharge Planning" prefix={p}>{bodyForValue(record.dischargePlanningPMR, `${p}-dp`)}</Section>
+              <Section title="General Information" prefix={p}>{bodyForValue(record.facility, `${p}-fac`)}</Section>
+              <Section title="Provider" prefix={p}>{bodyForValue(record.provider, `${p}-prov`)}</Section>
+              <Section title="Findings" prefix={p}>{bodyForText(record.findings, `${p}-find`)}</Section>
+              <Section title="Assessment" prefix={p}>{bodyForText(record.assessment, `${p}-asmt`)}</Section>
+              <Section title="Plan" prefix={p}>{bodyForText(record.plan, `${p}-plan`)}</Section>
+              <Section title="Recommendations" prefix={p}>{bodyForValue(record.recommendations, `${p}-rec`)}</Section>
+              <Section title="Results" prefix={p}>{bodyForValue(record.results, `${p}-res`)}</Section>
+              <Section title="Notes" prefix={p}>{bodyForText(record.notes, `${p}-note`)}</Section>
             </View>
-
-            {/* Functional History */}
-            {record.functionalHistory && (() => {
-              const fh = record.functionalHistory;
-              const priorItems = fh.priorLevelOfFunction ? fh.priorLevelOfFunction.split(/,\s*/).filter(s => s.trim()) : [];
-              const cfs = fh.currentFunctionalStatus || {};
-              const cfsEntries = Object.entries(cfs).filter(([k, v]) => v && k !== '_id');
-              if (priorItems.length === 0 && cfsEntries.length === 0) return null;
-
-              const totalItems = priorItems.length + cfsEntries.length;
-              return (
-                <View style={styles.section} wrap={totalItems > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Functional History</Text>
-                  <View style={styles.sectionContent}>
-                    {priorItems.length > 0 && (
-                      <>
-                        <Text style={styles.subSectionTitle}>Prior Level of Function</Text>
-                        {priorItems.map((item, i) => (
-                          <Text key={`prior-${i}`} style={styles.listItem}>{i + 1}. {item}</Text>
-                        ))}
-                      </>
-                    )}
-                    {cfsEntries.length > 0 && (
-                      <>
-                        <Text style={styles.subSectionTitle}>Current Functional Status</Text>
-                        {cfsEntries.map(([k, v], i) => (
-                          <View key={`cfs-${i}`} style={styles.fieldRow}>
-                            <Text style={styles.fieldLabel}>{keyToLabel(k)}:</Text>
-                            <Text style={styles.fieldValue}>{safeString(v)}</Text>
-                          </View>
-                        ))}
-                      </>
-                    )}
-                  </View>
-                </View>
-              );
-            })()}
-
-            {/* Functional Assessment */}
-            {record.functionalAssessment && (() => {
-              const fa = record.functionalAssessment;
-              const entries = [];
-              if (fa.fimScore !== undefined && fa.fimScore !== null) {
-                entries.push({ label: 'FIM Score', value: String(fa.fimScore) });
-              }
-              if (fa.fimSubscales && typeof fa.fimSubscales === 'object') {
-                const subscaleLabels = { selfCare: 'Self Care', transfers: 'Transfers', locomotion: 'Locomotion', communication: 'Communication', cognition: 'Cognition' };
-                Object.entries(fa.fimSubscales).filter(([k, v]) => v && k !== '_id').forEach(([k, v]) => {
-                  entries.push({ label: `FIM - ${subscaleLabels[k] || keyToLabel(k)}`, value: safeString(v) });
-                });
-              }
-              const scoreFields = [
-                { key: 'barthel', label: 'Barthel Index' },
-                { key: 'bergBalance', label: 'Berg Balance Score' },
-                { key: 'timedUpAndGo', label: 'Timed Up And Go' },
-                { key: 'sixMinuteWalk', label: 'Six Minute Walk' },
-                { key: 'tenMeterWalkTest', label: 'Ten Meter Walk Test' },
-                { key: 'fuglMeyerUpperExtremity', label: 'Fugl-Meyer Upper Extremity' },
-                { key: 'actionResearchArmTest', label: 'Action Research Arm Test' },
-              ];
-              scoreFields.forEach(({ key, label }) => {
-                const val = fa[key];
-                if (val !== undefined && val !== null && val !== '') {
-                  entries.push({ label, value: safeString(val) });
-                }
-              });
-              if (entries.length === 0) return null;
-
-              return (
-                <View style={styles.section} wrap={entries.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Functional Assessment</Text>
-                  <View style={styles.sectionContent}>
-                    {entries.map((entry, i) => (
-                      <View key={i} style={styles.fieldRow}>
-                        <Text style={styles.fieldLabel}>{entry.label}:</Text>
-                        <Text style={styles.fieldValue}>{entry.value}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              );
-            })()}
-
-            {/* Balance Assessment */}
-            {renderObjectSection('Balance Assessment', record.balanceAssessment)}
-
-            {/* Gait Analysis */}
-            {renderObjectSection('Gait Analysis', record.gaitAnalysis)}
-
-            {/* Spasticity Assessment - Ashworth Scale */}
-            {renderObjectSection('Spasticity Assessment - Ashworth Scale', record.spasticityAssessment?.ashworthScale)}
-
-            {/* EMG / Nerve Conduction Studies */}
-            {renderNestedObjectSection('EMG / Nerve Conduction Studies', record.emgStudies)}
-
-            {/* Orthotic */}
-            {renderNestedObjectSection('Orthotic', record.orthotic)}
-
-            {/* COPM Priority Areas */}
-            {(() => {
-              const areas = record.copm?.priorityAreas;
-              if (!areas || !Array.isArray(areas) || areas.length === 0) return null;
-              return (
-                <View style={styles.section} wrap={areas.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>COPM Priority Areas</Text>
-                  <View style={styles.sectionContent}>
-                    {areas.map((area, i) => (
-                      <View key={i} style={styles.fieldRow}>
-                        <Text style={styles.fieldLabel}>{area.activity}:</Text>
-                        <Text style={styles.fieldValue}>Performance: {area.performanceScore}, Satisfaction: {area.satisfactionScore}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              );
-            })()}
-
-            {/* Swallow Study */}
-            {renderObjectSection('Swallow Study', record.swallowStudy)}
-
-            {/* Neuropsychological Testing */}
-            {renderObjectSection('Neuropsychological Testing', record.neuropsychologicalTesting)}
-
-            {/* Botulinum Toxin Injections */}
-            {(() => {
-              const bt = record.botulinumToxinInjections;
-              if (!bt) return null;
-              const muscles = bt.targetedMuscles || [];
-              if (!bt.indication && !bt.plan && muscles.length === 0) return null;
-              const totalBtItems = (bt.indication ? 1 : 0) + muscles.length + (bt.plan ? 1 : 0);
-              return (
-                <View style={styles.section} wrap={totalBtItems > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Botulinum Toxin Injections</Text>
-                  <View style={styles.sectionContent}>
-                    {bt.indication && (
-                      <View style={styles.fieldRow}>
-                        <Text style={styles.fieldLabel}>Indication:</Text>
-                        <Text style={styles.fieldValue}>{bt.indication}</Text>
-                      </View>
-                    )}
-                    {muscles.length > 0 && (
-                      <>
-                        <Text style={styles.subSectionTitle}>Targeted Muscles</Text>
-                        {muscles.map((m, i) => (
-                          <Text key={i} style={styles.listItem}>{i + 1}. {m}</Text>
-                        ))}
-                      </>
-                    )}
-                    {bt.plan && (
-                      <View style={styles.fieldRow}>
-                        <Text style={styles.fieldLabel}>Plan:</Text>
-                        <Text style={styles.fieldValue}>{bt.plan}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              );
-            })()}
-
-            {/* Equipment */}
-            {(() => {
-              const equipment = record.equipment;
-              if (!equipment || !Array.isArray(equipment) || equipment.length === 0) return null;
-              return (
-                <View style={styles.section} wrap={equipment.length > 6 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Equipment</Text>
-                  <View style={styles.sectionContent}>
-                    {equipment.map((eq, i) => (
-                      <View key={i} style={styles.fieldRow}>
-                        <Text style={styles.fieldLabel}>{eq.item}:</Text>
-                        <Text style={styles.fieldValue}>
-                          {[eq.indication && `Indication: ${eq.indication}`, eq.status && `Status: ${eq.status}`].filter(Boolean).join(', ')}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              );
-            })()}
-
-            {/* Therapy Interventions */}
-            {(() => {
-              const ti = record.therapyInterventions;
-              if (!ti) return null;
-              const therapies = [
-                { key: 'physicalTherapy', title: 'Physical Therapy' },
-                { key: 'occupationalTherapy', title: 'Occupational Therapy' },
-                { key: 'speechTherapy', title: 'Speech Therapy' },
-                { key: 'psychology', title: 'Psychology' },
-              ];
-              return therapies.map(({ key, title }) => {
-                const therapy = ti[key];
-                if (!therapy) return null;
-                const interventions = therapy.interventions || [];
-                if (interventions.length === 0 && !therapy.frequency && !therapy.duration) return null;
-                return (
-                  <View key={key} style={styles.section} wrap={interventions.length > 6 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>{title}</Text>
-                    <View style={styles.sectionContent}>
-                      {therapy.frequency && (
-                        <View style={styles.fieldRow}>
-                          <Text style={styles.fieldLabel}>Frequency:</Text>
-                          <Text style={styles.fieldValue}>{therapy.frequency}</Text>
-                        </View>
-                      )}
-                      {therapy.duration && (
-                        <View style={styles.fieldRow}>
-                          <Text style={styles.fieldLabel}>Duration:</Text>
-                          <Text style={styles.fieldValue}>{therapy.duration}</Text>
-                        </View>
-                      )}
-                      {interventions.length > 0 && (
-                        <>
-                          <Text style={styles.subSectionTitle}>Interventions</Text>
-                          {interventions.map((item, i) => (
-                            <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>
-                          ))}
-                        </>
-                      )}
-                    </View>
-                  </View>
-                );
-              });
-            })()}
-
-            {/* Pharmacologic Plan */}
-            {renderArraySection('Pharmacologic Plan', record.medicalManagement?.pharmacologicPlan)}
-
-            {/* Spasticity Medications */}
-            {(() => {
-              const meds = record.medicalManagement?.spasticityMedications;
-              if (!meds || !Array.isArray(meds) || meds.length === 0) return null;
-              return (
-                <View style={styles.section} wrap={meds.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Spasticity Medications</Text>
-                  <View style={styles.sectionContent}>
-                    {meds.map((med, i) => (
-                      <View key={i} style={styles.fieldRow}>
-                        <Text style={styles.fieldLabel}>{med.medication}:</Text>
-                        <Text style={styles.fieldValue}>{med.action || ''}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              );
-            })()}
-
-            {/* Support Groups */}
-            {renderArraySection('Support Groups', record.supportGroups)}
-
-            {/* Discharge Planning */}
-            {renderObjectSection('Discharge Planning', record.dischargePlanningPMR)}
-
-            {/* Provider */}
-            {record.provider && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Provider</Text>
-                <View style={styles.sectionContent}>
-                  <Text style={styles.text}>{safeString(record.provider)}</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Findings */}
-            {renderTextSection('Findings', record.findings)}
-
-            {/* Assessment */}
-            {renderTextSection('Assessment', record.assessment)}
-
-            {/* Plan */}
-            {renderTextSection('Plan', record.plan)}
-
-            {/* Recommendations */}
-            {renderRecommendationsSection('Recommendations', record.recommendations)}
-
-            {/* Results */}
-            {renderNestedObjectSection('Results', record.results)}
-
-            {/* Notes */}
-            {renderTextSection('Notes', record.notes)}
-          </View>
-        ))}
+          );
+        })}
       </Page>
     </Document>
   );

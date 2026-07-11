@@ -2,32 +2,31 @@
  * PotentialTestingOutcomesDocumentPDFTemplate.jsx
  * March 2026 — Helvetica — LETTER size — potential testing outcomes
  * Collection: potential_testing_outcomes
+ * Box-free B&W underline theme (mirrors the JSX Copy All structure for parity).
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 12 },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 14, color: '#333333', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try { const d = new Date(dateStr.$date || dateStr); return isNaN(d.getTime()) ? String(dateStr) : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateStr); }
+const safeString = (v) => {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/×/g, 'x');
 };
 
 const hasVal = (v) => {
@@ -45,7 +44,7 @@ const fmtVal = (v) => {
   return String(v || '');
 };
 
-/* parseLabel */
+/* parseLabel — "Label: value" detection (digit-tolerant char class) */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
   const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
@@ -53,13 +52,17 @@ const parseLabel = (text) => {
   return { isLabeled: false, label: '', value: text };
 };
 
-/* splitBySentence */
+/* splitBySentence — split on '.'/';' + whitespace, guarding abbreviations, single-letter
+   initials (Dr. R. Vashisht), and digits (5.8, "124; "); strip a leading "N. " marker. */
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text
+    .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/)
+    .map(s => s.replace(/^\d+\.\s+/, '').trim())
+    .filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
-/* splitByComma — parenthesis-aware */
+/* splitByComma — parenthesis-aware; skip no-space commas (3,951) and year-leading commas. */
 const splitByComma = (text) => {
   if (!text || typeof text !== 'string') return [text || ''];
   const result = []; let current = ''; let depth = 0;
@@ -67,14 +70,14 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
 
-/* ======= SECTION CONFIG ======= */
+/* ======= SECTION CONFIG (mirror of the JSX maps) ======= */
 const SECTION_TITLES = {
   'diagnostic-imaging': 'Diagnostic Imaging',
   'cardiac-testing': 'Cardiac Testing',
@@ -118,6 +121,32 @@ const SECTION_FIELDS = {
 };
 
 const NUMBER_FIELDS = ['ankleBrachialIndex', 'glomerularFiltrationRate', 'hemoglobinA1c'];
+const ARRAY_FIELDS = ['laboratoryValues'];
+const COMMA_SPLIT_FIELDS = ['electrocardiogramResults', 'echocardiogramResults', 'stressTestResults', 'holterMonitorResults'];
+
+/* A number stored as 0 here means "not recorded" (ABI/GFR/A1c are physiologically impossible at 0). */
+const isMeaninglessZero = (fn, v) => NUMBER_FIELDS.includes(fn) && (v === 0 || v === '0');
+
+/* sentenceLines — mirror of JSX formatSentenceFieldLines (single running counter n=1..). */
+const sentenceLines = (text) => {
+  const sentences = splitBySentence(text);
+  const out = []; let n = 1;
+  sentences.forEach((s, sIdx) => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      out.push(<Text key={`l${sIdx}`} style={styles.nestedSubtitle}>{safeString(parsed.label)}</Text>);
+      if (parts.length >= 2) {
+        parts.forEach((item, i) => out.push(<Text key={`l${sIdx}-${i}`} style={styles.listItem}>{n++}. {safeString(item)}</Text>));
+      } else {
+        out.push(<Text key={`l${sIdx}-v`} style={styles.listItem}>{n++}. {safeString(parsed.value)}</Text>);
+      }
+    } else {
+      out.push(<Text key={`s${sIdx}`} style={styles.listItem}>{n++}. {safeString(s)}</Text>);
+    }
+  });
+  return out;
+};
 
 /* ======= PDF COMPONENT ======= */
 const PotentialTestingOutcomesDocumentPDFTemplate = ({ document: docProp }) => {
@@ -145,7 +174,7 @@ const PotentialTestingOutcomesDocumentPDFTemplate = ({ document: docProp }) => {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}><Text style={styles.documentTitle}>Potential Testing Outcomes</Text></View>
+          <Text style={styles.documentTitle}>Potential Testing Outcomes</Text>
           <Text style={styles.noDataText}>No potential testing outcomes data available</Text>
         </Page>
       </Document>
@@ -157,74 +186,80 @@ const PotentialTestingOutcomesDocumentPDFTemplate = ({ document: docProp }) => {
     if (!hasVal(val)) return null;
     const label = FIELD_LABELS[fn] || fn;
 
+    /* NUMBER — sentinel-0 hidden (ABI/GFR/A1c) */
     if (NUMBER_FIELDS.includes(fn)) {
+      if (isMeaninglessZero(fn, val)) return null;
       return (
         <View key={fn} style={styles.fieldBox}>
           <Text style={styles.fieldLabel}>{label}</Text>
-          <Text style={styles.fieldValue}>{fmtVal(val)}</Text>
+          <Text style={styles.fieldValue}>{safeString(fmtVal(val))}</Text>
         </View>
       );
     }
 
-    if (Array.isArray(val)) {
-      const items = val.filter(Boolean);
+    /* ARRAY — numbered items */
+    if (ARRAY_FIELDS.includes(fn) || Array.isArray(val)) {
+      const items = (Array.isArray(val) ? val : [val]).filter(Boolean);
       if (items.length === 0) return null;
       return (
         <View key={fn} style={styles.fieldBox}>
           <Text style={styles.fieldLabel}>{label}</Text>
-          {items.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>)}
+          {items.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {safeString(String(item))}</Text>)}
         </View>
       );
     }
 
     const strVal = fmtVal(val);
+
+    /* COMMA_SPLIT — genuine unlabeled single-sentence comma list -> numbered value rows */
+    if (COMMA_SPLIT_FIELDS.includes(fn)) {
+      const parts = splitByComma(strVal);
+      if (parts.length >= 2 && !parseLabel(strVal).isLabeled && splitBySentence(strVal).length <= 1) {
+        return (
+          <View key={fn} style={styles.fieldBox}>
+            <Text style={styles.fieldLabel}>{label}</Text>
+            {parts.map((p, i) => <Text key={i} style={styles.listItem}>{i + 1}. {safeString(p)}</Text>)}
+          </View>
+        );
+      }
+      /* else fall through to the structured / whole string logic below */
+    }
+
+    /* STRING — multi-sentence OR single labeled comma-list -> structured lines */
     const sentences = splitBySentence(strVal);
-    if (sentences.length <= 1) {
+    const parsedWhole = parseLabel(strVal);
+    const structured = sentences.length > 1 || (parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2);
+    if (structured) {
       return (
         <View key={fn} style={styles.fieldBox}>
           <Text style={styles.fieldLabel}>{label}</Text>
-          <Text style={styles.fieldValue}>{strVal}</Text>
+          {sentenceLines(strVal)}
         </View>
       );
     }
 
-    /* Multi-sentence with parseLabel / splitByComma */
+    /* Whole single value */
     return (
       <View key={fn} style={styles.fieldBox}>
         <Text style={styles.fieldLabel}>{label}</Text>
-        {sentences.map((s, sIdx) => {
-          const parsed = parseLabel(s);
-          if (parsed.isLabeled) {
-            const parts = splitByComma(parsed.value);
-            if (parts.length >= 2) {
-              return (
-                <View key={sIdx}>
-                  <Text style={styles.nestedSubtitle}>{parsed.label}:</Text>
-                  {parts.map((p, pIdx) => <Text key={pIdx} style={styles.listItem}>{pIdx + 1}. {p}</Text>)}
-                </View>
-              );
-            }
-            return (
-              <View key={sIdx}>
-                <Text style={styles.nestedSubtitle}>{parsed.label}:</Text>
-                <Text style={styles.listItem}>{parsed.value}</Text>
-              </View>
-            );
-          }
-          return <Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {s}</Text>;
-        })}
+        <Text style={styles.fieldValue}>{safeString(strVal)}</Text>
       </View>
     );
   };
 
+  /* Anti-orphan: glue the section title to its first present field in a wrap=false View. */
   const renderSection = (record, sid) => {
     const fields = SECTION_FIELDS[sid] || [];
-    const anyVal = fields.some(f => hasVal(record[f]));
-    if (!anyVal) return null;
+    const present = fields.map(f => renderField(record, f)).filter(Boolean);
+    if (!present.length) return null;
+    const [first, ...rest] = present;
     return (
-      <View key={sid} style={styles.section} wrap={false} minPresenceAhead={80}>
-        <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
-        {fields.map(f => renderField(record, f))}
+      <View key={sid} style={styles.section}>
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
+          {first}
+        </View>
+        {rest}
       </View>
     );
   };
@@ -232,14 +267,10 @@ const PotentialTestingOutcomesDocumentPDFTemplate = ({ document: docProp }) => {
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Potential Testing Outcomes</Text>
-        </View>
+        <Text style={styles.documentTitle}>Potential Testing Outcomes</Text>
         {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader}>
-              <Text style={styles.recordTitle}>Potential Testing Outcomes {idx + 1}</Text>
-            </View>
+          <View key={idx} style={styles.recordContainer} break={idx > 0}>
+            <Text style={styles.recordTitle}>Potential Testing Outcomes {idx + 1}</Text>
             {Object.keys(SECTION_FIELDS).map(sid => renderSection(record, sid))}
             {idx < records.length - 1 && <View style={styles.separator} />}
           </View>

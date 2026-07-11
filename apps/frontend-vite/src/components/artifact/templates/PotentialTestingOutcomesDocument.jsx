@@ -62,6 +62,15 @@ const SECTION_FIELDS = {
 const NUMBER_FIELDS = ['ankleBrachialIndex', 'glomerularFiltrationRate', 'hemoglobinA1c'];
 const ARRAY_FIELDS = ['laboratoryValues'];
 const STRING_FIELDS = ['imagingFindings', 'boneDensitometry', 'mammmographyResults', 'electrocardiogramResults', 'echocardiogramResults', 'stressTestResults', 'holterMonitorResults', 'cardiacEnzymes', 'thyroidFunctionTests', 'liverFunctionPanel', 'urinalysisResults', 'arterialBloodGas', 'coagulationStudies', 'pulmonaryFunctionTests', 'colonoscopyFindings', 'pathologyReport', 'microbiolgyResults', 'sleepStudyResults', 'cerebrospinalFluidAnalysis'];
+/* Test-result narratives that are genuine unlabeled comma-lists of distinct findings -> split
+   into one editable value-only row per finding (aggressive-split preference). Scoped so a prose
+   field (pathologyReport etc.) is never shattered. */
+const COMMA_SPLIT_FIELDS = ['electrocardiogramResults', 'echocardiogramResults', 'stressTestResults', 'holterMonitorResults'];
+
+/* A number field stored as 0 here means "not recorded" (ABI/GFR/A1c are physiologically impossible at 0). */
+const isMeaninglessZero = (fn, v) => NUMBER_FIELDS.includes(fn) && (v === 0 || v === '0');
+/* num-stepper increment: match the value's decimal precision (integers step by 1) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -79,7 +88,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -166,7 +175,12 @@ const PotentialTestingOutcomesDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    // Split on '.' OR ';' + whitespace, but not after an abbreviation, a single capital
+    // initial (Dr. R. Vashisht), or a digit (5.8, "124; ").
+    return text
+      .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/)
+      .map(s => s.replace(/^\d+\.\s+/, '').trim())
+      .filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -419,14 +433,25 @@ const PotentialTestingOutcomesDocument = ({ document: docProp }) => {
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
       if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${fmtVal(val)}\n\n`;
+        if (isMeaninglessZero(f, val)) return;
+        text += `${label}\n${fmtVal(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
         text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+      } else if (COMMA_SPLIT_FIELDS.includes(f)) {
+        const strVal = fmtVal(val);
+        const parts = splitByComma(strVal);
+        if (parts.length >= 2 && !parseLabel(strVal).isLabeled && splitBySentence(strVal).length <= 1) {
+          text += `${label}\n${parts.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n`;
+        } else {
+          text += `${label}\n${strVal}\n\n`;
+        }
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
+        const parsedWhole = parseLabel(strVal);
+        const structured = sentences.length > 1 || (parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2);
+        if (structured) {
           text += `${label}\n`;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
@@ -455,7 +480,7 @@ const PotentialTestingOutcomesDocument = ({ document: docProp }) => {
 
   /* ═══════ RENDER: NUMBER FIELD ═══════ */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val) || isMeaninglessZero(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
@@ -469,7 +494,13 @@ const PotentialTestingOutcomesDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="number-edit-row">
+                <div className="num-stepper-row">
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(v => String(Math.max(0, (parseFloat(v) || 0) - stepFor(v)))); }}>−</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); } else if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(v => String((parseFloat(v) || 0) + stepFor(v))); }}>+</button>
+                </div>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -479,7 +510,7 @@ const PotentialTestingOutcomesDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -546,8 +577,13 @@ const PotentialTestingOutcomesDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* A single "Label: a, b, c" sentence must go through the multi-sentence renderer
+       (sub-label + comma rows), else it renders whole -> side-by-side "Label: value". */
+    const parsedWhole = parseLabel(strVal);
+    const singleLabeledList = sentences.length === 1 && parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2;
+
+    /* Multi-sentence (or single labeled comma-list): render with splitBySentence */
+    if (sentences.length > 1 || singleLabeledList) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
@@ -664,6 +700,56 @@ const PotentialTestingOutcomesDocument = ({ document: docProp }) => {
     );
   };
 
+  /* ═══════ RENDER: COMMA-LIST FIELD (unlabeled >=2-item test-result list -> value-only rows) ═══════ */
+  const renderCommaField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const strVal = fmtVal(val);
+    const label = FIELD_LABELS[fn] || fn;
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const parts = splitByComma(strVal);
+    /* Only split a genuine unlabeled single-sentence comma list; anything else -> normal string renderer. */
+    if (parts.length < 2 || parseLabel(strVal).isLabeled || splitBySentence(strVal).length > 1) {
+      return renderStringField(record, fn, idx, sid, SECTION_TITLES[sid]);
+    }
+    return (
+      <div key={fn} className="rec-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        {parts.map((part, ci) => {
+          const commaKey = `${fn}-${idx}-c${ci}`;
+          const isEditing = editingField === commaKey;
+          const isModified = editedFields[commaKey];
+          if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
+            const phrase = searchTerm.toLowerCase().trim();
+            const labelLower = label.toLowerCase();
+            if (!labelLower.includes(phrase) && !phrase.includes(labelLower) && !part.toLowerCase().includes(phrase)) return null;
+          }
+          return (
+            <div key={ci}>
+              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(commaKey); setEditValue(part); setSaveError(null); } }}>
+                {isEditing ? (
+                  <div className="edit-field-container">
+                    <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    {saveError && <div className="save-error">{saveError}</div>}
+                    <div className="edit-actions">
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const liveParts = splitByComma(String(getFieldValue(record, fn, idx) || '')); liveParts[ci] = editValue.trim(); const joined = liveParts.filter(p => p !== '').join(', '); handleSaveField(record, fn, idx, sid, null, joined, commaKey); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="row-content"><span className="content-value">{highlightText(part)}</span><span className="edit-indicator">&#9998;</span></div>
+                    <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(part, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
+                  </>
+                )}
+              </div>
+              {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -672,6 +758,7 @@ const PotentialTestingOutcomesDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
+      if (isMeaninglessZero(f, val)) return false;
       return hasVal(val);
     });
     if (!hasAnyVal) return null;
@@ -690,6 +777,7 @@ const PotentialTestingOutcomesDocument = ({ document: docProp }) => {
           {fields.map(f => {
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
+            if (COMMA_SPLIT_FIELDS.includes(f)) return renderCommaField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid, title);
           })}
         </div>
@@ -713,7 +801,7 @@ const PotentialTestingOutcomesDocument = ({ document: docProp }) => {
         <h2 className="document-title">Potential Testing Outcomes</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PotentialTestingOutcomesDocumentPDFTemplate document={pdfData} />} fileName={`potential-testing-outcomes-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PotentialTestingOutcomesDocumentPDFTemplate document={pdfData} />} fileName="Potential_Testing_Outcomes.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

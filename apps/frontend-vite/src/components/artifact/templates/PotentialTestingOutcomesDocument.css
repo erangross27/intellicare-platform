@@ -1,5 +1,6 @@
 /* PotentialTestingOutcomesDocument.css — March 2026 Blue glow editing theme */
-.potential-testing-outcomes-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.potential-testing-outcomes-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; }
+.potential-testing-outcomes-document * { direction: ltr; }
 .potential-testing-outcomes-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .potential-testing-outcomes-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .potential-testing-outcomes-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -35,16 +36,17 @@
 .potential-testing-outcomes-document .modified-badge.added { color: #4ade80; }
 .potential-testing-outcomes-document .edit-field-container { width: 100%; }
 .potential-testing-outcomes-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.potential-testing-outcomes-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
-.potential-testing-outcomes-document .edit-select option { background: #0F1B33; color: #ececf1; }
-.potential-testing-outcomes-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.potential-testing-outcomes-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-.potential-testing-outcomes-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.potential-testing-outcomes-document .number-edit-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.potential-testing-outcomes-document .num-stepper-row { display: flex; align-items: center; gap: 8px; flex: 1; }
+.potential-testing-outcomes-document .num-step { width: 40px; height: 40px; flex-shrink: 0; background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 2px solid #60a5fa; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'Comfortaa', sans-serif; }
+.potential-testing-outcomes-document .num-step:hover { background: rgba(96, 165, 250, 0.3); }
+.potential-testing-outcomes-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
 .potential-testing-outcomes-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .potential-testing-outcomes-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .potential-testing-outcomes-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
-.potential-testing-outcomes-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
-.potential-testing-outcomes-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.potential-testing-outcomes-document .approve-btn { text-transform: capitalize; margin-top: 4px; }
+.potential-testing-outcomes-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.potential-testing-outcomes-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
 .potential-testing-outcomes-document .search-container { margin-bottom: 20px; }
 .potential-testing-outcomes-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
 .potential-testing-outcomes-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
@@ -52,5 +54,6 @@
 .potential-testing-outcomes-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
 .potential-testing-outcomes-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
 .potential-testing-outcomes-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
-.potential-testing-outcomes-document .edit-number { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.potential-testing-outcomes-document .edit-number { flex: 1; text-align: center; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.potential-testing-outcomes-document .number-edit-unit { font-size: 15px; color: #93c5fd; white-space: nowrap; }
 @media (max-width: 768px) { .potential-testing-outcomes-document .document-header { padding-bottom: 12px; } .potential-testing-outcomes-document .document-title { font-size: 24px; } .potential-testing-outcomes-document .header-actions { flex-direction: column; } }

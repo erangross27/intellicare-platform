@@ -3,25 +3,24 @@
  * March 2026 — Complete rewrite with inline editing, blue glow theme
  * Collection: pre_dialysis_assessment
  *
- * 8 Sections:
- *   1. provider-details: createdAt
- *   2. kidney-function: estimatedGFR, ckdStage, serumCreatinine, bloodUreaNitrogen, creatinineClearance, proteinuria, albuminuria
- *   3. hematology: hemoglobin, hematocrit
- *   4. bone-mineral: serumPhosphorus, serumCalcium, parathyroidHormone, vitaminD25OH, serum25OHD3, alkalinePhosphatase
- *   5. acid-base: acidosis, serumBicarbonate
- *   6. vascular-access: vascularAccessType, vascularAccessMaturation
- *   7. cardiovascular: fluidOverload, nyhaClass, echocardiogramEF
- *   8. infectious-disease: hepatitisBsAg, hepatitisCantibody, hivStatus
+ * 7 Sections (record has no clinical date field → no date rendered):
+ *   1. kidney-function: estimatedGFR, ckdStage, serumCreatinine, bloodUreaNitrogen, creatinineClearance, proteinuria, albuminuria
+ *   2. hematology: hemoglobin, hematocrit
+ *   3. bone-mineral: serumPhosphorus, serumCalcium, parathyroidHormone, vitaminD25OH, serum25OHD3, alkalinePhosphatase
+ *   4. acid-base: acidosis, serumBicarbonate
+ *   5. vascular-access: vascularAccessType, vascularAccessMaturation
+ *   6. cardiovascular: fluidOverload, nyhaClass, echocardiogramEF
+ *   7. infectious-disease: hepatitisBsAg, hepatitisCantibody, hivStatus
  */
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PreDialysisAssessmentDocumentPDFTemplate from '../pdf-templates/PreDialysisAssessmentDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PreDialysisAssessmentDocument.css';
 
 /* ═══════ CONSTANTS ═══════ */
 const SECTION_TITLES = {
-  'provider-details': 'Provider Details',
   'kidney-function': 'Kidney Function',
   'hematology': 'Hematology',
   'bone-mineral': 'Bone & Mineral Metabolism',
@@ -32,7 +31,6 @@ const SECTION_TITLES = {
 };
 
 const FIELD_LABELS = {
-  createdAt: 'Date',
   estimatedGFR: 'Estimated GFR',
   ckdStage: 'CKD Stage',
   serumCreatinine: 'Serum Creatinine',
@@ -80,7 +78,6 @@ const FIELD_UNITS = {
 };
 
 const SECTION_FIELDS = {
-  'provider-details': ['createdAt'],
   'kidney-function': ['estimatedGFR', 'ckdStage', 'serumCreatinine', 'bloodUreaNitrogen', 'creatinineClearance', 'proteinuria', 'albuminuria'],
   'hematology': ['hemoglobin', 'hematocrit'],
   'bone-mineral': ['serumPhosphorus', 'serumCalcium', 'parathyroidHormone', 'vitaminD25OH', 'serum25OHD3', 'alkalinePhosphatase'],
@@ -91,9 +88,17 @@ const SECTION_FIELDS = {
 };
 
 const BOOLEAN_FIELDS = ['acidosis', 'vascularAccessMaturation', 'fluidOverload', 'hepatitisBsAg', 'hepatitisCantibody', 'hivStatus'];
-const DATE_FIELDS = ['createdAt'];
+const DATE_FIELDS = [];
 const NUMBER_FIELDS = ['estimatedGFR', 'serumCreatinine', 'bloodUreaNitrogen', 'creatinineClearance', 'proteinuria', 'albuminuria', 'hemoglobin', 'hematocrit', 'serumPhosphorus', 'serumCalcium', 'parathyroidHormone', 'vitaminD25OH', 'serum25OHD3', 'alkalinePhosphatase', 'serumBicarbonate', 'echocardiogramEF'];
 const STRING_FIELDS = ['ckdStage', 'vascularAccessType', 'nyhaClass'];
+
+/* Every field here is a renal lab/measure that can never legitimately read exactly 0
+   (eGFR, creatinine, hemoglobin, EF, etc. are physiologically impossible at 0), so a
+   stored 0 is an AI-extractor "not measured" sentinel — hide it in JSX, Copy, and PDF. */
+const isMeaninglessZero = (fn, v) => NUMBER_FIELDS.includes(fn) && (v === 0 || v === '0');
+
+/* stepFor: decimal-aware step size for the number stepper (0.1 for one-decimal values, etc.) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -111,7 +116,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -205,7 +210,7 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -465,13 +470,11 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
-      if (!hasVal(val)) return;
-      if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
-      } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+      if (!hasVal(val) || isMeaninglessZero(f, val)) return;
+      if (BOOLEAN_FIELDS.includes(f)) {
+        text += `${label}\n1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${formatDisplayValue(f, val)}\n\n`;
+        text += `${label}\n1. ${formatDisplayValue(f, val)}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
@@ -480,17 +483,17 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${formatDisplayValue(f, val)}\n\n`;
+          text += `${label}\n1. ${formatDisplayValue(f, val)}\n\n`;
         }
       } else {
-        text += `${label}\n${formatDisplayValue(f, val)}\n\n`;
+        text += `${label}\n1. ${formatDisplayValue(f, val)}\n\n`;
       }
     });
-    return text;
+    return text === `${title}\n${'='.repeat(40)}\n\n` ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines, formatDisplayValue]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== PRE-DIALYSIS ASSESSMENT ===\n\n';
+    let text = `Pre-Dialysis Assessment\n${'='.repeat(40)}\n\n`;
     pdfData.forEach((r, idx) => {
       text += `Pre-Dialysis Assessment Record ${idx + 1}\n${'='.repeat(40)}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
@@ -502,42 +505,7 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
-  /* ═══════ RENDER: DATE FIELD ═══════ */
-  const renderDateField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
-    const displayVal = formatDate(val);
-    const isModified = editedFields[editKey];
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
-
-  /* ═══════ RENDER: BOOLEAN FIELD — select Yes/No, convert to boolean on save ═══════ */
+  /* ═══════ RENDER: BOOLEAN FIELD — BlueSelect Yes/No, convert to boolean on save ═══════ */
   const renderBooleanField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const editKey = `${fn}-${idx}`;
@@ -553,10 +521,7 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -566,7 +531,7 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -575,9 +540,9 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
     );
   };
 
-  /* ═══════ RENDER: NUMBER FIELD — validate numeric on save ═══════ */
+  /* ═══════ RENDER: NUMBER FIELD — −/+ stepper, validate numeric on save ═══════ */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val) || isMeaninglessZero(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
@@ -591,7 +556,14 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="number-edit-row">
+                <div className="num-stepper-row">
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const s = stepFor(editValue); setEditValue(String(Number(Math.max(0, (parseFloat(editValue) || 0) - s).toFixed(6)))); setSaveError(null); }}>−</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); } if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const s = stepFor(editValue); setEditValue(String(Number(((parseFloat(editValue) || 0) + s).toFixed(6)))); setSaveError(null); }}>+</button>
+                </div>
+                {FIELD_UNITS[fn] && <span className="number-edit-unit">{FIELD_UNITS[fn].trim()}</span>}
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -601,7 +573,7 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -745,7 +717,7 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
-      return hasVal(val);
+      return hasVal(val) && !isMeaninglessZero(f, val);
     });
     if (!hasAnyVal) return null;
 
@@ -761,7 +733,6 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
-            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
@@ -787,7 +758,7 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pre-Dialysis Assessment</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PreDialysisAssessmentDocumentPDFTemplate document={pdfData} />} fileName={`pre-dialysis-assessment-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PreDialysisAssessmentDocumentPDFTemplate document={pdfData} />} fileName="Pre_Dialysis_Assessment.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -800,14 +771,8 @@ const PreDialysisAssessmentDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.createdAt)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Pre-Dialysis Assessment Record ${idx + 1}`)}</h3>
             </div>
-            {renderSection(record, idx, 'provider-details')}
             {renderSection(record, idx, 'kidney-function')}
             {renderSection(record, idx, 'hematology')}
             {renderSection(record, idx, 'bone-mineral')}

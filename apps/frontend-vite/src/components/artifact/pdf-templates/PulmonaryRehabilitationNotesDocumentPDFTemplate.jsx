@@ -1,241 +1,245 @@
+/**
+ * PulmonaryRehabilitationNotesDocumentPDFTemplate.jsx
+ * March 2026 — Helvetica — LETTER size — box-free — pulmonary rehabilitation notes
+ * Collection: pulmonary_rehabilitation_notes
+ */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    lineHeight: 1.5,
-    backgroundColor: '#ffffff',
-  },
-  documentHeader: {
-    marginBottom: 24,
-    paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: '#606060',
-    borderBottomStyle: 'solid',
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1f2937',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  recordContainer: {
-    marginBottom: 24,
-  },
-  recordHeader: {
-    marginBottom: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#606060',
-    borderBottomStyle: 'solid',
-  },
-  recordDateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  recordDate: {
-    fontSize: 11,
-    color: '#6b7280',
-    fontFamily: 'Helvetica',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1f2937',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: '#606060',
-    marginBottom: 8,
-  },
-  sectionContent: {
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderStyle: 'solid',
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: '#404040',
-    width: 200,
-  },
-  fieldValue: {
-    fontSize: 12,
-    color: '#404040',
-    flex: 1,
-  },
-  listItem: {
-    fontSize: 12,
-    color: '#404040',
-    marginBottom: 4,
-    paddingLeft: 8,
-  },
-  separator: {
-    marginTop: 20,
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#d1d5db',
-    borderBottomStyle: 'solid',
-  },
-  noDataText: {
-    fontSize: 12,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginTop: 40,
-  },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 5, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginTop: 12, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 6, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return String(dateStr);
-  }
+/* ═══════ CONFIG (mirrors JSX) ═══════ */
+const SECTION_TITLES = {
+  'session-overview': 'Session Overview',
+  'vital-signs': 'Vital Signs',
+  'exercise-performance': 'Exercise Performance',
+  'assessment-scores': 'Assessment Scores',
+  'exercise-modalities': 'Exercise Modalities',
+  'breathing-techniques': 'Breathing Techniques',
+  'energy-conservation': 'Energy Conservation Techniques',
+  'nutritional-counseling': 'Nutritional Counseling Topics',
+  'psychosocial-support': 'Psychosocial Support',
+  'medication-adherence': 'Medication Adherence',
+  'progress-goals': 'Progress Toward Goals',
 };
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+const FIELD_LABELS = {
+  sessionDurationMinutes: 'Session Duration (Minutes)',
+  exerciseIntensityPercentage: 'Exercise Intensity (%)',
+  mmrcDyspneaGrade: 'mMRC Dyspnea Grade',
+  preExerciseOxygenSaturation: 'Pre-Exercise Oxygen Saturation',
+  postExerciseOxygenSaturation: 'Post-Exercise Oxygen Saturation',
+  restingBloodPressure: 'Resting Blood Pressure',
+  postExerciseBloodPressure: 'Post-Exercise Blood Pressure',
+  peakHeartRate: 'Peak Heart Rate',
+  targetHeartRate: 'Target Heart Rate',
+  sixMinuteWalkDistance: 'Six Minute Walk Distance',
+  exerciseToleranceMinutes: 'Exercise Tolerance (Minutes)',
+  exerciseInducedDesaturation: 'Exercise Induced Desaturation',
+  oxygenFlowRateExercise: 'Oxygen Flow Rate (Exercise)',
+  borgDyspneaScale: 'Borg Dyspnea Scale',
+  borgExertionScale: 'Borg Exertion Scale',
+  copyCatScore: 'COPD Assessment Test Score',
+  chronicRespiratoryQuestionnaire: 'Chronic Respiratory Questionnaire',
+  exerciseModalitiesPerformed: 'Exercise Modalities Performed',
+  breathingTechniques: 'Breathing Techniques',
+  energyConservationTechniques: 'Energy Conservation Techniques',
+  nutritionalCounselingTopics: 'Nutritional Counseling Topics',
+  psychosocialSupport: 'Psychosocial Support',
+  medicationAdherence: 'Medication Adherence',
+  progressTowardGoals: 'Progress Toward Goals',
 };
-
-const formatValue = (val) => {
-  if (val === null || val === undefined || val === '') return null;
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'number') return String(val);
-  return String(val);
+const SECTION_FIELDS = {
+  'session-overview': ['sessionDurationMinutes', 'exerciseIntensityPercentage', 'mmrcDyspneaGrade'],
+  'vital-signs': ['preExerciseOxygenSaturation', 'postExerciseOxygenSaturation', 'restingBloodPressure', 'postExerciseBloodPressure', 'peakHeartRate', 'targetHeartRate'],
+  'exercise-performance': ['sixMinuteWalkDistance', 'exerciseToleranceMinutes', 'exerciseInducedDesaturation', 'oxygenFlowRateExercise'],
+  'assessment-scores': ['borgDyspneaScale', 'borgExertionScale', 'copyCatScore', 'chronicRespiratoryQuestionnaire'],
+  'exercise-modalities': ['exerciseModalitiesPerformed'],
+  'breathing-techniques': ['breathingTechniques'],
+  'energy-conservation': ['energyConservationTechniques'],
+  'nutritional-counseling': ['nutritionalCounselingTopics'],
+  'psychosocial-support': ['psychosocialSupport'],
+  'medication-adherence': ['medicationAdherence'],
+  'progress-goals': ['progressTowardGoals'],
 };
-
-/* Numeric fields where 0 is a MEANINGFUL clinical value (keep it). For all other numeric
-   fields, 0 is a sentinel ("not measured / not done") and must be dropped — mirrors the
-   on-screen template so the PDF never shows a misleading "Six Minute Walk Distance: 0". */
+const NUMBER_FIELDS = ['sessionDurationMinutes', 'exerciseIntensityPercentage', 'mmrcDyspneaGrade', 'preExerciseOxygenSaturation', 'postExerciseOxygenSaturation', 'peakHeartRate', 'targetHeartRate', 'sixMinuteWalkDistance', 'exerciseToleranceMinutes', 'oxygenFlowRateExercise', 'borgDyspneaScale', 'borgExertionScale', 'copyCatScore', 'chronicRespiratoryQuestionnaire'];
+const BOOLEAN_FIELDS = ['exerciseInducedDesaturation'];
+const ARRAY_FIELDS = ['exerciseModalitiesPerformed', 'breathingTechniques', 'energyConservationTechniques', 'nutritionalCounselingTopics'];
+const STRING_FIELDS = ['restingBloodPressure', 'postExerciseBloodPressure', 'psychosocialSupport', 'medicationAdherence', 'progressTowardGoals'];
 const MEANINGFUL_ZERO_FIELDS = ['borgDyspneaScale', 'borgExertionScale', 'mmrcDyspneaGrade'];
-const keepNum = (fn, val) => {
-  if (val === 0 && !MEANINGFUL_ZERO_FIELDS.includes(fn)) return false;
-  return formatValue(val) !== null;
+
+/* ═══════ UTILS ═══════ */
+const safeString = (str) => {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/×/g, 'x').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
+};
+const isHiddenZero = (fn, val) => NUMBER_FIELDS.includes(fn) && Number(val) === 0 && !MEANINGFUL_ZERO_FIELDS.includes(fn);
+const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
+
+const isEmptyDeep = (v) => {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'boolean') return false;
+  if (typeof v === 'number') return !Number.isFinite(v);
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
+  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+  return false;
 };
 
-const keyToLabel = (key) => {
-  return key
-    .replace(/_/g, ' ')
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, str => str.toUpperCase())
-    .trim();
+const flattenItem = (item) => {
+  if (item === null || item === undefined) return '';
+  if (typeof item === 'string') return item;
+  if (typeof item === 'object' && !Array.isArray(item)) {
+    const main = item.value || item.text || item.name || '';
+    if (main) return String(main);
+    return Object.entries(item).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '').map(([k, v]) => `${k}: ${v}`).join(', ');
+  }
+  return String(item);
 };
 
-const splitIntoItems = (text) => {
-  if (!text) return [];
-  const numbered = text.split(/\s+(?=\d+\.\s)/).filter(s => s.trim()).map(s => s.trim());
-  if (numbered.length > 1) return numbered;
-  const bySemicolon = text.split(/;\s*/).filter(s => s.trim()).map(s => s.trim());
-  if (bySemicolon.length > 1) return bySemicolon;
-  const bySentence = text.split(/(?<=[.!?])\s+/).filter(s => s.trim()).map(s => s.trim());
-  if (bySentence.length > 1) return bySentence;
-  return [text.trim()];
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
 };
 
-const stripNumber = (text) => String(text).replace(/^\d+\.\s*/, '');
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+const fieldHasVal = (record, fn) => {
+  const v = record[fn];
+  if (isHiddenZero(fn, v)) return false;
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return Number.isFinite(v);
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length > 0;
+  if (typeof v === 'object') return Object.entries(v).filter(([, x]) => !isEmptyDeep(x)).length > 0;
+  return true;
+};
 
 const PulmonaryRehabilitationNotesDocumentPDFTemplate = ({ document: data }) => {
-  const unwrapData = (inputData) => {
-    if (!inputData) return [];
-    if (Array.isArray(inputData)) {
-      if (inputData.length === 1 && inputData[0]?.pulmonary_rehabilitation_notes) {
-        return inputData[0].pulmonary_rehabilitation_notes;
-      }
-      return inputData;
+  const unwrap = (input) => {
+    if (!input) return [];
+    if (Array.isArray(input)) {
+      if (input.length === 1 && input[0]?.pulmonary_rehabilitation_notes) return input[0].pulmonary_rehabilitation_notes;
+      return input;
     }
-    if (inputData.pulmonary_rehabilitation_notes) {
-      return inputData.pulmonary_rehabilitation_notes;
-    }
-    return [inputData];
+    if (input.pulmonary_rehabilitation_notes) return input.pulmonary_rehabilitation_notes;
+    if (input.records) return input.records;
+    return [input];
   };
+  const records = unwrap(data);
 
-  const records = unwrapData(data);
-
-  if (!records || records.length === 0) {
+  if (!Array.isArray(records) || records.length === 0) {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Pulmonary Rehabilitation Notes</Text>
-          </View>
+          <Text style={styles.documentTitle}>Pulmonary Rehabilitation Notes</Text>
           <Text style={styles.noDataText}>No data available</Text>
         </Page>
       </Document>
     );
   }
 
-  // Render object section (key-value pairs) - uses formatValue for numeric safety
-  const renderObjectSection = (title, obj) => {
-    if (!obj || typeof obj !== 'object') return null;
-    const entries = Object.entries(obj).filter(([k, v]) => formatValue(v) !== null && k !== '_id');
-    if (entries.length === 0) return null;
-
-    return (
-      <View style={styles.section} wrap={entries.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {entries.map(([key, value], i) => (
-            <View key={i} style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>{keyToLabel(key)}:</Text>
-              <Text style={styles.fieldValue}>{safeString(value)}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    );
+  // Render a labeled sentence-field's lines (label sub-heading + numbered value rows), returns flat Text els.
+  const sentenceFieldEls = (fn, strVal, keyBase) => {
+    const els = [];
+    const sentences = splitBySentence(strVal);
+    let n = 1;
+    sentences.forEach((sentence, si) => {
+      const parsed = parseLabel(sentence);
+      if (parsed.isLabeled) {
+        const parts = splitByComma(parsed.value);
+        els.push(<Text key={`${keyBase}-s${si}-l`} style={styles.subLabel}>{safeString(parsed.label)}</Text>);
+        if (parts.length >= 2) {
+          parts.forEach((p, pi) => els.push(<Text key={`${keyBase}-s${si}-p${pi}`} style={styles.listItem}>{n++}. {safeString(p)}</Text>));
+        } else {
+          els.push(<Text key={`${keyBase}-s${si}-v`} style={styles.listItem}>{n++}. {safeString(parsed.value)}</Text>);
+        }
+      } else {
+        els.push(<Text key={`${keyBase}-s${si}`} style={styles.value}>{n++}. {safeString(sentence)}</Text>);
+      }
+    });
+    return els;
   };
 
-  const renderTextSection = (title, text) => {
-    if (!text) return null;
-    const items = splitIntoItems(text);
+  // fieldBody: returns a FLAT array of Text elements for one field (label + value rows).
+  const fieldBody = (record, fn, sid) => {
+    if (!fieldHasVal(record, fn)) return [];
+    const label = FIELD_LABELS[fn] || fn;
+    const val = record[fn];
+    const showLabel = !sameAsTitle(label, sid);
+    const els = [];
+    const labelEl = showLabel ? <Text key={`${fn}-lab`} style={styles.fieldLabel}>{safeString(label)}</Text> : null;
 
-    return (
-      <View style={styles.section} wrap={items.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {items.map((item, i) => (
-            <Text key={i} style={styles.listItem}>{i + 1}. {stripNumber(item)}</Text>
-          ))}
-        </View>
-      </View>
-    );
+    if (ARRAY_FIELDS.includes(fn)) {
+      const items = (Array.isArray(val) ? val : [val]).filter(x => !isEmptyDeep(x)).map(flattenItem).filter(s => s && s.trim());
+      if (items.length === 0) return [];
+      if (labelEl) els.push(labelEl);
+      items.forEach((item, i) => els.push(<Text key={`${fn}-i${i}`} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>));
+    } else if (BOOLEAN_FIELDS.includes(fn) || NUMBER_FIELDS.includes(fn)) {
+      if (labelEl) els.push(labelEl);
+      els.push(<Text key={`${fn}-v`} style={styles.value}>1. {safeString(fmtVal(val))}</Text>);
+    } else {
+      const strVal = fmtVal(val);
+      const sentences = splitBySentence(strVal);
+      if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+        if (labelEl) els.push(labelEl);
+        sentenceFieldEls(fn, strVal, fn).forEach(el => els.push(el));
+      } else {
+        if (labelEl) els.push(labelEl);
+        els.push(<Text key={`${fn}-v`} style={styles.value}>1. {safeString(strVal)}</Text>);
+      }
+    }
+    return els;
   };
 
-  const renderArraySection = (title, items) => {
-    const safeItems = Array.isArray(items) ? items.filter(Boolean) : [];
-    if (safeItems.length === 0) return null;
-
+  // renderSection: FLATTEN body, glue sectionTitle + first element in wrap={false}, rest flow.
+  const renderSection = (record, idx, sid) => {
+    const fields = SECTION_FIELDS[sid] || [];
+    if (!fields.some(f => fieldHasVal(record, f))) return null;
+    const title = SECTION_TITLES[sid];
+    let body = [];
+    fields.forEach(f => { body = body.concat(fieldBody(record, f, sid)); });
+    if (body.length === 0) return null;
+    body = body.map((el, i) => React.cloneElement(el, { key: `f${i}` }));
+    const [first, ...rest] = body;
     return (
-      <View style={styles.section} wrap={safeItems.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {safeItems.map((item, i) => (
-            <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>
-          ))}
+      <View key={sid}>
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>{safeString(title)}</Text>
+          {first}
         </View>
+        {rest}
       </View>
     );
   };
@@ -243,64 +247,13 @@ const PulmonaryRehabilitationNotesDocumentPDFTemplate = ({ document: data }) => 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Pulmonary Rehabilitation Notes</Text>
-        </View>
-
-        {records.map((record, index) => {
-          // Build section objects (use formatValue !== null for numeric fields)
-          const sessionObj = {};
-          if (keepNum('sessionDurationMinutes', record.sessionDurationMinutes)) sessionObj.sessionDurationMinutes = record.sessionDurationMinutes;
-          if (keepNum('exerciseIntensityPercentage', record.exerciseIntensityPercentage)) sessionObj.exerciseIntensityPercentage = record.exerciseIntensityPercentage;
-          if (keepNum('mmrcDyspneaGrade', record.mmrcDyspneaGrade)) sessionObj.mmrcDyspneaGrade = record.mmrcDyspneaGrade;
-
-          const vitalsObj = {};
-          if (keepNum('preExerciseOxygenSaturation', record.preExerciseOxygenSaturation)) vitalsObj.preExerciseOxygenSaturation = record.preExerciseOxygenSaturation;
-          if (keepNum('postExerciseOxygenSaturation', record.postExerciseOxygenSaturation)) vitalsObj.postExerciseOxygenSaturation = record.postExerciseOxygenSaturation;
-          if (record.restingBloodPressure) vitalsObj.restingBloodPressure = record.restingBloodPressure;
-          if (record.postExerciseBloodPressure) vitalsObj.postExerciseBloodPressure = record.postExerciseBloodPressure;
-          if (keepNum('peakHeartRate', record.peakHeartRate)) vitalsObj.peakHeartRate = record.peakHeartRate;
-          if (keepNum('targetHeartRate', record.targetHeartRate)) vitalsObj.targetHeartRate = record.targetHeartRate;
-
-          const exerciseObj = {};
-          if (keepNum('sixMinuteWalkDistance', record.sixMinuteWalkDistance)) exerciseObj.sixMinuteWalkDistance = record.sixMinuteWalkDistance;
-          if (keepNum('exerciseToleranceMinutes', record.exerciseToleranceMinutes)) exerciseObj.exerciseToleranceMinutes = record.exerciseToleranceMinutes;
-          if (formatValue(record.exerciseInducedDesaturation) !== null) exerciseObj.exerciseInducedDesaturation = record.exerciseInducedDesaturation;
-          if (keepNum('oxygenFlowRateExercise', record.oxygenFlowRateExercise)) exerciseObj.oxygenFlowRateExercise = record.oxygenFlowRateExercise;
-
-          const scoresObj = {};
-          if (keepNum('borgDyspneaScale', record.borgDyspneaScale)) scoresObj.borgDyspneaScale = record.borgDyspneaScale;
-          if (keepNum('borgExertionScale', record.borgExertionScale)) scoresObj.borgExertionScale = record.borgExertionScale;
-          if (keepNum('copyCatScore', record.copyCatScore)) scoresObj.copyCatScore = record.copyCatScore;
-          if (keepNum('chronicRespiratoryQuestionnaire', record.chronicRespiratoryQuestionnaire)) scoresObj.chronicRespiratoryQuestionnaire = record.chronicRespiratoryQuestionnaire;
-
-          return (
-            <View key={index} style={styles.recordContainer}>
-              {index > 0 && <View style={styles.separator} />}
-
-              <View style={styles.recordHeader} wrap={false}>
-                <View style={styles.recordDateRow}>
-                  {record.createdAt && (
-                    <Text style={styles.recordDate}>{formatDate(record.createdAt)}</Text>
-                  )}
-                </View>
-                <Text style={styles.recordTitle}>Pulmonary Rehabilitation Note {index + 1}</Text>
-              </View>
-
-              {renderObjectSection('Session Overview', sessionObj)}
-              {renderObjectSection('Vital Signs', vitalsObj)}
-              {renderObjectSection('Exercise Performance', exerciseObj)}
-              {renderObjectSection('Assessment Scores', scoresObj)}
-              {renderArraySection('Exercise Modalities', record.exerciseModalitiesPerformed)}
-              {renderArraySection('Breathing Techniques', record.breathingTechniques)}
-              {renderArraySection('Energy Conservation Techniques', record.energyConservationTechniques)}
-              {renderArraySection('Nutritional Counseling Topics', record.nutritionalCounselingTopics)}
-              {renderTextSection('Psychosocial Support', record.psychosocialSupport)}
-              {renderTextSection('Medication Adherence', record.medicationAdherence)}
-              {renderTextSection('Progress Toward Goals', record.progressTowardGoals)}
-            </View>
-          );
-        })}
+        <Text style={styles.documentTitle}>Pulmonary Rehabilitation Notes</Text>
+        {records.map((record, idx) => (
+          <View key={idx} break={idx > 0}>
+            <Text style={styles.recordTitle}>Pulmonary Rehabilitation Note {idx + 1}</Text>
+            {Object.keys(SECTION_FIELDS).map(sid => renderSection(record, idx, sid))}
+          </View>
+        ))}
       </Page>
     </Document>
   );

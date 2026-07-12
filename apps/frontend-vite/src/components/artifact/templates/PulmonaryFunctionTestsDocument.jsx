@@ -1,30 +1,30 @@
 /**
  * PulmonaryFunctionTestsDocument.jsx
- * March 2026 — Complete rewrite with inline editing, blue glow theme
+ * March 2026 — inline editing, blue glow theme, recursive-object family
  * Collection: pulmonary_function_tests
  *
- * 9 Sections:
- *   1. test-info: testDate, provider, technician, qualityGrade
- *   2. pre-bronchodilator: preBronchodilator.fev1.percentPredicted, preBronchodilator.fvc.percentPredicted, preBronchodilator.fev1FvcRatio
- *   3. post-bronchodilator: postBronchodilator.fev1.percentPredicted, postBronchodilator.fev1.percentChange
+ * 9 Sections (nested spirometry/volumes/diffusion objects render STACKED via renderObjectField):
+ *   1. test-info: testDate, date, provider, technician, qualityGrade
+ *   2. pre-bronchodilator: preBronchodilator (object)
+ *   3. post-bronchodilator: postBronchodilator (object)
  *   4. interpretation-section: interpretation, reversibility
- *   5. lung-volumes: lungVolumes, comprehensiveLungVolumes
- *   6. diffusion-capacity: dlco, dlcoComprehensive
- *   7. bronchodilator-response: bronchodilatorResponse
- *   8. exercise-testing: sixMinuteWalkTest, cardiopulmonaryExerciseTest
- *   9. quality-section: qualityAssessment, flowVolumeLoop
+ *   5. lung-volumes: lungVolumes, comprehensiveLungVolumes, predictedPostoperativeFev1 (objects)
+ *   6. diffusion-capacity: dlco, dlcoComprehensive (object)
+ *   7. bronchodilator-response: bronchodilatorResponse (object)
+ *   8. exercise-testing: sixMinuteWalkTest, cardiopulmonaryExerciseTest (objects)
+ *   9. quality-section: qualityAssessment, flowVolumeLoop (objects)
  */
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PulmonaryFunctionTestsDocumentPDFTemplate from '../pdf-templates/PulmonaryFunctionTestsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PulmonaryFunctionTestsDocument.css';
 
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
    written to MongoDB and NOT shown in the PDF until the user clicks Approve.
-   Kept in a SEPARATE key (NOT artifactGridData) so drafts never leak into the PDF/DB source.
-   Shape: { [recordId]: { [fieldPart]: value } }  (fieldPart = the full dot-path field name, e.g.
-   "interpretation" or "preBronchodilator.fev1.percentPredicted") */
+   Shape: { [recordId]: { [fieldPart]: value } }  (fieldPart = localEdits key without the "-idx" suffix) */
 const DRAFT_KEY = 'pulmonaryFunctionTestsPendingEdits';
 const readDrafts = () => {
   try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; }
@@ -36,7 +36,7 @@ const writeDrafts = (store) => {
   } catch { /* ignore quota/availability errors */ }
 };
 
-/* ═══════ CONSTANTS ═══════ */
+/* ======= CONSTANTS ======= */
 const SECTION_TITLES = {
   'test-info': 'Test Information',
   'pre-bronchodilator': 'Pre-Bronchodilator',
@@ -49,21 +49,39 @@ const SECTION_TITLES = {
   'quality-section': 'Quality Assessment',
 };
 
+const KEY_OVERRIDES = {
+  fev1: 'FEV1',
+  fvc: 'FVC',
+  fev1FvcRatio: 'FEV1/FVC Ratio',
+  fef2575: 'FEF 25-75',
+  rvTlcRatio: 'RV/TLC Ratio',
+  totalLungCapacity: 'Total Lung Capacity',
+  residualVolume: 'Residual Volume',
+  functionalResidualCapacity: 'Functional Residual Capacity',
+  dlco: 'DLCO',
+  dlcoUncorrected: 'DLCO Uncorrected',
+  dlcoCorrectedForHgb: 'DLCO Corrected for Hgb',
+  alveolarVolume: 'Alveolar Volume',
+  kco: 'KCO',
+  fev1Improvement: 'FEV1 Improvement',
+  fev1PercentImprovement: 'FEV1 % Improvement',
+  fvcImprovement: 'FVC Improvement',
+  fvcPercentImprovement: 'FVC % Improvement',
+};
+
 const FIELD_LABELS = {
   testDate: 'Test Date',
+  date: 'Date',
   provider: 'Provider',
   technician: 'Technician',
   qualityGrade: 'Quality Grade',
-  'preBronchodilator.fev1.percentPredicted': 'FEV1 (% Predicted)',
-  'preBronchodilator.fvc.percentPredicted': 'FVC (% Predicted)',
-  'preBronchodilator.fev1FvcRatio': 'FEV1/FVC Ratio',
-  'postBronchodilator.fev1.percentPredicted': 'FEV1 (% Predicted)',
-  'postBronchodilator.fev1.percentChange': 'FEV1 (% Change)',
+  preBronchodilator: 'Pre-Bronchodilator',
+  postBronchodilator: 'Post-Bronchodilator',
   interpretation: 'Interpretation',
   reversibility: 'Reversibility',
-  predictedPostoperativeFev1: 'Predicted Postoperative FEV1',
   lungVolumes: 'Lung Volumes',
   comprehensiveLungVolumes: 'Comprehensive Lung Volumes',
+  predictedPostoperativeFev1: 'Predicted Postoperative FEV1',
   dlco: 'DLCO',
   dlcoComprehensive: 'DLCO Comprehensive',
   bronchodilatorResponse: 'Bronchodilator Response',
@@ -74,9 +92,9 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
-  'test-info': ['testDate', 'provider', 'technician', 'qualityGrade'],
-  'pre-bronchodilator': ['preBronchodilator.fev1.percentPredicted', 'preBronchodilator.fvc.percentPredicted', 'preBronchodilator.fev1FvcRatio'],
-  'post-bronchodilator': ['postBronchodilator.fev1.percentPredicted', 'postBronchodilator.fev1.percentChange'],
+  'test-info': ['testDate', 'date', 'provider', 'technician', 'qualityGrade'],
+  'pre-bronchodilator': ['preBronchodilator'],
+  'post-bronchodilator': ['postBronchodilator'],
   'interpretation-section': ['interpretation', 'reversibility'],
   'lung-volumes': ['lungVolumes', 'comprehensiveLungVolumes', 'predictedPostoperativeFev1'],
   'diffusion-capacity': ['dlco', 'dlcoComprehensive'],
@@ -85,15 +103,57 @@ const SECTION_FIELDS = {
   'quality-section': ['qualityAssessment', 'flowVolumeLoop'],
 };
 
-const DATE_FIELDS = ['testDate'];
-/* OBJECT_FIELDS: rendered via recursive renderObjectNode/renderObjectLeaf (nested editable leaves) */
-const OBJECT_FIELDS = ['predictedPostoperativeFev1'];
-const STRING_FIELDS = ['provider', 'technician', 'qualityGrade', 'interpretation', 'reversibility',
-  'preBronchodilator.fev1.percentPredicted', 'preBronchodilator.fvc.percentPredicted', 'preBronchodilator.fev1FvcRatio',
-  'postBronchodilator.fev1.percentPredicted', 'postBronchodilator.fev1.percentChange',
-  'lungVolumes', 'comprehensiveLungVolumes', 'dlco', 'dlcoComprehensive',
-  'bronchodilatorResponse', 'sixMinuteWalkTest', 'cardiopulmonaryExerciseTest',
-  'qualityAssessment', 'flowVolumeLoop'];
+const DATE_FIELDS = ['testDate', 'date'];
+/* OBJECT_FIELDS: rendered via recursive renderObjectField/renderObjectNode/renderObjectLeaf (nested editable leaves) */
+const OBJECT_FIELDS = ['preBronchodilator', 'postBronchodilator', 'lungVolumes', 'comprehensiveLungVolumes',
+  'predictedPostoperativeFev1', 'dlcoComprehensive', 'bronchodilatorResponse', 'sixMinuteWalkTest',
+  'cardiopulmonaryExerciseTest', 'qualityAssessment', 'flowVolumeLoop'];
+const STRING_FIELDS = ['provider', 'technician', 'qualityGrade', 'interpretation', 'reversibility', 'dlco'];
+
+/* humanizeKey: camelCase/snake_case -> Title Case, with overrides */
+const humanizeKey = (key) => {
+  if (key === null || key === undefined || key === '') return '';
+  if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key];
+  const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+/* single-name gate — a field label that equals its section title is rendered via the SECTION TITLE only */
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* decimal-aware step for the −/+ number stepper */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
+
+/* number+unit leaf splitter — returns null for plain text and "4/5" ratios */
+const splitNumberUnit = (text) => {
+  if (text === null || text === undefined) return null;
+  const s = String(text).trim();
+  if (s === '') return null;
+  if (/^-?\d+(?:\.\d+)?\s*\/\s*\d/.test(s)) return null;
+  const m = s.match(/^(-?[\d,]*\.?\d+)(\s*)(.*)$/);
+  if (!m || !/\d/.test(m[1])) return null;
+  return { num: m[1].replace(/,/g, ''), sep: m[2] || '', unit: (m[3] || '').trim() };
+};
+
+const splitRatio = (text) => {
+  if (text === null || text === undefined) return null;
+  const m = String(text).trim().match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  return { num: m[1], denom: m[2] };
+};
+
+/* VALUE HELPERS (recursive object support) */
+const isEmptyDeep = (v) => {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'boolean') return false;
+  if (typeof v === 'number') return !Number.isFinite(v);
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
+  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+  return false;
+};
+const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
+const isScalar = (v) => v === null || typeof v !== 'object';
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -111,7 +171,11 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0) {
+      const rest = text.slice(i + 1).replace(/^\s+/, '');
+      if (/^(and|or)\b/i.test(rest) || /^\d/.test(text[i + 1] || '')) { current += ch; }
+      else { const t = current.trim(); if (t) result.push(t); current = ''; }
+    }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -128,7 +192,7 @@ const toInputDate = (dateValue) => {
   try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
 
-/* ═══════ CHART HELPERS ═══════ */
+/* ======= CHART HELPERS ======= */
 const extractPftPercentage = (val) => {
   if (!val) return null;
   const str = typeof val === 'object' ? (val.percentPredicted || val.value || '') : String(val);
@@ -160,7 +224,7 @@ const prepareChartData = (test) => {
   return charts;
 };
 
-/* ═══════ COMPONENT ═══════ */
+/* ======= COMPONENT ======= */
 const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
@@ -172,13 +236,12 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
   const [editedFields, setEditedFields] = useState({});
   const [editedSentences, setEditedSentences] = useState({});
   const [approvedSections, setApprovedSections] = useState({});
-  // editKeys that are staged drafts (saved locally, NOT yet committed to DB/PDF). Cleared on Approve.
   const [pendingEdits, setPendingEdits] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const containerRef = useRef(null);
 
-  /* ═══════ DATA UNWRAP ═══════ */
+  /* ======= DATA UNWRAP ======= */
   const records = useMemo(() => {
     if (!docProp) return [];
     let arr = Array.isArray(docProp) ? docProp : [docProp];
@@ -190,14 +253,13 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     return arr.filter(r => r && typeof r === 'object');
   }, [docProp]);
 
-  // Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF).
+  /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
     const store = readDrafts();
     if (!store || Object.keys(store).length === 0) return;
-    const idOf = (r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); };
     const nLocal = {}, nPending = {}, nFields = {};
     records.forEach((record, idx) => {
-      const rid = idOf(record);
+      const rid = record && record._id ? (typeof record._id === 'string' ? record._id : (record._id.$oid || String(record._id))) : null;
       const recDrafts = rid ? store[rid] : null;
       if (!recDrafts) return;
       Object.entries(recDrafts).forEach(([fieldPart, value]) => {
@@ -213,13 +275,13 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     setEditedFields(prev => ({ ...nFields, ...prev }));
   }, [records]);
 
-  /* ═══════ UTILS ═══════ */
-  const hasVal = useCallback((v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0 && Object.values(v).some(vv => vv !== null && vv !== undefined && vv !== ''); return true; }, []);
-  const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); if (typeof v === 'object' && v !== null) { if (v.percentPredicted) return String(v.percentPredicted); if (v.value) return String(v.value); return JSON.stringify(v); } return String(v || ''); }, []);
+  /* ======= UTILS ======= */
+  const hasVal = useCallback((v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return !isEmptyDeep(v); return true; }, []);
+  const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -231,17 +293,11 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     }).join(' ');
   }
 
-  /* Nested field getter with dot-path support */
-  const getNestedVal = useCallback((obj, path) => {
-    if (!obj || !path) return undefined;
-    return path.split('.').reduce((cur, key) => cur && cur[key] !== undefined ? cur[key] : undefined, obj);
-  }, []);
-
   const getFieldValue = useCallback((record, fn, idx) => {
     const k = `${fn}-${idx}`;
     if (localEdits[k] !== undefined) return localEdits[k];
-    return getNestedVal(record, fn) !== undefined ? getNestedVal(record, fn) : record[fn];
-  }, [localEdits, getNestedVal]);
+    return record[fn];
+  }, [localEdits]);
 
   const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -260,7 +316,7 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     return t.includes(p) || p.includes(t);
   }, [searchTerm]);
 
-  /* ═══════ SEARCH — 4-LEVEL ═══════ */
+  /* ======= SEARCH -- 4-LEVEL ======= */
   const shouldShowSection = useCallback((record, sid) => {
     if (!searchTerm.trim() || record._showAllSections) return true;
     const phrase = searchTerm.toLowerCase().trim();
@@ -272,7 +328,7 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
       if (label.includes(phrase) || phrase.includes(label)) return true;
       const val = getFieldValue(record, f, 0);
       if (val !== null && val !== undefined) {
-        if (Array.isArray(val)) { if (val.some(item => String(item).toLowerCase().includes(phrase))) return true; }
+        if (typeof val === 'object') { if (JSON.stringify(val).toLowerCase().includes(phrase)) return true; }
         else if (fmtVal(val).toLowerCase().includes(phrase)) return true;
       }
     }
@@ -286,7 +342,7 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     if (label.includes(phrase) || phrase.includes(label)) return true;
     const val = getFieldValue(record, fn, idx);
     if (val !== null && val !== undefined) {
-      if (Array.isArray(val)) return val.some(item => String(item).toLowerCase().includes(phrase));
+      if (typeof val === 'object') return JSON.stringify(val).toLowerCase().includes(phrase);
       return fmtVal(val).toLowerCase().includes(phrase);
     }
     return false;
@@ -304,19 +360,19 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
       for (const fields of Object.values(SECTION_FIELDS)) {
         for (const f of fields) {
           const val = getFieldValue(record, f, idx);
-          if (val && (Array.isArray(val) ? val.some(item => String(item).toLowerCase().includes(phrase)) : fmtVal(val).toLowerCase().includes(phrase))) return true;
+          if (val && (typeof val === 'object' ? JSON.stringify(val).toLowerCase().includes(phrase) : fmtVal(val).toLowerCase().includes(phrase))) return true;
         }
       }
       return false;
     });
   }, [records, searchTerm, getFieldValue, fmtVal]);
 
-  /* ═══════ PDF DATA ═══════ */
+  /* ======= PDF DATA ======= */
   const pdfData = useMemo(() => {
     return filteredRecords.map((record, idx) => {
       const merged = { ...record };
       Object.keys(localEdits).forEach(key => {
-        if (pendingEdits[key]) return; // pending drafts stay OUT of the PDF until approved
+        if (pendingEdits[key]) return; // pending drafts stay OUT of the PDF/Copy All until approved
         const m = key.match(/^(.+)-(\d+)$/);
         if (m && parseInt(m[2]) === idx) {
           merged[m[1]] = localEdits[key];
@@ -326,39 +382,48 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     });
   }, [filteredRecords, localEdits, pendingEdits]);
 
-  /* ═══════ EDIT HANDLERS ═══════ */
-  // Save = stage a DRAFT locally + write it to the pending-drafts localStorage store (survives refresh).
-  // NOT written to MongoDB and NOT shown in the PDF until the user clicks Approve (handleApproveSection commits).
+  /* ======= EDIT HANDLERS ======= */
+  const stageDraft = useCallback((record, idx, sid, fieldKey, value) => {
+    const id = safeId(record); if (!id) return;
+    const editKey = `${fieldKey}-${idx}`;
+    setLocalEdits(prev => ({ ...prev, [editKey]: value }));
+    setPendingEdits(prev => ({ ...prev, [editKey]: true }));
+    setApprovedSections(prev => {
+      const k = `${sid}-${idx}`;
+      if (!prev[k]) return prev;
+      const next = { ...prev };
+      delete next[k];
+      return next;
+    });
+    const store = readDrafts();
+    if (!store[id]) store[id] = {};
+    store[id][fieldKey] = value;
+    writeDrafts(store);
+  }, [safeId]);
+
   const handleSaveField = useCallback((record, fn, idx, sid, sentIdx, valueOverride, editTrackingKey) => {
     const id = safeId(record); if (!id) return;
     const saveVal = valueOverride !== undefined ? valueOverride : editValue;
-    const editKey = `${fn}-${idx}`;
-    setLocalEdits(prev => ({ ...prev, [editKey]: saveVal }));
-    setPendingEdits(prev => ({ ...prev, [editKey]: true }));
-    const trackKey = editTrackingKey || editKey;
+    setSaveError(null);
+    stageDraft(record, idx, sid, fn, saveVal);
+    const trackKey = editTrackingKey || `${fn}-${idx}`;
     setEditedFields(prev => ({ ...prev, [trackKey]: 'edited' }));
-    // Re-edit after approval → drop this section's 'approved' flag so the button goes back to yellow
-    if (sid) setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-    // Stage as a DRAFT in localStorage (keyed by the full dot-path field name). Approve commits it.
-    const store = readDrafts();
-    if (!store[id]) store[id] = {};
-    store[id][fn] = saveVal;
-    writeDrafts(store);
-    setEditingField(null); setEditValue(''); setSaveError(null);
-  }, [editValue, safeId]);
+    setEditingField(null); setEditValue('');
+  }, [editValue, safeId, stageDraft]);
 
-  // Stage a sentence edit as a DRAFT (no DB write). localStorage keeps it across refresh; Approve commits it.
-  function stageSentenceDraft(record, fn, idx, sid, fullText) {
+  /* save a nested OBJECT leaf by dot-path (e.g. preBronchodilator.fev1.value) — value stays a STRING/boolean */
+  const saveLeaf = useCallback((record, rootField, path, idx, sid, leafKeyTrack, newVal) => {
     const id = safeId(record); if (!id) return;
-    const editKey = `${fn}-${idx}`;
-    setLocalEdits(prev => ({ ...prev, [editKey]: fullText }));
-    setPendingEdits(prev => ({ ...prev, [editKey]: true }));
-    if (sid) setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-    const store = readDrafts();
-    if (!store[id]) store[id] = {};
-    store[id][fn] = fullText;
-    writeDrafts(store);
-  }
+    setSaveError(null);
+    const cur = localEdits[`${rootField}-${idx}`] !== undefined ? localEdits[`${rootField}-${idx}`] : record[rootField];
+    const clone = JSON.parse(JSON.stringify(cur ?? {}));
+    let node = clone;
+    for (let i = 0; i < path.length - 1; i++) node = node[path[i]];
+    node[path[path.length - 1]] = newVal;
+    stageDraft(record, idx, sid, rootField, clone);
+    setEditedFields(prev => ({ ...prev, [leafKeyTrack]: 'edited' }));
+    setEditingField(null); setEditValue('');
+  }, [safeId, localEdits, stageDraft]);
 
   function saveSentence(record, fn, idx, sid, sentenceIdx) {
     const id = safeId(record); if (!id) return;
@@ -368,15 +433,17 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
       const updated = [...sentences]; updated.splice(sentenceIdx, 1);
       const fullText = reconstructFullText(updated);
-      stageSentenceDraft(record, fn, idx, sid, fullText);
+      setSaveError(null);
+      stageDraft(record, idx, sid, fn, fullText);
       setEditedSentences(prev => ({ ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }));
-      setEditingField(null); setEditValue(''); setSaveError(null);
+      setEditingField(null); setEditValue('');
       return;
     }
     const newSentences = splitBySentence(editedVal);
     const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
     const fullText = reconstructFullText(updated);
-    stageSentenceDraft(record, fn, idx, sid, fullText);
+    setSaveError(null);
+    stageDraft(record, idx, sid, fn, fullText);
     const orig = sentences[sentenceIdx] || '';
     const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
     setEditedSentences(prev => {
@@ -386,10 +453,10 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
       for (let ei = 0; ei < extra; ei++) n[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added';
       return n;
     });
-    setEditingField(null); setEditValue(''); setSaveError(null);
+    setEditingField(null); setEditValue('');
   }
 
-  /* ═══════ APPROVE ═══════ */
+  /* ======= APPROVE ======= */
   const sectionHasEdits = useCallback((idx, sid) => {
     const fields = SECTION_FIELDS[sid] || [];
     return fields.some(f =>
@@ -398,38 +465,32 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     );
   }, [editedFields, editedSentences]);
 
-  // Approve = COMMIT this section's staged drafts for this record to MongoDB, then clear pending so the
-  // committed values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
   const handleApproveSection = useCallback(async (record, sid, idx) => {
     const id = safeId(record); if (!id) return;
     const fields = SECTION_FIELDS[sid] || [];
     const suffix = `-${idx}`;
-    // Collect this record's pending edits whose field belongs to this section.
     const toCommit = Object.keys(localEdits).filter(k => {
       if (!pendingEdits[k] || !k.endsWith(suffix)) return false;
       const fieldPart = k.slice(0, -suffix.length);
-      return fields.includes(fieldPart);
+      const baseField = fieldPart.includes('.') ? fieldPart.slice(0, fieldPart.lastIndexOf('.')) : fieldPart;
+      return fields.includes(baseField) || fields.includes(fieldPart);
     });
     try {
-      // Persist each staged field to the DB now. Field is the full dot-path; arrayIndex ONLY when the
-      // segment after the LAST dot is purely numeric (none here — all are object/dot-path names).
       for (const editKey of toCommit) {
         const fieldPart = editKey.slice(0, -suffix.length);
         const lastDot = fieldPart.lastIndexOf('.');
-        const tail = lastDot === -1 ? '' : fieldPart.slice(lastDot + 1);
-        const payload = (lastDot !== -1 && /^\d+$/.test(tail))
-          ? { field: fieldPart.slice(0, lastDot), value: localEdits[editKey], arrayIndex: parseInt(tail, 10) }
-          : { field: fieldPart, value: localEdits[editKey] };
+        const trailing = lastDot === -1 ? '' : fieldPart.slice(lastDot + 1);
+        const payload = { field: fieldPart, value: localEdits[editKey] };
+        if (lastDot !== -1 && /^\d+$/.test(trailing)) {
+          payload.field = fieldPart.slice(0, lastDot);
+          payload.arrayIndex = parseInt(trailing, 10);
+        }
         await secureApiClient.put(`/api/edit/pulmonary_function_tests/${id}/edit`, payload);
       }
       await secureApiClient.put(`/api/edit/pulmonary_function_tests/${id}/approve`, { sectionId: sid, approved: true });
-
-      // Clear pending → committed edits now flow into pdfData/PDF
-      setPendingEdits(prev => { const next = { ...prev }; toCommit.forEach(k => delete next[k]); return next; });
-      // Drop this record's committed drafts from localStorage
+      setPendingEdits(prev => { const n = { ...prev }; toCommit.forEach(k => delete n[k]); return n; });
       const store = readDrafts();
-      if (store[id]) { fields.forEach(f => { if (store[id]) delete store[id][f]; }); if (Object.keys(store[id]).length === 0) delete store[id]; writeDrafts(store); }
-
+      if (store[id]) { toCommit.forEach(k => { const fp = k.slice(0, -suffix.length); delete store[id][fp]; }); if (Object.keys(store[id]).length === 0) delete store[id]; writeDrafts(store); }
       setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
       setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) delete n[k]; }); }); return n; });
       setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
@@ -444,12 +505,12 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     return null;
   }, [sectionHasEdits, approvedSections, handleApproveSection]);
 
-  /* ═══════ COPY ═══════ */
+  /* ======= COPY ======= */
   const copyToClipboard = useCallback(async (text) => { try { await navigator.clipboard.writeText(text); return true; } catch { const ta = window.document.createElement('textarea'); ta.value = text; ta.style.position = 'absolute'; ta.style.left = '-9999px'; (containerRef.current || window.document.body).appendChild(ta); ta.select(); window.document.execCommand('copy'); (containerRef.current || window.document.body).removeChild(ta); return true; } }, []);
   const copySection = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedSection(id); setTimeout(() => setCopiedSection(null), 2000); } }, [copyToClipboard]);
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
-  /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
+  /* ======= FORMAT HELPERS FOR COPY ======= */
   const formatSentenceFieldLines = useCallback((text) => {
     const sentences = splitBySentence(text);
     const lines = []; let n = 1;
@@ -466,6 +527,20 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     return lines;
   }, [splitBySentence]);
 
+  /* object → copy lines (recursive, STACKED — label own line, numbered value; never "Label: value") */
+  const objectCopyLines = useCallback((label, value, indent) => {
+    const pad = '  '.repeat(indent); const out = [];
+    if (isEmptyDeep(value)) return out;
+    if (isScalar(value)) {
+      if (label) out.push(`${pad}${label}`);
+      out.push(`${pad}1. ${fmtScalar(value)}`);
+      return out;
+    }
+    if (label) out.push(`${pad}${label}`);
+    Object.entries(value).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => out.push(...objectCopyLines(humanizeKey(k), v, indent + (label ? 1 : 0))));
+    return out;
+  }, []);
+
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
     let text = `${title}\n${'='.repeat(40)}\n\n`;
@@ -474,45 +549,30 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
-      if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
-      } else if (OBJECT_FIELDS.includes(f)) {
-        if (typeof val === 'object' && !Array.isArray(val)) {
-          text += `${label}\n`;
-          const walk = (obj, indent) => {
-            Object.entries(obj).forEach(([k, v]) => {
-              if (!hasVal(v)) return;
-              const lbl = k.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).trim();
-              const isDisplayObj = v && typeof v === 'object' && !Array.isArray(v) && (v.value !== undefined || v.percentPredicted !== undefined) && Object.keys(v).every(kk => kk === 'value' || kk === 'percentPredicted');
-              if (v && typeof v === 'object' && !Array.isArray(v) && !isDisplayObj) {
-                text += `${'  '.repeat(indent)}${lbl}:\n`;
-                walk(v, indent + 1);
-              } else {
-                text += `${'  '.repeat(indent)}${lbl}: ${fmtVal(v)}\n`;
-              }
-            });
-          };
-          walk(val, 1);
-          text += '\n';
-        } else {
-          text += `${label}\n${fmtVal(val)}\n\n`;
-        }
+      if (OBJECT_FIELDS.includes(f)) {
+        const lbl = sameAsTitle(label, sid) ? '' : label;
+        objectCopyLines(lbl, val, 0).forEach(l => { text += `${l}\n`; });
+        text += '\n';
+      } else if (DATE_FIELDS.includes(f)) {
+        text += `${label}\n1. ${formatDate(val)}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
+        const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n`;
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
         if (sentences.length > 1) {
-          text += `${label}\n`;
+          text += labelLine;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${label}\n1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    return text === header ? '' : text;
+  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines, objectCopyLines]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== PULMONARY FUNCTION TESTS ===\n\n';
@@ -527,7 +587,7 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
-  /* ═══════ RENDER: DATE FIELD ═══════ */
+  /* ======= RENDER: DATE FIELD ======= */
   const renderDateField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const editKey = `${fn}-${idx}`;
@@ -539,11 +599,11 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -562,12 +622,13 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     );
   };
 
-  /* ═══════ RENDER: STRING FIELD with splitBySentence ═══════ */
-  const renderStringField = (record, fn, idx, sid, title) => {
+  /* ======= RENDER: STRING FIELD with splitBySentence ======= */
+  const renderStringField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
     const label = FIELD_LABELS[fn] || fn;
+    const showSubLabel = !sameAsTitle(label, sid);
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     /* Multi-sentence: render with splitBySentence */
@@ -578,7 +639,7 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -608,7 +669,7 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
                                   <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                                   {saveError && <div className="save-error">{saveError}</div>}
                                   <div className="edit-actions">
-                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const currentVal2 = String(getFieldValue(record, fn, idx) || ''); const sentences2 = splitBySentence(currentVal2); const s2 = sentences2[sIdx] || ''; const p2 = parseLabel(s2); if (!p2.isLabeled) return; const items2 = splitByComma(p2.value); const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s); if (subParts.length > 1) { items2.splice(ciIdx, 1, ...subParts); } else { items2[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); } const rebuilt = `${p2.label}: ${items2.join(', ')}.`; const allS = [...sentences2]; allS[sIdx] = rebuilt; const fullText2 = reconstructFullText(allS); stageSentenceDraft(record, fn, idx, sid, fullText2); const marks = { [commaKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ciIdx + ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); setSaveError(null); }}>{saving ? 'Saving...' : 'Save'}</button>
+                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const currentVal2 = String(getFieldValue(record, fn, idx) || ''); const sentences2 = splitBySentence(currentVal2); const s2 = sentences2[sIdx] || ''; const p2 = parseLabel(s2); if (!p2.isLabeled) return; const items2 = splitByComma(p2.value); const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s); if (subParts.length > 1) { items2.splice(ciIdx, 1, ...subParts); } else { items2[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); } const rebuilt = `${p2.label}: ${items2.join(', ')}.`; const allS = [...sentences2]; allS[sIdx] = rebuilt; const fullText2 = reconstructFullText(allS); setSaveError(null); stageDraft(record, idx, sid, fn, fullText2); const marks = { [commaKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ciIdx + ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
                                     <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                                   </div>
                                 </div>
@@ -638,7 +699,7 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
                         <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                         {saveError && <div className="save-error">{saveError}</div>}
                         <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const sentences2 = splitBySentence(String(getFieldValue(record, fn, idx) || '')); sentences2[sIdx] = reconstructed; const fullText = reconstructFullText(sentences2); stageSentenceDraft(record, fn, idx, sid, fullText); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); setSaveError(null); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
+                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const sentences2 = splitBySentence(String(getFieldValue(record, fn, idx) || '')); sentences2[sIdx] = reconstructed; const fullText = reconstructFullText(sentences2); setSaveError(null); stageDraft(record, idx, sid, fn, fullText); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
                           <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                         </div>
                       </div>
@@ -665,7 +726,7 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -688,33 +749,67 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     );
   };
 
-  /* ═══════ RENDER: OBJECT LEAF (editable scalar within a nested object) ═══════ */
-  const prettyKey = useCallback((k) => k.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).replace(/\bFev1\b/i, 'FEV1').replace(/\bFvc\b/i, 'FVC').replace(/\bDlco\b/i, 'DLCO').trim(), []);
-
-  const renderObjectLeaf = (record, fn, idx, sid, dotPath, leafKey, leafVal) => {
-    const fullPath = `${fn}.${dotPath}`;
-    const editKey = `${fullPath}-${idx}`;
-    const isEditing = editingField === editKey;
-    const isModified = editedFields[editKey];
-    const strVal = fmtVal(leafVal);
-    const label = prettyKey(leafKey);
+  /* ======= RENDER: OBJECT LEAF (editable; number+unit -> −/+ stepper, pure-number -> bare stepper,
+     "4/5" ratio -> stepper + /denom, boolean -> Yes/No select, narrative/text -> textarea) ======= */
+  const renderObjectLeaf = (record, rootField, path, idx, sid, value) => {
+    const leafValueString = fmtScalar(value);
+    const leafKey = `${rootField}-${idx}-${path.join('.')}`;
+    const isEditing = editingField === leafKey;
+    const isModified = editedFields[leafKey];
+    const isBool = typeof value === 'boolean';
+    const ratio = isBool ? null : splitRatio(leafValueString);
+    const nu = (isBool || ratio) ? null : splitNumberUnit(leafValueString);
+    const editStartValue = isBool ? (value ? 'yes' : 'no') : ratio ? ratio.num : nu ? nu.num : leafValueString;
+    const leafStep = stepFor(ratio ? ratio.num : nu ? nu.num : editValue);
+    const leafNum = parseFloat(editValue); const leafSafeNum = Number.isFinite(leafNum) ? leafNum : 0;
+    const leafRound = (n) => { const p = String(leafStep).includes('.') ? String(leafStep).split('.')[1].length : 0; return Number(n.toFixed(p)); };
     return (
-      <div key={leafKey} className="rec-mini-card">
-        <div className="object-leaf-label">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
+      <div key={path[path.length - 1]} className="nested-mini-card">
+        <div className="nested-subtitle sub-label">{highlightText(humanizeKey(path[path.length - 1]))}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(leafKey); setEditValue(editStartValue); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              {isBool ? (
+                <BlueSelect value={editValue === 'yes' ? 'Yes' : 'No'} options={['Yes', 'No']} onChange={v => setEditValue(v === 'Yes' ? 'yes' : 'no')} />
+              ) : (ratio || nu) ? (
+                <div className="number-edit-row">
+                  <div className="num-stepper-row">
+                    <button className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(leafRound(leafSafeNum - leafStep))); }}>&minus;</button>
+                    <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} onClick={e => e.stopPropagation()} autoFocus />
+                    <button className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(leafRound(leafSafeNum + leafStep))); }}>+</button>
+                  </div>
+                  {ratio ? <span className="number-edit-unit">{`/ ${ratio.denom}`}</span> : (nu.unit && <span className="number-edit-unit">{nu.unit}</span>)}
+                </div>
+              ) : (
+                <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              )}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fullPath, idx, sid, null, editValue, editKey); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => {
+                  e.stopPropagation();
+                  let newVal;
+                  if (isBool) {
+                    newVal = editValue === 'yes';
+                  } else if (ratio) {
+                    const n = parseFloat(editValue);
+                    if (isNaN(n)) { setSaveError('Please enter a valid number'); return; }
+                    newVal = `${n}/${ratio.denom}`;
+                  } else if (nu) {
+                    const n = parseFloat(editValue);
+                    if (isNaN(n)) { setSaveError('Please enter a valid number'); return; }
+                    newVal = nu.unit ? `${n}${nu.sep || ' '}${nu.unit}` : String(n);
+                  } else {
+                    newVal = editValue.trim();
+                  }
+                  saveLeaf(record, rootField, path, idx, sid, leafKey, newVal);
+                }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
           ) : (
             <>
-              <div className="row-content"><span className="content-value">{highlightText(strVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${strVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <div className="row-content"><span className="content-value">{highlightText(leafValueString)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[leafKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${humanizeKey(path[path.length - 1])}\n${leafValueString}`, leafKey); }}>{copiedItems[leafKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -723,58 +818,52 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     );
   };
 
-  /* ═══════ RENDER: OBJECT NODE (recursive — walks nested objects) ═══════ */
-  const renderObjectNode = (record, fn, idx, sid, dotPath, nodeKey, nodeVal, depth) => {
-    if (!hasVal(nodeVal)) return null;
-    /* Scalar leaf (or {value,percentPredicted}-style display object that fmtVal flattens) */
-    const isPlainScalar = nodeVal === null || typeof nodeVal !== 'object' || Array.isArray(nodeVal);
-    const isDisplayObj = typeof nodeVal === 'object' && !Array.isArray(nodeVal) &&
-      (nodeVal.value !== undefined || nodeVal.percentPredicted !== undefined) &&
-      Object.keys(nodeVal).every(k => k === 'value' || k === 'percentPredicted');
-    if (isPlainScalar || isDisplayObj) {
-      return renderObjectLeaf(record, fn, idx, sid, dotPath, nodeKey, nodeVal);
-    }
-    /* Nested object — recurse */
+  /* ======= RENDER: OBJECT NODE (recursive; humanizeKey sub-label + nested-mini-card; editable leaves) ======= */
+  const renderObjectNode = (record, rootField, idx, sid, label, value, path, depth) => {
+    if (isEmptyDeep(value)) return null;
+    const labelClass = depth > 0 ? 'nested-subtitle sub-label' : 'nested-subtitle';
+    if (isScalar(value)) return renderObjectLeaf(record, rootField, path, idx, sid, value);
+    const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
+    if (entries.length === 0) return null;
     return (
-      <div key={nodeKey} className="object-node">
-        <div className="object-node-title">{highlightText(prettyKey(nodeKey))}</div>
-        {Object.entries(nodeVal).filter(([, v]) => hasVal(v)).map(([k, v]) =>
-          renderObjectNode(record, fn, idx, sid, `${dotPath}.${k}`, k, v, depth + 1)
-        )}
-      </div>
+      <React.Fragment key={path.join('-') || rootField}>
+        {label && <div className={labelClass}>{highlightText(label)}</div>}
+        <div className="nested-group">
+          {entries.map(([k, v]) => (
+            isScalar(v) ? renderObjectLeaf(record, rootField, [...path, k], idx, sid, v)
+              : <div className="nested-mini-card" key={k}>{renderObjectNode(record, rootField, idx, sid, humanizeKey(k), v, [...path, k], depth + 1)}</div>
+          ))}
+        </div>
+      </React.Fragment>
     );
   };
 
-  /* ═══════ RENDER: OBJECT FIELD (top-level recursive object) ═══════ */
+  /* ======= RENDER: TOP-LEVEL OBJECT FIELD (STACKED, single-name gated) ======= */
   const renderObjectField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx);
-    if (!hasVal(val)) return null;
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val) || isScalar(val)) return null;
     const label = FIELD_LABELS[fn] || fn;
+    const showSubLabel = !sameAsTitle(label, sid);
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-    /* Non-object value fell into an object slot — render as string */
-    if (typeof val !== 'object' || Array.isArray(val)) {
-      return renderStringField(record, fn, idx, sid);
-    }
-    const entries = Object.entries(val).filter(([, v]) => hasVal(v));
+    const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
     if (entries.length === 0) return null;
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        {entries.map(([k, v]) => renderObjectNode(record, fn, idx, sid, k, k, v, 0))}
+        {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        {entries.map(([k, v]) => (
+          isScalar(v) ? renderObjectLeaf(record, fn, [k], idx, sid, v)
+            : <div className="nested-mini-card" key={k}>{renderObjectNode(record, fn, idx, sid, humanizeKey(k), v, [k], 1)}</div>
+        ))}
       </div>
     );
   };
 
-  /* ═══════ RENDER: GENERIC SECTION ═══════ */
+  /* ======= RENDER: GENERIC SECTION ======= */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
     if (!shouldShowSection(record, sid)) return null;
     const fields = SECTION_FIELDS[sid] || [];
 
-    const hasAnyVal = fields.some(f => {
-      const val = getFieldValue(record, f, idx);
-      return hasVal(val);
-    });
+    const hasAnyVal = fields.some(f => hasVal(getFieldValue(record, f, idx)));
     if (!hasAnyVal) return null;
 
     const copyId = `${sid}-${idx}`;
@@ -789,16 +878,16 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
-            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (OBJECT_FIELDS.includes(f)) return renderObjectField(record, f, idx, sid);
-            return renderStringField(record, f, idx, sid, title);
+            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
+            return renderStringField(record, f, idx, sid);
           })}
         </div>
       </div>
     );
   };
 
-  /* ═══════ CHART COMPONENTS ═══════ */
+  /* ======= CHART COMPONENTS ======= */
   const Legend = () => (
     <div className="chart-legend">
       <div className="legend-item"><div className="legend-color" style={{ backgroundColor: '#22c55e' }} /><span>Normal (80%+)</span></div>
@@ -821,7 +910,7 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
     </div>
   );
 
-  /* ═══════ MAIN RENDER ═══════ */
+  /* ======= MAIN RENDER ======= */
   if (!records || records.length === 0) {
     return (
       <div className="pulmonary-function-tests-document" ref={containerRef}>
@@ -837,7 +926,7 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pulmonary Function Tests</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PulmonaryFunctionTestsDocumentPDFTemplate document={pdfData} />} fileName={`pulmonary-function-tests-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PulmonaryFunctionTestsDocumentPDFTemplate document={pdfData} />} fileName="Pulmonary_Function_Tests.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -849,16 +938,10 @@ const PulmonaryFunctionTestsDocument = ({ document: docProp }) => {
       <div className="records-container">
         {filteredRecords.map((record, idx) => {
           const chartData = prepareChartData(record);
-          const testDate = record.date || record.testDate;
           return (
             <div key={idx} className="record-card">
               <div className="record-header">
-                {hasVal(testDate) && (
-                  <div className="record-meta-row">
-                    <span className="record-date">{formatDate(testDate)}</span>
-                  </div>
-                )}
-                <h3 className="record-name">{highlightText(`PFT ${idx + 1}`)}</h3>
+                <h3 className="record-name">{highlightText(`Pulmonary Function Test ${idx + 1}`)}</h3>
               </div>
               {/* Score Overview Bar Chart */}
               {chartData.length > 0 && (

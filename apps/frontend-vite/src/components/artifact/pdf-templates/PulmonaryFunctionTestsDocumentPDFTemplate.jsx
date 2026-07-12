@@ -1,320 +1,259 @@
+/**
+ * PulmonaryFunctionTestsDocumentPDFTemplate.jsx
+ * Box-free canonical PDF - Helvetica - LETTER - pulmonary function tests
+ * Collection: pulmonary_function_tests
+ */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * PulmonaryFunctionTestsDocumentPDFTemplate - March 2026 Standards
- *
- * Features:
- * - Helvetica font (NOT Courier)
- * - LETTER page size
- * - Large fonts (20pt title, 12pt content)
- * - Bar chart visualization for PFT scores
- * - Keep-With-Next pattern (wrap={false})
- * - String() wrapping for all dynamic values
- */
-
 const styles = StyleSheet.create({
-  page: {
-    backgroundColor: '#FFFFFF',
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-  },
-  documentHeader: {
-    marginBottom: 20,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 12,
-  },
-  title: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  recordHeader: {
-    marginTop: 16,
-    marginBottom: 12,
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#000000',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-    paddingBottom: 4,
-    marginBottom: 8,
-  },
-  row: {
-    flexDirection: 'row',
-    marginBottom: 4,
-    paddingLeft: 12,
-  },
-  label: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    width: 140,
-  },
-  value: {
-    fontSize: 12,
-    flex: 1,
-  },
-  line: {
-    fontSize: 12,
-    marginBottom: 4,
-    color: '#000000',
-    lineHeight: 1.5,
-    paddingLeft: 12,
-  },
-  divider: {
-    marginTop: 20,
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#CCCCCC',
-  },
-  noData: {
-    fontSize: 12,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 40,
-  },
-  chartSection: {
-    marginBottom: 16,
-    padding: 12,
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-    borderRadius: 4,
-  },
-  legendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#dee2e6',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 2,
-  },
-  legendText: {
-    fontSize: 8,
-    color: '#495057',
-  },
-  barChartRow: {
-    marginBottom: 10,
-  },
-  barLabel: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#333333',
-    marginBottom: 4,
-  },
-  barContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 20,
-  },
-  barBackground: {
-    flex: 1,
-    height: 16,
-    backgroundColor: '#e5e5e5',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  barValue: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#333333',
-    marginLeft: 8,
-    width: 50,
-    textAlign: 'right',
-  },
-  barInterpretation: {
-    fontSize: 9,
-    marginTop: 2,
-    paddingLeft: 4,
-  },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 8, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  noDataText: { fontSize: 14, color: '#000000', textAlign: 'center', marginTop: 40 },
 });
 
-/* ═══════ HELPERS ═══════ */
-const hasValue = (val) => {
-  if (val === null || val === undefined || val === '') return false;
-  if (typeof val === 'object' && !Array.isArray(val)) {
-    const keys = Object.keys(val);
-    if (keys.length === 0) return false;
-    return Object.values(val).some(v => {
-      if (v === null || v === undefined || v === '') return false;
-      if (typeof v === 'object' && !Array.isArray(v)) return hasValue(v);
-      if (Array.isArray(v)) return v.length > 0;
-      return true;
-    });
-  }
-  if (Array.isArray(val)) return val.length > 0;
+/* ======= UTILS ======= */
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr.$date || dateStr);
+    if (isNaN(date.getTime())) return String(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(dateStr); }
+};
+
+/* safeString: \u-escapes only (no literal smart-quotes / invisible chars) */
+const safeString = (val) => {
+  if (val === null || val === undefined) return '';
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s
+    .replace(/\u00d7/g, 'x')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/[\u00b5\u03bc]/g, 'u')
+    .replace(/\u00b0/g, ' deg').replace(/\u00b1/g, '+/-')
+    .replace(/\u2265/g, '>=').replace(/\u2264/g, '<=').replace(/\u2192/g, '->');
+};
+
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return !isEmptyDeep(v);
   return true;
 };
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'object') {
-    if (val.value !== undefined && val.value !== null) return String(val.value);
-    if (val.percentPredicted !== undefined && val.percentPredicted !== null) return String(val.percentPredicted);
-    return '';
+const fmtVal = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return String(v);
+  return String(v || '');
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+/* splitByComma: parenthesis-aware with Oxford ("and"/"or") + numeric-thousands guards */
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) {
+      const rest = text.slice(i + 1).replace(/^\s+/, '');
+      if (/^(and|or)\b/i.test(rest) || /^\d/.test(text[i + 1] || '')) { current += ch; }
+      else { const t = current.trim(); if (t) result.push(t); current = ''; }
+    }
+    else { current += ch; }
   }
-  return String(val);
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
 };
 
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateString); }
+/* ======= OBJECT (recursive) HELPERS ======= */
+const KEY_OVERRIDES = {
+  fev1: 'FEV1',
+  fvc: 'FVC',
+  fev1FvcRatio: 'FEV1/FVC Ratio',
+  fef2575: 'FEF 25-75',
+  rvTlcRatio: 'RV/TLC Ratio',
+  totalLungCapacity: 'Total Lung Capacity',
+  residualVolume: 'Residual Volume',
+  functionalResidualCapacity: 'Functional Residual Capacity',
+  dlco: 'DLCO',
+  dlcoUncorrected: 'DLCO Uncorrected',
+  dlcoCorrectedForHgb: 'DLCO Corrected for Hgb',
+  alveolarVolume: 'Alveolar Volume',
+  kco: 'KCO',
+  fev1Improvement: 'FEV1 Improvement',
+  fev1PercentImprovement: 'FEV1 % Improvement',
+  fvcImprovement: 'FVC Improvement',
+  fvcPercentImprovement: 'FVC % Improvement',
 };
+const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+function isEmptyDeep(v) {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'boolean') return false;
+  if (typeof v === 'number') return !Number.isFinite(v);
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
+  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+  return false;
+}
+const isScalar = (v) => v === null || typeof v !== 'object';
+const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
 
-const extractPftPercentage = (val) => {
-  if (!val) return null;
-  const str = safeString(val);
-  if (!str) return null;
-  const percentMatch = str.match(/(\d+(?:\.\d+)?)\s*%/);
-  if (percentMatch) return parseFloat(percentMatch[1]);
-  const numMatch = str.match(/^(\d+(?:\.\d+)?)$/);
-  if (numMatch) return parseFloat(numMatch[1]);
-  return null;
+/* ======= CONFIG (mirrors JSX) ======= */
+const SECTION_TITLES = {
+  'test-info': 'Test Information',
+  'pre-bronchodilator': 'Pre-Bronchodilator',
+  'post-bronchodilator': 'Post-Bronchodilator',
+  'interpretation-section': 'Interpretation',
+  'lung-volumes': 'Lung Volumes',
+  'diffusion-capacity': 'Diffusion Capacity',
+  'bronchodilator-response': 'Bronchodilator Response',
+  'exercise-testing': 'Exercise Testing',
+  'quality-section': 'Quality Assessment',
 };
-
-/* Grayscale-only (B&W PDF): darker shade = better result, lighter = worse */
-const getPftColor = (pct) => { if (pct >= 80) return '#333333'; if (pct >= 60) return '#595959'; if (pct >= 40) return '#808080'; return '#A6A6A6'; };
-const getPftInterpretation = (pct) => { if (pct >= 80) return 'Normal'; if (pct >= 60) return 'Mildly Reduced'; if (pct >= 40) return 'Moderately Reduced'; return 'Severely Reduced'; };
-const getRatioColor = (pct) => { if (pct >= 80) return '#333333'; if (pct >= 70) return '#595959'; if (pct >= 60) return '#808080'; return '#A6A6A6'; };
-const getRatioInterpretation = (pct) => { if (pct >= 80) return 'Normal'; if (pct >= 70) return 'Low Normal'; if (pct >= 60) return 'Mild Obstruction'; return 'Significant Obstruction'; };
-
-const prepareChartData = (test) => {
-  const charts = [];
-  const pre = test.preBronchodilator || {};
-  const fev1Pct = extractPftPercentage(pre.fev1?.percentPredicted || pre.fev1?.value || test.fev1?.percentPredicted || test.fev1?.value);
-  if (fev1Pct !== null && fev1Pct > 0) charts.push({ label: 'FEV1 (% Predicted)', percentage: Math.min(100, fev1Pct), rawValue: `${fev1Pct}%`, color: getPftColor(fev1Pct), interpretation: getPftInterpretation(fev1Pct) });
-  const fvcPct = extractPftPercentage(pre.fvc?.percentPredicted || pre.fvc?.value || test.fvc?.percentPredicted || test.fvc?.value);
-  if (fvcPct !== null && fvcPct > 0) charts.push({ label: 'FVC (% Predicted)', percentage: Math.min(100, fvcPct), rawValue: `${fvcPct}%`, color: getPftColor(fvcPct), interpretation: getPftInterpretation(fvcPct) });
-  let ratioVal = pre.fev1FvcRatio || test.fev1FvcRatio; if (typeof ratioVal === 'object' && ratioVal?.value) ratioVal = ratioVal.value;
-  const ratioPct = extractPftPercentage(ratioVal);
-  if (ratioPct !== null && ratioPct > 0) charts.push({ label: 'FEV1/FVC Ratio', percentage: Math.min(100, ratioPct), rawValue: `${ratioPct}%`, color: getRatioColor(ratioPct), interpretation: getRatioInterpretation(ratioPct) });
-  const dlcoPct = extractPftPercentage(test.dlco?.percentPredicted || test.dlco?.value || test.dlco);
-  if (dlcoPct !== null && dlcoPct > 0) charts.push({ label: 'DLCO (% Predicted)', percentage: Math.min(100, dlcoPct), rawValue: `${dlcoPct}%`, color: getPftColor(dlcoPct), interpretation: getPftInterpretation(dlcoPct) });
-  return charts;
+const SECTION_ORDER = ['test-info', 'pre-bronchodilator', 'post-bronchodilator', 'interpretation-section', 'lung-volumes', 'diffusion-capacity', 'bronchodilator-response', 'exercise-testing', 'quality-section'];
+const SECTION_FIELDS = {
+  'test-info': ['testDate', 'date', 'provider', 'technician', 'qualityGrade'],
+  'pre-bronchodilator': ['preBronchodilator'],
+  'post-bronchodilator': ['postBronchodilator'],
+  'interpretation-section': ['interpretation', 'reversibility'],
+  'lung-volumes': ['lungVolumes', 'comprehensiveLungVolumes', 'predictedPostoperativeFev1'],
+  'diffusion-capacity': ['dlco', 'dlcoComprehensive'],
+  'bronchodilator-response': ['bronchodilatorResponse'],
+  'exercise-testing': ['sixMinuteWalkTest', 'cardiopulmonaryExerciseTest'],
+  'quality-section': ['qualityAssessment', 'flowVolumeLoop'],
 };
+const FIELD_LABELS = {
+  testDate: 'Test Date', date: 'Date', provider: 'Provider', technician: 'Technician', qualityGrade: 'Quality Grade',
+  preBronchodilator: 'Pre-Bronchodilator', postBronchodilator: 'Post-Bronchodilator',
+  interpretation: 'Interpretation', reversibility: 'Reversibility',
+  lungVolumes: 'Lung Volumes', comprehensiveLungVolumes: 'Comprehensive Lung Volumes', predictedPostoperativeFev1: 'Predicted Postoperative FEV1',
+  dlco: 'DLCO', dlcoComprehensive: 'DLCO Comprehensive', bronchodilatorResponse: 'Bronchodilator Response',
+  sixMinuteWalkTest: 'Six-Minute Walk Test', cardiopulmonaryExerciseTest: 'Cardiopulmonary Exercise Test',
+  qualityAssessment: 'Quality Assessment', flowVolumeLoop: 'Flow-Volume Loop',
+};
+const DATE_FIELDS = ['testDate', 'date'];
+const OBJECT_FIELDS = ['preBronchodilator', 'postBronchodilator', 'lungVolumes', 'comprehensiveLungVolumes', 'predictedPostoperativeFev1', 'dlcoComprehensive', 'bronchodilatorResponse', 'sixMinuteWalkTest', 'cardiopulmonaryExerciseTest', 'qualityAssessment', 'flowVolumeLoop'];
 
-const PDFLegend = () => (
-  <View style={styles.legendContainer}>
-    <View style={styles.legendItem}><View style={[styles.legendColor, { backgroundColor: '#333333' }]} /><Text style={styles.legendText}>Normal (80%+)</Text></View>
-    <View style={styles.legendItem}><View style={[styles.legendColor, { backgroundColor: '#595959' }]} /><Text style={styles.legendText}>Mild (60-79%)</Text></View>
-    <View style={styles.legendItem}><View style={[styles.legendColor, { backgroundColor: '#808080' }]} /><Text style={styles.legendText}>Moderate (40-59%)</Text></View>
-    <View style={styles.legendItem}><View style={[styles.legendColor, { backgroundColor: '#A6A6A6' }]} /><Text style={styles.legendText}>Severe (&lt;40%)</Text></View>
-  </View>
-);
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
 
-const PDFBarChart = ({ label, percentage, rawValue, color, interpretation }) => (
-  <View style={styles.barChartRow}>
-    <Text style={styles.barLabel}>{String(label)}</Text>
-    <View style={styles.barContainer}>
-      <View style={styles.barBackground}>
-        <View style={[styles.barFill, { width: `${Math.min(100, Math.max(0, percentage))}%`, backgroundColor: color }]} />
-      </View>
-      <Text style={styles.barValue}>{String(rawValue)}</Text>
-    </View>
-    {interpretation && <Text style={[styles.barInterpretation, { color }]}>{String(interpretation)}</Text>}
-  </View>
-);
+/* ======= FLAT ELEMENT BUILDERS (each returns an array of small <Text> elements) ======= */
+const labelEl = (f, key) => <Text key={key} style={styles.fieldLabel}>{FIELD_LABELS[f] || f}</Text>;
 
-/* ═══════ OBJECT RENDERERS (recursive, grayscale) ═══════ */
-const prettyKey = (k) => k.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase())
-  .replace(/\bFev1\b/i, 'FEV1').replace(/\bFvc\b/i, 'FVC').replace(/\bDlco\b/i, 'DLCO').trim();
-
-const isDisplayObj = (v) => v && typeof v === 'object' && !Array.isArray(v) &&
-  (v.value !== undefined || v.percentPredicted !== undefined) &&
-  Object.keys(v).every(k => k === 'value' || k === 'percentPredicted');
-
-/* countObjectLeaves: how many printable rows the object yields (for wrap-gating) */
-const countObjectLeaves = (val) => {
-  if (!hasValue(val) || typeof val !== 'object' || Array.isArray(val)) return val !== undefined ? 1 : 0;
-  let n = 0;
-  Object.values(val).forEach(v => {
-    if (!hasValue(v)) return;
-    if (v && typeof v === 'object' && !Array.isArray(v) && !isDisplayObj(v)) n += 1 + countObjectLeaves(v);
-    else n += 1;
+/* string field -> bare label + sentence/comma value lines (mirrors JSX renderStringField display) */
+const stringFieldEls = (f, val, showLabel) => {
+  const strVal = fmtVal(val);
+  const sentences = splitBySentence(strVal);
+  const els = [];
+  if (showLabel) els.push(labelEl(f, `${f}-l`));
+  if (sentences.length <= 1) {
+    els.push(<Text key={`${f}-v`} style={styles.value}>{safeString(strVal)}</Text>);
+    return els;
+  }
+  let n = 1;
+  sentences.forEach((s, si) => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      els.push(<Text key={`${f}-sl${si}`} style={styles.subLabel}>{safeString(parsed.label)}</Text>);
+      if (parts.length >= 2) parts.forEach((p, pi) => els.push(<Text key={`${f}-s${si}c${pi}`} style={styles.listItem}>{`${n++}. ${safeString(p)}`}</Text>));
+      else els.push(<Text key={`${f}-s${si}v`} style={styles.listItem}>{`${n++}. ${safeString(parsed.value)}`}</Text>);
+    } else {
+      els.push(<Text key={`${f}-s${si}`} style={styles.listItem}>{`${n++}. ${safeString(s)}`}</Text>);
+    }
   });
-  return n;
+  return els;
 };
 
-const PDFObjectNode = ({ nodeKey, nodeVal, depth }) => {
-  if (!hasValue(nodeVal)) return null;
-  if (nodeVal === null || typeof nodeVal !== 'object' || Array.isArray(nodeVal) || isDisplayObj(nodeVal)) {
-    return <Text style={styles.line}>{'  '.repeat(depth)}{prettyKey(nodeKey)}: {safeString(nodeVal)}</Text>;
+/* recursive object node -> flat STACKED elements (sub-label humanizeKey ABOVE value; nested nodes recurse) */
+const objectNodeEls = (label, value, keyPath, depth) => {
+  if (isEmptyDeep(value)) return [];
+  if (isScalar(value)) {
+    const els = [];
+    if (label) els.push(<Text key={`${keyPath}-l`} style={depth <= 1 ? styles.fieldLabel : styles.subLabel}>{safeString(label)}</Text>);
+    els.push(<Text key={`${keyPath}-v`} style={styles.value}>{safeString(fmtScalar(value))}</Text>);
+    return els;
   }
-  return (
-    <View>
-      <Text style={[styles.line, { fontFamily: 'Helvetica-Bold' }]}>{'  '.repeat(depth)}{prettyKey(nodeKey)}:</Text>
-      {Object.entries(nodeVal).filter(([, v]) => hasValue(v)).map(([k, v], i) => (
-        <PDFObjectNode key={i} nodeKey={k} nodeVal={v} depth={depth + 1} />
-      ))}
-    </View>
-  );
+  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
+  if (entries.length === 0) return [];
+  const els = [];
+  if (label) els.push(<Text key={`${keyPath}-l`} style={depth <= 1 ? styles.fieldLabel : styles.subLabel}>{safeString(label)}</Text>);
+  entries.forEach(([k, v]) => els.push(...objectNodeEls(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1)));
+  return els;
 };
 
-/* ═══════ MAIN PDF TEMPLATE ═══════ */
-const PulmonaryFunctionTestsDocumentPDFTemplate = ({ document: doc }) => {
-  const data = doc?.documentData || doc?.data || doc;
-  let records = [];
+/* top-level OBJECT field -> flat stacked elements. showLabel emits the object label (single-name gated) */
+const objectFieldEls = (f, val, showLabel) => {
+  if (isEmptyDeep(val) || isScalar(val)) return [];
+  const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
+  if (entries.length === 0) return [];
+  const els = [];
+  if (showLabel) els.push(labelEl(f, `${f}-l`));
+  entries.forEach(([k, v]) => els.push(...objectNodeEls(humanizeKey(k), v, `${f}-${k}`, 1)));
+  return els;
+};
 
-  if (Array.isArray(doc)) {
-    records = doc;
-  } else if (data?.pulmonary_function_tests) {
-    records = Array.isArray(data.pulmonary_function_tests) ? data.pulmonary_function_tests : [data.pulmonary_function_tests];
-  } else if (data?.data?.pulmonary_function_tests) {
-    records = Array.isArray(data.data.pulmonary_function_tests) ? data.data.pulmonary_function_tests : [data.data.pulmonary_function_tests];
-  } else if (Array.isArray(data)) {
-    records = data;
-  } else if (data && typeof data === 'object') {
-    records = [data];
-  }
+/* dispatch one field -> flat element array */
+const fieldEls = (record, f, sid) => {
+  const val = record[f];
+  if (!hasVal(val)) return [];
+  const label = FIELD_LABELS[f] || f;
+  const showLabel = !sameAsTitle(label, sid);
+  if (OBJECT_FIELDS.includes(f)) return objectFieldEls(f, val, showLabel);
+  if (DATE_FIELDS.includes(f)) return [labelEl(f, `${f}-l`), <Text key={`${f}-v`} style={styles.value}>{formatDate(val)}</Text>];
+  return stringFieldEls(f, val, showLabel);
+};
 
-  if (!Array.isArray(records)) records = [];
-  const validRecords = records.filter(r => r && typeof r === 'object');
+/* ======= COMPONENT ======= */
+const PulmonaryFunctionTestsDocumentPDFTemplate = ({ document: data }) => {
+  const records = React.useMemo(() => {
+    if (!data) return [];
+    let arr = Array.isArray(data) ? data : [data];
+    arr = arr.flatMap(r => {
+      if (r?.pulmonary_function_tests) return Array.isArray(r.pulmonary_function_tests) ? r.pulmonary_function_tests : [r.pulmonary_function_tests];
+      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.pulmonary_function_tests) return Array.isArray(dd.pulmonary_function_tests) ? dd.pulmonary_function_tests : [dd.pulmonary_function_tests]; return [dd]; }
+      return [r];
+    });
+    return arr.filter(r => r && typeof r === 'object');
+  }, [data]);
 
-  if (validRecords.length === 0) {
+  if (!records || records.length === 0) {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}><Text style={styles.title}>Pulmonary Function Tests</Text></View>
-          <Text style={styles.noData}>No pulmonary function tests available</Text>
+          <Text style={styles.documentTitle}>Pulmonary Function Tests</Text>
+          <Text style={styles.noDataText}>No data available</Text>
         </Page>
       </Document>
     );
@@ -323,132 +262,33 @@ const PulmonaryFunctionTestsDocumentPDFTemplate = ({ document: doc }) => {
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Pulmonary Function Tests</Text></View>
-        {validRecords.map((test, idx) => {
-          const testDate = test.date || test.testDate;
-          const chartData = prepareChartData(test);
-          return (
-            <View key={idx} wrap={false} minPresenceAhead={80}>
-              <View style={styles.recordHeader}>
-                <Text style={styles.recordTitle}>PFT {idx + 1} - {formatDate(testDate)}</Text>
-              </View>
+        <Text style={styles.documentTitle}>Pulmonary Function Tests</Text>
 
-              {/* Score Overview */}
-              {chartData.length > 0 && (
-                <View style={styles.chartSection}>
-                  <Text style={styles.sectionTitle}>Score Overview</Text>
-                  <PDFLegend />
-                  {chartData.map((chart, cIdx) => (
-                    <PDFBarChart key={cIdx} label={chart.label} percentage={chart.percentage} rawValue={chart.rawValue} color={chart.color} interpretation={chart.interpretation} />
-                  ))}
-                </View>
-              )}
-
-              {/* Test Information */}
-              {(hasValue(test.provider) || hasValue(test.technician) || hasValue(test.qualityGrade)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Test Information</Text>
-                  {hasValue(test.provider) && <View style={styles.row}><Text style={styles.label}>Provider:</Text><Text style={styles.value}>{String(test.provider || '')}</Text></View>}
-                  {hasValue(test.technician) && <View style={styles.row}><Text style={styles.label}>Technician:</Text><Text style={styles.value}>{String(test.technician || '')}</Text></View>}
-                  {hasValue(test.qualityGrade) && <View style={styles.row}><Text style={styles.label}>Quality Grade:</Text><Text style={styles.value}>{String(test.qualityGrade || '')}</Text></View>}
-                </View>
-              )}
-
-              {/* Pre-Bronchodilator */}
-              {hasValue(test.preBronchodilator) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Pre-Bronchodilator</Text>
-                  {hasValue(test.preBronchodilator?.fev1) && (
-                    <Text style={styles.line}>FEV1: {safeString(test.preBronchodilator.fev1.percentPredicted)}{test.preBronchodilator.fev1.percentPredicted ? '% predicted' : ''}</Text>
-                  )}
-                  {hasValue(test.preBronchodilator?.fvc) && (
-                    <Text style={styles.line}>FVC: {safeString(test.preBronchodilator.fvc.percentPredicted)}{test.preBronchodilator.fvc.percentPredicted ? '% predicted' : ''}</Text>
-                  )}
-                  {test.preBronchodilator?.fev1FvcRatio && (
-                    <Text style={styles.line}>FEV1/FVC Ratio: {typeof test.preBronchodilator.fev1FvcRatio === 'object' ? safeString(test.preBronchodilator.fev1FvcRatio) : String(test.preBronchodilator.fev1FvcRatio)}</Text>
-                  )}
-                </View>
-              )}
-
-              {/* Post-Bronchodilator */}
-              {hasValue(test.postBronchodilator) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Post-Bronchodilator</Text>
-                  {hasValue(test.postBronchodilator?.fev1) && (
-                    <Text style={styles.line}>FEV1: {safeString(test.postBronchodilator.fev1.percentPredicted)}{test.postBronchodilator.fev1.percentChange ? ` (${String(test.postBronchodilator.fev1.percentChange)} change)` : ''}</Text>
-                  )}
-                </View>
-              )}
-
-              {/* Interpretation */}
-              {(safeString(test.interpretation) || safeString(test.reversibility)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Interpretation</Text>
-                  {safeString(test.interpretation) && <Text style={styles.line}>{String(test.interpretation || '')}</Text>}
-                  {safeString(test.reversibility) && <Text style={styles.line}>Reversibility: {String(test.reversibility || '')}</Text>}
-                </View>
-              )}
-
-              {/* Lung Volumes */}
-              {(hasValue(test.lungVolumes) || hasValue(test.comprehensiveLungVolumes)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Lung Volumes</Text>
-                  {hasValue(test.lungVolumes) && <Text style={styles.line}>{safeString(test.lungVolumes)}</Text>}
-                  {hasValue(test.comprehensiveLungVolumes) && <Text style={styles.line}>{safeString(test.comprehensiveLungVolumes)}</Text>}
-                </View>
-              )}
-
-              {/* Predicted Postoperative FEV1 */}
-              {hasValue(test.predictedPostoperativeFev1) && (
-                <View style={styles.section} wrap={countObjectLeaves(test.predictedPostoperativeFev1) > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Predicted Postoperative FEV1</Text>
-                  {typeof test.predictedPostoperativeFev1 === 'object' && !Array.isArray(test.predictedPostoperativeFev1)
-                    ? Object.entries(test.predictedPostoperativeFev1).filter(([, v]) => hasValue(v)).map(([k, v], i) => (
-                        <PDFObjectNode key={i} nodeKey={k} nodeVal={v} depth={0} />
-                      ))
-                    : <Text style={styles.line}>{safeString(test.predictedPostoperativeFev1)}</Text>}
-                </View>
-              )}
-
-              {/* Diffusion Capacity */}
-              {(hasValue(test.dlco) || hasValue(test.dlcoComprehensive)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Diffusion Capacity</Text>
-                  {hasValue(test.dlco) && <Text style={styles.line}>DLCO: {safeString(test.dlco)}</Text>}
-                  {hasValue(test.dlcoComprehensive) && <Text style={styles.line}>{safeString(test.dlcoComprehensive)}</Text>}
-                </View>
-              )}
-
-              {/* Bronchodilator Response */}
-              {hasValue(test.bronchodilatorResponse) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Bronchodilator Response</Text>
-                  <Text style={styles.line}>{safeString(test.bronchodilatorResponse)}</Text>
-                </View>
-              )}
-
-              {/* Exercise Testing */}
-              {(hasValue(test.sixMinuteWalkTest) || hasValue(test.cardiopulmonaryExerciseTest)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Exercise Testing</Text>
-                  {hasValue(test.sixMinuteWalkTest) && <Text style={styles.line}>6MWT: {safeString(test.sixMinuteWalkTest)}</Text>}
-                  {hasValue(test.cardiopulmonaryExerciseTest) && <Text style={styles.line}>CPET: {safeString(test.cardiopulmonaryExerciseTest)}</Text>}
-                </View>
-              )}
-
-              {/* Quality */}
-              {(hasValue(test.qualityAssessment) || hasValue(test.flowVolumeLoop)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Quality Assessment</Text>
-                  {hasValue(test.qualityAssessment) && <Text style={styles.line}>{safeString(test.qualityAssessment)}</Text>}
-                  {hasValue(test.flowVolumeLoop) && <Text style={styles.line}>Flow-Volume Loop: {safeString(test.flowVolumeLoop)}</Text>}
-                </View>
-              )}
-
-              {idx < validRecords.length - 1 && <View style={styles.divider} />}
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <View wrap={false}>
+              <Text style={styles.recordTitle}>{`Pulmonary Function Test ${index + 1}`}</Text>
             </View>
-          );
-        })}
+
+            {SECTION_ORDER.map((sid) => {
+              const fields = SECTION_FIELDS[sid] || [];
+              const flat = [];
+              fields.forEach(f => flat.push(...fieldEls(record, f, sid)));
+              if (flat.length === 0) return null;
+              const first = React.cloneElement(flat[0], { key: 'f0' });
+              const rest = flat.slice(1).map((el, i) => React.cloneElement(el, { key: `f${i + 1}` }));
+              return (
+                <View key={sid} style={styles.section}>
+                  <View wrap={false}>
+                    <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
+                    {first}
+                  </View>
+                  {rest}
+                </View>
+              );
+            })}
+          </View>
+        ))}
       </Page>
     </Document>
   );

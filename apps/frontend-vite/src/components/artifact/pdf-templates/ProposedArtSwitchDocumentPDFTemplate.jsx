@@ -1,76 +1,110 @@
 /**
  * ProposedArtSwitchDocumentPDFTemplate.jsx
- * June 2026 — Helvetica — LETTER size — proposed ART switch (HIV antiretroviral therapy)
+ * March 2026 — Helvetica — LETTER size — box-free — proposed ART switch (HIV antiretroviral therapy)
  * Collection: proposed_art_switch
- * NO BLUE COLORS (#606060/#9a9a9a/#bcbcbc BANNED) — #000000/#333333/#cccccc/#f5f5f5 ONLY
- * Rule #74: sectionTitle rendered INSIDE the first present field's View (no orphan siblings).
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#333333', textAlign: 'center', marginTop: 40 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 5, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginTop: 12, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 6, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
-/* ======= UTILS ======= */
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  return String(val);
+/* ═══════ CONFIG (mirrors JSX) ═══════ */
+const SECTION_TITLES = {
+  'regimen': 'Antiretroviral Regimen',
+  'rationale': 'Switch Rationale',
+  'virology': 'Virology and Immunology',
+  'safety': 'Labs and Safety',
+  'status': 'Status',
 };
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
+const FIELD_LABELS = {
+  currentAntiretroviralRegimen: 'Current Antiretroviral Regimen',
+  proposedAntiretroviralRegimen: 'Proposed Antiretroviral Regimen',
+  dosingFrequency: 'Dosing Frequency',
+  pillBurdenCurrent: 'Current Pill Burden',
+  pillBurdenProposed: 'Proposed Pill Burden',
+  reasonForSwitch: 'Reason for Switch',
+  treatmentHistory: 'Treatment History',
+  adverseEffectsReported: 'Adverse Effects Reported',
+  comorbiditiesRelevant: 'Relevant Comorbidities',
+  cd4Count: 'CD4 Count (cells/µL)',
+  cd4Percentage: 'CD4 Percentage (%)',
+  viralLoad: 'Viral Load (copies/mL)',
+  viralSuppressionStatus: 'Viral Suppression',
+  resistanceTestingResults: 'Resistance Testing Results',
+  tropismResult: 'Tropism Result',
+  hlaB5701Status: 'HLA-B*5701 Status',
+  creatinineClearance: 'Creatinine Clearance (mL/min)',
+  hepaticFunction: 'Hepatic Function',
+  hepatitisBStatus: 'Hepatitis B Status',
+  hepatitisCStatus: 'Hepatitis C Status',
+  drugInteractions: 'Drug Interactions',
+  concomitantMedications: 'Concomitant Medications',
+  adherenceScore: 'Adherence Score (%)',
+  pregnancyStatus: 'Pregnancy Status',
 };
-
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
+const SECTION_FIELDS = {
+  'regimen': ['currentAntiretroviralRegimen', 'proposedAntiretroviralRegimen', 'dosingFrequency', 'pillBurdenCurrent', 'pillBurdenProposed'],
+  'rationale': ['reasonForSwitch', 'treatmentHistory', 'adverseEffectsReported', 'comorbiditiesRelevant'],
+  'virology': ['cd4Count', 'cd4Percentage', 'viralLoad', 'viralSuppressionStatus', 'resistanceTestingResults', 'tropismResult', 'hlaB5701Status'],
+  'safety': ['creatinineClearance', 'hepaticFunction', 'hepatitisBStatus', 'hepatitisCStatus', 'drugInteractions', 'concomitantMedications', 'adherenceScore'],
+  'status': ['pregnancyStatus'],
 };
-
-/* Meaningful-zero numerics: 0 is a real clinical value, not "not recorded".
-   viralLoad === 0 means UNDETECTABLE viral load — the favorable goal of ART — and MUST always render. */
+const NUMBER_FIELDS = ['pillBurdenCurrent', 'pillBurdenProposed', 'cd4Count', 'cd4Percentage', 'viralLoad', 'creatinineClearance', 'adherenceScore'];
 const MEANINGFUL_ZERO_FIELDS = ['viralLoad'];
+const ARRAY_FIELDS = ['currentAntiretroviralRegimen', 'proposedAntiretroviralRegimen', 'treatmentHistory', 'adverseEffectsReported', 'comorbiditiesRelevant', 'resistanceTestingResults', 'drugInteractions', 'concomitantMedications'];
+const BOOLEAN_FIELDS = ['viralSuppressionStatus', 'pregnancyStatus'];
+const STRING_FIELDS = ['dosingFrequency', 'reasonForSwitch', 'tropismResult', 'hlaB5701Status', 'hepaticFunction', 'hepatitisBStatus', 'hepatitisCStatus'];
+const COMMA_SPLIT_FIELDS = ['reasonForSwitch'];
 
-/* hide-zero: numeric "not recorded" (0) hidden unless doctor-edited (meaningful-zero fields always show) */
-const numberShowsPDF = (record, key) => {
-  const val = record[key];
+/* ═══════ UTILS ═══════ */
+const safeString = (str) => {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/×/g, 'x').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
+};
+const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
+
+/* hide-zero: numeric "not recorded" (0) hidden unless meaningful-zero or doctor-edited */
+const numberShowsPDF = (record, fn) => {
+  const val = record[fn];
   if (val === null || val === undefined || val === '') return false;
   const num = Number(val);
   if (Number.isNaN(num)) return false;
   if (num === 0) {
-    if (MEANINGFUL_ZERO_FIELDS.includes(key)) return true;
-    return Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(key);
+    if (MEANINGFUL_ZERO_FIELDS.includes(fn)) return true;
+    return Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(fn);
   }
   return true;
 };
 
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+const isEmptyDeep = (v) => {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'boolean') return false;
+  if (typeof v === 'number') return !Number.isFinite(v);
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
+  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+  return false;
+};
+
+const flattenItem = (item) => {
+  if (item === null || item === undefined) return '';
+  if (typeof item === 'string') return item;
+  if (typeof item === 'object' && !Array.isArray(item)) {
+    const main = item.value || item.text || item.name || '';
+    if (main) return String(main);
+    return Object.entries(item).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '').map(([k, v]) => `${k}: ${v}`).join(', ');
+  }
+  return String(item);
 };
 
 const parseLabel = (text) => {
@@ -78,6 +112,11 @@ const parseLabel = (text) => {
   const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
   if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const splitByComma = (text) => {
@@ -94,159 +133,21 @@ const splitByComma = (text) => {
   return result.length > 0 ? result : [text];
 };
 
-/* renderFieldRow: optional sectionTitle inside the View (Rule #74) */
-const renderFieldRow = (label, value, sectionTitle) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox} wrap={false}>
-      {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+const shouldCommaSplit = (fn, strVal) => COMMA_SPLIT_FIELDS.includes(fn) && splitBySentence(strVal).length <= 1 && !parseLabel(strVal).isLabeled && splitByComma(strVal).length >= 2;
+
+const fieldHasVal = (record, fn) => {
+  if (NUMBER_FIELDS.includes(fn)) return numberShowsPDF(record, fn);
+  if (BOOLEAN_FIELDS.includes(fn)) return typeof record[fn] === 'boolean';
+  const v = record[fn];
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length > 0;
+  if (typeof v === 'object') return Object.entries(v).filter(([, x]) => !isEmptyDeep(x)).length > 0;
+  return true;
 };
 
-/* renderSentenceSection: parseLabel + comma-split — duplicate label suppression */
-const renderSentenceSection = (label, text, sectionTitle) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
-  const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
-    }
-  });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
-};
-
-/* renderArrayField */
-const renderArrayFieldPDF = (label, items, sectionTitle) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* renderCommaListPDF: unlabeled comma list, parenthesis-aware (commas inside (...) kept) */
-const renderCommaListPDF = (label, text, sectionTitle) => {
-  if (!hasVal(text)) return null;
-  const items = splitByComma(fmtVal(text)).map(s => s.trim()).filter(Boolean);
-  if (items.length === 0) return null;
-  return (
-    <View style={styles.fieldBox} wrap={items.length > 8 ? undefined : false}>
-      {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {items.map((it, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(it)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* SECTION CONFIGS */
-const SECTION_CONFIGS = [
-  {
-    title: 'Antiretroviral Regimen',
-    fields: [
-      { key: 'currentAntiretroviralRegimen', label: 'Current Antiretroviral Regimen', isArray: true },
-      { key: 'proposedAntiretroviralRegimen', label: 'Proposed Antiretroviral Regimen', isArray: true },
-      { key: 'dosingFrequency', label: 'Dosing Frequency', isSentence: true },
-      { key: 'pillBurdenCurrent', label: 'Current Pill Burden', isNumber: true },
-      { key: 'pillBurdenProposed', label: 'Proposed Pill Burden', isNumber: true },
-    ],
-  },
-  {
-    title: 'Switch Rationale',
-    fields: [
-      { key: 'reasonForSwitch', label: 'Reason for Switch', isCommaList: true },
-      { key: 'treatmentHistory', label: 'Treatment History', isArray: true },
-      { key: 'adverseEffectsReported', label: 'Adverse Effects Reported', isArray: true },
-      { key: 'comorbiditiesRelevant', label: 'Relevant Comorbidities', isArray: true },
-    ],
-  },
-  {
-    title: 'Virology & Immunology',
-    fields: [
-      { key: 'cd4Count', label: 'CD4 Count (cells/uL)', isNumber: true },
-      { key: 'cd4Percentage', label: 'CD4 Percentage (%)', isNumber: true },
-      { key: 'viralLoad', label: 'Viral Load (copies/mL)', isNumber: true },
-      { key: 'viralSuppressionStatus', label: 'Viral Suppression', isBoolean: true },
-      { key: 'resistanceTestingResults', label: 'Resistance Testing Results', isArray: true },
-      { key: 'tropismResult', label: 'Tropism Result', isSentence: true },
-      { key: 'hlaB5701Status', label: 'HLA-B*5701 Status', isSentence: true },
-    ],
-  },
-  {
-    title: 'Labs & Safety',
-    fields: [
-      { key: 'creatinineClearance', label: 'Creatinine Clearance (mL/min)', isNumber: true },
-      { key: 'hepaticFunction', label: 'Hepatic Function', isSentence: true },
-      { key: 'hepatitisBStatus', label: 'Hepatitis B Status', isSentence: true },
-      { key: 'hepatitisCStatus', label: 'Hepatitis C Status', isSentence: true },
-      { key: 'drugInteractions', label: 'Drug Interactions', isArray: true },
-      { key: 'concomitantMedications', label: 'Concomitant Medications', isArray: true },
-      { key: 'adherenceScore', label: 'Adherence Score (%)', isNumber: true },
-    ],
-  },
-  {
-    title: 'Status',
-    fields: [
-      { key: 'pregnancyStatus', label: 'Pregnancy Status', isBoolean: true },
-    ],
-  },
-];
-
-/* field presence respecting hide-zero + boolean */
-const fieldPresent = (record, field) => {
-  if (field.isNumber) return numberShowsPDF(record, field.key);
-  if (field.isBoolean) return typeof record[field.key] === 'boolean';
-  return hasVal(record[field.key]);
-};
-
-const renderField = (record, field, sectionTitle, key) => {
-  const val = record[field.key];
-  if (field.isArray) return <View key={key}>{renderArrayFieldPDF(field.label, val, sectionTitle)}</View>;
-  if (field.isCommaList) return <View key={key}>{renderCommaListPDF(field.label, val, sectionTitle)}</View>;
-  if (field.isSentence) return <View key={key}>{renderSentenceSection(field.label, val, sectionTitle)}</View>;
-  return <View key={key}>{renderFieldRow(field.label, val, sectionTitle)}</View>;
-};
-
-/* ======= COMPONENT ======= */
+/* ═══════ COMPONENT ═══════ */
 const ProposedArtSwitchDocumentPDFTemplate = ({ document: data }) => {
   const records = React.useMemo(() => {
     if (!data) return [];
@@ -263,48 +164,101 @@ const ProposedArtSwitchDocumentPDFTemplate = ({ document: data }) => {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Proposed ART Switch</Text>
-          </View>
+          <Text style={styles.documentTitle}>Proposed ART Switch</Text>
           <Text style={styles.noDataText}>No data available</Text>
         </Page>
       </Document>
     );
   }
 
+  // Render a labeled sentence-field's lines (label sub-heading + numbered value rows), returns flat Text els.
+  const sentenceFieldEls = (fn, strVal, keyBase) => {
+    const els = [];
+    const sentences = splitBySentence(strVal);
+    let n = 1;
+    sentences.forEach((sentence, si) => {
+      const parsed = parseLabel(sentence);
+      if (parsed.isLabeled) {
+        const parts = splitByComma(parsed.value);
+        els.push(<Text key={`${keyBase}-s${si}-l`} style={styles.subLabel}>{safeString(parsed.label)}</Text>);
+        if (parts.length >= 2) {
+          parts.forEach((p, pi) => els.push(<Text key={`${keyBase}-s${si}-p${pi}`} style={styles.listItem}>{n++}. {safeString(p)}</Text>));
+        } else {
+          els.push(<Text key={`${keyBase}-s${si}-v`} style={styles.listItem}>{n++}. {safeString(parsed.value)}</Text>);
+        }
+      } else {
+        els.push(<Text key={`${keyBase}-s${si}`} style={styles.value}>{n++}. {safeString(sentence)}</Text>);
+      }
+    });
+    return els;
+  };
+
+  // fieldBody: returns a FLAT array of Text elements for one field (label + value rows).
+  const fieldBody = (record, fn, sid) => {
+    if (!fieldHasVal(record, fn)) return [];
+    const label = FIELD_LABELS[fn] || fn;
+    const val = record[fn];
+    const showLabel = !sameAsTitle(label, sid);
+    const els = [];
+    const labelEl = showLabel ? <Text key={`${fn}-lab`} style={styles.fieldLabel}>{safeString(label)}</Text> : null;
+
+    if (ARRAY_FIELDS.includes(fn)) {
+      const items = (Array.isArray(val) ? val : [val]).filter(x => !isEmptyDeep(x)).map(flattenItem).filter(s => s && s.trim());
+      if (items.length === 0) return [];
+      if (labelEl) els.push(labelEl);
+      items.forEach((item, i) => els.push(<Text key={`${fn}-i${i}`} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>));
+    } else if (BOOLEAN_FIELDS.includes(fn) || NUMBER_FIELDS.includes(fn)) {
+      if (labelEl) els.push(labelEl);
+      els.push(<Text key={`${fn}-v`} style={styles.value}>1. {safeString(fmtVal(val))}</Text>);
+    } else {
+      const strVal = fmtVal(val);
+      if (shouldCommaSplit(fn, strVal)) {
+        const parts = splitByComma(strVal);
+        if (labelEl) els.push(labelEl);
+        parts.forEach((p, i) => els.push(<Text key={`${fn}-c${i}`} style={styles.listItem}>{i + 1}. {safeString(p)}</Text>));
+      } else {
+        const sentences = splitBySentence(strVal);
+        if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+          if (labelEl) els.push(labelEl);
+          sentenceFieldEls(fn, strVal, fn).forEach(el => els.push(el));
+        } else {
+          if (labelEl) els.push(labelEl);
+          els.push(<Text key={`${fn}-v`} style={styles.value}>1. {safeString(strVal)}</Text>);
+        }
+      }
+    }
+    return els;
+  };
+
+  // renderSection: FLATTEN body, glue sectionTitle + first element in wrap={false}, rest flow.
+  const renderSection = (record, idx, sid) => {
+    const fields = SECTION_FIELDS[sid] || [];
+    if (!fields.some(f => fieldHasVal(record, f))) return null;
+    const title = SECTION_TITLES[sid];
+    let body = [];
+    fields.forEach(f => { body = body.concat(fieldBody(record, f, sid)); });
+    if (body.length === 0) return null;
+    body = body.map((el, i) => React.cloneElement(el, { key: `f${i}` }));
+    const [first, ...rest] = body;
+    return (
+      <View key={sid}>
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>{safeString(title)}</Text>
+          {first}
+        </View>
+        {rest}
+      </View>
+    );
+  };
+
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Proposed ART Switch</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>
-                {`Proposed ART Switch ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections — sectionTitle rendered inside the first present field (Rule #74) */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const presentFields = sectionConfig.fields.filter(f => fieldPresent(record, f));
-              if (presentFields.length === 0) return null;
-
-              return (
-                <View key={sIdx} style={styles.section} wrap={presentFields.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {presentFields.map((field, fIdx) =>
-                    renderField(record, field, null, fIdx)
-                  )}
-                </View>
-              );
-            })}
+        <Text style={styles.documentTitle}>Proposed ART Switch</Text>
+        {records.map((record, idx) => (
+          <View key={idx} break={idx > 0}>
+            <Text style={styles.recordTitle}>Proposed ART Switch {idx + 1}</Text>
+            {Object.keys(SECTION_FIELDS).map(sid => renderSection(record, idx, sid))}
           </View>
         ))}
       </Page>

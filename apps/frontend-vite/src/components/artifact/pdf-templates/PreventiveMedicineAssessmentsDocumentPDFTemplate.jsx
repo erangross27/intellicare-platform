@@ -1,37 +1,30 @@
 /**
  * PreventiveMedicineAssessmentsDocumentPDFTemplate.jsx
- * June 2026 — Helvetica — LETTER size — BLACK & WHITE only (#000000 / grayscale, NO saturated colors).
- * Collection: preventive_medicine_assessments
- *
- * BOX-FREE; Rule #74 per-field wrap-gating: each field is ONE wrap-gated <View>
- * (rows<=8 -> wrap={false}; rows>8 -> wrap=undefined), with sectionTitle embedded INSIDE the
- * first present field's View (anti-orphan — never a sibling).
- * OBJECT fields rendered recursively as humanized key/value lines. STRING narratives sentence-split.
+ * Box-free B&W — LETTER — Collection: preventive_medicine_assessments
+ * Mirrors PreventiveMedicineAssessmentsDocument.jsx (full recursive-object family:
+ * date/number/array/object/string; object leaves + labeled array items STACKED;
+ * sameAsTitle bare labels; canonical [.;] split; anti-orphan flatten glue).
+ * Dates render in-section (assessmentDate in assessment-info, nextAssessmentDate in counseling) — no header date.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+/* ═══════ BOX-FREE B&W STYLES ═══════ */
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 14, borderBottomWidth: 2, borderBottomColor: '#000000' },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1, color: '#000000' },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordMeta: { fontSize: 11, color: '#000000', marginTop: 3 },
-  section: { marginBottom: 16 },
-  fieldGroup: { marginBottom: 8 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 2, textTransform: 'uppercase' },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  value: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 1 },
-  nested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', marginTop: 2 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#000000' },
-  pageNumber: { position: 'absolute', bottom: 20, right: 40, fontSize: 10, color: '#000000' },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000' },
+  recordCard: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  section: { marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 6, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldLabel: { fontSize: 13, color: '#333333', marginTop: 6, marginBottom: 2, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
+  fieldValue: { fontSize: 14, lineHeight: 1.4, color: '#000000' },
+  listItem: { fontSize: 14, marginBottom: 3, lineHeight: 1.4, color: '#000000', paddingLeft: 8 },
+  emptyState: { textAlign: 'center', color: '#666666', marginTop: 20 },
 });
 
-/* ═══════ CONSTANTS ═══════ */
+/* ═══════ CONFIG MAPS (mirror the JSX) ═══════ */
 const SECTION_TITLES = {
   'assessment-info': 'Assessment Information',
   'vital-signs': 'Vital Signs',
@@ -92,8 +85,20 @@ const KEY_OVERRIDES = {
 };
 const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; const lk = String(key).toLowerCase(); if (KEY_OVERRIDES[lk]) return KEY_OVERRIDES[lk]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
 
-/* ═══════ UTILS ═══════ */
-const formatDate = (d) => { if (!d) return ''; try { const dt = new Date(d.$date || d); if (isNaN(dt.getTime())) return String(d); return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
+/* hide a field label that duplicates its section title */
+const sameAsTitle = (label, title) => (label || '').trim().toLowerCase() === (title || '').trim().toLowerCase();
+
+/* ═══════ HELPERS ═══════ */
+const safeString = (val) => {
+  if (val === null || val === undefined) return '';
+  let s = String(val);
+  return s
+    .replace(/×/g, 'x')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[—–]/g, '-')
+    .replace(/…/g, '...');
+};
 const isEmptyDeep = (v) => {
   if (v === null || v === undefined) return true;
   if (typeof v === 'boolean') return false;
@@ -107,112 +112,83 @@ const hasVal = (v) => !isEmptyDeep(v);
 const isScalar = (v) => v === null || typeof v !== 'object';
 const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
 const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
+const formatDate = (d) => { if (!d) return ''; try { const dt = new Date(d.$date || d); if (isNaN(dt.getTime())) return String(d); return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
+const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
 
-/* recursive object node: label = bold heading; value = plain line below */
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
-  if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.value}>{fmtScalar(value)}</Text>
-      </View>
-    );
+/* recursive object → flat elements: sub-label (bold) above numbered value; nested objects recurse */
+const objectElements = (value, keyPrefix) => {
+  const els = [];
+  Object.entries(value).filter(([, v]) => hasVal(v)).forEach(([k, v], i) => {
+    els.push(<Text key={`${keyPrefix}-${i}-l`} style={styles.subLabel}>{safeString(humanizeKey(k))}</Text>);
+    if (isScalar(v)) {
+      els.push(<Text key={`${keyPrefix}-${i}-v`} style={styles.listItem}>{`1. ${safeString(fmtScalar(v))}`}</Text>);
+    } else {
+      objectElements(v, `${keyPrefix}-${i}`).forEach(e => els.push(e));
+    }
+  });
+  return els;
+};
+
+/* ═══════ FIELD RENDER (flat elements) ═══════ */
+const fieldBody = (record, f, title) => {
+  const val = record[f];
+  if (!hasVal(val)) return null;
+  const label = FIELD_LABELS[f] || f;
+  const els = [];
+  const pushLabel = () => { if (!sameAsTitle(label, title)) els.push(<Text key="l" style={styles.fieldLabel}>{safeString(label)}</Text>); };
+
+  if (DATE_FIELDS.includes(f)) {
+    pushLabel();
+    els.push(<Text key="v" style={styles.fieldValue}>{formatDate(val)}</Text>);
+  } else if (NUMBER_FIELDS.includes(f)) {
+    pushLabel();
+    els.push(<Text key="v" style={styles.fieldValue}>{safeString(fmtVal(val))}</Text>);
+  } else if (ARRAY_FIELDS.includes(f)) {
+    const items = (Array.isArray(val) ? val : [val]).filter(hasVal);
+    if (items.length === 0) return null;
+    pushLabel();
+    items.forEach((item, i) => els.push(<Text key={`a${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(fmtScalar(item))}`}</Text>));
+  } else if (OBJECT_FIELDS.includes(f)) {
+    if (!val || typeof val !== 'object' || Array.isArray(val)) return null;
+    const entries = Object.entries(val).filter(([, v]) => hasVal(v));
+    if (entries.length === 0) return null;
+    pushLabel();
+    objectElements(val, f).forEach(e => els.push(e));
+  } else {
+    const strVal = safeString(fmtVal(val));
+    const sentences = splitBySentence(strVal);
+    pushLabel();
+    if (sentences.length > 1) {
+      sentences.forEach((s, i) => els.push(<Text key={`s${i}`} style={styles.listItem}>{`${i + 1}. ${s}`}</Text>));
+    } else {
+      els.push(<Text key="v" style={styles.fieldValue}>{strVal}</Text>);
+    }
   }
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
+  return els.length > 0 ? els : null;
+};
+
+/* anti-orphan by FLATTENING: every field's body flows individually (small Text nodes,
+   never a page-tall wrap={false} View); only sectionTitle + first element are glued. */
+const renderSection = (record, sid) => {
+  const fields = SECTION_FIELDS[sid] || [];
+  const title = SECTION_TITLES[sid];
+  const allEls = [];
+  fields.forEach((f) => {
+    const body = fieldBody(record, f, title);
+    if (!body) return;
+    body.forEach((el, i) => { allEls.push(React.cloneElement(el, { key: `${f}-${i}` })); });
+  });
+  if (allEls.length === 0) return null;
+  const [first, ...rest] = allEls;
   return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
+    <View key={sid} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{safeString(title)}</Text>
+        {first}
+      </View>
+      {rest}
     </View>
   );
-};
-
-/* count rows for the wrap heuristic */
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-/* Rule #74 per-field gating — returns ARRAY of Views, EACH one wrap unit; title INSIDE first View */
-const renderField = (record, field, sectionTitle, isFirst) => {
-  const val = record[field];
-  if (!hasVal(val)) return [];
-  const label = FIELD_LABELS[field] || field;
-  const showLabel = label.trim().toLowerCase() !== (sectionTitle || '').trim().toLowerCase();
-  const titleNode = isFirst ? <Text style={styles.sectionTitle}>{sectionTitle}</Text> : null;
-
-  if (DATE_FIELDS.includes(field)) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        <Text style={styles.value}>{formatDate(val)}</Text>
-      </View>
-    )];
-  }
-
-  if (NUMBER_FIELDS.includes(field)) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        <Text style={styles.value}>{fmtVal(val)}</Text>
-      </View>
-    )];
-  }
-
-  if (ARRAY_FIELDS.includes(field)) {
-    const items = (Array.isArray(val) ? val : [val]).filter(x => !isEmptyDeep(x));
-    if (items.length === 0) return [];
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={items.length > 8 ? undefined : false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        {items.map((item, i) => (<Text key={i} style={styles.value}>{i + 1}. {fmtScalar(item)}</Text>))}
-      </View>
-    )];
-  }
-
-  if (OBJECT_FIELDS.includes(field)) {
-    const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return [];
-    return entries.map(([k, v], i) => {
-      const rows = countRows(v);
-      return (
-        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
-          {i === 0 ? titleNode : null}
-          {i === 0 && showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
-          {renderObjectNode(humanizeKey(k), v, `${field}-${k}`, 1)}
-        </View>
-      );
-    });
-  }
-
-  /* string — split into sentences */
-  const strVal = fmtVal(val);
-  const sentences = splitBySentence(strVal);
-  if (sentences.length > 1) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={sentences.length > 8 ? undefined : false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.value}>{sIdx + 1}. {s}</Text>))}
-      </View>
-    )];
-  }
-  return [(
-    <View key={field} style={styles.fieldGroup} wrap={false}>
-      {titleNode}
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.value}>{strVal}</Text>
-    </View>
-  )];
 };
 
 /* ═══════ COMPONENT ═══════ */
@@ -230,8 +206,8 @@ const PreventiveMedicineAssessmentsDocumentPDFTemplate = ({ document: data }) =>
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}><Text style={styles.title}>Preventive Medicine Assessment</Text></View>
-          <Text style={styles.emptyState}>No data available</Text>
+          <Text style={styles.documentTitle}>Preventive Medicine Assessment</Text>
+          <Text style={styles.emptyState}>No preventive medicine assessment data available</Text>
         </Page>
       </Document>
     );
@@ -240,32 +216,13 @@ const PreventiveMedicineAssessmentsDocumentPDFTemplate = ({ document: data }) =>
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Preventive Medicine Assessment</Text></View>
+        <Text style={styles.documentTitle}>Preventive Medicine Assessment</Text>
         {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>{record.assessmentType || `Preventive Medicine Assessment ${idx + 1}`}</Text>
-              {hasVal(record.assessmentDate) && <Text style={styles.recordMeta}>{formatDate(record.assessmentDate)}</Text>}
-              {hasVal(record.provider) && <Text style={styles.recordMeta}>{fmtVal(record.provider)}</Text>}
-            </View>
-
-            {/* Rule #74: section View only provides spacing and always FLOWS.
-                Each field is its own wrap-gated unit, sectionTitle embedded INSIDE first field (anti-orphan). */}
-            {SECTION_ORDER.map((sid) => {
-              const fields = SECTION_FIELDS[sid];
-              const presentFields = fields.filter(f => hasVal(record[f]));
-              if (presentFields.length === 0) return null;
-              const title = SECTION_TITLES[sid];
-              return (
-                <View key={sid} style={styles.section}>
-                  {presentFields.flatMap((f, fi) => renderField(record, f, title, fi === 0))}
-                </View>
-              );
-            })}
-            {idx < records.length - 1 && <View style={styles.separator} />}
+          <View key={idx} style={styles.recordCard} break={idx > 0}>
+            <Text style={styles.recordTitle}>{`Preventive Medicine Assessment ${idx + 1}`}</Text>
+            {SECTION_ORDER.map((sid) => renderSection(record, sid))}
           </View>
         ))}
-        <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} fixed />
       </Page>
     </Document>
   );

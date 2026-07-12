@@ -15,6 +15,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PsychotropicMedicationsDocumentPDFTemplate from '../pdf-templates/PsychotropicMedicationsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PsychotropicMedicationsDocument.css';
 
@@ -37,11 +39,11 @@ const writeDrafts = (store) => {
 const SECTION_TITLES = {
   'medication-info': 'Medication Information',
   'prescription-details': 'Prescription Details',
-  'indication-instructions': 'Indication & Instructions',
+  'indication-instructions': 'Indication and Instructions',
   'current-medications': 'Current Medications',
   'past-medications': 'Past Medications',
   'medication-changes': 'Medication Changes',
-  'safety-allergies': 'Safety & Allergies',
+  'safety-allergies': 'Safety and Allergies',
 };
 
 const FIELD_LABELS = {
@@ -65,7 +67,7 @@ const FIELD_LABELS = {
   medicationChanges: 'Medication Changes',
   sideEffects: 'Side Effects',
   drugInteractions: 'Drug Interactions',
-  allergiesAdverse: 'Allergies & Adverse Reactions',
+  allergiesAdverse: 'Allergies and Adverse Reactions',
   safetyWarning: 'Safety Warning',
 };
 
@@ -85,6 +87,54 @@ const NUMBER_FIELDS = ['durationDays', 'refills'];
 const ARRAY_FIELDS = ['sideEffects', 'drugInteractions'];
 const STRING_FIELDS = ['name', 'genericName', 'dosage', 'frequency', 'route', 'duration', 'durationUnit', 'prescriber', 'indication', 'instructions', 'safetyWarning'];
 const OBJECT_ARRAY_FIELDS = ['current', 'past', 'medicationChanges', 'allergiesAdverse'];
+
+/* MEANINGFUL_ZERO_FIELDS: numerics where 0 is a real value. For psychotropic meds durationDays:0 and
+   refills:0 are extractor not-set sentinels → hide both (none are meaningful-zero). */
+const MEANINGFUL_ZERO_FIELDS = [];
+/* isHiddenZero: a sentinel-zero numeric (0 meaning "not set") that must be hidden in render/Copy/PDF */
+const isHiddenZero = (fn, val) => NUMBER_FIELDS.includes(fn) && Number(val) === 0 && !MEANINGFUL_ZERO_FIELDS.includes(fn);
+/* isEpochSentinel: a date defaulted to 1970-01-01 (Unix epoch 0 = extractor garbage) → treat as empty */
+const isEpochSentinel = (v) => { if (!v) return false; try { const d = new Date(v.$date || v); return !isNaN(d.getTime()) && d.getUTCFullYear() <= 1970; } catch { return false; } };
+/* stepFor: decimal-aware −/+ step size for the num-stepper (0.8 → 0.1, 5 → 1) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
+/* sameAsTitle: field label duplicates its section title (single-name collision) */
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+const isEmptyDeep = (v) => {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'boolean') return false;
+  if (typeof v === 'number') return !Number.isFinite(v);
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
+  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+  return false;
+};
+
+/* flattenItem: array item → readable string (sideEffects/drugInteractions are plain strings) */
+const flattenItem = (item) => {
+  if (item === null || item === undefined) return '';
+  if (typeof item === 'string') return item;
+  if (typeof item === 'object' && !Array.isArray(item)) {
+    const main = item.value || item.text || item.name || '';
+    if (main) return String(main);
+    return Object.entries(item).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '').map(([k, v]) => `${k}: ${v}`).join(', ');
+  }
+  return String(item);
+};
+
+/* OBJECT_ARRAY_CONFIG: per object-array field, the sub-fields stacked under each item's primary text.
+   The primary (medication name / action+medication) becomes the item header; the rest stack below it. */
+const OBJECT_ARRAY_CONFIG = {
+  current: [['dose', 'Dose'], ['frequency', 'Frequency'], ['startDate', 'Started'], ['response', 'Response'], ['sideEffects', 'Side Effects']],
+  past: [['maxDose', 'Max Dose'], ['duration', 'Duration'], ['reasonStopped', 'Reason Stopped'], ['efficacy', 'Efficacy']],
+  medicationChanges: [['dose', 'Dose'], ['reason', 'Reason']],
+  allergiesAdverse: [['reaction', 'Reaction']],
+};
+const objPrimary = (f, item) => {
+  if (!item || typeof item !== 'object') return String(item ?? '');
+  if (f === 'medicationChanges') return [item.action, item.medication].filter(v => v != null && String(v).trim() !== '').join(' ').trim() || 'Change';
+  return String(item.medication || item.name || item.drug || '').trim() || 'Item';
+};
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -173,12 +223,22 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
   }, [records]);
 
   /* ======= UTILS ======= */
-  const hasVal = useCallback((v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; }, []);
+  const hasVal = useCallback((v, fn) => {
+    if (fn && isHiddenZero(fn, v)) return false;
+    if (fn && DATE_FIELDS.includes(fn) && isEpochSentinel(v)) return false;
+    if (v === null || v === undefined || v === '') return false;
+    if (typeof v === 'boolean') return true;
+    if (typeof v === 'number') return Number.isFinite(v);
+    if (typeof v === 'string') return v.trim() !== '';
+    if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length > 0;
+    if (typeof v === 'object') return Object.entries(v).filter(([, x]) => !isEmptyDeep(x)).length > 0;
+    return true;
+  }, []);
   const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -250,7 +310,7 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
     const phrase = searchTerm.toLowerCase().trim();
     return records.filter((record, idx) => {
       record._showAllSections = false;
-      const rt = `Psychotropic Medication ${idx + 1}`.toLowerCase();
+      const rt = `Psychotropic Medications ${idx + 1}`.toLowerCase();
       if (rt.includes(phrase) || phrase.includes(rt)) { record._showAllSections = true; return true; }
       for (const t of Object.values(SECTION_TITLES)) { if (t.toLowerCase().includes(phrase) || phrase.includes(t.toLowerCase())) return true; }
       for (const l of Object.values(FIELD_LABELS)) { if (l.toLowerCase().includes(phrase) || phrase.includes(l.toLowerCase())) return true; }
@@ -425,53 +485,57 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
-      if (!hasVal(val)) return;
+      if (!hasVal(val, f)) return;
+      const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n`;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
-      } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
-      } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
+        text += `${labelLine}1. ${formatDate(val)}\n\n`;
       } else if (OBJECT_ARRAY_FIELDS.includes(f)) {
-        const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n`;
+        const items = (Array.isArray(val) ? val : [val]).filter(it => !isEmptyDeep(it));
+        if (items.length === 0) return;
+        text += labelLine;
         items.forEach((item, i) => {
-          if (typeof item === 'string') { text += `${i + 1}. ${item}\n`; }
-          else if (typeof item === 'object') {
-            const parts = Object.entries(item).filter(([, v]) => hasVal(v)).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`);
-            text += `${i + 1}. ${parts.join(' | ')}\n`;
-          }
+          text += `${i + 1}. ${objPrimary(f, item)}\n`;
+          (OBJECT_ARRAY_CONFIG[f] || []).forEach(([k, subLabel]) => {
+            const v = item[k];
+            if (!hasVal(v)) return;
+            const vv = Array.isArray(v) ? v.filter(Boolean).join(', ') : fmtVal(v);
+            if (!vv || !vv.trim()) return;
+            text += `${subLabel}\n1. ${vv}\n`;
+          });
         });
         text += '\n';
       } else if (ARRAY_FIELDS.includes(f)) {
-        const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        const items = (Array.isArray(val) ? val : [val]).filter(x => !isEmptyDeep(x)).map(flattenItem).filter(s => s && s.trim());
+        if (items.length) text += `${labelLine}${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+      } else if (BOOLEAN_FIELDS.includes(f) || NUMBER_FIELDS.includes(f)) {
+        text += `${labelLine}1. ${fmtVal(val)}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
+        if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+          text += labelLine;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== PSYCHOTROPIC MEDICATIONS ===\n\n';
     pdfData.forEach((r, idx) => {
-      text += `Psychotropic Medication ${idx + 1}\n${'='.repeat(40)}\n\n`;
+      text += `Psychotropic Medications ${idx + 1}\n${'='.repeat(40)}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -483,7 +547,7 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
 
   /* ======= RENDER: DATE FIELD ======= */
   const renderDateField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val, fn)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
@@ -493,11 +557,11 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -518,7 +582,7 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
 
   /* ======= RENDER: BOOLEAN FIELD ======= */
   const renderBooleanField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val, fn)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
@@ -528,14 +592,11 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -545,7 +606,7 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -556,34 +617,37 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
 
   /* ======= RENDER: NUMBER FIELD ======= */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx);
-    if (val === null || val === undefined || val === '') return null;
-    const num = parseFloat(val);
-    if (isNaN(num) || num === 0) return null; // hide-zero / non-numeric
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val, fn)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
-    const displayVal = String(num);
     const isModified = editedFields[editKey];
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const step = stepFor(val);
+    const numVal = parseFloat(editValue); const safeNum = Number.isFinite(numVal) ? numVal : 0;
+    const round = (n) => { const p = String(step).includes('.') ? String(step).split('.')[1].length : 0; return Number(n.toFixed(p)); };
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" className="edit-textarea" style={{ minHeight: 'auto', padding: '10px' }} value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="num-stepper-row">
+                <button className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(round(safeNum - step))); }}>&minus;</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} onClick={e => e.stopPropagation()} autoFocus />
+                <button className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(round(safeNum + step))); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const num = Number(editValue); if (isNaN(num)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, num); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (editValue === '' || !Number.isFinite(parseFloat(editValue))) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, parseFloat(editValue)); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
           ) : (
             <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <div className="row-content"><span className="content-value">{highlightText(fmtVal(val))}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${fmtVal(val)}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -602,7 +666,7 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
@@ -642,17 +706,22 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
     );
   };
 
-  /* ======= RENDER: OBJECT ARRAY FIELD (current, past, medicationChanges, allergiesAdverse) ======= */
+  /* ======= RENDER: OBJECT ARRAY FIELD (current, past, medicationChanges, allergiesAdverse) =======
+     Canonical STACKED array-of-object: each item = a card whose header (.nested-subtitle) is the item's
+     primary text (medication name / action+medication), then each sub-field a .nested-mini-card with a
+     .nested-subtitle.sub-label ABOVE a value-only editable row. Single-name gate drops the top-level
+     field label when it equals the section title (Current/Past/Medication Changes render directly). */
   const renderObjectArrayField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
-    const items = Array.isArray(val) ? val.filter(Boolean) : [];
+    const items = Array.isArray(val) ? val.filter(it => !isEmptyDeep(it)) : [];
     if (items.length === 0) return null;
     const label = FIELD_LABELS[fn] || fn;
+    const subs = OBJECT_ARRAY_CONFIG[fn] || [];
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           if (typeof item === 'string') {
             const editKey = `${fn}.${itemIdx}-${idx}`;
@@ -682,40 +751,36 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
             );
           }
 
-          // Object items: render each key-value pair as an editable row inside a nested card
-          const objEntries = Object.entries(item).filter(([k, v]) => k !== '_id' && hasVal(v));
-          if (objEntries.length === 0) return null;
-          const copyId = `${fn}-${idx}-${itemIdx}`;
-
+          const primary = objPrimary(fn, item);
           return (
             <div key={itemIdx} className="nested-field-card">
-              <div className="mini-card-header">
-                <div className="field-label">{highlightText(objEntries[0] ? String(objEntries[0][1]) : `Item ${itemIdx + 1}`)}</div>
-                <button className={`copy-btn ${copiedItems[copyId] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); const t = objEntries.map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('\n'); copyItem(t, copyId); }}>{copiedItems[copyId] ? 'Copied!' : 'Copy'}</button>
-              </div>
-              {objEntries.slice(1).map(([key, value]) => {
+              <div className="nested-subtitle">{highlightText(primary)}</div>
+              {subs.map(([key, subLabel]) => {
+                const rawVal = item[key];
+                if (!hasVal(rawVal)) return null;
+                const displayValue = Array.isArray(rawVal) ? rawVal.filter(Boolean).join(', ') : String(rawVal);
+                if (!displayValue.trim()) return null;
                 const editKey = `${fn}.${itemIdx}.${key}-${idx}`;
                 const isEditing = editingField === editKey;
                 const isModified = editedFields[editKey];
-                const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
 
                 return (
-                  <div key={key}>
-                    <div className="nested-subtitle" style={{ fontSize: '15px' }}>{highlightText(key)}</div>
+                  <div key={key} className="nested-mini-card">
+                    <div className="nested-subtitle sub-label">{highlightText(subLabel)}</div>
                     <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayValue); setSaveError(null); } }}>
                       {isEditing ? (
                         <div className="edit-field-container">
                           <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                           {saveError && <div className="save-error">{saveError}</div>}
                           <div className="edit-actions">
-                            <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id3 = safeId(record); if (!id3) return; const newItems = [...items]; newItems[itemIdx] = { ...newItems[itemIdx], [key]: editValue }; stageDraft(record, idx, `${fn}-${idx}`, newItems, editKey, sid || sidForField(fn), false); }}>{saving ? 'Saving...' : 'Save'}</button>
+                            <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id3 = safeId(record); if (!id3) return; const newVal = Array.isArray(rawVal) ? editValue.split(',').map(s => s.trim()).filter(Boolean) : editValue; const newItems = items.map((it, i) => i === itemIdx ? { ...it, [key]: newVal } : it); stageDraft(record, idx, `${fn}-${idx}`, newItems, editKey, sid || sidForField(fn), false); }}>{saving ? 'Saving...' : 'Save'}</button>
                             <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                           </div>
                         </div>
                       ) : (
                         <>
                           <div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div>
-                          <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${key}: ${displayValue}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                          <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${subLabel}\n${displayValue}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                         </>
                       )}
                     </div>
@@ -732,21 +797,21 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
 
   /* ======= RENDER: STRING FIELD with splitBySentence ======= */
   const renderStringField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val, fn)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* Multi-sentence (or single labeled sentence): render with splitBySentence */
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -833,7 +898,7 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -862,10 +927,7 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
     if (!shouldShowSection(record, sid)) return null;
     const fields = SECTION_FIELDS[sid] || [];
 
-    const hasAnyVal = fields.some(f => {
-      const val = getFieldValue(record, f, idx);
-      return hasVal(val);
-    });
+    const hasAnyVal = fields.some(f => hasVal(getFieldValue(record, f, idx), f));
     if (!hasAnyVal) return null;
 
     const copyId = `${sid}-${idx}`;
@@ -908,7 +970,7 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Psychotropic Medications</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PsychotropicMedicationsDocumentPDFTemplate document={pdfData} />} fileName={`psychotropic-medications-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PsychotropicMedicationsDocumentPDFTemplate document={pdfData} />} fileName="Psychotropic_Medications.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -921,13 +983,7 @@ const PsychotropicMedicationsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {(hasVal(record.startDate) || record.active !== undefined) && (
-                <div className="record-meta-row">
-                  {record.active !== undefined && <span className={`record-status ${record.active ? 'active' : 'inactive'}`}>{record.active ? 'Active' : 'Inactive'}</span>}
-                  {hasVal(record.startDate) && <span className="record-date">{formatDate(record.startDate)}</span>}
-                </div>
-              )}
-              <h3 className="record-name">{highlightText(record.name || `Psychotropic Medication ${idx + 1}`)}</h3>
+              <h3 className="record-name">{highlightText(`Psychotropic Medications ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'medication-info')}
             {renderSection(record, idx, 'prescription-details')}

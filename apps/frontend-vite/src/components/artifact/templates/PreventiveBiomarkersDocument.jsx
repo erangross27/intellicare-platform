@@ -14,6 +14,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PreventiveBiomarkersDocumentPDFTemplate from '../pdf-templates/PreventiveBiomarkersDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PreventiveBiomarkersDocument.css';
 
@@ -65,7 +66,7 @@ const SECTION_FIELDS = {
 };
 
 const BOOLEAN_FIELDS = ['aiProcessed'];
-const DATE_FIELDS = ['date'];
+const DATE_FIELDS = [];
 const NUMBER_FIELDS = ['resultValue', 'calculatedRiskScore'];
 const ARRAY_FIELDS = ['riskFactorsPresent', 'interventionsRecommended'];
 const STRING_FIELDS = ['biomarkerType', 'biomarkerName', 'panelName', 'resultUnit', 'referenceRange', 'riskCategory', 'abnormalFlag', 'testMethodology', 'specimenType', 'fastingStatus', 'qualityControlStatus', 'indicationForTesting', 'diseaseRiskAssessment', 'trendComparison', 'clinicalSignificance', 'recommendedFollowUp', 'retestInterval', 'provider', 'facility', 'interpretingPhysician'];
@@ -86,12 +87,18 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
+
+/* sameAsTitle: hide a field label that duplicates its section title */
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* stepFor: decimal-aware step increment for the number stepper */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
 
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
@@ -178,7 +185,7 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -437,34 +444,34 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
     const title = SECTION_TITLES[sid];
     let text = `${title}\n${'='.repeat(40)}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
+    const header = text;
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
+      const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n`;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
-      if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
-      } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+      if (BOOLEAN_FIELDS.includes(f)) {
+        text += `${labelLine}1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
+        text += `${labelLine}1. ${val}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        text += `${labelLine}${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
+        if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+          text += labelLine;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
@@ -480,40 +487,7 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
-  /* ======= RENDER: DATE FIELD ======= */
-  const renderDateField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
-    const displayVal = formatDate(val);
-    const isModified = editedFields[editKey];
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
+  /* date renders as a display-only record-header pill (not a section field) — no editable date renderer */
 
   /* ======= RENDER: BOOLEAN FIELD -- select Yes/No, convert to boolean on save ======= */
   const renderBooleanField = (record, fn, idx, sid) => {
@@ -527,14 +501,11 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -544,7 +515,7 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -565,11 +536,17 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" style={{ minHeight: 'auto', padding: '10px' }} value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="number-edit-row">
+                <div className="num-stepper-row">
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const step = stepFor(editValue); const n = Math.max(0, (parseFloat(editValue) || 0) - step); setEditValue(String(Number(n.toFixed(4)))); setSaveError(null); }}>&minus;</button>
+                  <input className="edit-number" type="text" inputMode="decimal" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const step = stepFor(editValue); const n = Math.max(0, (parseFloat(editValue) || 0) + step); setEditValue(String(Number(n.toFixed(4)))); setSaveError(null); }}>+</button>
+                </div>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -579,7 +556,7 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -598,7 +575,7 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
@@ -646,15 +623,15 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* Multi-sentence (or a single labeled "Label: value" sentence): render with splitBySentence */
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -741,7 +718,7 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -788,7 +765,6 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
-            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
@@ -815,7 +791,7 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
         <h2 className="document-title">Preventive Biomarkers</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PreventiveBiomarkersDocumentPDFTemplate document={pdfData} />} fileName={`preventive-biomarkers-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PreventiveBiomarkersDocumentPDFTemplate document={pdfData} />} fileName="Preventive_Biomarkers.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -833,7 +809,7 @@ const PreventiveBiomarkersDocument = ({ document: docProp }) => {
                   <span className="record-date">{formatDate(record.date)}</span>
                 </div>
               )}
-              <h3 className="record-name">{highlightText(record.biomarkerName || `Preventive Biomarker ${idx + 1}`)}</h3>
+              <h3 className="record-name">{highlightText(`Preventive Biomarkers ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'biomarker-identification')}
             {renderSection(record, idx, 'results-assessment')}

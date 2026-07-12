@@ -1,437 +1,325 @@
+/**
+ * PulmonaryImagingDocumentPDFTemplate.jsx
+ * Box-free canonical PDF - Helvetica - LETTER - pulmonary imaging
+ * Collection: pulmonary_imaging
+ *
+ * Imaging-study fields are OBJECT-OR-STRING and render STACKED + recursively (objectFieldEls ->
+ * objectNodeEls), which flattens nested objects, ARRAY-of-strings leaves (findings/nodules) and
+ * boolean/date leaves into small <Text> siblings. Anti-orphan FLATTEN renderSection glues the
+ * sectionTitle + first element in one wrap={false} View; the rest flow.
+ */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * Pulmonary Imaging PDF Template - February 2026
- * Helvetica font, black & white, readable format
- * - Section title INSIDE fieldBox (NOT standalone sibling)
- * - NO borderBottom on sectionTitle
- * - wrap={false} for small sections
- * - safeString helper for all text values
- */
-
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    color: '#000000',
-  },
-  documentHeader: {
-    marginBottom: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-  },
-  documentTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  documentSubtitle: {
-    fontSize: 10,
-    textAlign: 'center',
-  },
-  recordHeader: {
-    marginBottom: 16,
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  fieldBox: {
-    paddingVertical: 4,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  subtitleLabel: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 2,
-    marginTop: 4,
-  },
-  fieldValue: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    marginBottom: 4,
-  },
-  numberedItem: {
-    flexDirection: 'row',
-    marginBottom: 4,
-    paddingLeft: 8,
-  },
-  itemNumber: {
-    width: 24,
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-  },
-  itemContent: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 1.4,
-  },
-  arrayItem: {
-    flexDirection: 'row',
-    marginBottom: 3,
-    paddingLeft: 8,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    fontSize: 9,
-    borderTopWidth: 1,
-    borderTopColor: '#000000',
-    paddingTop: 8,
-    textAlign: 'center',
-  },
-  pageNumber: {
-    position: 'absolute',
-    bottom: 16,
-    right: 40,
-    fontSize: 9,
-  },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 8, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  noDataText: { fontSize: 14, color: '#000000', textAlign: 'center', marginTop: 40 },
 });
 
-// ============== HELPER FUNCTIONS ==============
+/* ======= UTILS ======= */
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr.$date || dateStr);
+    if (isNaN(date.getTime())) return String(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(dateStr); }
+};
 
+/* safeString: \u-escapes only (no literal smart-quotes / invisible chars) */
 const safeString = (val) => {
   if (val === null || val === undefined) return '';
-  let str = typeof val === 'string' ? val : String(val);
-  str = str.replace(/μm/g, 'um');
-  str = str.replace(/µm/g, 'um');
-  str = str.replace(/°/g, ' deg');
-  str = str.replace(/±/g, '+/-');
-  str = str.replace(/≥/g, '>=');
-  str = str.replace(/≤/g, '<=');
-  str = str.replace(/→/g, '->');
-  str = str.replace(/←/g, '<-');
-  str = str.replace(/×/g, 'x');
-  str = str.replace(/÷/g, '/');
-  str = str.replace(/•/g, '-');
-  str = str.replace(/–/g, '-');
-  str = str.replace(/—/g, '-');
-  str = str.replace(/\u201C/g, '"');
-  str = str.replace(/\u201D/g, '"');
-  str = str.replace(/\u2018/g, "'");
-  str = str.replace(/\u2019/g, "'");
-  return str;
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s
+    .replace(/\u00d7/g, 'x')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/[\u00b5\u03bc]/g, 'u')
+    .replace(/\u00b0/g, ' deg').replace(/\u00b1/g, '+/-')
+    .replace(/\u2265/g, '>=').replace(/\u2264/g, '<=').replace(/\u2192/g, '->');
 };
 
-const formatDatePDF = (dateString) => {
-  if (!dateString) return '';
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  } catch {
-    return String(dateString);
-  }
+const isEpochDate = (v) => {
+  if (v === null || v === undefined || v === '') return true;
+  try { const d = new Date(v.$date || v); return isNaN(d.getTime()) || d.getUTCFullYear() <= 1970; } catch { return false; }
 };
 
-const hasValue = (val) => {
-  if (val === null || val === undefined) return false;
-  if (typeof val === 'string') return val.trim().length > 0;
-  if (Array.isArray(val)) return val.length > 0;
-  if (typeof val === 'object') return Object.keys(val).length > 0;
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length > 0;
+  if (typeof v === 'object') return !isEmptyDeep(v);
   return true;
+};
+
+const fmtVal = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return String(v);
+  return String(v || '');
 };
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text
-    .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|etc))\.\s+/)
-    .map(s => s.replace(/\.$/, '').trim())
-    .filter(Boolean);
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
-// ============== MAIN COMPONENT ==============
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
 
-const PulmonaryImagingDocumentPDFTemplate = ({ document: docProp, data, templateData }) => {
-  const raw = templateData || docProp || data;
-
-  // Data unwrapping (3-prop pattern)
-  let records = [];
-  if (!raw) {
-    records = [];
-  } else if (Array.isArray(raw)) {
-    records = raw;
-  } else if (raw?.pulmonary_imaging) {
-    records = raw.pulmonary_imaging;
-  } else if (raw?.documentData) {
-    const docData = raw.documentData;
-    if (Array.isArray(docData)) {
-      records = docData;
-    } else if (docData?.pulmonary_imaging) {
-      records = docData.pulmonary_imaging;
-    } else {
-      records = [docData];
+/* splitByComma: parenthesis-aware with Oxford ("and"/"or") + numeric-thousands guards */
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) {
+      const rest = text.slice(i + 1).replace(/^\s+/, '');
+      if (/^(and|or)\b/i.test(rest) || /^\d/.test(text[i + 1] || '')) { current += ch; }
+      else { const t = current.trim(); if (t) result.push(t); current = ''; }
     }
-  } else if (typeof raw === 'object') {
-    records = [raw];
+    else { current += ch; }
   }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
 
-  records = records.filter(r => r !== null && r !== undefined);
+/* ======= OBJECT (recursive) HELPERS ======= */
+const KEY_OVERRIDES = {
+  ct: 'CT',
+  xray: 'X-Ray',
+  ctChest: 'CT Chest',
+  chestXray: 'Chest X-Ray',
+  ventilationPerfusion: 'Ventilation/Perfusion',
+  pulmonaryAngiography: 'Pulmonary Angiography',
+};
+const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+function isEmptyDeep(v) {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'boolean') return false;
+  if (typeof v === 'number') return !Number.isFinite(v);
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
+  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+  return false;
+}
+const isScalar = (v) => v === null || typeof v !== 'object';
+const isDateStr = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v.trim());
+const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
+
+const flattenItem = (item) => {
+  if (item === null || item === undefined) return '';
+  if (typeof item === 'string') return item;
+  if (typeof item === 'object') {
+    const primary = item.recommendation || item.text || item.name || item.__simpleType;
+    if (primary) return String(primary) + (item.date ? ` (${formatDate(item.date)})` : '');
+    return Object.entries(item).filter(([, v]) => !isEmptyDeep(v)).map(([k, v]) => `${humanizeKey(k)}: ${fmtScalar(v)}`).join(', ');
+  }
+  return String(item);
+};
+
+/* ======= CONFIG (mirrors JSX) ======= */
+const SECTION_TITLES = {
+  'record-details': 'Record Details',
+  'imaging-studies': 'Imaging Studies',
+  'findings-section': 'Findings',
+  'results-section': 'Results',
+  'assessment-section': 'Assessment',
+  'plan-section': 'Plan',
+  'recommendations-section': 'Recommendations',
+  'notes-section': 'Notes',
+};
+const SECTION_ORDER = ['record-details', 'imaging-studies', 'findings-section', 'results-section', 'assessment-section', 'plan-section', 'recommendations-section', 'notes-section'];
+const SECTION_FIELDS = {
+  'record-details': ['date', 'type', 'provider', 'facility', 'status'],
+  'imaging-studies': ['chestXray', 'ctChest', 'ventilationPerfusion', 'pulmonaryAngiography'],
+  'findings-section': ['findings'],
+  'results-section': ['results'],
+  'assessment-section': ['assessment'],
+  'plan-section': ['plan'],
+  'recommendations-section': ['recommendations'],
+  'notes-section': ['notes'],
+};
+const FIELD_LABELS = {
+  date: 'Date', type: 'Type', provider: 'Provider', facility: 'Facility', status: 'Status',
+  chestXray: 'Chest X-Ray', ctChest: 'CT Chest', ventilationPerfusion: 'Ventilation/Perfusion', pulmonaryAngiography: 'Pulmonary Angiography',
+  findings: 'Findings', results: 'Results', assessment: 'Assessment', plan: 'Plan', recommendations: 'Recommendations', notes: 'Notes',
+};
+const DATE_FIELDS = ['date'];
+const OBJECT_FIELDS = ['chestXray', 'ctChest', 'ventilationPerfusion', 'pulmonaryAngiography', 'results'];
+const ARRAY_FIELDS = ['recommendations'];
+
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* ======= FLAT ELEMENT BUILDERS (each returns an array of small <Text> elements) ======= */
+const labelEl = (f, key) => <Text key={key} style={styles.fieldLabel}>{FIELD_LABELS[f] || f}</Text>;
+
+/* string field -> bare label + sentence/comma value lines (mirrors JSX renderStringField display) */
+const stringFieldEls = (f, val, showLabel) => {
+  const strVal = fmtVal(val);
+  const sentences = splitBySentence(strVal);
+  const els = [];
+  if (showLabel) els.push(labelEl(f, `${f}-l`));
+  if (sentences.length <= 1) {
+    els.push(<Text key={`${f}-v`} style={styles.value}>{safeString(strVal)}</Text>);
+    return els;
+  }
+  let n = 1;
+  sentences.forEach((s, si) => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      els.push(<Text key={`${f}-sl${si}`} style={styles.subLabel}>{safeString(parsed.label)}</Text>);
+      if (parts.length >= 2) parts.forEach((p, pi) => els.push(<Text key={`${f}-s${si}c${pi}`} style={styles.listItem}>{`${n++}. ${safeString(p)}`}</Text>));
+      else els.push(<Text key={`${f}-s${si}v`} style={styles.listItem}>{`${n++}. ${safeString(parsed.value)}`}</Text>);
+    } else {
+      els.push(<Text key={`${f}-s${si}`} style={styles.listItem}>{`${n++}. ${safeString(s)}`}</Text>);
+    }
+  });
+  return els;
+};
+
+/* recursive object node -> flat STACKED elements. ARRAY branch numbers each item under the sub-label;
+   scalar date leaves format; numeric-index sub-labels suppressed. */
+const objectNodeEls = (label, value, keyPath, depth) => {
+  if (isEmptyDeep(value)) return [];
+  if (isScalar(value)) {
+    const els = [];
+    const disp = isDateStr(value) ? formatDate(value) : fmtScalar(value);
+    if (label) els.push(<Text key={`${keyPath}-l`} style={depth <= 1 ? styles.fieldLabel : styles.subLabel}>{safeString(label)}</Text>);
+    els.push(<Text key={`${keyPath}-v`} style={styles.value}>{safeString(disp)}</Text>);
+    return els;
+  }
+  if (Array.isArray(value)) {
+    const items = value.filter(v => !isEmptyDeep(v));
+    if (items.length === 0) return [];
+    const els = [];
+    if (label) els.push(<Text key={`${keyPath}-l`} style={depth <= 1 ? styles.fieldLabel : styles.subLabel}>{safeString(label)}</Text>);
+    items.forEach((v, i) => {
+      if (isScalar(v)) els.push(<Text key={`${keyPath}-${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(isDateStr(v) ? formatDate(v) : fmtScalar(v))}`}</Text>);
+      else objectNodeEls('', v, `${keyPath}-${i}`, depth + 1).forEach(e => els.push(e));
+    });
+    return els;
+  }
+  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
+  if (entries.length === 0) return [];
+  const els = [];
+  if (label) els.push(<Text key={`${keyPath}-l`} style={depth <= 1 ? styles.fieldLabel : styles.subLabel}>{safeString(label)}</Text>);
+  entries.forEach(([k, v]) => els.push(...objectNodeEls(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1)));
+  return els;
+};
+
+/* top-level OBJECT field -> flat stacked elements. showLabel emits the object label (single-name gated) */
+const objectFieldEls = (f, val, showLabel) => {
+  if (isEmptyDeep(val) || isScalar(val)) return [];
+  const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
+  if (entries.length === 0) return [];
+  const els = [];
+  if (showLabel) els.push(labelEl(f, `${f}-l`));
+  entries.forEach(([k, v]) => els.push(...objectNodeEls(humanizeKey(k), v, `${f}-${k}`, 1)));
+  return els;
+};
+
+/* array field -> bare label + numbered items */
+const arrayFieldEls = (f, val, showLabel) => {
+  const items = Array.isArray(val) ? val.filter(hasVal) : [];
+  if (items.length === 0) return [];
+  const els = [];
+  if (showLabel) els.push(labelEl(f, `${f}-l`));
+  items.forEach((it, i) => els.push(<Text key={`${f}-${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(flattenItem(it))}`}</Text>));
+  return els;
+};
+
+/* dispatch one field -> flat element array */
+const fieldEls = (record, f, sid) => {
+  const val = record[f];
+  if (!hasVal(val)) return [];
+  const label = FIELD_LABELS[f] || f;
+  const showLabel = !sameAsTitle(label, sid);
+  if (OBJECT_FIELDS.includes(f)) return isScalar(val) ? stringFieldEls(f, val, showLabel) : objectFieldEls(f, val, showLabel);
+  if (ARRAY_FIELDS.includes(f)) return arrayFieldEls(f, val, showLabel);
+  if (DATE_FIELDS.includes(f)) { if (isEpochDate(val)) return []; return [labelEl(f, `${f}-l`), <Text key={`${f}-v`} style={styles.value}>{formatDate(val)}</Text>]; }
+  return stringFieldEls(f, val, showLabel);
+};
+
+/* ======= COMPONENT ======= */
+const PulmonaryImagingDocumentPDFTemplate = ({ document: data }) => {
+  const records = React.useMemo(() => {
+    if (!data) return [];
+    let arr = Array.isArray(data) ? data : [data];
+    arr = arr.flatMap(r => {
+      if (r?.pulmonary_imaging) return Array.isArray(r.pulmonary_imaging) ? r.pulmonary_imaging : [r.pulmonary_imaging];
+      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.pulmonary_imaging) return Array.isArray(dd.pulmonary_imaging) ? dd.pulmonary_imaging : [dd.pulmonary_imaging]; return [dd]; }
+      return [r];
+    });
+    return arr.filter(r => r && typeof r === 'object');
+  }, [data]);
+
+  if (!records || records.length === 0) {
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page}>
+          <Text style={styles.documentTitle}>Pulmonary Imaging</Text>
+          <Text style={styles.noDataText}>No data available</Text>
+        </Page>
+      </Document>
+    );
+  }
 
   return (
     <Document>
-      {records.map((record, recordIdx) => {
-        const recs = Array.isArray(record.recommendations) ? record.recommendations : [];
-        const findingsSentences = record._findingsSentences || splitBySentence(record.findings);
-        const notesSentences = record._notesSentences || splitBySentence(record.notes);
+      <Page size="LETTER" style={styles.page}>
+        <Text style={styles.documentTitle}>Pulmonary Imaging</Text>
 
-        return (
-          <Page key={recordIdx} size="LETTER" style={styles.page}>
-            {/* Document Header */}
-            <View style={styles.documentHeader} fixed>
-              <Text style={styles.documentTitle}>Pulmonary Imaging</Text>
-              <Text style={styles.documentSubtitle}>
-                Generated: {new Date().toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </Text>
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <View wrap={false}>
+              <Text style={styles.recordTitle}>{`Pulmonary Imaging ${index + 1}`}</Text>
             </View>
 
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>
-                Pulmonary Imaging Record {recordIdx + 1}
-              </Text>
-            </View>
-
-            {/* Provider Details */}
-            {(() => {
-              const providerFields = [
-                record.date ? ['Date', formatDatePDF(record.date)] : null,
-                record.provider ? ['Provider', safeString(record.provider)] : null,
-                record.facility ? ['Facility', safeString(record.facility)] : null,
-                hasValue(record.status) ? ['Status', safeString(record.status)] : null,
-              ].filter(Boolean);
-              if (providerFields.length === 0) return null;
+            {SECTION_ORDER.map((sid) => {
+              const fields = SECTION_FIELDS[sid] || [];
+              const flat = [];
+              fields.forEach(f => flat.push(...fieldEls(record, f, sid)));
+              if (flat.length === 0) return null;
+              const first = React.cloneElement(flat[0], { key: 'f0' });
+              const rest = flat.slice(1).map((el, i) => React.cloneElement(el, { key: `f${i + 1}` }));
               return (
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Provider Details</Text>
-                  {providerFields.map(([label, val], i) => (
-                    <View key={i}>
-                      <Text style={styles.subtitleLabel}>{label}</Text>
-                      <Text style={styles.fieldValue}>{val}</Text>
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Imaging Studies */}
-            {(() => {
-              const studyFields = [
-                record.chestXray ? ['Chest X-Ray', safeString(record.chestXray)] : null,
-                record.ctChest ? ['CT Chest', safeString(record.ctChest)] : null,
-                record.ventilationPerfusion ? ['Ventilation/Perfusion', safeString(record.ventilationPerfusion)] : null,
-                record.pulmonaryAngiography ? ['Pulmonary Angiography', safeString(record.pulmonaryAngiography)] : null,
-              ].filter(Boolean);
-              if (studyFields.length === 0) return null;
-              return (
-                <View style={styles.fieldBox} wrap={studyFields.length > 3 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Imaging Studies</Text>
-                  {studyFields.map(([label, val], i) => (
-                    <View key={i}>
-                      <Text style={styles.subtitleLabel}>{label}</Text>
-                      <Text style={styles.fieldValue}>{val}</Text>
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Findings */}
-            {findingsSentences.length > 0 && (() => {
-              const isSmall = findingsSentences.length <= 4;
-              if (isSmall) {
-                return (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.sectionTitle}>Findings</Text>
-                    {findingsSentences.map((sentence, idx) => (
-                      <View key={idx} style={styles.numberedItem}>
-                        <Text style={styles.itemNumber}>{idx + 1}.</Text>
-                        <Text style={styles.itemContent}>
-                          {safeString(sentence)}{sentence.endsWith('.') ? '' : '.'}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                );
-              }
-              return (
-                <View style={styles.fieldBox}>
+                <View key={sid} style={styles.section}>
                   <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Findings</Text>
-                    {findingsSentences.slice(0, 1).map((sentence, idx) => (
-                      <View key={idx} style={styles.numberedItem}>
-                        <Text style={styles.itemNumber}>{idx + 1}.</Text>
-                        <Text style={styles.itemContent}>
-                          {safeString(sentence)}{sentence.endsWith('.') ? '' : '.'}
-                        </Text>
-                      </View>
-                    ))}
+                    <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
+                    {first}
                   </View>
-                  {findingsSentences.slice(1).map((sentence, idx) => (
-                    <View key={idx + 1} style={styles.numberedItem}>
-                      <Text style={styles.itemNumber}>{idx + 2}.</Text>
-                      <Text style={styles.itemContent}>
-                        {safeString(sentence)}{sentence.endsWith('.') ? '' : '.'}
-                      </Text>
-                    </View>
-                  ))}
+                  {rest}
                 </View>
               );
-            })()}
-
-            {/* Results */}
-            {hasValue(record.results) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Results</Text>
-                <Text style={styles.fieldValue}>{safeString(record.results)}</Text>
-              </View>
-            )}
-
-            {/* Assessment */}
-            {hasValue(record.assessment) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Assessment</Text>
-                <Text style={styles.fieldValue}>{safeString(record.assessment)}</Text>
-              </View>
-            )}
-
-            {/* Plan */}
-            {hasValue(record.plan) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Plan</Text>
-                <Text style={styles.fieldValue}>{safeString(record.plan)}</Text>
-              </View>
-            )}
-
-            {/* Recommendations */}
-            {recs.length > 0 && (() => {
-              const isSmall = recs.length <= 4;
-              if (isSmall) {
-                return (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.sectionTitle}>Recommendations</Text>
-                    {recs.map((rec, idx) => {
-                      const recText = typeof rec === 'object' ? (rec.recommendation || rec.__simpleType || '') : rec;
-                      return (
-                        <View key={idx} style={styles.numberedItem}>
-                          <Text style={styles.itemNumber}>{idx + 1}.</Text>
-                          <Text style={styles.itemContent}>{safeString(recText)}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                );
-              }
-              return (
-                <View style={styles.fieldBox}>
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Recommendations</Text>
-                    {recs.slice(0, 1).map((rec, idx) => {
-                      const recText = typeof rec === 'object' ? (rec.recommendation || rec.__simpleType || '') : rec;
-                      return (
-                        <View key={idx} style={styles.numberedItem}>
-                          <Text style={styles.itemNumber}>{idx + 1}.</Text>
-                          <Text style={styles.itemContent}>{safeString(recText)}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                  {recs.slice(1).map((rec, idx) => {
-                    const recText = typeof rec === 'object' ? (rec.recommendation || rec.__simpleType || '') : rec;
-                    return (
-                      <View key={idx + 1} style={styles.numberedItem}>
-                        <Text style={styles.itemNumber}>{idx + 2}.</Text>
-                        <Text style={styles.itemContent}>{safeString(recText)}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              );
-            })()}
-
-            {/* Notes */}
-            {notesSentences.length > 0 && (() => {
-              const isSmall = notesSentences.length <= 4;
-              if (isSmall) {
-                return (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.sectionTitle}>Notes</Text>
-                    {notesSentences.map((sentence, idx) => (
-                      <View key={idx} style={styles.numberedItem}>
-                        <Text style={styles.itemNumber}>{idx + 1}.</Text>
-                        <Text style={styles.itemContent}>
-                          {safeString(sentence)}{sentence.endsWith('.') ? '' : '.'}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                );
-              }
-              return (
-                <View style={styles.fieldBox}>
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Notes</Text>
-                    {notesSentences.slice(0, 1).map((sentence, idx) => (
-                      <View key={idx} style={styles.numberedItem}>
-                        <Text style={styles.itemNumber}>{idx + 1}.</Text>
-                        <Text style={styles.itemContent}>
-                          {safeString(sentence)}{sentence.endsWith('.') ? '' : '.'}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                  {notesSentences.slice(1).map((sentence, idx) => (
-                    <View key={idx + 1} style={styles.numberedItem}>
-                      <Text style={styles.itemNumber}>{idx + 2}.</Text>
-                      <Text style={styles.itemContent}>
-                        {safeString(sentence)}{sentence.endsWith('.') ? '' : '.'}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Footer */}
-            <Text style={styles.footer} fixed>
-              PROTECTED HEALTH INFORMATION (PHI) - Handle according to HIPAA regulations
-            </Text>
-
-            {/* Page Number */}
-            <Text
-              style={styles.pageNumber}
-              render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-              fixed
-            />
-          </Page>
-        );
-      })}
+            })}
+          </View>
+        ))}
+      </Page>
     </Document>
   );
 };

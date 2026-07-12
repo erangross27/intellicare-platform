@@ -1,5 +1,5 @@
-/* Pulmonary Imaging Document - February 2026 */
-/* Blue theme with Comfortaa font, mini-card pattern, inline editing */
+/* Pulmonary Imaging Document - March 2026 */
+/* Blue-glow theme, Comfortaa font, recursive-object mini-card pattern, inline editing */
 
 .pulmonary-imaging-document {
   font-family: 'Comfortaa', sans-serif;
@@ -7,6 +7,13 @@
   padding: 20px;
   background-color: #0F1B33;
   min-height: 100vh;
+  direction: ltr;
+  text-align: left;
+}
+
+/* Force LTR regardless of an RTL OS/browser locale */
+.pulmonary-imaging-document * {
+  direction: ltr;
 }
 
 /* ============== DOCUMENT HEADER ============== */
@@ -39,8 +46,7 @@
 }
 
 /* Action Buttons (Copy All, PDF) */
-.pulmonary-imaging-document .header-actions .copy-btn,
-.pulmonary-imaging-document .header-actions .pdf-btn {
+.pulmonary-imaging-document .header-actions .copy-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -63,8 +69,7 @@
   transition: all 0.2s ease;
 }
 
-.pulmonary-imaging-document .header-actions .copy-btn:hover,
-.pulmonary-imaging-document .header-actions .pdf-btn:hover {
+.pulmonary-imaging-document .header-actions .copy-btn:hover {
   background: rgba(37, 99, 235, 0.2);
   border-color: #3b82f6;
 }
@@ -75,18 +80,22 @@
   border-color: #2563eb;
 }
 
-/* Search Container */
+/* Search */
 .pulmonary-imaging-document .search-container {
   position: relative;
   width: 100% !important;
   max-width: 100% !important;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .pulmonary-imaging-document .search-input {
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box;
-  padding: 10px 36px 10px 14px;
+  padding: 10px 14px;
   background: #0d1929;
   border: 1px solid #565869;
   border-radius: 8px;
@@ -104,29 +113,9 @@
   color: #9ca3af;
 }
 
-.pulmonary-imaging-document .clear-search {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-
-.pulmonary-imaging-document .clear-search:hover {
-  color: #ececf1;
-}
-
-/* Search Results Count */
-.pulmonary-imaging-document .search-results-count {
+.pulmonary-imaging-document .search-results {
   font-size: 14px;
   color: #9ca3af;
-  margin-bottom: 16px;
 }
 
 /* ============== RECORDS CONTAINER ============== */
@@ -149,42 +138,12 @@
   box-sizing: border-box;
 }
 
-/* Record Header */
 .pulmonary-imaging-document .record-header {
   background-color: rgba(96, 165, 250, 0.12);
   padding: 16px 20px;
   border-bottom: 2px solid #2563eb;
   display: flex;
   flex-direction: column;
-}
-
-/* Header Top Row - badges on RIGHT */
-.pulmonary-imaging-document .header-top-row {
-  display: flex !important;
-  justify-content: flex-end !important;
-  align-items: center;
-  margin-bottom: 8px;
-  gap: 12px;
-}
-
-/* Date Badge */
-.pulmonary-imaging-document .date-badge {
-  font-size: 14px;
-  color: #9ca3af;
-  font-weight: 500;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-/* Status Badge */
-.pulmonary-imaging-document .status-badge {
-  font-size: 14px;
-  color: #60a5fa;
-  font-weight: 600;
-  font-family: 'Comfortaa', sans-serif;
-  padding: 4px 10px;
-  background: rgba(96, 165, 250, 0.15);
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  border-radius: 6px;
 }
 
 .pulmonary-imaging-document .record-title {
@@ -196,7 +155,6 @@
   font-family: 'Comfortaa', sans-serif;
 }
 
-/* Record Body */
 .pulmonary-imaging-document .record-body {
   padding: 20px 0;
   width: 100%;
@@ -224,13 +182,12 @@
 .pulmonary-imaging-document .section-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 12px;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(96, 165, 250, 0.4);
 }
 
-/* Section Title - 19px */
 .pulmonary-imaging-document .section-title {
   font-size: 19px;
   font-weight: 700;
@@ -238,6 +195,14 @@
   margin: 0;
   text-transform: none !important;
   font-family: 'Comfortaa', sans-serif;
+}
+
+/* Header right actions container — approve BELOW copy (column) */
+.pulmonary-imaging-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 /* ============== REC-MINI-CARD ============== */
@@ -252,8 +217,8 @@
   gap: 8px;
 }
 
-/* Nested Subtitle inside rec-mini-card */
-.pulmonary-imaging-document .rec-mini-card .nested-subtitle {
+/* Nested subtitle inside rec-mini-card (field label) */
+.pulmonary-imaging-document .rec-mini-card > .nested-subtitle {
   font-size: 17px;
   font-weight: 700;
   color: #93c5fd;
@@ -262,6 +227,34 @@
   padding-bottom: 6px;
   border-bottom: 1px solid rgba(96, 165, 250, 0.2);
   margin-bottom: 4px;
+}
+
+/* ============== NESTED (recursive object) ============== */
+
+.pulmonary-imaging-document .nested-mini-card {
+  background: rgba(96, 165, 250, 0.06);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pulmonary-imaging-document .nested-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Nested sub-label (an object key / leaf name) */
+.pulmonary-imaging-document .nested-subtitle.sub-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #bfdbfe;
+  padding-bottom: 0;
+  border-bottom: none;
+  margin-bottom: 2px;
 }
 
 /* ============== NUMBERED ROW ============== */
@@ -273,19 +266,29 @@
   padding: 10px 14px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
+}
+
+.pulmonary-imaging-document .numbered-row.editable-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.pulmonary-imaging-document .numbered-row.editable-row:hover {
+  background: #10203a;
+  border-color: rgba(96, 165, 250, 0.5);
 }
 
 .pulmonary-imaging-document .row-content {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
 }
 
-/* Nested Subtitle - 17px */
+/* Nested subtitle default (non-sub-label context) */
 .pulmonary-imaging-document .nested-subtitle {
   font-size: 17px;
   font-weight: 700;
@@ -294,7 +297,6 @@
   font-family: 'Comfortaa', sans-serif;
 }
 
-/* Content Value - 16px */
 .pulmonary-imaging-document .content-value {
   font-size: 16px;
   color: #ececf1;
@@ -330,6 +332,20 @@
   border-color: #2563eb;
 }
 
+/* ============== EDIT INDICATOR ============== */
+
+.pulmonary-imaging-document .edit-indicator {
+  color: #60a5fa;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.pulmonary-imaging-document .numbered-row.editable-row:hover .edit-indicator {
+  opacity: 1;
+}
+
 /* ============== SEARCH HIGHLIGHT ============== */
 
 .pulmonary-imaging-document mark {
@@ -347,110 +363,14 @@
   color: #9ca3af;
 }
 
-.pulmonary-imaging-document .empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
 .pulmonary-imaging-document .empty-text {
   font-size: 18px;
   margin: 0 0 8px 0;
   color: #ececf1;
 }
 
-.pulmonary-imaging-document .empty-subtext {
-  font-size: 14px;
-  margin: 0;
-  color: #9ca3af;
-}
+/* ============== EDIT MODE ============== */
 
-/* ============== EDITING STYLES ============== */
-
-/* Editable row-content cursor and hover */
-.pulmonary-imaging-document .row-content.editable {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  border-radius: 4px;
-  padding: 2px 4px;
-}
-
-.pulmonary-imaging-document .row-content.editable:hover {
-  background-color: rgba(96, 165, 250, 0.1);
-}
-
-/* Edit indicator (pencil + "edit" tag) */
-.pulmonary-imaging-document .edit-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  color: #60a5fa;
-  flex-shrink: 0;
-}
-
-.pulmonary-imaging-document .row-content.editable:hover .edit-indicator {
-  opacity: 1;
-}
-
-.pulmonary-imaging-document .edit-tag {
-  font-size: 11px;
-  font-weight: 600;
-  color: #60a5fa;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Modified row state — amber border */
-.pulmonary-imaging-document .numbered-row.modified {
-  border-color: rgba(251, 191, 36, 0.4);
-  background: rgba(251, 191, 36, 0.05);
-}
-
-/* Added row — green border for newly created sentences */
-.pulmonary-imaging-document .numbered-row.added {
-  border-color: rgba(34, 197, 94, 0.4);
-  background: rgba(34, 197, 94, 0.05);
-}
-
-/* Modified badge */
-.pulmonary-imaging-document .modified-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  background: rgba(251, 191, 36, 0.12);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  border-radius: 4px;
-  font-size: 11px;
-  color: #f59e0b;
-  font-weight: 600;
-  margin-top: 4px;
-}
-
-/* Added badge */
-.pulmonary-imaging-document .added-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 4px;
-  font-size: 11px;
-  color: #22c55e;
-  font-weight: 600;
-  margin-top: 4px;
-}
-
-/* Edit row */
-.pulmonary-imaging-document .edit-row {
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Edit field container */
 .pulmonary-imaging-document .edit-field-container {
   width: 100%;
   display: flex;
@@ -458,7 +378,6 @@
   gap: 8px;
 }
 
-/* Edit textarea */
 .pulmonary-imaging-document .edit-textarea {
   width: 100%;
   min-height: 60px;
@@ -480,14 +399,19 @@
   box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
 }
 
-/* Edit actions (Save/Cancel buttons) */
+.pulmonary-imaging-document .save-error {
+  color: #f87171;
+  font-size: 12px;
+}
+
+/* Edit actions (Save/Cancel) — LEFT aligned (standing user pref) */
 .pulmonary-imaging-document .edit-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
-.pulmonary-imaging-document .edit-save-btn {
+.pulmonary-imaging-document .save-btn {
   padding: 6px 16px;
   background: #2563eb;
   color: #ffffff;
@@ -500,16 +424,16 @@
   transition: background-color 0.2s ease;
 }
 
-.pulmonary-imaging-document .edit-save-btn:hover:not(:disabled) {
+.pulmonary-imaging-document .save-btn:hover:not(:disabled) {
   background: #3b82f6;
 }
 
-.pulmonary-imaging-document .edit-save-btn:disabled {
+.pulmonary-imaging-document .save-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.pulmonary-imaging-document .edit-cancel-btn {
+.pulmonary-imaging-document .cancel-btn {
   padding: 6px 16px;
   background: transparent;
   color: #9ca3af;
@@ -522,12 +446,108 @@
   transition: all 0.2s ease;
 }
 
-.pulmonary-imaging-document .edit-cancel-btn:hover:not(:disabled) {
+.pulmonary-imaging-document .cancel-btn:hover {
   color: #ececf1;
   border-color: #9ca3af;
 }
 
-/* Approve button */
+/* ============== NUMBER STEPPER ============== */
+
+.pulmonary-imaging-document .number-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.pulmonary-imaging-document .num-stepper-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.pulmonary-imaging-document .num-step {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  background: rgba(96, 165, 250, 0.12);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.pulmonary-imaging-document .num-step:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: #60a5fa;
+}
+
+.pulmonary-imaging-document .edit-number {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  padding: 8px 10px;
+  background: #1a1b26;
+  border: 1px solid #60a5fa;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 15px;
+  font-family: 'Comfortaa', sans-serif;
+  box-sizing: border-box;
+}
+
+.pulmonary-imaging-document .edit-number:focus {
+  outline: none;
+  border-color: #93c5fd;
+}
+
+.pulmonary-imaging-document .number-edit-unit {
+  font-size: 14px;
+  color: #93c5fd;
+  white-space: nowrap;
+}
+
+/* ============== MODIFIED / ADDED BADGES ============== */
+
+.pulmonary-imaging-document .numbered-row.modified {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+.pulmonary-imaging-document .numbered-row.added {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.pulmonary-imaging-document .modified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #f59e0b;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.pulmonary-imaging-document .modified-badge.added {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+}
+
+/* ============== APPROVE BUTTON ============== */
+
 .pulmonary-imaging-document .approve-btn {
   padding: 6px 14px;
   background: rgba(16, 185, 129, 0.1);
@@ -540,16 +560,12 @@
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  text-transform: capitalize;
 }
 
-.pulmonary-imaging-document .approve-btn:hover:not(:disabled) {
+.pulmonary-imaging-document .approve-btn:hover {
   background: rgba(16, 185, 129, 0.2);
   border-color: #10b981;
-}
-
-.pulmonary-imaging-document .approve-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Pending Approve — YELLOW (edits staged, awaiting approval) */
@@ -557,8 +573,10 @@
   background: rgba(234, 179, 8, 0.15);
   border-color: rgba(234, 179, 8, 0.5);
   color: #eab308;
+  text-transform: capitalize;
 }
-.pulmonary-imaging-document .approve-btn.pending:hover:not(:disabled) {
+
+.pulmonary-imaging-document .approve-btn.pending:hover {
   background: rgba(234, 179, 8, 0.25);
   border-color: rgba(234, 179, 8, 0.7);
 }
@@ -568,29 +586,10 @@
   background: rgba(34, 197, 94, 0.15);
   border-color: rgba(34, 197, 94, 0.4);
   color: #22c55e;
+  text-transform: capitalize;
 }
 
-/* Editable date picker input */
-.pulmonary-imaging-document .edit-date-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 10px;
-  background: #0d1b2a;
-  color: #ececf1;
-  border: 1px solid rgba(96, 165, 250, 0.4);
-  border-radius: 6px;
-  font-size: 15px;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-/* Header right actions container */
-.pulmonary-imaging-document .header-right-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* ============== RESPONSIVE DESIGN ============== */
+/* ============== RESPONSIVE ============== */
 
 @media (max-width: 768px) {
   .pulmonary-imaging-document {
@@ -601,12 +600,9 @@
     padding: 12px 16px;
   }
 
-  .pulmonary-imaging-document .record-body {
-    padding: 12px;
-  }
-
   .pulmonary-imaging-document .numbered-row {
     flex-direction: column;
+    align-items: stretch;
     gap: 8px;
   }
 
@@ -619,8 +615,7 @@
     align-items: stretch;
   }
 
-  .pulmonary-imaging-document .header-actions .copy-btn,
-  .pulmonary-imaging-document .header-actions .pdf-btn {
+  .pulmonary-imaging-document .header-actions .copy-btn {
     width: 100%;
     justify-content: center;
   }

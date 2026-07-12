@@ -22,6 +22,9 @@ kms-storage/
 # Local AI tooling (Qwen) - local config/hooks, not project code
 .qwen/
 qwen-hooks/
+
+# Claude Code local hooks - machine-local automation, not project code
+claude-hooks/
 *.key
 *.pem
 *.crt

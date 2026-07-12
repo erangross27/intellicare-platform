@@ -1,151 +1,81 @@
+/**
+ * PrenatalVisitsDocumentPDFTemplate.jsx
+ * Box-free B&W underline theme — Helvetica — LETTER size — prenatal visits
+ * Collection: prenatal_visits
+ */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * PrenatalVisitsDocumentPDFTemplate
- * March 2026 — Helvetica, LETTER size, 20pt title / 12pt content
- * Collection: prenatal_visits
- */
-
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    size: 'LETTER',
-  },
-  header: {
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-  },
-  recordCard: {
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 12,
-    color: '#000000',
-  },
-  section: {
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase',
-    marginBottom: 6,
-    color: '#1a1a1a',
-  },
-  fieldBlock: {
-    marginBottom: 6,
-    paddingLeft: 8,
-  },
-  fieldSubtitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 2,
-  },
-  fieldValue: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    marginBottom: 4,
-  },
-  listItem: {
-    fontSize: 12,
-    paddingLeft: 8,
-    marginBottom: 4,
-    lineHeight: 1.4,
-  },
-  chartSection: {
-    marginBottom: 14,
-    padding: 12,
-    backgroundColor: '#e8e8e8',
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#999999',
-  },
-  chartTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
-  },
-  barContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  barLabel: {
-    fontSize: 11,
-    width: 100,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-  },
-  barBackground: {
-    flex: 1,
-    height: 16,
-    backgroundColor: '#cccccc',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginRight: 8,
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  barValue: {
-    fontSize: 11,
-    width: 80,
-    textAlign: 'right',
-  },
-  /* nested object (cervicalExam) */
-  subLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 2,
-  },
-  nested: {
-    marginLeft: 10,
-    paddingLeft: 8,
-    borderLeftWidth: 1,
-    borderLeftColor: '#000000',
-    marginTop: 2,
-  },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid', marginBottom: 20 },
+  recordContainer: { marginBottom: 20 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid', marginBottom: 8, marginTop: 6 },
+  fieldBox: { marginBottom: 10 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid', marginBottom: 3 },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  separator: { marginTop: 16, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  noDataText: { fontSize: 14, color: '#000000', textAlign: 'center', marginTop: 40 },
 });
 
-const parseGestationalWeeks = (ga) => {
-  if (!ga) return null;
-  const match = String(ga).match(/(\d+)\s*weeks?/i);
-  return match ? parseInt(match[1], 10) : null;
+/* ======= CONFIG (mirrors the JSX template) ======= */
+const SECTION_TITLES = {
+  'visit-info': 'Visit Information',
+  'pregnancy-details': 'Pregnancy Details',
+  'vital-signs': 'Vital Signs',
+  'fetal-assessment': 'Fetal Assessment',
+  'cervical-exam': 'Cervical Exam',
+  'ultrasound-findings': 'Ultrasound Findings',
+  'lab-results': 'Lab Results',
+  'complications-plan': 'Complications and Plan',
 };
 
-const getTrimesterInfo = (weeks) => {
-  if (weeks === null) return null;
-  if (weeks < 13) return { label: 'First Trimester', color: '#888888' };
-  if (weeks < 28) return { label: 'Second Trimester', color: '#666666' };
-  if (weeks < 37) return { label: 'Third Trimester', color: '#444444' };
-  return { label: 'Full Term', color: '#222222' };
+const FIELD_LABELS = {
+  visitDate: 'Visit Date',
+  gestationalAge: 'Gestational Age',
+  lmp: 'LMP (Last Menstrual Period)',
+  edd: 'EDD (Estimated Due Date)',
+  gravida: 'Gravida',
+  para: 'Para',
+  weight: 'Weight',
+  bloodPressure: 'Blood Pressure',
+  fundalHeight: 'Fundal Height',
+  fetalHeartRate: 'Fetal Heart Rate',
+  fetalMovement: 'Fetal Movement',
+  cervicalExam: 'Cervical Exam',
+  'ultrasoundFindings.presentation': 'Presentation',
+  'ultrasoundFindings.FHR': 'Fetal Heart Rate (US)',
+  'ultrasoundFindings.AFI': 'Amniotic Fluid Index',
+  'ultrasoundFindings.placenta': 'Placenta',
+  'ultrasoundFindings.EFW': 'Estimated Fetal Weight',
+  'ultrasoundFindings.umbilicalArteryDoppler': 'Umbilical Artery Doppler',
+  labResults: 'Lab Results',
+  complications: 'Complications',
+  plan: 'Plan',
 };
 
-/* free-form object recursive helpers (grayscale, B&W) */
+const SECTION_FIELDS = {
+  'visit-info': ['visitDate', 'gestationalAge'],
+  'pregnancy-details': ['lmp', 'edd', 'gravida', 'para'],
+  'vital-signs': ['weight', 'bloodPressure'],
+  'fetal-assessment': ['fundalHeight', 'fetalHeartRate', 'fetalMovement'],
+  'cervical-exam': ['cervicalExam'],
+  'ultrasound-findings': ['ultrasoundFindings.presentation', 'ultrasoundFindings.FHR', 'ultrasoundFindings.AFI', 'ultrasoundFindings.placenta', 'ultrasoundFindings.EFW', 'ultrasoundFindings.umbilicalArteryDoppler'],
+  'lab-results': ['labResults'],
+  'complications-plan': ['complications', 'plan'],
+};
+
+const DATE_FIELDS = ['visitDate', 'lmp', 'edd'];
+const NUMBER_FIELDS = ['gravida', 'para'];
+const ARRAY_FIELDS = ['labResults', 'complications'];
+const OBJECT_FIELDS = ['cervicalExam'];
+
+/* ======= UTILS ======= */
 const KEY_OVERRIDES = { fhr: 'FHR', afi: 'AFI', efw: 'EFW', us: 'US', bpm: 'BPM', cm: 'cm' };
 const humanizeKey = (key) => {
   if (key === null || key === undefined || key === '') return '';
@@ -153,6 +83,32 @@ const humanizeKey = (key) => {
   const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr.$date || dateStr);
+    if (isNaN(date.getTime())) return String(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(dateStr); }
+};
+
+const safeString = (val) => {
+  if (val === null || val === undefined) return '';
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) return formatDate(val.$date);
+  else s = String(val);
+  return s
+    .replace(/×/g, 'x')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/…/g, '...');
+};
+
 const isEmptyDeep = (v) => {
   if (v === null || v === undefined) return true;
   if (typeof v === 'boolean') return false;
@@ -164,269 +120,216 @@ const isEmptyDeep = (v) => {
 };
 const isScalar = (v) => v === null || typeof v !== 'object';
 const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
+
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v).length > 0;
+  return true;
 };
 
-const PrenatalVisitsDocumentPDFTemplate = ({ document: doc }) => {
-  let records = [];
+const fmtVal = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return String(v);
+  return String(v || '');
+};
 
-  if (Array.isArray(doc)) {
-    records = doc;
-  } else if (doc?.prenatal_visits) {
-    records = Array.isArray(doc.prenatal_visits) ? doc.prenatal_visits : [doc.prenatal_visits];
-  } else if (doc?.documentData?.prenatal_visits) {
-    records = Array.isArray(doc.documentData.prenatal_visits) ? doc.documentData.prenatal_visits : [doc.documentData.prenatal_visits];
-  } else if (doc?.documentData) {
-    records = Array.isArray(doc.documentData) ? doc.documentData : [doc.documentData];
-  } else if (doc && typeof doc === 'object') {
-    records = [doc];
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* getVal: resolve dot-path fields like ultrasoundFindings.presentation */
+const getVal = (record, f) => {
+  if (!f.includes('.')) return record[f];
+  let val = record;
+  for (const p of f.split('.')) { if (val == null) return undefined; val = val[p]; }
+  return val;
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
   }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
 
-  records = records.filter(r => r && Object.keys(r).length > 0);
-
-  const safeString = (val) => {
-    if (val === null || val === undefined) return '';
-    if (typeof val === 'string') return val;
-    if (typeof val === 'number') return String(val);
-    return String(val);
-  };
-
-  /* recursive object node: label = bold heading; nested value indented (grayscale) */
-  const renderObjectNode = (label, value, keyPath, depth) => {
-    if (isEmptyDeep(value)) return null;
-    const LabelTag = depth > 0 ? styles.subLabel : styles.fieldSubtitle;
-    if (isScalar(value)) {
-      return (
-        <View key={keyPath}>
-          {label ? <Text style={LabelTag}>{label}</Text> : null}
-          <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
-        </View>
-      );
+/* formatSentenceLines: mirror of the JSX formatSentenceFieldLines (single running counter per field) */
+const formatSentenceLines = (text) => {
+  const sentences = splitBySentence(text);
+  const lines = []; let n = 1;
+  sentences.forEach(s => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      lines.push({ type: 'subtitle', text: safeString(parsed.label) });
+      if (parts.length >= 2) {
+        parts.forEach(item => lines.push({ type: 'item', text: safeString(item), num: n++ }));
+      } else {
+        lines.push({ type: 'item', text: safeString(parsed.value), num: n++ });
+      }
+    } else {
+      lines.push({ type: 'item', text: safeString(s), num: n++ });
     }
-    const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return null;
+  });
+  return lines;
+};
+
+/* objectElements: recursive flat <Text> list for a nested object (sub-label + value stacked) */
+const objectElements = (value, keyBase, depth) => {
+  if (isEmptyDeep(value)) return [];
+  if (isScalar(value)) return [<Text key={keyBase} style={styles.fieldValue}>{safeString(fmtScalar(value))}</Text>];
+  const out = [];
+  Object.entries(value).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => {
+    out.push(<Text key={`${keyBase}-${k}-l`} style={styles.subLabel}>{humanizeKey(k)}</Text>);
+    if (isScalar(v)) out.push(<Text key={`${keyBase}-${k}-v`} style={styles.fieldValue}>{safeString(fmtScalar(v))}</Text>);
+    else objectElements(v, `${keyBase}-${k}`, depth + 1).forEach(el => out.push(el));
+  });
+  return out;
+};
+
+/* fieldView: one bare <View fieldBox> per field, or null when empty/hidden */
+const fieldView = (record, f, sid, key) => {
+  const label = FIELD_LABELS[f] || f;
+  const val = getVal(record, f);
+
+  if (DATE_FIELDS.includes(f)) {
+    if (!hasVal(val)) return null;
     return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
+      <View key={key} style={styles.fieldBox}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        <Text style={styles.fieldValue}>{formatDate(val)}</Text>
       </View>
     );
-  };
+  }
+
+  if (NUMBER_FIELDS.includes(f)) {
+    if (!hasVal(val)) return null;
+    return (
+      <View key={key} style={styles.fieldBox}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        <Text style={styles.fieldValue}>{safeString(fmtScalar(val))}</Text>
+      </View>
+    );
+  }
+
+  if (ARRAY_FIELDS.includes(f)) {
+    const items = Array.isArray(val) ? val.filter(x => hasVal(x)) : [];
+    if (items.length === 0) return null;
+    return (
+      <View key={key} style={styles.fieldBox}>
+        {!sameAsTitle(label, sid) && <Text style={styles.fieldLabel}>{label}</Text>}
+        {items.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>)}
+      </View>
+    );
+  }
+
+  if (OBJECT_FIELDS.includes(f)) {
+    if (!val || isScalar(val) || isEmptyDeep(val)) return null;
+    const els = objectElements(val, `${key}-obj`, 1);
+    if (els.length === 0) return null;
+    return (
+      <View key={key} style={styles.fieldBox}>
+        {!sameAsTitle(label, sid) && <Text style={styles.fieldLabel}>{label}</Text>}
+        {els}
+      </View>
+    );
+  }
+
+  /* STRING (and any other scalar) */
+  if (!hasVal(val)) return null;
+  const strVal = safeString(fmtVal(val));
+  const sentences = splitBySentence(strVal);
+  if (sentences.length > 1) {
+    const lines = formatSentenceLines(strVal);
+    return (
+      <View key={key} style={styles.fieldBox}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        {lines.map((ln, i) => ln.type === 'subtitle'
+          ? <Text key={i} style={styles.subLabel}>{ln.text}</Text>
+          : <Text key={i} style={styles.listItem}>{ln.num}. {ln.text}</Text>)}
+      </View>
+    );
+  }
+  return (
+    <View key={key} style={styles.fieldBox}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldValue}>{strVal}</Text>
+    </View>
+  );
+};
+
+/* renderSection: anti-orphan — glue the section title + first visible field inside one wrap={false} View */
+const renderSection = (record, sid, keyBase) => {
+  const fields = SECTION_FIELDS[sid] || [];
+  const views = fields.map((f, i) => fieldView(record, f, sid, `${keyBase}-${sid}-${i}`)).filter(Boolean);
+  if (views.length === 0) return null;
+  const [first, ...rest] = views;
+  return (
+    <View key={`${keyBase}-${sid}`} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
+        {first}
+      </View>
+      {rest}
+    </View>
+  );
+};
+
+/* ======= COMPONENT ======= */
+const PrenatalVisitsDocumentPDFTemplate = ({ document: doc }) => {
+  let records = [];
+  if (Array.isArray(doc)) records = doc;
+  else if (doc?.prenatal_visits) records = Array.isArray(doc.prenatal_visits) ? doc.prenatal_visits : [doc.prenatal_visits];
+  else if (doc?.documentData?.prenatal_visits) records = Array.isArray(doc.documentData.prenatal_visits) ? doc.documentData.prenatal_visits : [doc.documentData.prenatal_visits];
+  else if (doc?.documentData) records = Array.isArray(doc.documentData) ? doc.documentData : [doc.documentData];
+  else if (doc && typeof doc === 'object') records = [doc];
+  records = records.filter(r => r && Object.keys(r).length > 0);
+
+  if (records.length === 0) {
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page}>
+          <Text style={styles.documentTitle}>Prenatal Visits</Text>
+          <Text style={styles.noDataText}>No data available</Text>
+        </Page>
+      </Document>
+    );
+  }
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.documentTitle}>Prenatal Visits</Text>
-        </View>
+        <Text style={styles.documentTitle}>Prenatal Visits</Text>
 
-        {records.map((record, idx) => {
-          const gestationalWeeks = record.gestationalWeeks || parseGestationalWeeks(record.gestationalAge);
-          const trimesterInfo = getTrimesterInfo(gestationalWeeks);
-          const percentage = gestationalWeeks ? Math.min((gestationalWeeks / 40) * 100, 100) : 0;
-
-          return (
-            <View key={idx} style={styles.recordCard}>
-              <Text style={styles.recordTitle}>Prenatal Visit {idx + 1}</Text>
-
-              {trimesterInfo && gestationalWeeks && (
-                <View style={styles.chartSection} wrap={false}>
-                  <Text style={styles.chartTitle}>Gestational Age Progress</Text>
-                  <View style={styles.barContainer}>
-                    <Text style={styles.barLabel}>{trimesterInfo.label}</Text>
-                    <View style={styles.barBackground}>
-                      <View style={[styles.barFill, { width: `${percentage}%`, backgroundColor: trimesterInfo.color }]} />
-                    </View>
-                    <Text style={styles.barValue}>{gestationalWeeks}/40 weeks</Text>
-                  </View>
-                </View>
-              )}
-
-              {(record.visitDate || record.gestationalAge) && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Visit Information</Text>
-                  {record.visitDate && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Visit Date</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.visitDate)}</Text>
-                    </View>
-                  )}
-                  {record.gestationalAge && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Gestational Age</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.gestationalAge)}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {(record.lmp || record.edd || record.gravida !== undefined || record.para !== undefined) && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Pregnancy Details</Text>
-                  {record.lmp && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>LMP (Last Menstrual Period)</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.lmp)}</Text>
-                    </View>
-                  )}
-                  {record.edd && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>EDD (Estimated Due Date)</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.edd)}</Text>
-                    </View>
-                  )}
-                  {record.gravida !== undefined && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Gravida</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.gravida)}</Text>
-                    </View>
-                  )}
-                  {record.para !== undefined && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Para</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.para)}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {(record.weight || record.bloodPressure) && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Vital Signs</Text>
-                  {record.weight && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Weight</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.weight)}</Text>
-                    </View>
-                  )}
-                  {record.bloodPressure && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Blood Pressure</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.bloodPressure)}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {(record.fundalHeight || record.fetalHeartRate || record.fetalMovement) && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Fetal Assessment</Text>
-                  {record.fundalHeight && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Fundal Height</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.fundalHeight)}</Text>
-                    </View>
-                  )}
-                  {record.fetalHeartRate && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Fetal Heart Rate</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.fetalHeartRate)}</Text>
-                    </View>
-                  )}
-                  {record.fetalMovement && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Fetal Movement</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.fetalMovement)}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {record.cervicalExam && !isEmptyDeep(record.cervicalExam) && (
-                Object.entries(record.cervicalExam).filter(([, v]) => !isEmptyDeep(v)).map(([k, v], i, arr) => {
-                  const rows = countRows(v);
-                  return (
-                    <View key={`cervicalExam-${k}`} style={styles.section} wrap={rows > 8 ? undefined : false}>
-                      {i === 0 ? <Text style={styles.sectionTitle}>Cervical Exam</Text> : null}
-                      <View style={styles.fieldBlock}>
-                        {renderObjectNode(humanizeKey(k), v, `cervicalExam-${k}`, 1)}
-                      </View>
-                    </View>
-                  );
-                })
-              )}
-
-              {record.ultrasoundFindings && Object.keys(record.ultrasoundFindings).length > 0 && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Ultrasound Findings</Text>
-                  {record.ultrasoundFindings.presentation && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Presentation</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.ultrasoundFindings.presentation)}</Text>
-                    </View>
-                  )}
-                  {record.ultrasoundFindings.FHR && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Fetal Heart Rate (US)</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.ultrasoundFindings.FHR)}</Text>
-                    </View>
-                  )}
-                  {record.ultrasoundFindings.AFI && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Amniotic Fluid Index</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.ultrasoundFindings.AFI)}</Text>
-                    </View>
-                  )}
-                  {record.ultrasoundFindings.placenta && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Placenta</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.ultrasoundFindings.placenta)}</Text>
-                    </View>
-                  )}
-                  {record.ultrasoundFindings.EFW && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Estimated Fetal Weight</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.ultrasoundFindings.EFW)}</Text>
-                    </View>
-                  )}
-                  {record.ultrasoundFindings.umbilicalArteryDoppler && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Umbilical Artery Doppler</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.ultrasoundFindings.umbilicalArteryDoppler)}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {record.labResults?.length > 0 && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Lab Results</Text>
-                  {record.labResults.map((lab, labIdx) => (
-                    <Text key={labIdx} style={styles.listItem}>
-                      {labIdx + 1}. {safeString(lab)}
-                    </Text>
-                  ))}
-                </View>
-              )}
-
-              {record.complications?.length > 0 && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Complications</Text>
-                  {record.complications.map((comp, compIdx) => (
-                    <Text key={compIdx} style={styles.listItem}>
-                      {compIdx + 1}. {safeString(comp)}
-                    </Text>
-                  ))}
-                </View>
-              )}
-
-              {record.plan && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Plan</Text>
-                  {safeString(record.plan).split(/[;.]/).map(s => s.trim()).filter(Boolean).map((item, planIdx) => (
-                    <Text key={planIdx} style={styles.listItem}>
-                      {planIdx + 1}. {item}
-                    </Text>
-                  ))}
-                </View>
-              )}
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer}>
+            {index > 0 && <View style={styles.separator} />}
+            <View style={styles.recordHeader} wrap={false}>
+              <Text style={styles.recordTitle}>{`Prenatal Visit ${index + 1}`}</Text>
             </View>
-          );
-        })}
+            {Object.keys(SECTION_FIELDS).map(sid => renderSection(record, sid, index))}
+          </View>
+        ))}
       </Page>
     </Document>
   );

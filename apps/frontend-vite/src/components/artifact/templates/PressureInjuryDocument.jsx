@@ -13,6 +13,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PressureInjuryDocumentPDFTemplate from '../pdf-templates/PressureInjuryDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './PressureInjuryDocument.css';
 
@@ -58,11 +59,10 @@ const FIELD_LABELS = {
   provider: 'Provider',
   facility: 'Facility',
   date: 'Date',
-  createdAt: 'Created At',
 };
 
 const SECTION_FIELDS = {
-  'provider-info': ['provider', 'facility', 'date', 'createdAt'],
+  'provider-info': ['provider', 'facility', 'date'],
   'wound-details': ['location', 'stage', 'size', 'type', 'description'],
   'clinical-findings': ['findings', 'assessment', 'notes', 'status'],
   'treatment-plan': ['treatment', 'prevention', 'plan'],
@@ -71,8 +71,11 @@ const SECTION_FIELDS = {
 
 const ARRAY_FIELDS = ['recommendations'];
 const OBJECT_FIELDS = ['results', 'additionalData'];
-const DATE_FIELDS = ['date', 'createdAt'];
+const DATE_FIELDS = ['date'];
 const STRING_FIELDS = ['location', 'stage', 'size', 'type', 'description', 'findings', 'assessment', 'notes', 'status', 'treatment', 'prevention', 'plan', 'provider', 'facility'];
+
+/* sameAsTitle: suppress a field-label subtitle that duplicates its section title (single-name gate) */
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -90,7 +93,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -100,6 +103,11 @@ const splitByComma = (text) => {
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
   try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
+};
+
+const toInputDate = (dateValue) => {
+  if (!dateValue) return '';
+  try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
 
 /* ======= COMPONENT ======= */
@@ -160,7 +168,7 @@ const PressureInjuryDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -425,35 +433,35 @@ const PressureInjuryDocument = ({ document: docProp }) => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n`;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}: ${formatDate(val)}\n\n`;
+        text += `${labelLine}1. ${formatDate(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val.filter(v => v && String(v).trim()) : [];
         if (items.length > 0) {
-          text += `${label}\n`;
+          text += labelLine;
           items.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
           text += '\n';
         }
       } else if (OBJECT_FIELDS.includes(f)) {
         const entries = Object.entries(val).filter(([, v]) => hasVal(v));
         if (entries.length > 0) {
-          text += `${label}\n`;
-          entries.forEach(([k, v]) => { text += `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}\n`; });
+          text += labelLine;
+          entries.forEach(([k, v]) => { text += `${k}\n${typeof v === 'object' ? JSON.stringify(v) : v}\n`; });
           text += '\n';
         }
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          const showLabelCopy = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
-          if (showLabelCopy) text += `${label}\n`;
+        if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+          text += labelLine;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}1. ${fmtVal(val)}\n\n`;
       }
     });
     return text;
@@ -476,17 +484,33 @@ const PressureInjuryDocument = ({ document: docProp }) => {
   const renderDateField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
     const displayVal = formatDate(val);
+    const isModified = editedFields[editKey];
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className="numbered-row">
-          <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span></div>
-          <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
         </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
   };
@@ -502,14 +526,17 @@ const PressureInjuryDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {entries.map(([key, value], entryIdx) => {
           const entryKey = `${fn}.${key}-${idx}`;
           const displayVal = typeof value === 'object' ? JSON.stringify(value) : String(value);
           return (
-            <div key={entryIdx} className="numbered-row">
-              <div className="row-content"><span className="content-value">{highlightText(`${key}: ${displayVal}`)}</span></div>
-              <button className={`copy-btn ${copiedItems[entryKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${key}: ${displayVal}`, entryKey); }}>{copiedItems[entryKey] ? 'Copied!' : 'Copy'}</button>
+            <div key={entryIdx} className="nested-mini-card">
+              <div className="nested-subtitle sub-label">{highlightText(key)}</div>
+              <div className="numbered-row">
+                <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span></div>
+                <button className={`copy-btn ${copiedItems[entryKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${key}\n${displayVal}`, entryKey); }}>{copiedItems[entryKey] ? 'Copied!' : 'Copy'}</button>
+              </div>
             </div>
           );
         })}
@@ -527,7 +554,7 @@ const PressureInjuryDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
@@ -575,15 +602,15 @@ const PressureInjuryDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* Multi-sentence (or single labeled sentence): render with splitBySentence */
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -744,7 +771,7 @@ const PressureInjuryDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pressure Injury</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PressureInjuryDocumentPDFTemplate document={pdfData} />} fileName={`pressure-injury-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PressureInjuryDocumentPDFTemplate document={pdfData} />} fileName="Pressure_Injury.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -757,11 +784,6 @@ const PressureInjuryDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.createdAt)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Pressure Injury ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'provider-info')}

@@ -1,153 +1,240 @@
-/**
- * PressureInjuryDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt -- LETTER size -- US medical platform
- * Collection: pressure_injury
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+/* ═══════ BOX-FREE B&W STYLES ═══════ */
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, backgroundColor: '#f5f5f5', padding: 12, borderWidth: 2, borderColor: '#000000', borderLeftWidth: 5, borderLeftColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 11, color: '#333333', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, marginBottom: 2 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000' },
+  recordCard: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  section: { marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 6, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldBox: { marginBottom: 8 },
+  fieldLabel: { fontSize: 13, color: '#333333', marginBottom: 2, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
+  fieldValue: { fontSize: 14, lineHeight: 1.4, color: '#000000' },
+  listItem: { fontSize: 14, marginBottom: 3, lineHeight: 1.4, color: '#000000', paddingLeft: 8 },
 });
 
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; return true; };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\bvs)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
-const parseLabel = (s) => { const m = s.replace(/[;.]+$/, '').trim().match(/^([A-Za-z][A-Za-z0-9 /()-]{1,40}):\s*(.+)$/s); return m ? { label: m[1].trim(), value: m[2].trim() } : { label: null, value: s }; };
-const renderFieldRow = (label, value) => { if (!hasVal(value)) return null; return (<View style={{ marginBottom: 4 }}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{String(value)}</Text></View>); };
-
-const renderSentenceField = (label, text, sectionTitle) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(String(text));
-  if (sentences.length === 0) return null;
-  let totalItems = sentences.length;
-  sentences.forEach(s => { const p = parseLabel(s); const rv = p.label ? p.value : s; const ci = rv.split(/,\s+/).filter(x => x.trim()); if (ci.length > 1) totalItems += ci.length - 1; });
-  return (<View style={styles.fieldBox} wrap={totalItems > 8 ? undefined : false}>
-    {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-    <Text style={styles.fieldLabel}>{label}</Text>
-    {sentences.map((s, i) => {
-      const p = parseLabel(s);
-      const rawVal = p.label ? p.value : s.replace(/[;.]+$/, '').trim();
-      const cItems = rawVal.split(/,\s+/).filter(x => x.trim());
-      return (<View key={i} style={{ marginBottom: 3, marginLeft: 8 }}>
-        {p.label && <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 1 }}>{p.label}</Text>}
-        {cItems.length > 1 ? cItems.map((item, ci) => <Text key={ci} style={styles.listItem}>{ci + 1}. {item.trim()}</Text>) : <Text style={styles.listItem}>1. {rawVal}</Text>}
-      </View>);
-    })}
-  </View>);
+/* ═══════ CONFIG MAPS (mirror the JSX) ═══════ */
+const SECTION_TITLES = {
+  'provider-info': 'Provider Information',
+  'wound-details': 'Wound Details',
+  'clinical-findings': 'Clinical Findings',
+  'treatment-plan': 'Treatment Plan',
+  'recommendations-results': 'Recommendations & Results',
 };
 
-const PressureInjuryDocumentPDFTemplate = ({ document: data }) => {
-  // Handle data unwrapping
-  let records = [];
-  if (Array.isArray(data)) {
-    records = data;
-  } else if (data?.pressure_injury && Array.isArray(data.pressure_injury)) {
-    records = data.pressure_injury;
-  } else if (data?.documentData) {
-    const docData = data.documentData;
-    if (Array.isArray(docData)) {
-      records = docData;
-    } else if (docData?.pressure_injury) {
-      records = docData.pressure_injury;
-    } else if (docData && typeof docData === 'object') {
-      records = [docData];
-    }
-  } else if (data && typeof data === 'object') {
-    records = [data];
-  }
+const FIELD_LABELS = {
+  location: 'Location',
+  stage: 'Stage',
+  size: 'Size',
+  type: 'Type',
+  description: 'Description',
+  findings: 'Findings',
+  assessment: 'Assessment',
+  notes: 'Notes',
+  status: 'Status',
+  treatment: 'Treatment',
+  prevention: 'Prevention',
+  plan: 'Plan',
+  recommendations: 'Recommendations',
+  results: 'Results',
+  provider: 'Provider',
+  facility: 'Facility',
+  date: 'Date',
+};
 
-  if (!records || records.length === 0) {
-    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Pressure Injury</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+const SECTION_FIELDS = {
+  'provider-info': ['provider', 'facility', 'date'],
+  'wound-details': ['location', 'stage', 'size', 'type', 'description'],
+  'clinical-findings': ['findings', 'assessment', 'notes', 'status'],
+  'treatment-plan': ['treatment', 'prevention', 'plan'],
+  'recommendations-results': ['recommendations', 'results'],
+};
+const SECTION_ORDER = ['provider-info', 'wound-details', 'clinical-findings', 'treatment-plan', 'recommendations-results'];
+
+const DATE_FIELDS = ['date'];
+const ARRAY_FIELDS = ['recommendations'];
+const OBJECT_FIELDS = ['results', 'additionalData'];
+
+/* sameAsTitle: hide a field label that duplicates its section title */
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* ═══════ HELPERS ═══════ */
+const safeString = (val) => {
+  if (val === null || val === undefined) return '';
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object') {
+    if (Object.keys(val).length === 0) return '';
+    if (val.value !== undefined) s = String(val.value);
+    else if (val.text !== undefined) s = String(val.text);
+    else s = JSON.stringify(val);
+  } else s = String(val);
+  return s
+    .replace(/×/g, 'x')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[—–]/g, '-')
+    .replace(/…/g, '...');
+};
+
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v).length > 0;
+  return true;
+};
+
+const formatDate = (dateValue) => {
+  if (!dateValue) return '';
+  try {
+    const date = new Date(dateValue.$date || dateValue);
+    if (isNaN(date.getTime())) return String(dateValue || '');
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(dateValue || ''); }
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+
+/* mirror of JSX formatSentenceFieldLines */
+const formatSentenceLines = (text) => {
+  const sentences = splitBySentence(text);
+  const lines = []; let n = 1;
+  sentences.forEach(s => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      if (parts.length >= 2) {
+        lines.push(parsed.label + ':');
+        parts.forEach(item => lines.push(`${n++}. ${item}`));
+      } else {
+        lines.push(parsed.label + ':');
+        lines.push(`${n++}. ${parsed.value}`);
+      }
+    } else {
+      lines.push(`${n++}. ${s}`);
+    }
+  });
+  return lines;
+};
+
+/* ═══════ FIELD RENDER (flat elements, one glue View per field) ═══════ */
+const fieldBody = (record, f, sid) => {
+  const val = record[f];
+  if (!hasVal(val)) return null;
+  const label = FIELD_LABELS[f] || f;
+  const els = [];
+  if (!sameAsTitle(label, sid)) els.push(<Text key="l" style={styles.fieldLabel}>{safeString(label)}</Text>);
+  if (DATE_FIELDS.includes(f)) {
+    els.push(<Text key="v" style={styles.fieldValue}>{formatDate(val)}</Text>);
+  } else if (ARRAY_FIELDS.includes(f)) {
+    const items = Array.isArray(val) ? val.filter(v => v && String(v).trim()) : [];
+    items.forEach((it, i) => els.push(<Text key={`i${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(it)}`}</Text>));
+  } else if (OBJECT_FIELDS.includes(f)) {
+    const entries = Object.entries(val).filter(([, v]) => hasVal(v));
+    entries.forEach(([k, v], i) => {
+      els.push(<Text key={`k${i}`} style={styles.subLabel}>{safeString(k)}</Text>);
+      els.push(<Text key={`ov${i}`} style={styles.fieldValue}>{safeString(v)}</Text>);
+    });
+  } else {
+    const strVal = safeString(val);
+    const sentences = splitBySentence(strVal);
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+      formatSentenceLines(strVal).forEach((line, i) => els.push(<Text key={`s${i}`} style={styles.listItem}>{line}</Text>));
+    } else {
+      els.push(<Text key="v" style={styles.fieldValue}>{strVal}</Text>);
+    }
+  }
+  return els.length > 0 ? els : null;
+};
+
+const fieldView = (record, f, sid) => {
+  const body = fieldBody(record, f, sid);
+  if (!body) return null;
+  return <View key={f} style={styles.fieldBox} wrap={false}>{body}</View>;
+};
+
+/* anti-orphan: sectionTitle + first field glued in a wrap={false} View, rest flow */
+const renderSection = (record, sid) => {
+  const fields = SECTION_FIELDS[sid] || [];
+  const views = fields.map(f => fieldView(record, f, sid)).filter(Boolean);
+  if (views.length === 0) return null;
+  const [first, ...rest] = views;
+  return (
+    <View key={sid} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{safeString(SECTION_TITLES[sid])}</Text>
+        {first}
+      </View>
+      {rest}
+    </View>
+  );
+};
+
+const PressureInjuryDocumentPDFTemplate = ({ document }) => {
+  let records = [];
+  if (Array.isArray(document)) {
+    if (document.length > 0 && document[0]?.pressure_injury) records = document[0].pressure_injury;
+    else if (document.length > 0 && document[0]?.records) records = document[0].records;
+    else if (document.length > 0 && document[0]?._records) records = document[0]._records;
+    else records = document;
+  } else if (document?.pressure_injury) records = Array.isArray(document.pressure_injury) ? document.pressure_injury : [document.pressure_injury];
+  else if (document?.records) records = document.records;
+  else if (document?._records) records = document._records;
+  else if (document) records = [document];
+
+  const validRecords = Array.isArray(records) ? records.filter(r => r && typeof r === 'object') : [];
+
+  if (!validRecords.length) {
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page}>
+          <Text style={styles.documentTitle}>Pressure Injury</Text>
+          <Text style={{ textAlign: 'center', color: '#6b7280' }}>No pressure injury data available</Text>
+        </Page>
+      </Document>
+    );
   }
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Pressure Injury</Text></View>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>{`Pressure Injury ${idx + 1}`}</Text>
-              {record.createdAt && <Text style={styles.recordMeta}>{formatDate(record.createdAt)}</Text>}
-            </View>
-
-            {/* 1. Provider Information */}
-            {(hasVal(record.provider) || hasVal(record.facility) || hasVal(record.date)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Provider Information</Text>
-                {renderFieldRow('Provider', record.provider)}
-                {renderFieldRow('Facility', record.facility)}
-                {hasVal(record.date) && renderFieldRow('Date', formatDate(record.date))}
-              </View>
-            )}
-
-            {/* 2. Wound Details */}
-            {(hasVal(record.location) || hasVal(record.stage) || hasVal(record.size) || hasVal(record.type) || hasVal(record.description)) && (
-              <View style={styles.section}>
-                {hasVal(record.location) && renderSentenceField('Location', record.location, 'Wound Details')}
-                {hasVal(record.stage) && renderSentenceField('Stage', record.stage, !hasVal(record.location) ? 'Wound Details' : null)}
-                {hasVal(record.size) && renderFieldRow('Size', record.size)}
-                {hasVal(record.type) && renderFieldRow('Type', record.type)}
-                {hasVal(record.description) && renderSentenceField('Description', record.description)}
-              </View>
-            )}
-
-            {/* 3. Clinical Findings */}
-            {(hasVal(record.findings) || hasVal(record.assessment) || hasVal(record.notes) || hasVal(record.status)) && (
-              <View style={styles.section}>
-                {hasVal(record.findings) && renderSentenceField('Findings', record.findings, 'Clinical Findings')}
-                {hasVal(record.assessment) && renderSentenceField('Assessment', record.assessment, !hasVal(record.findings) ? 'Clinical Findings' : null)}
-                {hasVal(record.notes) && renderSentenceField('Notes', record.notes)}
-                {hasVal(record.status) && renderFieldRow('Status', record.status)}
-              </View>
-            )}
-
-            {/* 4. Treatment Plan */}
-            {(hasVal(record.treatment) || hasVal(record.prevention) || hasVal(record.plan)) && (
-              <View style={styles.section}>
-                {hasVal(record.treatment) && renderSentenceField('Treatment', record.treatment, 'Treatment Plan')}
-                {hasVal(record.prevention) && renderSentenceField('Prevention', record.prevention, !hasVal(record.treatment) ? 'Treatment Plan' : null)}
-                {hasVal(record.plan) && renderSentenceField('Plan', record.plan)}
-              </View>
-            )}
-
-            {/* 5. Recommendations & Results */}
-            {(hasVal(record.recommendations) || hasVal(record.results)) && (
-              <View style={styles.section}>
-                {Array.isArray(record.recommendations) && record.recommendations.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.recommendations.length > 8 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>Recommendations & Results</Text>
-                    <Text style={styles.fieldLabel}>Recommendations</Text>
-                    {record.recommendations.map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {record.results && typeof record.results === 'object' && Object.keys(record.results).length > 0 && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    {!(Array.isArray(record.recommendations) && record.recommendations.length > 0) && <Text style={styles.sectionTitle}>Recommendations & Results</Text>}
-                    <Text style={styles.fieldLabel}>Results</Text>
-                    {Object.entries(record.results).filter(([, v]) => hasVal(v)).map(([k, v], i) => (
-                      <Text key={i} style={styles.listItem}>{k}: {typeof v === 'object' ? JSON.stringify(v) : String(v)}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
+        <Text style={styles.documentTitle}>Pressure Injury</Text>
+        {validRecords.map((record, idx) => (
+          <View key={idx} style={styles.recordCard} break={idx > 0}>
+            <Text style={styles.recordTitle}>{`Pressure Injury ${idx + 1}`}</Text>
+            {SECTION_ORDER.map(sid => renderSection(record, sid))}
           </View>
         ))}
       </Page>

@@ -14,6 +14,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PumpAdvancedSettingsDocumentPDFTemplate from '../pdf-templates/PumpAdvancedSettingsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PumpAdvancedSettingsDocument.css';
 
@@ -93,6 +95,39 @@ const ARRAY_FIELDS = ['basalRateProfile'];
 const OBJECT_FIELDS = ['targetGlucoseRange', 'nightModeSchedule'];
 const DATE_FIELDS = ['date'];
 const STRING_FIELDS = ['provider', 'facility', 'pumpManufacturer', 'pumpModelNumber', 'pumpSerialNumber', 'softwareFirmwareVersion', 'bolusDeliveryMode', 'airInLineDetection', 'doseErrorReductionSystem', 'wirelessCommunicationEnabled'];
+const COPY_LINE_EQ = '='.repeat(40);
+const COPY_LINE_DASH = '-'.repeat(40);
+
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+const stepFor = (value) => {
+  const match = String(value).trim().match(/\.(\d+)/);
+  return match ? Math.pow(10, -match[1].length) : 1;
+};
+const setNestedCopy = (source, path, value) => {
+  if (path.length === 0) return value;
+  const [head, ...rest] = path;
+  const base = source ?? (/^\d+$/.test(head) ? [] : {});
+  const copy = Array.isArray(base) ? [...base] : { ...base };
+  copy[head] = setNestedCopy(base?.[head], rest, value);
+  return copy;
+};
+const NumericStepper = ({ value, onChange, unit = '' }) => {
+  const changeBy = (direction) => {
+    const step = stepFor(value);
+    const decimals = String(step).includes('.') ? String(step).split('.')[1].length : 0;
+    const current = Number(value);
+    const next = (Number.isFinite(current) ? current : 0) + direction * step;
+    onChange(decimals ? next.toFixed(decimals) : String(Math.round(next)));
+  };
+  return (
+    <div className="num-stepper-row">
+      <button type="button" className="num-step" onClick={e => { e.stopPropagation(); changeBy(-1); }}>−</button>
+      <input type="text" inputMode="decimal" className="edit-number" value={value} onChange={e => onChange(e.target.value)} autoFocus />
+      <button type="button" className="num-step" onClick={e => { e.stopPropagation(); changeBy(1); }}>+</button>
+      {unit && <span className="number-edit-unit">{unit}</span>}
+    </div>
+  );
+};
 
 /* humanizeKey: camelCase / snake_case → Title Case (fallback for unknown object keys) */
 const humanizeKey = (key) => {
@@ -113,7 +148,7 @@ const formatDate = (val) => {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 };
 
-/* toInputDate: any stored date value → YYYY-MM-DD for <input type="date"> */
+/* toInputDate: any stored date value → YYYY-MM-DD for BlueDatePicker */
 const toInputDate = (dateValue) => {
   if (!dateValue) return '';
   try { const d = new Date(dateValue.$date || dateValue); if (Number.isNaN(d.getTime())) return ''; return d.toISOString().split('T')[0]; } catch { return ''; }
@@ -152,7 +187,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -238,7 +273,7 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -253,7 +288,7 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
   const getFieldValue = useCallback((record, fn, idx) => {
     const k = `${fn}-${idx}`;
     if (localEdits[k] !== undefined) return localEdits[k];
-    return record[fn];
+    return String(fn).split('.').reduce((value, part) => value?.[part], record);
   }, [localEdits]);
 
   /* hide-zero: numeric "not recorded" (0) hidden unless doctor-edited */
@@ -354,7 +389,8 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
         if (pendingEdits[key]) return; // pending drafts stay OUT of the PDF until approved
         const m = key.match(/^(.+)-(\d+)$/);
         if (m && parseInt(m[2]) === idx) {
-          merged[m[1]] = localEdits[key];
+          const next = setNestedCopy(merged, m[1].split('.'), localEdits[key]);
+          Object.assign(merged, next);
         }
       });
       return merged;
@@ -462,9 +498,7 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
         if (!pendingEdits[k] || !k.endsWith(suffix)) return false;
         const fieldPart = k.slice(0, -suffix.length);
         // arrayIndex ONLY when the trailing dot-segment is purely numeric
-        const dotIdx = fieldPart.lastIndexOf('.');
-        const baseField = dotIdx !== -1 && /^\d+$/.test(fieldPart.slice(dotIdx + 1)) ? fieldPart.slice(0, dotIdx) : fieldPart;
-        return fields.includes(baseField);
+        return fields.includes(fieldPart.split('.')[0]);
       });
       for (const editKey of toCommit) {
         const fieldPart = editKey.slice(0, -suffix.length);
@@ -508,10 +542,8 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
       const parsed = parseLabel(s);
       if (parsed.isLabeled) {
         const parts = splitByComma(parsed.value);
-        if (parts.length >= 2) {
-          lines.push(parsed.label + ':');
-          parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
-        } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
+        lines.push(parsed.label, COPY_LINE_DASH);
+        parts.forEach(item => { lines.push(`${n++}. ${item}`); });
       } else { lines.push(`${n++}. ${s}`); }
     });
     return lines;
@@ -519,55 +551,57 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = `${title}\n${COPY_LINE_EQ}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (NUMBER_FIELDS.includes(f)) {
         if (!numberShows(record, f, idx)) return;
-        text += `${label}: ${val}\n\n`;
+        text += `${label}\n${COPY_LINE_DASH}\n1. ${val}\n\n`;
         return;
       }
       if (DATE_FIELDS.includes(f)) {
         const d = formatDate(val);
         if (!d) return;
-        text += `${label}: ${d}\n\n`;
+        text += `${label}\n${COPY_LINE_DASH}\n1. ${d}\n\n`;
         return;
       }
       if (OBJECT_FIELDS.includes(f)) {
         const entries = objectEntries(val);
         if (entries.length === 0) return;
-        text += `${label}\n`;
-        entries.forEach((e) => { text += `${humanizeKey(e[0])}\n${fmtObjectValue(e[1])}\n`; });
+        if (!sameAsTitle(label, sid)) text += `${label}\n${COPY_LINE_DASH}\n`;
+        entries.forEach(([key, value]) => { const live = getFieldValue(record, `${f}.${key}`, idx) ?? value; text += `${humanizeKey(key)}\n${COPY_LINE_DASH}\n1. ${fmtObjectValue(live)}\n`; });
         text += '\n';
         return;
       }
       if (!hasVal(val)) return;
       if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item) => { const s = typeof item === 'object' && item !== null ? fmtObjectValue(item) : String(item); let p = parseLabel(s); if (!p.isLabeled) p = parseColonSpace(s); return p.isLabeled ? `${p.label}\n${p.value}` : s; }).join('\n')}\n\n`;
+        text += `${label}\n${COPY_LINE_DASH}\n`;
+        items.forEach((item, itemIndex) => { const s = typeof item === 'object' && item !== null ? fmtObjectValue(item) : String(item); let p = parseLabel(s); if (!p.isLabeled) p = parseColonSpace(s); if (p.isLabeled) text += `${p.label}\n${COPY_LINE_DASH}\n1. ${p.value}\n`; else text += `${itemIndex + 1}. ${s}\n`; });
+        text += '\n';
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
         if (sentences.length > 1) {
-          text += `${label}\n`;
+          text += `${label}\n${COPY_LINE_DASH}\n`;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${label}\n${COPY_LINE_DASH}\n1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${label}\n${COPY_LINE_DASH}\n1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === `${title}\n${COPY_LINE_EQ}\n\n` ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, numberShows, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== PUMP ADVANCED SETTINGS ===\n\n';
+    let text = `Pump Advanced Settings\n${COPY_LINE_EQ}\n\n`;
     pdfData.forEach((r, idx) => {
-      text += `Pump Advanced Settings ${idx + 1}\n${'='.repeat(40)}\n\n`;
+      text += `Pump Advanced Settings ${idx + 1}\n${COPY_LINE_EQ}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -589,12 +623,12 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <NumericStepper value={editValue} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -604,7 +638,7 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -625,12 +659,12 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (Number.isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -640,7 +674,7 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -652,29 +686,53 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
   /* ═══════ RENDER: OBJECT FIELD (labeled key:value rows; hide-empty) ═══════ */
   const renderObjectField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
-    const entries = objectEntries(val);
+    const entries = objectEntries(val).map(([key, value]) => [key, getFieldValue(record, `${fn}.${key}`, idx) ?? value]);
     if (entries.length === 0) return null;
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        {entries.map(([k, v], i) => {
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        {entries.map(([k, v]) => {
           const keyLabel = humanizeKey(k);
           const display = fmtObjectValue(v);
           const itemId = `${fn}.${k}-${idx}`;
+          const fieldPath = `${fn}.${k}`;
+          const isEditing = editingField === itemId;
+          const isModified = editedFields[itemId];
+          const measurement = typeof v === 'string' && /^-?\d+(?:\.\d+)?\s*(?:%|[A-Za-z])/.test(v.trim()) ? splitNumberUnit(v) : null;
           if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
             const phrase = searchTerm.toLowerCase().trim();
             if (!keyLabel.toLowerCase().includes(phrase) && !display.toLowerCase().includes(phrase) && !label.toLowerCase().includes(phrase) && !phrase.includes(label.toLowerCase())) return null;
           }
           return (
-            <div key={k} className="nested-mini-card">
+            <div key={k} className="nested-mini-card" data-edit-field={fieldPath}>
               <div className="nested-subtitle sub-label">{highlightText(keyLabel)}</div>
-              <div className="numbered-row">
-                <div className="row-content"><span className="content-value">{highlightText(display)}</span></div>
-                <button className={`copy-btn ${copiedItems[itemId] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${keyLabel}: ${display}`, itemId); }}>{copiedItems[itemId] ? 'Copied!' : 'Copy'}</button>
+              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(itemId); setEditValue(measurement ? measurement.num : (typeof v === 'boolean' ? (v ? 'Yes' : 'No') : display)); setSaveError(null); } }}>
+                {isEditing ? (
+                  <div className="edit-field-container">
+                    {typeof v === 'boolean' ? (
+                      <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
+                    ) : measurement ? (
+                      <NumericStepper value={editValue} onChange={setEditValue} unit={measurement.unit} />
+                    ) : (
+                      <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus />
+                    )}
+                    {saveError && <div className="save-error">{saveError}</div>}
+                    <div className="edit-actions">
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); let saveVal = editValue.trim(); if (typeof v === 'boolean') saveVal = editValue === 'Yes'; else if (typeof v === 'number') { saveVal = Number(editValue); if (!Number.isFinite(saveVal)) { setSaveError('Please enter a valid number'); return; } } else if (measurement) { const number = Number(editValue); if (!Number.isFinite(number)) { setSaveError('Please enter a valid number'); return; } saveVal = `${number}${measurement.unit ? ` ${measurement.unit}` : ''}`; } handleSaveField(record, fieldPath, idx, sid, null, saveVal, itemId); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="row-content"><span className="content-value">{highlightText(display)}</span><span className="edit-indicator">&#9998;</span></div>
+                    <button className={`copy-btn ${copiedItems[itemId] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${keyLabel}\n${display}`, itemId); }}>{copiedItems[itemId] ? 'Copied!' : 'Copy'}</button>
+                  </>
+                )}
               </div>
+              {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
             </div>
           );
         })}
@@ -709,16 +767,13 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
           if (!parsed.isLabeled) parsed = parseColonSpace(itemStr);
           const nu = parsed.isLabeled ? splitNumberUnit(parsed.value) : null;
           return (
-            <div key={itemIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 4 } : undefined}>
+            <div key={itemIdx} data-edit-field={fn} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 4 } : undefined}>
               {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(nu ? nu.num : (parsed.isLabeled ? parsed.value : itemStr)); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     {nu ? (
-                      <div className="number-edit-row">
-                        <input type="number" step="any" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                        {nu.unit && <span className="number-edit-unit">{nu.unit}</span>}
-                      </div>
+                      <NumericStepper value={editValue} onChange={setEditValue} unit={nu.unit} />
                     ) : (
                       <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                     )}
@@ -782,7 +837,7 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -811,7 +866,7 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} data-edit-field={fn} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -845,7 +900,7 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
@@ -922,7 +977,7 @@ const PumpAdvancedSettingsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pump Advanced Settings</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PumpAdvancedSettingsDocumentPDFTemplate document={pdfData} />} fileName={`pump-advanced-settings-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PumpAdvancedSettingsDocumentPDFTemplate document={pdfData} />} fileName="Pump_Advanced_Settings.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

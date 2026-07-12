@@ -1,33 +1,23 @@
 /**
  * PsychiatricTreatmentPlanDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — psychiatric treatment plan
+ * Box-free canonical PDF - Helvetica - LETTER - psychiatric treatment plan
  * Collection: psychiatric_treatment_plan
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1f2937', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldGroup: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  nested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', marginTop: 2 },
-  recDate: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 8, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  noDataText: { fontSize: 14, color: '#000000', textAlign: 'center', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
@@ -40,13 +30,24 @@ const formatDate = (dateStr) => {
   } catch { return String(dateStr); }
 };
 
+/* safeString: \u-escapes only (no literal smart-quotes / invisible chars - memory 6a4f...) */
 const safeString = (val) => {
   if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/\u2013/g, '-').replace(/\u2014/g, '--').replace(/\u2026/g, '...').replace(/\u00A0/g, ' ');
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s
+    .replace(/\u00d7/g, 'x')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/\u00b5m/g, 'um').replace(/\u03bcm/g, 'um')
+    .replace(/\u00b0/g, ' deg').replace(/\u00b1/g, '+/-')
+    .replace(/\u2265/g, '>=').replace(/\u2264/g, '<=').replace(/\u2192/g, '->');
 };
 
 const hasVal = (v) => {
@@ -59,75 +60,267 @@ const hasVal = (v) => {
   return true;
 };
 
+const fmtVal = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return String(v);
+  return String(v || '');
+};
+
+const safeArray = (v) => Array.isArray(v) ? v.filter(x => x !== null && x !== undefined) : [];
+const resolve = (record, path) => { const parts = String(path).split('.'); let v = record; for (const p of parts) v = v == null ? undefined : v[p]; return v; };
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+
 const KEY_OVERRIDES = {};
-const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
-const isEmptyDeep = (v) => {
+const humanizeKey = (key) => {
+  if (key === null || key === undefined || key === '') return '';
+  if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key];
+  const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+const isObjEmptyDeep = (v) => {
   if (v === null || v === undefined) return true;
   if (typeof v === 'boolean') return false;
   if (typeof v === 'number') return !Number.isFinite(v);
   if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+  if (Array.isArray(v)) return v.filter(x => !isObjEmptyDeep(x)).length === 0;
+  if (typeof v === 'object') return Object.values(v).every(isObjEmptyDeep);
   return false;
 };
-const isScalar = (v) => v === null || typeof v !== 'object';
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return safeString(v ?? ''); };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
 
-/* recursive object node: label = bold heading; value = plain line below */
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
-  if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
-      </View>
-    );
+/* objectLines: flatten a dynamic-key object into [{depth,label,value}] (value=null for a nested header) */
+const objectLines = (value, depth = 0, label = '') => {
+  const out = [];
+  if (isObjEmptyDeep(value)) return out;
+  if (value === null || typeof value !== 'object') {
+    out.push({ depth, label, value: fmtVal(value) });
+    return out;
   }
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
-  );
+  if (label) out.push({ depth, label, value: null });
+  Object.entries(value).filter(([, v]) => !isObjEmptyDeep(v)).forEach(([k, v]) => {
+    out.push(...objectLines(v, depth + (label ? 1 : 0), humanizeKey(k)));
+  });
+  return out;
 };
 
-/* count rows for the Rule #74 wrap heuristic */
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
+/* ======= CONFIG (mirror JSX) ======= */
+const SECTION_TITLES = {
+  'plan-info': 'Plan Information',
+  'diagnoses': 'Diagnoses',
+  'findings': 'Findings',
+  'assessment': 'Assessment',
+  'pharmacological': 'Pharmacological Interventions',
+  'psychotherapy': 'Psychotherapy',
+  'support-groups': 'Support Groups',
+  'lifestyle': 'Lifestyle Modifications',
+  'safety-plan': 'Safety Plan',
+  'follow-up': 'Follow-Up Plan',
+  'results': 'Results',
+  'recommendations': 'Recommendations',
+  'plan-notes': 'Plan & Notes',
+};
+const SECTION_ORDER = ['plan-info', 'diagnoses', 'findings', 'assessment', 'pharmacological', 'psychotherapy', 'support-groups', 'lifestyle', 'safety-plan', 'follow-up', 'results', 'recommendations', 'plan-notes'];
+const SECTION_FIELDS = {
+  'plan-info': ['date', 'type', 'provider', 'facility', 'status'],
+  'findings': ['findings'],
+  'assessment': ['assessment'],
+  'psychotherapy': ['psychotherapy.type', 'psychotherapy.frequency', 'psychotherapy.provider', 'psychotherapy.goals'],
+  'support-groups': ['supportGroups'],
+  'lifestyle': ['lifestyleModifications'],
+  'safety-plan': ['safetyPlan.warningSignsidentified', 'safetyPlan.copingStrategies', 'safetyPlan.supportsContacts', 'safetyPlan.crisisNumbers', 'safetyPlan.meansRestriction', 'safetyPlan.childcarePlan'],
+  'follow-up': ['followUpPlan.nextAppointment', 'followUpPlan.frequency', 'followUpPlan.monitoring'],
+  'plan-notes': ['plan', 'notes'],
+};
+const FIELD_LABELS = {
+  date: 'Date',
+  type: 'Type',
+  provider: 'Provider',
+  facility: 'Facility',
+  status: 'Status',
+  findings: 'Findings',
+  assessment: 'Assessment',
+  plan: 'Plan',
+  notes: 'Notes',
+  'psychotherapy.type': 'Type',
+  'psychotherapy.frequency': 'Frequency',
+  'psychotherapy.provider': 'Provider',
+  'psychotherapy.goals': 'Goals',
+  'supportGroups': 'Support Groups',
+  'lifestyleModifications': 'Lifestyle Modifications',
+  'safetyPlan.warningSignsidentified': 'Warning Signs',
+  'safetyPlan.copingStrategies': 'Coping Strategies',
+  'safetyPlan.supportsContacts': 'Support Contacts',
+  'safetyPlan.crisisNumbers': 'Crisis Numbers',
+  'safetyPlan.meansRestriction': 'Means Restriction',
+  'safetyPlan.childcarePlan': 'Childcare Plan',
+  'followUpPlan.nextAppointment': 'Next Appointment',
+  'followUpPlan.frequency': 'Frequency',
+  'followUpPlan.monitoring': 'Monitoring',
+};
+const DATE_FIELDS = ['date'];
+const ARRAY_FIELDS = ['supportGroups', 'lifestyleModifications', 'psychotherapy.goals', 'safetyPlan.warningSignsidentified', 'safetyPlan.copingStrategies', 'safetyPlan.supportsContacts', 'safetyPlan.crisisNumbers', 'safetyPlan.meansRestriction', 'followUpPlan.monitoring'];
+
+const sameAsTitle = (label, sid) => String(label || '').trim().toLowerCase() === String(SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* ======= FLAT ELEMENT BUILDERS (each returns an array of small <Text> elements) ======= */
+const fieldLabelEl = (label) => <Text style={styles.fieldLabel}>{safeString(label)}</Text>;
+const subLabelEl = (label) => <Text style={styles.subLabel}>{safeString(label)}</Text>;
+const valueEl = (v) => <Text style={styles.value}>{safeString(v)}</Text>;
+
+/* date field -> label + formatted value */
+const dateFieldEls = (label, val, showLabel) => {
+  const els = [];
+  if (showLabel) els.push(fieldLabelEl(label));
+  els.push(<Text style={styles.value}>{formatDate(val)}</Text>);
+  return els;
+};
+
+/* plain string array -> label + one numbered line per item */
+const arrayFieldEls = (label, arr, showLabel) => {
+  const items = safeArray(arr);
+  if (items.length === 0) return [];
+  const els = [];
+  if (showLabel) els.push(fieldLabelEl(label));
+  items.forEach((it, i) => els.push(<Text style={styles.listItem}>{`${i + 1}. ${safeString(fmtVal(it))}`}</Text>));
+  return els;
+};
+
+/* string field -> label + sentence/comma value lines (mirrors JSX renderStringField display) */
+const stringFieldEls = (label, val, showLabel) => {
+  const strVal = fmtVal(val);
+  const sentences = splitBySentence(strVal);
+  const els = [];
+  if (showLabel) els.push(fieldLabelEl(label));
+  if (sentences.length <= 1) { els.push(valueEl(strVal)); return els; }
+  let n = 1;
+  sentences.forEach((s) => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      els.push(subLabelEl(parsed.label));
+      if (parts.length >= 2) parts.forEach(p => els.push(<Text style={styles.listItem}>{`${n++}. ${safeString(p)}`}</Text>));
+      else els.push(<Text style={styles.listItem}>{`${n++}. ${safeString(parsed.value)}`}</Text>);
+    } else {
+      els.push(<Text style={styles.listItem}>{`${n++}. ${safeString(s)}`}</Text>);
+    }
+  });
+  return els;
+};
+
+/* diagnoses (array of {diagnosis, icdCode, specifiers[]}) -> numbered item header + stacked ICD Code/Specifiers */
+const diagnosesEls = (arr) => {
+  const items = safeArray(arr).filter(d => !isObjEmptyDeep(d));
+  if (items.length === 0) return [];
+  const els = [];
+  items.forEach((d, i) => {
+    els.push(<Text style={styles.subLabel}>{`${i + 1}. ${safeString(d.diagnosis || `Diagnosis ${i + 1}`)}`}</Text>);
+    if (hasVal(d.icdCode)) { els.push(fieldLabelEl('ICD Code')); els.push(valueEl(d.icdCode)); }
+    const specs = Array.isArray(d.specifiers) ? d.specifiers.filter(Boolean) : [];
+    if (specs.length > 0) { els.push(fieldLabelEl('Specifiers')); specs.forEach((s, si) => els.push(<Text style={styles.listItem}>{`${si + 1}. ${safeString(s)}`}</Text>)); }
+  });
+  return els;
+};
+
+/* pharmacological (array of {intervention, rationale, monitoring}) -> numbered item header + stacked Rationale/Monitoring */
+const pharmaEls = (arr) => {
+  const items = safeArray(arr).filter(p => !isObjEmptyDeep(p));
+  if (items.length === 0) return [];
+  const els = [];
+  items.forEach((p, i) => {
+    els.push(<Text style={styles.subLabel}>{`${i + 1}. ${safeString(p.intervention || `Intervention ${i + 1}`)}`}</Text>);
+    if (hasVal(p.rationale)) { els.push(fieldLabelEl('Rationale')); els.push(valueEl(p.rationale)); }
+    if (hasVal(p.monitoring)) { els.push(fieldLabelEl('Monitoring')); els.push(valueEl(p.monitoring)); }
+  });
+  return els;
+};
+
+/* recommendations (array of {recommendation, date}) -> one numbered line per item (single-name-gated: no field label) */
+const recommendationsEls = (arr) => {
+  const items = safeArray(arr).filter(r => !isObjEmptyDeep(r));
+  if (items.length === 0) return [];
+  return items.map((rec, i) => {
+    const t = rec.recommendation || `Recommendation ${i + 1}`;
+    const dt = rec.date ? ` (${rec.date})` : '';
+    return <Text style={styles.listItem}>{`${i + 1}. ${safeString(`${t}${dt}`)}`}</Text>;
+  });
+};
+
+/* results (dynamic-key object) -> flattened humanized lines */
+const resultsEls = (val) => {
+  if (!val || typeof val !== 'object' || isObjEmptyDeep(val)) return [];
+  const lines = objectLines(val, 0, '');
+  return lines.map((ln) => (
+    ln.value === null
+      ? subLabelEl(ln.label)
+      : valueEl(`${ln.label}: ${ln.value}`)
+  ));
+};
+
+/* dispatch one flat field (dotted path aware) -> flat element array */
+const genericFieldEls = (record, f, sid) => {
+  const val = resolve(record, f);
+  if (!hasVal(val)) return [];
+  const label = FIELD_LABELS[f] || f;
+  const showLabel = !sameAsTitle(label, sid);
+  if (DATE_FIELDS.includes(f)) return dateFieldEls(label, val, showLabel);
+  if (ARRAY_FIELDS.includes(f)) return arrayFieldEls(label, val, showLabel);
+  return stringFieldEls(label, val, showLabel);
+};
+
+/* build the flat element array for a whole section */
+const sectionEls = (record, sid) => {
+  if (sid === 'diagnoses') return diagnosesEls(record.diagnoses);
+  if (sid === 'pharmacological') return pharmaEls(record.pharmacological);
+  if (sid === 'results') return resultsEls(record.results);
+  if (sid === 'recommendations') return recommendationsEls(record.recommendations);
+  const flat = [];
+  (SECTION_FIELDS[sid] || []).forEach(f => flat.push(...genericFieldEls(record, f, sid)));
+  return flat;
 };
 
 /* ======= COMPONENT ======= */
-const PsychiatricTreatmentPlanDocumentPDFTemplate = ({ document: docProp }) => {
-  let records = [];
-  if (!docProp) records = [];
-  else if (Array.isArray(docProp)) {
-    records = docProp.flatMap(r => {
+const PsychiatricTreatmentPlanDocumentPDFTemplate = ({ document: data }) => {
+  const records = React.useMemo(() => {
+    if (!data) return [];
+    let arr = Array.isArray(data) ? data : [data];
+    arr = arr.flatMap(r => {
       if (r?.psychiatric_treatment_plan) return Array.isArray(r.psychiatric_treatment_plan) ? r.psychiatric_treatment_plan : [r.psychiatric_treatment_plan];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.psychiatric_treatment_plan) return Array.isArray(dd.psychiatric_treatment_plan) ? dd.psychiatric_treatment_plan : [dd.psychiatric_treatment_plan]; return [dd]; }
       return [r];
     });
-  } else {
-    if (docProp.psychiatric_treatment_plan) records = Array.isArray(docProp.psychiatric_treatment_plan) ? docProp.psychiatric_treatment_plan : [docProp.psychiatric_treatment_plan];
-    else if (docProp.documentData) { const dd = docProp.documentData; records = Array.isArray(dd) ? dd : [dd]; }
-    else records = [docProp];
-  }
-  records = records.filter(r => r && typeof r === 'object');
+    return arr.filter(r => r && typeof r === 'object');
+  }, [data]);
 
-  if (records.length === 0) {
+  if (!records || records.length === 0) {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Psychiatric Treatment Plan</Text>
-          </View>
+          <Text style={styles.documentTitle}>Psychiatric Treatment Plan</Text>
           <Text style={styles.noDataText}>No psychiatric treatment plan records available</Text>
         </Page>
       </Document>
@@ -137,316 +330,29 @@ const PsychiatricTreatmentPlanDocumentPDFTemplate = ({ document: docProp }) => {
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Psychiatric Treatment Plan</Text>
-        </View>
+        <Text style={styles.documentTitle}>Psychiatric Treatment Plan</Text>
 
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader}>
-              <View style={styles.recordDateRow}>
-                {hasVal(record.date) && <Text style={styles.recordDate}>{formatDate(record.date)}</Text>}
-              </View>
-              <Text style={styles.recordTitle}>Treatment Plan {idx + 1}</Text>
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <View wrap={false}>
+              <Text style={styles.recordTitle}>{`Psychiatric Treatment Plan ${index + 1}`}</Text>
             </View>
 
-            {/* Plan Information */}
-            {(hasVal(record.date) || hasVal(record.type) || hasVal(record.provider) || hasVal(record.facility) || hasVal(record.status)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Plan Information</Text>
-                {hasVal(record.date) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Date</Text><Text style={styles.fieldValue}>{formatDate(record.date)}</Text></View>}
-                {hasVal(record.type) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Type</Text><Text style={styles.fieldValue}>{safeString(record.type)}</Text></View>}
-                {hasVal(record.provider) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Provider</Text><Text style={styles.fieldValue}>{safeString(record.provider)}</Text></View>}
-                {hasVal(record.facility) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Facility</Text><Text style={styles.fieldValue}>{safeString(record.facility)}</Text></View>}
-                {hasVal(record.status) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Status</Text><Text style={styles.fieldValue}>{safeString(record.status)}</Text></View>}
-              </View>
-            )}
-
-            {/* Diagnoses */}
-            {record.diagnoses?.length > 0 && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Diagnoses</Text>
-                  {record.diagnoses[0] && (
-                    <View style={styles.fieldBox}>
-                      <Text style={styles.listItem}>1. {safeString(record.diagnoses[0].diagnosis)}</Text>
-                      {hasVal(record.diagnoses[0].icdCode) && <Text style={[styles.listItem, { paddingLeft: 20 }]}>ICD Code: {safeString(record.diagnoses[0].icdCode)}</Text>}
-                      {record.diagnoses[0].specifiers?.length > 0 && record.diagnoses[0].specifiers.map((spec, sIdx) => (
-                        <Text key={sIdx} style={[styles.listItem, { paddingLeft: 20 }]}>Specifier: {safeString(spec)}</Text>
-                      ))}
-                    </View>
-                  )}
-                </View>
-                {record.diagnoses.slice(1).map((diag, dIdx) => (
-                  <View key={dIdx} style={styles.fieldBox}>
-                    <Text style={styles.listItem}>{dIdx + 2}. {safeString(diag.diagnosis)}</Text>
-                    {hasVal(diag.icdCode) && <Text style={[styles.listItem, { paddingLeft: 20 }]}>ICD Code: {safeString(diag.icdCode)}</Text>}
-                    {diag.specifiers?.length > 0 && diag.specifiers.map((spec, sIdx) => (
-                      <Text key={sIdx} style={[styles.listItem, { paddingLeft: 20 }]}>Specifier: {safeString(spec)}</Text>
-                    ))}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Findings */}
-            {hasVal(record.findings) && (() => {
-              const sentences = splitBySentence(safeString(record.findings));
-              if (sentences.length > 1) {
-                return (
-                  <View style={styles.section} wrap={sentences.length > 8 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>Findings</Text>
-                    {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {s}</Text>))}
-                  </View>
-                );
-              }
+            {SECTION_ORDER.map((sid) => {
+              const flat = sectionEls(record, sid);
+              if (flat.length === 0) return null;
+              const first = React.cloneElement(flat[0], { key: 'f0' });
+              const rest = flat.slice(1).map((el, i) => React.cloneElement(el, { key: `f${i + 1}` }));
               return (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Findings</Text>
-                  <Text style={styles.fieldValue}>{safeString(record.findings)}</Text>
+                <View key={sid} style={styles.section}>
+                  <View wrap={false}>
+                    <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
+                    {first}
+                  </View>
+                  {rest}
                 </View>
               );
-            })()}
-
-            {/* Assessment */}
-            {hasVal(record.assessment) && (() => {
-              const sentences = splitBySentence(safeString(record.assessment));
-              if (sentences.length > 1) {
-                return (
-                  <View style={styles.section} wrap={sentences.length > 8 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>Assessment</Text>
-                    {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {s}</Text>))}
-                  </View>
-                );
-              }
-              return (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Assessment</Text>
-                  <Text style={styles.fieldValue}>{safeString(record.assessment)}</Text>
-                </View>
-              );
-            })()}
-
-            {/* Pharmacological Interventions */}
-            {record.pharmacological?.length > 0 && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Pharmacological Interventions</Text>
-                  {record.pharmacological[0] && (
-                    <View style={styles.fieldBox}>
-                      <Text style={styles.listItem}>1. {safeString(record.pharmacological[0].intervention)}</Text>
-                      {hasVal(record.pharmacological[0].rationale) && <Text style={[styles.listItem, { paddingLeft: 20 }]}>Rationale: {safeString(record.pharmacological[0].rationale)}</Text>}
-                      {hasVal(record.pharmacological[0].monitoring) && <Text style={[styles.listItem, { paddingLeft: 20 }]}>Monitoring: {safeString(record.pharmacological[0].monitoring)}</Text>}
-                    </View>
-                  )}
-                </View>
-                {record.pharmacological.slice(1).map((med, mIdx) => (
-                  <View key={mIdx} style={styles.fieldBox}>
-                    <Text style={styles.listItem}>{mIdx + 2}. {safeString(med.intervention)}</Text>
-                    {hasVal(med.rationale) && <Text style={[styles.listItem, { paddingLeft: 20 }]}>Rationale: {safeString(med.rationale)}</Text>}
-                    {hasVal(med.monitoring) && <Text style={[styles.listItem, { paddingLeft: 20 }]}>Monitoring: {safeString(med.monitoring)}</Text>}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Psychotherapy */}
-            {record.psychotherapy && (hasVal(record.psychotherapy.type) || hasVal(record.psychotherapy.frequency) || hasVal(record.psychotherapy.provider) || record.psychotherapy.goals?.length > 0) && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Psychotherapy</Text>
-                  {hasVal(record.psychotherapy.type) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Type</Text><Text style={styles.fieldValue}>{safeString(record.psychotherapy.type)}</Text></View>}
-                </View>
-                {hasVal(record.psychotherapy.frequency) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Frequency</Text><Text style={styles.fieldValue}>{safeString(record.psychotherapy.frequency)}</Text></View>}
-                {hasVal(record.psychotherapy.provider) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Provider</Text><Text style={styles.fieldValue}>{safeString(record.psychotherapy.provider)}</Text></View>}
-                {record.psychotherapy.goals?.length > 0 && (
-                  <View style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>Goals</Text>
-                    {record.psychotherapy.goals.map((goal, gIdx) => (
-                      <Text key={gIdx} style={styles.listItem}>{gIdx + 1}. {safeString(goal)}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Support Groups */}
-            {record.supportGroups?.length > 0 && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Support Groups</Text>
-                  <Text style={styles.listItem}>1. {safeString(record.supportGroups[0])}</Text>
-                </View>
-                {record.supportGroups.slice(1).map((group, gIdx) => (
-                  <Text key={gIdx} style={styles.listItem}>{gIdx + 2}. {safeString(group)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Lifestyle Modifications */}
-            {record.lifestyleModifications?.length > 0 && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Lifestyle Modifications</Text>
-                  <Text style={styles.listItem}>1. {safeString(record.lifestyleModifications[0])}</Text>
-                </View>
-                {record.lifestyleModifications.slice(1).map((mod, mIdx) => (
-                  <Text key={mIdx} style={styles.listItem}>{mIdx + 2}. {safeString(mod)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Safety Plan */}
-            {record.safetyPlan && (
-              record.safetyPlan.warningSignsidentified?.length > 0 ||
-              record.safetyPlan.copingStrategies?.length > 0 ||
-              record.safetyPlan.supportsContacts?.length > 0 ||
-              record.safetyPlan.crisisNumbers?.length > 0 ||
-              record.safetyPlan.meansRestriction?.length > 0 ||
-              hasVal(record.safetyPlan.childcarePlan)
-            ) && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Safety Plan</Text>
-                  {record.safetyPlan.warningSignsidentified?.length > 0 && (
-                    <View>
-                      <Text style={styles.nestedSubtitle}>Warning Signs</Text>
-                      {record.safetyPlan.warningSignsidentified.map((sign, sIdx) => (
-                        <Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {safeString(sign)}</Text>
-                      ))}
-                    </View>
-                  )}
-                </View>
-
-                {record.safetyPlan.copingStrategies?.length > 0 && (
-                  <View wrap={false}>
-                    <Text style={styles.nestedSubtitle}>Coping Strategies</Text>
-                    {record.safetyPlan.copingStrategies.map((strategy, sIdx) => (
-                      <Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {safeString(strategy)}</Text>
-                    ))}
-                  </View>
-                )}
-
-                {record.safetyPlan.supportsContacts?.length > 0 && (
-                  <View wrap={false}>
-                    <Text style={styles.nestedSubtitle}>Support Contacts</Text>
-                    {record.safetyPlan.supportsContacts.map((contact, cIdx) => (
-                      <Text key={cIdx} style={styles.listItem}>{cIdx + 1}. {safeString(contact)}</Text>
-                    ))}
-                  </View>
-                )}
-
-                {record.safetyPlan.crisisNumbers?.length > 0 && (
-                  <View wrap={false}>
-                    <Text style={styles.nestedSubtitle}>Crisis Numbers</Text>
-                    {record.safetyPlan.crisisNumbers.map((num, nIdx) => (
-                      <Text key={nIdx} style={styles.listItem}>{nIdx + 1}. {safeString(num)}</Text>
-                    ))}
-                  </View>
-                )}
-
-                {record.safetyPlan.meansRestriction?.length > 0 && (
-                  <View wrap={false}>
-                    <Text style={styles.nestedSubtitle}>Means Restriction</Text>
-                    {record.safetyPlan.meansRestriction.map((means, mIdx) => (
-                      <Text key={mIdx} style={styles.listItem}>{mIdx + 1}. {safeString(means)}</Text>
-                    ))}
-                  </View>
-                )}
-
-                {hasVal(record.safetyPlan.childcarePlan) && (
-                  <View wrap={false}>
-                    <Text style={styles.nestedSubtitle}>Childcare Plan</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.safetyPlan.childcarePlan)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Follow-Up Plan */}
-            {record.followUpPlan && (hasVal(record.followUpPlan.nextAppointment) || hasVal(record.followUpPlan.frequency) || record.followUpPlan.monitoring?.length > 0) && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Follow-Up Plan</Text>
-                  {hasVal(record.followUpPlan.nextAppointment) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Next Appointment</Text><Text style={styles.fieldValue}>{safeString(record.followUpPlan.nextAppointment)}</Text></View>}
-                </View>
-                {hasVal(record.followUpPlan.frequency) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Frequency</Text><Text style={styles.fieldValue}>{safeString(record.followUpPlan.frequency)}</Text></View>}
-                {record.followUpPlan.monitoring?.length > 0 && (
-                  <View style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>Monitoring</Text>
-                    {record.followUpPlan.monitoring.map((param, pIdx) => (
-                      <Text key={pIdx} style={styles.listItem}>{pIdx + 1}. {safeString(param)}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Results */}
-            {record.results && !isScalar(record.results) && !isEmptyDeep(record.results) && (() => {
-              const entries = Object.entries(record.results).filter(([, v]) => !isEmptyDeep(v));
-              if (entries.length === 0) return null;
-              return (
-                <View style={styles.section}>
-                  {entries.map(([k, v], i) => {
-                    const rows = countRows(v);
-                    return (
-                      <View key={`results-${k}`} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
-                        {i === 0 ? <Text style={styles.sectionTitle}>Results</Text> : null}
-                        {renderObjectNode(humanizeKey(k), v, `results-${k}`, 1)}
-                      </View>
-                    );
-                  })}
-                </View>
-              );
-            })()}
-
-            {/* Recommendations */}
-            {Array.isArray(record.recommendations) && record.recommendations.filter(r => !isEmptyDeep(r)).length > 0 && (() => {
-              const recs = record.recommendations.filter(r => !isEmptyDeep(r));
-              const groups = [];
-              recs.forEach((r) => { const d = (r?.date || '').trim(); const last = groups[groups.length - 1]; if (last && last.date === d) last.items.push(r); else groups.push({ date: d, items: [r] }); });
-              return (
-                <View style={styles.section} wrap={recs.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Recommendations</Text>
-                  {groups.map((group, gIdx) => (
-                    <View key={gIdx}>
-                      {group.date ? <Text style={styles.recDate}>{group.date}</Text> : null}
-                      {group.items.map((r, i) => (<Text key={i} style={styles.listItem}>{i + 1}. {safeString(r?.recommendation)}</Text>))}
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Plan */}
-            {hasVal(record.plan) && (() => {
-              const sentences = splitBySentence(safeString(record.plan));
-              if (sentences.length > 1) {
-                return (
-                  <View style={styles.section} wrap={sentences.length > 8 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>Plan</Text>
-                    {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {s}</Text>))}
-                  </View>
-                );
-              }
-              return (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Plan</Text>
-                  <Text style={styles.fieldValue}>{safeString(record.plan)}</Text>
-                </View>
-              );
-            })()}
-
-            {/* Notes */}
-            {hasVal(record.notes) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Notes</Text>
-                <Text style={styles.fieldValue}>{safeString(record.notes)}</Text>
-              </View>
-            )}
-
-            {idx < records.length - 1 && <View style={styles.separator} />}
+            })}
           </View>
         ))}
       </Page>

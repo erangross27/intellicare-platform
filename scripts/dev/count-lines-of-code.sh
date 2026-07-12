@@ -3,6 +3,10 @@
 # IntelliCare Lines of Code Counter
 # Counts all code files excluding backups, node_modules, and build artifacts
 
+# Run from the repo root regardless of where this script is invoked from
+# (this script lives in scripts/dev/, so the repo root is two levels up).
+cd "$(dirname "${BASH_SOURCE[0]}")/../.." || exit 1
+
 echo "=========================================="
 echo "IntelliCare Project - Lines of Code Count"
 echo "=========================================="

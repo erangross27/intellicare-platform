@@ -43,7 +43,7 @@ Four test endpoints demonstrating the Skills approach:
 - **Handler**: Routes to `optimizedMedicalFunctions.getAllergies()`
 
 ### ✅ Test & Documentation
-- `TEST-SKILLS-POC.sh` - Automated test script
+- `scripts/dev/TEST-SKILLS-POC.sh` - Automated test script
 - `SKILLS-POC-README.md` - Complete documentation
 - `scripts/generate-skills.js` - Ready to generate all 1,400 skills
 - Server updated: `/apps/backend-api/server-clean.js`
@@ -60,7 +60,7 @@ npm run dev
 
 # In another terminal, run tests
 cd IntelliCare
-bash TEST-SKILLS-POC.sh
+bash scripts/dev/TEST-SKILLS-POC.sh
 ```
 
 ### Manual Testing
@@ -351,7 +351,7 @@ Savings: 7,000,000 tokens/month
 /
 ├── SKILLS-POC-README.md (Full documentation)
 ├── SKILLS-POC-SUMMARY.md (This file)
-└── TEST-SKILLS-POC.sh (Automated tests)
+└── scripts/dev/TEST-SKILLS-POC.sh (Automated tests)
 
 Modified:
 /apps/backend-api/server-clean.js (Added test-skills route)
@@ -380,7 +380,7 @@ Modified:
 cd apps/backend-api && npm run dev
 
 # 2. Run automated tests
-bash TEST-SKILLS-POC.sh
+bash scripts/dev/TEST-SKILLS-POC.sh
 
 # 3. Review results
 

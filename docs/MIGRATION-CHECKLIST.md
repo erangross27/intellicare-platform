@@ -38,8 +38,8 @@
 ### 4. Initial Ubuntu Configuration
 ```bash
 # Run on Ubuntu server
-chmod +x UBUNTU-SETUP.sh
-./UBUNTU-SETUP.sh
+chmod +x scripts/setup/UBUNTU-SETUP.sh
+./scripts/setup/UBUNTU-SETUP.sh
 ```
 - [ ] System packages updated
 - [ ] Node.js 18 LTS installed
@@ -60,8 +60,8 @@ chmod +x UBUNTU-SETUP.sh
 
 ### 6. Restore Data
 ```bash
-chmod +x RESTORE-FROM-WINDOWS.sh
-./RESTORE-FROM-WINDOWS.sh ~/IntelliCare_Backup_*
+chmod +x scripts/setup/RESTORE-FROM-WINDOWS.sh
+./scripts/setup/RESTORE-FROM-WINDOWS.sh ~/IntelliCare_Backup_*
 ```
 - [ ] Application code restored
 - [ ] Security keys and KMS data restored

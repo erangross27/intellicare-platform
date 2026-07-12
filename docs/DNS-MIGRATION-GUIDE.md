@@ -22,8 +22,8 @@
 
 ```bash
 # Run the setup script
-sudo chmod +x UBUNTU-DNS-SETUP.sh
-sudo ./UBUNTU-DNS-SETUP.sh
+sudo chmod +x scripts/setup/UBUNTU-DNS-SETUP.sh
+sudo ./scripts/setup/UBUNTU-DNS-SETUP.sh
 
 # Choose option 2 (dnsmasq)
 ```
@@ -41,7 +41,7 @@ sudo ./UBUNTU-DNS-SETUP.sh
 
 ```bash
 # Run setup and choose option 1
-sudo ./UBUNTU-DNS-SETUP.sh
+sudo ./scripts/setup/UBUNTU-DNS-SETUP.sh
 ```
 
 **Features:**
@@ -56,8 +56,8 @@ The Windows setup uses the browser to handle port routing. On Ubuntu, we use Ngi
 
 ```bash
 # Setup Nginx proxy
-sudo chmod +x NGINX-PROXY-SETUP.sh
-sudo ./NGINX-PROXY-SETUP.sh
+sudo chmod +x scripts/setup/NGINX-PROXY-SETUP.sh
+sudo ./scripts/setup/NGINX-PROXY-SETUP.sh
 ```
 
 ### What Nginx Handles
@@ -80,7 +80,7 @@ Port 80/api → Port 5001 (API via proxy)
 ### 1. Setup DNS
 ```bash
 # Install and configure DNS
-sudo ./UBUNTU-DNS-SETUP.sh
+sudo ./scripts/setup/UBUNTU-DNS-SETUP.sh
 
 # Choose option 2 (dnsmasq) for Acrylic-like features
 # Test DNS resolution
@@ -90,7 +90,7 @@ test-intellicare-dns
 ### 2. Setup Nginx Proxy
 ```bash
 # Install and configure Nginx
-sudo ./NGINX-PROXY-SETUP.sh
+sudo ./scripts/setup/NGINX-PROXY-SETUP.sh
 
 # Adjust application ports
 cd ~/IntelliCare

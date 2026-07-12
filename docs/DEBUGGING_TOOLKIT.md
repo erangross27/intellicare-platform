@@ -63,7 +63,7 @@ ic-trace         # Trace backend process
 
 ## 🔧 Debug Helper Functions
 ```bash
-source debug-helpers.sh
+source scripts/debug/debug-helpers.sh
 
 ic-status                    # Check all services
 whats-on-port 5000          # Find process on port

@@ -445,23 +445,23 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
     return (
       <div className="rec-mini-card" key={fieldName}>
         <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row${isFieldEdited ? ' modified' : ''}`}>
-          <div
-            className={`row-content${canEdit ? ' editable' : ''}`}
-            onClick={() => canEdit && handleStartEdit(fieldName, idx, displayValue)}
-            title={canEdit ? 'Click to edit' : undefined}
-          >
+        <div
+          className={`numbered-row${canEdit ? ' editable-row' : ''}${isFieldEdited ? ' modified' : ''}`}
+          onClick={() => canEdit && handleStartEdit(fieldName, idx, displayValue)}
+          title={canEdit ? 'Click to edit' : undefined}
+        >
+          <div className={`row-content${canEdit ? ' editable' : ''}`}>
             <span className="content-value">{highlightText(displayValue)}</span>
             {canEdit && !isFieldEdited && editIndicator}
           </div>
           <button
             className={`copy-btn ${copiedSectionId === copyId ? 'copied' : ''}`}
-            onClick={() => copyToClipboard(displayValue, copyId)}
+            onClick={(e) => { e.stopPropagation(); copyToClipboard(displayValue, copyId); }}
           >
             {copiedSectionId === copyId ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        {isFieldEdited && <div className="modified-badge">edited -- click approve to save</div>}
+        {isFieldEdited && <div className="modified-badge">edited -- click Pending Approve to save</div>}
       </div>
     );
   };
@@ -469,7 +469,8 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
   // ============== RENDER EDITABLE ARRAY ITEM ==============
   const renderEditableArrayItem = (record, fieldName, item, idx, itemIdx, sectionId, copyId) => {
     const editArrayKey = `${fieldName}.${itemIdx}-${idx}`;
-    const displayValue = (localEdits[editArrayKey] !== undefined) ? localEdits[editArrayKey] : item;
+    const rawValue = (localEdits[editArrayKey] !== undefined) ? localEdits[editArrayKey] : item;
+    const displayValue = (rawValue && typeof rawValue === 'object') ? (rawValue.recommendation || rawValue.text || JSON.stringify(rawValue)) : rawValue;
     if (!displayValue) return null;
     const canEdit = !!record._id;
     const editKey = `${fieldName}.${itemIdx}-${idx}-s0`;
@@ -523,7 +524,7 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
             {copiedSectionId === copyId ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        {isItemEdited && <div className="modified-badge">edited -- click approve to save</div>}
+        {isItemEdited && <div className="modified-badge">edited -- click Pending Approve to save</div>}
       </React.Fragment>
     );
   };
@@ -541,11 +542,11 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
         </button>
         {(sectionHasEdits(sectionId) || approvedSections[sectionId]) && (
           <button
-            className={`approve-btn${approvedSections[sectionId] ? ' approved' : ''}`}
+            className={`approve-btn${approvedSections[sectionId] ? ' approved' : ' pending'}`}
             onClick={() => handleApprove(records[idx], idx, sectionId)}
             disabled={approving}
           >
-            {approving ? 'Approving...' : approvedSections[sectionId] ? 'Approved' : 'Approve'}
+            {approving ? 'Approving...' : approvedSections[sectionId] ? 'Approved' : 'Pending Approve'}
           </button>
         )}
       </div>
@@ -574,11 +575,10 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
   const generateCopyAllText = () => {
     let text = 'PSYCHIATRIC ASSESSMENT SCALES\n\n';
     pdfData.forEach((record, idx) => {
-      text += `--- Psychiatric Assessment Scales ${idx + 1} ---\n`;
-      if (record.date) text += `Date: ${formatDate(record.date)}\n`;
-      if (record.provider) text += `Provider: ${record.provider}\n`;
-      if (record.facility) text += `Facility: ${record.facility}\n`;
-      text += '\n';
+      text += `Psychiatric Assessment Scales ${idx + 1}\n${'='.repeat(40)}\n\n`;
+      if (record.date) text += `Date\n1. ${formatDate(record.date)}\n\n`;
+      if (record.provider) text += `Provider\n1. ${record.provider}\n\n`;
+      if (record.facility) text += `Facility\n1. ${record.facility}\n\n`;
 
       // Assessment Scales
       const activeScales = SCALE_KEYS.filter(key => scaleHasData(record[key]));
@@ -609,7 +609,10 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
       const customItems = safeArray(record.customScales);
       if (customItems.length > 0) {
         text += 'CUSTOM SCALES\n';
-        customItems.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
+        customItems.forEach((item, i) => {
+          const t = typeof item === 'string' ? item : [item.name, (item.score !== undefined && item.score !== null && item.score !== '') ? `Score: ${item.score}` : null, item.interpretation ? `Interpretation: ${item.interpretation}` : null].filter(Boolean).join(' -- ');
+          text += `${i + 1}. ${t}\n`;
+        });
         text += '\n';
       }
 
@@ -644,7 +647,7 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
       const recs = safeArray(record.recommendations);
       if (recs.length > 0) {
         text += 'RECOMMENDATIONS\n';
-        recs.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
+        recs.forEach((item, i) => { const t = typeof item === 'string' ? item : (item.recommendation || item.text || JSON.stringify(item)); text += `${i + 1}. ${t}\n`; });
         text += '\n';
       }
 
@@ -862,24 +865,23 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
 
             if (visibleEntries.length === 0) return null;
 
+            // Combine the scale's entries (score, severity/riskLevel) into ONE value — the label rides as the
+            // nested-subtitle above, NEVER "Score: 16" inline (canonical: no side-by-side Label:value row).
+            const combined = visibleEntries.map(([, v]) => formatValue(v)).join(' — ');
             return (
               <div key={scaleIdx} className="rec-mini-card">
                 <div className="nested-subtitle">{highlightText(label)}</div>
-                {visibleEntries.map(([k, v], entryIdx) => (
-                  <div key={entryIdx} className="numbered-row" style={{ marginBottom: entryIdx < visibleEntries.length - 1 ? '8px' : '0' }}>
-                    <div className="row-content">
-                      <span className="content-value">
-                        {highlightText(keyToLabel(k))}: {highlightText(formatValue(v))}
-                      </span>
-                    </div>
-                    <button
-                      className={`copy-btn ${copiedSectionId === `scales-${idx}-${scaleIdx}-${entryIdx}` ? 'copied' : ''}`}
-                      onClick={() => copyToClipboard(`${keyToLabel(k)}: ${formatValue(v)}`, `scales-${idx}-${scaleIdx}-${entryIdx}`)}
-                    >
-                      {copiedSectionId === `scales-${idx}-${scaleIdx}-${entryIdx}` ? 'Copied!' : 'Copy'}
-                    </button>
+                <div className="numbered-row">
+                  <div className="row-content">
+                    <span className="content-value">{highlightText(combined)}</span>
                   </div>
-                ))}
+                  <button
+                    className={`copy-btn ${copiedSectionId === `scales-${idx}-${scaleIdx}` ? 'copied' : ''}`}
+                    onClick={() => copyToClipboard(combined, `scales-${idx}-${scaleIdx}`)}
+                  >
+                    {copiedSectionId === `scales-${idx}-${scaleIdx}` ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -968,7 +970,7 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
             {copiedSectionId === copyId ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        {isFieldEdited && <div className="modified-badge">edited -- click approve to save</div>}
+        {isFieldEdited && <div className="modified-badge">edited -- click Pending Approve to save</div>}
       </div>
     );
   };
@@ -996,7 +998,13 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
     const pad = '  '.repeat(indent);
     const out = [];
     if (objectIsEmpty(value)) return out;
-    if (isScalarVal(value)) { out.push(`${pad}${label ? label + ': ' : ''}${formatValue(value)}`); return out; }
+    // Scalar leaf: label rides on its OWN line with the value indented below — never "Label: value" inline
+    // (canonical: no side-by-side Label:value row in the Copy-All output).
+    if (isScalarVal(value)) {
+      if (label) { out.push(`${pad}${label}`); out.push(`${pad}  ${formatValue(value)}`); }
+      else out.push(`${pad}${formatValue(value)}`);
+      return out;
+    }
     if (label) out.push(`${pad}${label}:`);
     Object.entries(value).filter(([k, v]) => k !== '_id' && !objectIsEmpty(v)).forEach(([k, v]) => {
       out.push(...buildResultsCopyLines(keyToLabel(k), v, indent + (label ? 1 : 0)));
@@ -1116,7 +1124,7 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
                     {copiedSectionId === `${fieldName}-${idx}-${itemIdx}` ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
-                {isFieldEdited && itemIdx === visibleItems.length - 1 && <div className="modified-badge">edited -- click approve to save</div>}
+                {isFieldEdited && itemIdx === visibleItems.length - 1 && <div className="modified-badge">edited -- click Pending Approve to save</div>}
               </div>
             ))
           )}
@@ -1219,7 +1227,7 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
                         {copiedSectionId === `${fieldName}-${idx}-${itemIdx}` ? 'Copied!' : 'Copy'}
                       </button>
                     </div>
-                    {isFieldEdited && itemIdx === visibleItems.length - 1 && <div className="modified-badge">edited -- click approve to save</div>}
+                    {isFieldEdited && itemIdx === visibleItems.length - 1 && <div className="modified-badge">edited -- click Pending Approve to save</div>}
                   </div>
                 );
               }
@@ -1241,7 +1249,7 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
                       {copiedSectionId === `${fieldName}-${idx}-${itemIdx}` ? 'Copied!' : 'Copy'}
                     </button>
                   </div>
-                  {isFieldEdited && itemIdx === visibleItems.length - 1 && <div className="modified-badge">edited -- click approve to save</div>}
+                  {isFieldEdited && itemIdx === visibleItems.length - 1 && <div className="modified-badge">edited -- click Pending Approve to save</div>}
                 </div>
               );
             })
@@ -1323,6 +1331,73 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
     );
   };
 
+  // Render custom scales (array of {name, score, interpretation} objects, or plain strings)
+  const renderCustomScalesSection = (record, idx) => {
+    const items = safeArray(record.customScales);
+    if (items.length === 0) return null;
+    const asText = (it) => typeof it === 'string' ? it : [it.name, (it.score !== undefined && it.score !== null && it.score !== '') ? `Score: ${it.score}` : null, it.interpretation ? `Interpretation: ${it.interpretation}` : null].filter(Boolean).join(' -- ');
+
+    const sectionTitleMatches = (() => {
+      if (!searchTerm) return false;
+      return 'custom scales'.startsWith(searchTerm.toLowerCase().trim());
+    })();
+
+    if (!shouldShowSection(record, 'Custom Scales', ...items.map(asText))) return null;
+
+    const visibleItems = items.filter(it => {
+      if (!searchTerm || record._showAllSections || sectionTitleMatches) return true;
+      return shouldShowRow(record, asText(it));
+    });
+    if (visibleItems.length === 0) return null;
+
+    const copyText = `CUSTOM SCALES\n${items.map((it, i) => `${i + 1}. ${asText(it)}`).join('\n')}`;
+
+    return (
+      <div className="field-container" key="customScales">
+        <div className="field-header">
+          <span className="field-title">{highlightText('Custom Scales')}</span>
+          <button
+            className={`section-copy-btn ${copiedSectionId === `customScales-section-${idx}` ? 'copied' : ''}`}
+            onClick={() => copyToClipboard(copyText, `customScales-section-${idx}`)}
+          >
+            {copiedSectionId === `customScales-section-${idx}` ? 'Copied!' : 'Copy Section'}
+          </button>
+        </div>
+        <div className="mini-cards-container">
+          {visibleItems.map((it, itemIdx) => {
+            if (typeof it === 'string') {
+              return (
+                <div key={itemIdx} className="rec-mini-card">
+                  <div className="numbered-row">
+                    <div className="row-content"><span className="content-value">{highlightText(it)}</span></div>
+                    <button className={`copy-btn ${copiedSectionId === `cs-${idx}-${itemIdx}` ? 'copied' : ''}`} onClick={() => copyToClipboard(it, `cs-${idx}-${itemIdx}`)}>{copiedSectionId === `cs-${idx}-${itemIdx}` ? 'Copied!' : 'Copy'}</button>
+                  </div>
+                </div>
+              );
+            }
+            // Scale name rides as the nested-subtitle; score + interpretation combine into ONE value below it —
+            // never "Score: 12" inline (canonical: no side-by-side Label:value row).
+            const parts = [];
+            if (it.score !== undefined && it.score !== null && it.score !== '') parts.push(String(it.score));
+            if (it.interpretation) parts.push(String(it.interpretation));
+            const combined = parts.join(' — ');
+            return (
+              <div key={itemIdx} className="rec-mini-card">
+                <div className="nested-subtitle">{highlightText(it.name || `Scale ${itemIdx + 1}`)}</div>
+                {combined && (
+                  <div className="numbered-row">
+                    <div className="row-content"><span className="content-value">{highlightText(combined)}</span></div>
+                    <button className={`copy-btn ${copiedSectionId === `cs-${idx}-${itemIdx}` ? 'copied' : ''}`} onClick={() => copyToClipboard(combined, `cs-${idx}-${itemIdx}`)}>{copiedSectionId === `cs-${idx}-${itemIdx}` ? 'Copied!' : 'Copy'}</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   // Render editable provider info section
   const renderProviderSection = (record, idx) => {
     const providerVal = getFieldValue(record, 'provider', idx) || record.provider;
@@ -1373,7 +1448,7 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
           </button>
           <PDFDownloadLink
             document={<PsychiatricAssessmentScalesDocumentPDFTemplate document={pdfData} />}
-            fileName={`psychiatric_assessment_scales_${new Date().toISOString().split('T')[0]}.pdf`}
+            fileName="Psychiatric_Assessment_Scales.pdf"
             className="export-pdf-btn"
           >
             {({ loading }) => (loading ? 'Preparing PDF...' : 'Export PDF')}
@@ -1404,12 +1479,22 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
             {/* Record Header */}
             <div className="record-header">
               <h3>{highlightText(`Psychiatric Assessment Scales ${idx + 1}`)}</h3>
-              <div className="record-header-badges">
-                {record.date && (
-                  <span className="date-badge">{highlightText(formatDate(record.date))}</span>
-                )}
-              </div>
             </div>
+
+            {/* Date */}
+            {record.date && (
+              <div className="field-container">
+                <div className="mini-cards-container">
+                  <div className="rec-mini-card">
+                    <div className="nested-subtitle">{highlightText('Date')}</div>
+                    <div className="numbered-row">
+                      <div className="row-content"><span className="content-value">{highlightText(formatDate(record.date))}</span></div>
+                      <button className={`copy-btn ${copiedSectionId === `date-${idx}` ? 'copied' : ''}`} onClick={() => copyToClipboard(formatDate(record.date), `date-${idx}`)}>{copiedSectionId === `date-${idx}` ? 'Copied!' : 'Copy'}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Provider Information */}
             {renderProviderSection(record, idx)}
@@ -1421,7 +1506,7 @@ const PsychiatricAssessmentScalesDocument = ({ document: data }) => {
             {renderResultsSection(record, idx)}
 
             {/* Custom Scales */}
-            {renderArraySection(record, idx, 'customScales', 'Custom Scales', record.customScales)}
+            {renderCustomScalesSection(record, idx)}
 
             {/* Findings */}
             {renderSubtitleTextSection(record, idx, 'findings', 'Findings', record.findings)}

@@ -10,7 +10,11 @@
   overflow-x: hidden;
   max-height: calc(100vh - 80px);
   box-sizing: border-box;
+  direction: ltr;
+  text-align: left;
 }
+
+.psychiatric-assessment-scales-document * { direction: ltr; }
 
 /* Header */
 .psychiatric-assessment-scales-document .document-header {
@@ -171,18 +175,6 @@
   font-weight: 600;
   color: #ececf1;
   text-transform: none !important;
-}
-
-.psychiatric-assessment-scales-document .record-header-badges {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.psychiatric-assessment-scales-document .date-badge {
-  font-size: 17px;
-  color: #93c5fd;
-  font-weight: 500;
 }
 
 /* Field Container */
@@ -461,7 +453,7 @@
 .psychiatric-assessment-scales-document .edit-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .psychiatric-assessment-scales-document .edit-save-btn {
@@ -522,9 +514,15 @@
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
   transition: all 0.2s ease;
+}
+
+.psychiatric-assessment-scales-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.4);
+  color: #eab308;
 }
 
 .psychiatric-assessment-scales-document .approve-btn:hover {
@@ -553,7 +551,8 @@
 /* Header right actions — copy + approve */
 .psychiatric-assessment-scales-document .header-right-actions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
   margin-left: auto;
 }

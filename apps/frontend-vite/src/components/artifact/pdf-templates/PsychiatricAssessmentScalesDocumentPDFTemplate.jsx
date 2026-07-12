@@ -1,120 +1,90 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+/**
+ * Psychiatric Assessment Scales PDF — box-free canonical (black-on-white, underline rules).
+ * Field-for-field aligned with the JSX: scales (nested {score,severity}), customScales
+ * (array of {name,score,interpretation}), recursive results, subtitle findings/notes.
+ */
+
 const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'Helvetica',
-    fontSize: 12,
+    fontSize: 14,
     lineHeight: 1.5,
+    color: '#000000',
     backgroundColor: '#ffffff',
   },
-  documentHeader: {
-    marginBottom: 24,
-    paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: '#9ca3af',
-    borderBottomStyle: 'solid',
-  },
   documentTitle: {
-    fontSize: 20,
+    fontSize: 26,
     fontFamily: 'Helvetica-Bold',
-    color: '#1f2937',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  recordContainer: {
-    marginBottom: 24,
-  },
-  recordHeader: {
-    marginBottom: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#9ca3af',
+    color: '#000000',
+    paddingBottom: 8,
+    marginBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
     borderBottomStyle: 'solid',
-  },
-  recordDateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  recordDate: {
-    fontSize: 11,
-    color: '#6b7280',
-    fontFamily: 'Helvetica',
   },
   recordTitle: {
-    fontSize: 16,
+    fontSize: 19,
     fontFamily: 'Helvetica-Bold',
-    color: '#1f2937',
-  },
-  section: {
-    marginBottom: 16,
+    color: '#000000',
+    paddingBottom: 6,
+    marginTop: 6,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
-    color: '#1f2937',
+    color: '#000000',
+    paddingBottom: 4,
+    marginTop: 14,
     marginBottom: 8,
-  },
-  sectionContent: {
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderStyle: 'solid',
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
   },
   fieldLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'Helvetica-Bold',
-    color: '#404040',
-    width: 180,
+    color: '#333333',
+    paddingBottom: 3,
+    marginTop: 8,
+    marginBottom: 5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#999999',
+    borderBottomStyle: 'solid',
   },
-  fieldValue: {
-    fontSize: 12,
-    color: '#404040',
-    flex: 1,
-  },
-  subSectionTitle: {
-    fontSize: 12,
+  subLabel: {
+    fontSize: 13,
     fontFamily: 'Helvetica-Bold',
-    color: '#404040',
+    color: '#000000',
     marginTop: 6,
     marginBottom: 4,
   },
-  listItem: {
-    fontSize: 12,
-    color: '#404040',
+  value: {
+    fontSize: 14,
+    color: '#000000',
     marginBottom: 4,
+  },
+  listItem: {
+    fontSize: 14,
+    color: '#000000',
+    marginBottom: 3,
     paddingLeft: 8,
   },
-  nestedGroup: {
-    paddingLeft: 10,
-    marginBottom: 4,
-    borderLeftWidth: 1,
-    borderLeftColor: '#d1d5db',
-    borderLeftStyle: 'solid',
-  },
-  separator: {
-    marginTop: 20,
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#d1d5db',
-    borderBottomStyle: 'solid',
-  },
   noDataText: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 14,
+    color: '#000000',
     textAlign: 'center',
     marginTop: 40,
   },
 });
 
-// Scale label mapping
 const SCALE_LABELS = {
   phq9: 'PHQ-9 (Patient Health Questionnaire-9)',
   gad7: 'GAD-7 (Generalized Anxiety Disorder-7)',
@@ -127,50 +97,43 @@ const SCALE_LABELS = {
 };
 const SCALE_KEYS = ['phq9', 'gad7', 'phq15', 'mdq', 'pcl5', 'audit', 'mmse', 'moca'];
 
-// Helper: format date
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
   try {
-    const date = new Date(dateStr);
+    const date = new Date(dateStr.$date || dateStr);
     if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   } catch {
     return String(dateStr);
   }
 };
 
-// Helper: safe string
 const safeString = (val) => {
   if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object') {
-    if (val.$date) return formatDate(val.$date);
-    return JSON.stringify(val);
-  }
-  return String(val);
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object') { if (val.$date) return formatDate(val.$date); s = JSON.stringify(val); }
+  else s = String(val);
+  return s
+    .replace(/×/g, 'x')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/…/g, '...');
 };
 
-// Helper: camelCase/snake_case to readable label
-const keyToLabel = (key) => {
-  return key
-    .replace(/_/g, ' ')
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, str => str.toUpperCase())
-    .trim();
-};
+const keyToLabel = (key) => key
+  .replace(/_/g, ' ')
+  .replace(/([A-Z])/g, ' $1')
+  .replace(/^./, str => str.toUpperCase())
+  .trim();
 
-// Helper: safe array
-const safeArray = (val) => Array.isArray(val) ? val.filter(Boolean) : [];
+const safeArray = (val) => (Array.isArray(val) ? val.filter(Boolean) : []);
 
-// Helper: check if value is displayable
-const hasValue = (val) => {
-  if (val === null || val === undefined || val === '') return false;
-  return true;
-};
+const hasValue = (val) => !(val === null || val === undefined || val === '');
 
-// Helper: split text into items
 const splitIntoItems = (text) => {
   if (!text) return [];
   const str = String(text).trim();
@@ -182,10 +145,8 @@ const splitIntoItems = (text) => {
   return [str];
 };
 
-// Helper: strip number prefix
 const stripNumber = (text) => String(text).replace(/^\d+\.\s*/, '');
 
-// Helper: parse text with embedded subtitle labels
 const parseSubtitleItems = (text) => {
   if (!text) return [];
   const str = String(text).trim();
@@ -210,10 +171,8 @@ const parseSubtitleItems = (text) => {
   return result;
 };
 
-// Helper: is scalar (leaf) value
 const isScalarVal = (v) => v === null || v === undefined || typeof v !== 'object' || (v && v.$date);
 
-// Helper: deep-empty check for nested OBJECT fields
 const objectIsEmpty = (v) => {
   if (v === null || v === undefined || v === '') return true;
   if (Array.isArray(v)) return v.filter(x => !objectIsEmpty(x)).length === 0;
@@ -223,18 +182,80 @@ const objectIsEmpty = (v) => {
   return false;
 };
 
-// Helper: count leaves for wrap-gating (Rule #74)
-const countObjectLeaves = (v) => {
-  if (objectIsEmpty(v)) return 0;
-  if (isScalarVal(v)) return 1;
-  return Object.entries(v).filter(([k, val]) => k !== '_id' && !objectIsEmpty(val))
-    .reduce((sum, [, val]) => sum + countObjectLeaves(val), 0);
-};
-
-// Check if a scale has displayable data
 const scaleHasData = (scale) => {
   if (!scale || typeof scale !== 'object') return false;
   return Object.entries(scale).filter(([k]) => k !== '_id').some(([, v]) => hasValue(v));
+};
+
+/* flat Text element builders */
+const L = (txt, key) => <Text key={key} style={styles.fieldLabel}>{safeString(txt)}</Text>;
+const V = (txt, key) => <Text key={key} style={styles.value}>{safeString(txt)}</Text>;
+const LI = (txt, key) => <Text key={key} style={styles.listItem}>{safeString(txt)}</Text>;
+const SUB = (txt, key) => <Text key={key} style={styles.subLabel}>{safeString(txt)}</Text>;
+
+const providerEls = (record) => {
+  const els = [];
+  if (hasValue(record.provider)) { els.push(L('Provider', 'pl')); els.push(V(record.provider, 'pv')); }
+  if (hasValue(record.facility)) { els.push(L('Facility', 'fl')); els.push(V(record.facility, 'fv')); }
+  return els;
+};
+
+const scalesEls = (record) => {
+  const active = SCALE_KEYS.filter(k => scaleHasData(record[k]));
+  const els = [];
+  active.forEach((key, si) => {
+    els.push(L(SCALE_LABELS[key] || keyToLabel(key), `sc${si}`));
+    Object.entries(record[key]).filter(([k]) => k !== '_id' && hasValue(record[key][k])).forEach(([k, v], ei) => {
+      els.push(V(`${keyToLabel(k)}: ${safeString(v)}`, `sc${si}e${ei}`));
+    });
+  });
+  return els;
+};
+
+const customScalesEls = (record) => {
+  const items = safeArray(record.customScales);
+  const els = [];
+  items.forEach((it, i) => {
+    if (typeof it === 'string') { els.push(LI(`${i + 1}. ${it}`, `cs${i}`)); return; }
+    els.push(L(it.name || `Scale ${i + 1}`, `csn${i}`));
+    if (it.score !== undefined && it.score !== null && it.score !== '') els.push(V(`Score: ${safeString(it.score)}`, `css${i}`));
+    if (it.interpretation) els.push(V(`Interpretation: ${safeString(it.interpretation)}`, `csi${i}`));
+  });
+  return els;
+};
+
+const textEls = (text, prefix) => {
+  if (!text || !String(text).trim()) return [];
+  return splitIntoItems(text).map((it, i) => LI(`${i + 1}. ${stripNumber(it)}`, `${prefix}${i}`));
+};
+
+const subtitleEls = (text, prefix) => {
+  if (!text || !String(text).trim()) return [];
+  const parsed = parseSubtitleItems(text);
+  if (!parsed.some(p => p.label)) return textEls(text, prefix);
+  const els = [];
+  parsed.forEach((item, i) => {
+    if (item.label) { els.push(L(item.label, `${prefix}l${i}`)); els.push(V(item.value, `${prefix}v${i}`)); }
+    else els.push(LI(`${i + 1}. ${item.value}`, `${prefix}u${i}`));
+  });
+  return els;
+};
+
+const recEls = (record) => safeArray(record.recommendations).map((it, i) =>
+  LI(`${i + 1}. ${typeof it === 'string' ? it : (it.recommendation || it.text || safeString(it))}`, `rec${i}`));
+
+const resultsEls = (record) => {
+  const v = record.results;
+  if (!v || typeof v !== 'object' || objectIsEmpty(v)) return [];
+  const els = [];
+  const walk = (label, val, prefix) => {
+    if (objectIsEmpty(val)) return;
+    if (isScalarVal(val)) { els.push(V(`${label ? label + ': ' : ''}${safeString(val)}`, prefix)); return; }
+    if (label) els.push(SUB(label, prefix + 'h'));
+    Object.entries(val).filter(([k, vv]) => k !== '_id' && !objectIsEmpty(vv)).forEach(([k, vv]) => walk(keyToLabel(k), vv, `${prefix}-${k}`));
+  };
+  Object.entries(v).filter(([k, vv]) => k !== '_id' && !objectIsEmpty(vv)).forEach(([k, vv]) => walk(keyToLabel(k), vv, `r${k}`));
+  return els;
 };
 
 const PsychiatricAssessmentScalesDocumentPDFTemplate = ({ document: data }) => {
@@ -257,244 +278,55 @@ const PsychiatricAssessmentScalesDocumentPDFTemplate = ({ document: data }) => {
   if (!records || records.length === 0) {
     return (
       <Document>
-        <Page size="A4" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Psychiatric Assessment Scales</Text>
-          </View>
+        <Page size="LETTER" style={styles.page}>
+          <Text style={styles.documentTitle}>Psychiatric Assessment Scales</Text>
           <Text style={styles.noDataText}>No data available</Text>
         </Page>
       </Document>
     );
   }
 
-  // Render scales section
-  const renderScalesSection = (record) => {
-    const activeScales = SCALE_KEYS.filter(key => scaleHasData(record[key]));
-    if (activeScales.length === 0) return null;
-
-    let totalItems = 0;
-    activeScales.forEach(key => {
-      const scale = record[key];
-      totalItems += 1 + Object.entries(scale).filter(([k]) => k !== '_id' && hasValue(scale[k])).length;
-    });
-
+  /* FLATTEN anti-orphan: glue the section title to its first body line. */
+  const renderSection = (sec, sidx) => {
+    const first = sec.els[0];
+    const rest = sec.els.slice(1).map((el, i) => React.cloneElement(el, { key: `f${sidx}_${i}` }));
     return (
-      <View style={styles.section} wrap={totalItems > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>Assessment Scales</Text>
-        <View style={styles.sectionContent}>
-          {activeScales.map((key, scaleIdx) => {
-            const label = SCALE_LABELS[key] || keyToLabel(key);
-            const scale = record[key];
-            const entries = Object.entries(scale).filter(([k]) => k !== '_id' && hasValue(scale[k]));
-            return (
-              <View key={scaleIdx}>
-                <Text style={styles.subSectionTitle}>{label}</Text>
-                {entries.map(([k, v], entryIdx) => (
-                  <View key={entryIdx} style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>{keyToLabel(k)}:</Text>
-                    <Text style={styles.fieldValue}>{safeString(v)}</Text>
-                  </View>
-                ))}
-              </View>
-            );
-          })}
+      <View key={sidx}>
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>{sec.title}</Text>
+          {first}
         </View>
-      </View>
-    );
-  };
-
-  // Render array section
-  const renderArraySection = (title, items) => {
-    const safeItems = safeArray(items);
-    if (safeItems.length === 0) return null;
-    return (
-      <View style={styles.section} wrap={safeItems.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {safeItems.map((item, i) => (
-            <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  // Render text section (simple splitIntoItems)
-  const renderTextSection = (title, text) => {
-    if (!text || !String(text).trim()) return null;
-    const items = splitIntoItems(text);
-    if (items.length === 0) return null;
-    return (
-      <View style={styles.section} wrap={items.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {items.map((item, i) => (
-            <Text key={i} style={styles.listItem}>{i + 1}. {stripNumber(item)}</Text>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  // Render subtitle text section (findings, notes with embedded labels)
-  const renderSubtitleTextSection = (title, text) => {
-    if (!text || !String(text).trim()) return null;
-    const parsed = parseSubtitleItems(text);
-    const hasSubtitles = parsed.some(item => item.label);
-
-    // If no subtitles found, fall back to regular text section
-    if (!hasSubtitles) return renderTextSection(title, text);
-
-    return (
-      <View style={styles.section} wrap={parsed.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {parsed.map((item, i) => {
-            if (item.label) {
-              return (
-                <View key={i}>
-                  <Text style={styles.subSectionTitle}>{item.label}:</Text>
-                  <Text style={styles.listItem}>{item.value}</Text>
-                </View>
-              );
-            }
-            return (
-              <Text key={i} style={styles.listItem}>{i + 1}. {item.value}</Text>
-            );
-          })}
-        </View>
-      </View>
-    );
-  };
-
-  // Render nested OBJECT node (results) — recursive, grayscale
-  const renderObjectNode = (label, value, depth, keyPrefix) => {
-    if (objectIsEmpty(value)) return null;
-    if (isScalarVal(value)) {
-      return (
-        <View key={keyPrefix} style={styles.fieldRow}>
-          <Text style={styles.fieldLabel}>{label}:</Text>
-          <Text style={styles.fieldValue}>{safeString(value)}</Text>
-        </View>
-      );
-    }
-    const entries = Object.entries(value).filter(([k, v]) => k !== '_id' && !objectIsEmpty(v));
-    if (entries.length === 0) return null;
-    return (
-      <View key={keyPrefix}>
-        {label ? <Text style={styles.subSectionTitle}>{label}</Text> : null}
-        <View style={depth > 0 ? styles.nestedGroup : undefined}>
-          {entries.map(([k, v]) => (
-            isScalarVal(v)
-              ? (
-                <View key={`${keyPrefix}-${k}`} style={styles.fieldRow}>
-                  <Text style={styles.fieldLabel}>{keyToLabel(k)}:</Text>
-                  <Text style={styles.fieldValue}>{safeString(v)}</Text>
-                </View>
-              )
-              : renderObjectNode(keyToLabel(k), v, depth + 1, `${keyPrefix}-${k}`)
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  // Render results OBJECT section (recursive, grayscale)
-  const renderResultsSection = (record) => {
-    const value = record.results;
-    if (!value || typeof value !== 'object' || objectIsEmpty(value)) return null;
-    const entries = Object.entries(value).filter(([k, v]) => k !== '_id' && !objectIsEmpty(v));
-    if (entries.length === 0) return null;
-    const leafCount = countObjectLeaves(value);
-    return (
-      <View style={styles.section} wrap={leafCount > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>Results</Text>
-        <View style={styles.sectionContent}>
-          {entries.map(([k, v]) => (
-            isScalarVal(v)
-              ? (
-                <View key={k} style={styles.fieldRow}>
-                  <Text style={styles.fieldLabel}>{keyToLabel(k)}:</Text>
-                  <Text style={styles.fieldValue}>{safeString(v)}</Text>
-                </View>
-              )
-              : renderObjectNode(keyToLabel(k), v, 1, k)
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  // Render status (simple string)
-  const renderStatusSection = (record) => {
-    if (!hasValue(record.status)) return null;
-    return (
-      <View style={styles.section} wrap={false}>
-        <Text style={styles.sectionTitle}>Status</Text>
-        <View style={styles.sectionContent}>
-          <Text style={styles.fieldValue}>{safeString(record.status)}</Text>
-        </View>
+        {rest}
       </View>
     );
   };
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Psychiatric Assessment Scales</Text>
-        </View>
+      <Page size="LETTER" style={styles.page}>
+        <Text style={styles.documentTitle}>Psychiatric Assessment Scales</Text>
 
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
+        {records.map((record, index) => {
+          const sections = [
+            hasValue(record.date) && { title: 'Date', els: [V(formatDate(record.date), 'dv')] },
+            { title: 'Provider Information', els: providerEls(record) },
+            { title: 'Assessment Scales', els: scalesEls(record) },
+            { title: 'Results', els: resultsEls(record) },
+            { title: 'Custom Scales', els: customScalesEls(record) },
+            { title: 'Findings', els: subtitleEls(record.findings, 'fnd') },
+            { title: 'Assessment', els: textEls(record.assessment, 'asm') },
+            { title: 'Plan', els: textEls(record.plan, 'pln') },
+            { title: 'Recommendations', els: recEls(record) },
+            { title: 'Notes', els: subtitleEls(record.notes, 'nts') },
+          ].filter(s => s && s.els && s.els.length);
 
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                Psychiatric Assessment Scales {index + 1}
-              </Text>
-              {record.provider && (
-                <Text style={styles.recordDate}>Provider: {record.provider}</Text>
-              )}
-              {record.facility && (
-                <Text style={styles.recordDate}>Facility: {record.facility}</Text>
-              )}
+          return (
+            <View key={index} break={index > 0}>
+              <Text style={styles.recordTitle}>Psychiatric Assessment Scales {index + 1}</Text>
+              {sections.map((sec, sidx) => renderSection(sec, sidx))}
             </View>
-
-            {/* Assessment Scales */}
-            {renderScalesSection(record)}
-
-            {/* Results */}
-            {renderResultsSection(record)}
-
-            {/* Custom Scales */}
-            {renderArraySection('Custom Scales', record.customScales)}
-
-            {/* Findings */}
-            {renderSubtitleTextSection('Findings', record.findings)}
-
-            {/* Assessment */}
-            {renderTextSection('Assessment', record.assessment)}
-
-            {/* Plan */}
-            {renderTextSection('Plan', record.plan)}
-
-            {/* Recommendations */}
-            {renderArraySection('Recommendations', record.recommendations)}
-
-            {/* Notes */}
-            {renderSubtitleTextSection('Notes', record.notes)}
-
-            {/* Status */}
-            {renderStatusSection(record)}
-          </View>
-        ))}
+          );
+        })}
       </Page>
     </Document>
   );

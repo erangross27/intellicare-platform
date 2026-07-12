@@ -24,6 +24,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PregnancyCourseDocumentPDFTemplate from '../pdf-templates/PregnancyCourseDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PregnancyCourseDocument.css';
 
@@ -120,6 +122,8 @@ const splitRatio = (text) => {
   if (!m) return null;
   return { num: m[1], denom: m[2] };
 };
+/* decimal-aware step for the num-stepper (0.1 for one-decimal values, etc.) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
 
 /* ═══════ VALUE HELPERS ═══════ */
 const isEmptyDeep = (v) => {
@@ -158,7 +162,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -244,7 +248,21 @@ const PregnancyCourseDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    // paren-protect '.'/';' inside parentheses (via char-code consts — no literal control chars)
+    const P1 = String.fromCharCode(1), P2 = String.fromCharCode(2);
+    let depth = 0, masked = '';
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '(') { depth++; masked += ch; }
+      else if (ch === ')') { depth = Math.max(0, depth - 1); masked += ch; }
+      else if (depth > 0 && ch === '.') masked += P1;
+      else if (depth > 0 && ch === ';') masked += P2;
+      else masked += ch;
+    }
+    return masked
+      .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/)
+      .map(s => s.split(P1).join('.').split(P2).join(';').replace(/^\d+\.\s+/, '').trim())
+      .filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -539,7 +557,7 @@ const PregnancyCourseDocument = ({ document: docProp }) => {
     const out = [];
     const pad = '  '.repeat(indent);
     if (isEmptyDeep(value)) return out;
-    if (isScalar(value)) { out.push(`${pad}${label ? label + ': ' : ''}${fmtScalar(value)}`); return out; }
+    if (isScalar(value)) { if (label) out.push(`${pad}${label}`); out.push(`${pad}${fmtScalar(value)}`); return out; }
     if (Array.isArray(value)) {
       if (label) out.push(`${pad}${label}:`);
       value.filter(x => !isEmptyDeep(x)).forEach((it, i) => {
@@ -562,11 +580,11 @@ const PregnancyCourseDocument = ({ document: docProp }) => {
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${label}\n1. ${formatDate(val)}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `${label}\n1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
+        text += `${label}\n1. ${val}\n\n`;
       } else if (OBJECT_FIELDS.includes(f)) {
         objectCopyLines(label, val, 0).forEach(l => { text += `${l}\n`; });
         text += '\n';
@@ -586,13 +604,14 @@ const PregnancyCourseDocument = ({ document: docProp }) => {
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${label}\n1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${label}\n1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    // empty-section sentinel: a section with only its header (no populated fields) is dropped from Copy All
+    return text === `${title}\n${'='.repeat(40)}\n\n` ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines, objectCopyLines]);
 
   const copyAllText = useCallback(async () => {
@@ -624,7 +643,7 @@ const PregnancyCourseDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -643,30 +662,38 @@ const PregnancyCourseDocument = ({ document: docProp }) => {
     );
   };
 
-  /* ═══════ RENDER: OBJECT LEAF (editable; number+unit -> number input, ratio stays, text -> textarea) ═══════ */
+  /* ═══════ RENDER: OBJECT LEAF (bool -> BlueSelect; number+unit/ratio -> num-stepper; labeled/multi-sentence -> stacked sub-label + value spans; else textarea) ═══════ */
   const renderObjectLeaf = (record, rootField, path, idx, sid, value) => {
     const leafValueString = fmtScalar(value);
     const leafKey = `${rootField}-${idx}-${path.join('.')}`;
     const isEditing = editingField === leafKey;
     const isModified = editedFields[leafKey];
+    const lastSeg = String(path[path.length - 1]);
+    const isIndex = /^\d+$/.test(lastSeg);
+    const leafName = humanizeKey(lastSeg);
     const isBool = typeof value === 'boolean';
     const ratio = isBool ? null : splitRatio(leafValueString);
     const nu = (isBool || ratio) ? null : splitNumberUnit(leafValueString);
-    const editStartValue = isBool ? (value ? 'yes' : 'no') : ratio ? ratio.num : nu ? nu.num : leafValueString;
+    const leafSentences = (typeof value === 'string' && !ratio && !nu) ? splitBySentence(leafValueString) : [];
+    const parsedLeaf = (typeof value === 'string') ? parseLabel(leafValueString) : { isLabeled: false };
+    // narrative/labeled string leaf: render the label out of the value so no ".row-content > single content-value" is "Label: value"
+    const isNarrative = typeof value === 'string' && !isBool && !ratio && !nu && (leafSentences.length > 1 || parsedLeaf.isLabeled);
+    const editStartValue = isBool ? (value ? 'Yes' : 'No') : ratio ? ratio.num : nu ? nu.num : leafValueString;
     return (
-      <div key={path[path.length - 1]} className="nested-mini-card">
-        <div className="nested-subtitle sub-label">{highlightText(humanizeKey(path[path.length - 1]))}</div>
+      <div key={lastSeg} className="nested-mini-card">
+        {!isIndex && <div className="nested-subtitle sub-label">{highlightText(leafName)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(leafKey); setEditValue(editStartValue); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
               {isBool ? (
-                <select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               ) : (ratio || nu) ? (
                 <div className="number-edit-row">
-                  <input type="number" step="any" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <div className="num-stepper-row">
+                    <button className="num-step" onClick={e => { e.stopPropagation(); const n = parseFloat(editValue) || 0; setEditValue(String(Math.max(0, +(n - stepFor(editValue)).toFixed(6)))); }}>&#8722;</button>
+                    <input type="text" inputMode="decimal" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    <button className="num-step" onClick={e => { e.stopPropagation(); const n = parseFloat(editValue) || 0; setEditValue(String(+(n + stepFor(editValue)).toFixed(6))); }}>+</button>
+                  </div>
                   {ratio ? <span className="number-edit-unit">{`/ ${ratio.denom}`}</span> : (nu.unit && <span className="number-edit-unit">{nu.unit}</span>)}
                 </div>
               ) : (
@@ -678,7 +705,7 @@ const PregnancyCourseDocument = ({ document: docProp }) => {
                   e.stopPropagation();
                   let newVal;
                   if (isBool) {
-                    newVal = editValue === 'yes';
+                    newVal = editValue === 'Yes';
                   } else if (ratio) {
                     const n = parseFloat(editValue);
                     if (isNaN(n)) { setSaveError('Please enter a valid number'); return; }
@@ -697,8 +724,25 @@ const PregnancyCourseDocument = ({ document: docProp }) => {
             </div>
           ) : (
             <>
-              <div className="row-content"><span className="content-value">{highlightText(leafValueString)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[leafKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${humanizeKey(path[path.length - 1])}\n${leafValueString}`, leafKey); }}>{copiedItems[leafKey] ? 'Copied!' : 'Copy'}</button>
+              {isNarrative ? (
+                <div className="row-content" style={{ flexDirection: 'column' }}>
+                  {leafSentences.map((sent, si) => {
+                    const p = parseLabel(sent);
+                    return p.isLabeled ? (
+                      <React.Fragment key={si}>
+                        <span className="content-subtitle-label">{highlightText(p.label)}</span>
+                        <span className="content-value">{highlightText(p.value)}</span>
+                      </React.Fragment>
+                    ) : (
+                      <span key={si} className="content-value">{highlightText(sent)}</span>
+                    );
+                  })}
+                  <span className="edit-indicator">&#9998;</span>
+                </div>
+              ) : (
+                <div className="row-content"><span className="content-value">{highlightText(leafValueString)}</span><span className="edit-indicator">&#9998;</span></div>
+              )}
+              <button className={`copy-btn ${copiedItems[leafKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(isIndex ? leafValueString : `${leafName}\n${leafValueString}`, leafKey); }}>{copiedItems[leafKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -1001,7 +1045,7 @@ const PregnancyCourseDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pregnancy Course</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PregnancyCourseDocumentPDFTemplate document={pdfData} />} fileName={`pregnancy-course-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PregnancyCourseDocumentPDFTemplate document={pdfData} />} fileName="Pregnancy_Course.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1014,11 +1058,6 @@ const PregnancyCourseDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date || record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date || record.createdAt)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Pregnancy Course ${idx + 1}`)}</h3>
             </div>
             {Object.keys(SECTION_FIELDS).map(sid => renderSection(record, idx, sid))}

@@ -125,10 +125,12 @@ const vm = (await import('vm')).default;
 
 // widget harness (item 8) — and catch the vacuous "0 scalar fields probed" green (memory 6a4b845b)
 console.log('\n── WIDGET HARNESS (verifyTemplateWidgets.mjs) ──');
+let widgetProbeCount = 0;
 try {
   const out = execFileSync('node', [path.join(ROOT, 'scripts/verifyTemplateWidgets.mjs'), name, path.resolve(recordArg)], { encoding: 'utf8' });
   const m = out.match(/\((\d+) scalar fields probed\)/);
   const n = m ? parseInt(m[1], 10) : 0;
+  widgetProbeCount = n;
   check('widget harness exit 0', true);
   check('widget harness probed > 0 fields (not vacuous green)', n > 0, `${n} probed — 0 means rows don't match .numbered-row.editable-row`);
 } catch (e) {
@@ -139,6 +141,7 @@ const { JSDOM } = require(JSDOM_PATH);
 const dom = new JSDOM('<!doctype html><html dir="rtl"><body></body></html>', { url: 'http://localhost/', pretendToBeVisual: true });
 const { window } = dom;
 let clip = '';
+let jsxScalarValues = [];
 Object.assign(global, { window, document: window.document, HTMLElement: window.HTMLElement, Node: window.Node });
 global.getComputedStyle = window.getComputedStyle.bind(window);
 global.localStorage = window.localStorage;
@@ -220,6 +223,34 @@ try {
     check('JSX rows unnumbered (numbering only in Copy/PDF)', numbered.length === 0,
       numbered.slice(0, 4).map(t => JSON.stringify(t.slice(0, 40))).join(' | '));
   }
+  // COMPLETE EDITABILITY: a nonzero widget count is not enough. Every visible scalar row must actually be
+  // clickable/editable, and cards containing multiple rows must give each row a stable data-edit-field identity
+  // so the harness can re-query it after React renders (Pulmonology Consultations row 644, July 2026).
+  {
+    const scalarRows = [...new Set([...host.querySelectorAll('.content-value')]
+      .map(value => value.closest('.numbered-row')).filter(Boolean))];
+    jsxScalarValues = [...host.querySelectorAll('.content-value')]
+      .map(value => value.textContent.trim()).filter(Boolean);
+    const readOnlyRows = scalarRows.filter(row => !row.classList.contains('editable-row'));
+    check('JSX every visible scalar row is editable', readOnlyRows.length === 0,
+      readOnlyRows.slice(0, 4).map(row => JSON.stringify(row.textContent.trim().slice(0, 50))).join(' | '));
+
+    const untracked = [];
+    for (const card of host.querySelectorAll('.rec-mini-card')) {
+      const rows = [...card.querySelectorAll('.numbered-row.editable-row')];
+      if (rows.length <= 1) continue;
+      rows.forEach(row => { if (!row.closest('[data-edit-field]')) untracked.push(row); });
+    }
+    check('JSX multi-row cards expose every leaf to the widget harness', untracked.length === 0,
+      `${untracked.length} editable row(s) in multi-row cards lack data-edit-field`);
+    check('widget harness probe count equals visible scalar row count', widgetProbeCount === scalarRows.length,
+      `${widgetProbeCount} probed vs ${scalarRows.length} visible scalar rows`);
+
+    const copyValueLines = new Set(clip.split('\n').map(line => line.trim().replace(/^\d+\.\s+/, '')).filter(Boolean));
+    const missingCopyRows = jsxScalarValues.filter(value => !copyValueLines.has(value));
+    check('Copy All mirrors every JSX scalar as its own row', missingCopyRows.length === 0,
+      missingCopyRows.slice(0, 4).map(value => JSON.stringify(value.slice(0, 60))).join(' | '));
+  }
   // ADVISORY (non-blocking): a field that renders as ONE value row but whose text is a comma/semicolon list of
   // several items — surfaces the "keep whole vs split" judgment call so it is a CONSCIOUS decision, never a
   // silent miss (clinicalIndication/findings left whole, EmergencyReports July 7 2026). This user prefers
@@ -293,6 +324,12 @@ if (PDFSRC && clip) {
     const rpdfMock = { Document: mkEl('div'), Page: mkEl('div'), View: mkEl('div'), Text: mkEl('span'), Link: mkEl('span'), Image: mkEl('img'), StyleSheet: { create: (x) => x }, Font: { register: () => {} } };
     const PdfMock = runMod(await compile(pdfPath), pdfPath, (s) => (s === 'react' ? React : s === '@react-pdf/renderer' ? rpdfMock : s.endsWith('.css') ? {} : require(s))).default;
     const html = RDS.renderToStaticMarkup(React.createElement(PdfMock, { document: records }));
+    const pdfDoc = new JSDOM(`<body>${html}</body>`).window.document;
+    const pdfValueLines = new Set([...pdfDoc.querySelectorAll('span')]
+      .map(node => node.textContent.trim().replace(/^\d+\.\s+/, '')).filter(Boolean));
+    const missingPdfRows = jsxScalarValues.filter(value => !pdfValueLines.has(value));
+    check('PDF mirrors every JSX scalar as its own row', missingPdfRows.length === 0,
+      missingPdfRows.slice(0, 4).map(value => JSON.stringify(value.slice(0, 60))).join(' | '));
     const labelsBlock = (JSX.match(/const FIELD_LABELS\s*=\s*\{[\s\S]*?\n\};/) || [''])[0];
     const labels = Object.fromEntries([...labelsBlock.matchAll(/(\w+):\s*'([^']+)'/g)].map(m => [m[1], m[2]]));
     const arrFields = new Set();

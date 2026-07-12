@@ -93,6 +93,8 @@ const SECTION_FIELDS = {
 };
 
 const DATE_FIELDS = ['date', 'pulmonaryFunctionTests.date', 'quitDate', 'imagingDate'];
+const COMMA_FIELDS = ['pulmonaryFunctionTests.fev1', 'pulmonaryFunctionTests.fvc', 'pulmonaryFunctionTests.fev1FvcRatio', 'breathingSounds'];
+const COMMA_SENTENCE_FIELDS = ['notes'];
 const NUMBER_FIELDS = ['respiratoryRate', 'oxygenSaturation', 'packYears'];
 const ARRAY_FIELDS = ['secondaryDiagnoses', 'respiratoryMedications'];
 const MEANINGFUL_ZERO_FIELDS = [];
@@ -186,7 +188,7 @@ const PulmonologyConsultationsDocumentPDFTemplate = ({ document: data }) => {
   const labelElement = (label, key, sub = false) => <Text key={`${key}-label`} style={sub ? styles.subLabel : styles.fieldLabel}>{safeString(label)}</Text>;
   const valueElement = (value, key, list = false) => <Text key={`${key}-value`} style={list ? styles.listItem : styles.value}>{safeString(value)}</Text>;
 
-  const sentenceElements = (text, keyBase) => {
+  const sentenceElements = (text, keyBase, field) => {
     const sentences = splitBySentence(safeString(text));
     const elements = []; let n = 1;
     sentences.forEach((sentence, sentenceIndex) => {
@@ -196,7 +198,8 @@ const PulmonologyConsultationsDocumentPDFTemplate = ({ document: data }) => {
         const parts = splitByComma(parsed.value);
         parts.forEach((part, partIndex) => elements.push(valueElement(`${n++}. ${part}`, `${keyBase}-s${sentenceIndex}-p${partIndex}`, true)));
       } else {
-        elements.push(valueElement(`${n++}. ${sentence}`, `${keyBase}-s${sentenceIndex}`));
+        const parts = COMMA_SENTENCE_FIELDS.includes(field) ? splitByComma(sentence) : [sentence];
+        parts.forEach((part, partIndex) => elements.push(valueElement(`${n++}. ${part}`, `${keyBase}-s${sentenceIndex}-p${partIndex}`)));
       }
     });
     return elements;
@@ -217,7 +220,9 @@ const PulmonologyConsultationsDocumentPDFTemplate = ({ document: data }) => {
     } else {
       const stringValue = safeString(value);
       const sentences = splitBySentence(stringValue);
-      if (sentences.length > 1 || parseLabel(stringValue).isLabeled) elements.push(...sentenceElements(stringValue, field));
+      const commaParts = COMMA_FIELDS.includes(field) ? splitByComma(stringValue) : [];
+      if (commaParts.length > 1) commaParts.forEach((part, partIndex) => elements.push(valueElement(`${partIndex + 1}. ${part}`, `${field}-p${partIndex}`, true)));
+      else if (sentences.length > 1 || parseLabel(stringValue).isLabeled) elements.push(...sentenceElements(stringValue, field, field));
       else elements.push(valueElement(`1. ${stringValue}`, field));
     }
     return elements;
@@ -266,16 +271,16 @@ const PulmonologyConsultationsDocumentPDFTemplate = ({ document: data }) => {
     if (sid === 'bronchodilators') {
       const elements = [];
       (record.bronchodilators || []).filter((item) => !isEmptyDeep(item)).forEach((item, index) => {
-        elements.push(labelElement(`${item.medication || 'Bronchodilator'}${item.type ? ` (${item.type})` : ''}`, `${sid}-${index}`, true));
-        elements.push(...pairElements([['Dose', item.dose], ['Device', item.device]], `${sid}-${index}`));
+        elements.push(labelElement(`Bronchodilator ${index + 1}`, `${sid}-${index}`, true));
+        elements.push(...pairElements([['Medication', item.medication], ['Type', item.type], ['Dose', item.dose], ['Device', item.device]], `${sid}-${index}`));
       });
       return elements;
     }
     if (sid === 'corticosteroids') {
       const elements = [];
       (record.corticosteroids || []).filter((item) => !isEmptyDeep(item)).forEach((item, index) => {
-        elements.push(labelElement(item.medication || 'Corticosteroid', `${sid}-${index}`, true));
-        elements.push(...pairElements([['Route', item.route], ['Dose', item.dose]], `${sid}-${index}`));
+        elements.push(labelElement(`Corticosteroid ${index + 1}`, `${sid}-${index}`, true));
+        elements.push(...pairElements([['Medication', item.medication], ['Route', item.route], ['Dose', item.dose]], `${sid}-${index}`));
       });
       return elements;
     }
@@ -285,7 +290,7 @@ const PulmonologyConsultationsDocumentPDFTemplate = ({ document: data }) => {
       const groups = (record.recommendations || []).reduce((acc, item) => { const key = item?.date || 'No Date'; (acc[key] ||= []).push(item); return acc; }, {});
       const elements = [];
       Object.entries(groups).forEach(([date, items], groupIndex) => {
-        elements.push(labelElement(date, `${sid}-${groupIndex}`, true));
+        elements.push(labelElement(date === 'No Date' ? date : formatDate(date), `${sid}-${groupIndex}`, true));
         items.forEach((item, itemIndex) => elements.push(valueElement(`${itemIndex + 1}. ${safeString(typeof item === 'string' ? item : item.recommendation)}`, `${sid}-${groupIndex}-${itemIndex}`, true)));
       });
       return elements;

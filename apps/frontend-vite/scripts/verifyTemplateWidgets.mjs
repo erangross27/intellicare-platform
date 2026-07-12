@@ -175,7 +175,7 @@ async function main() {
     const card = cardsNow[i]; if (!card) continue;
     // Bespoke object/array cards can contain several independently editable leaves. Those rows carry
     // data-edit-field and are exhaustively probed below; skip the card-level first-row shortcut here.
-    if (card.querySelector('[data-edit-field]')) continue;
+    if (card.matches('[data-edit-field]') || card.querySelector('[data-edit-field]')) continue;
     const sub = card.querySelector('.nested-subtitle');
     const label = sub ? sub.textContent.trim() : '(unlabeled)';
     const valEl = card.querySelector('.content-value');
@@ -205,12 +205,19 @@ async function main() {
 
   // Exhaustively probe every leaf in bespoke object/array sections. Re-query by the stable field name
   // after each React render so siblings in the same rec-mini-card cannot be silently skipped.
-  const nestedFieldNames = [...host.querySelectorAll('[data-edit-field]')]
-    .map(el => el.getAttribute('data-edit-field'))
-    .filter(Boolean);
-  for (const fieldName of nestedFieldNames) {
-    const current = () => [...host.querySelectorAll('[data-edit-field]')]
-      .find(el => el.getAttribute('data-edit-field') === fieldName);
+  const occurrenceCounts = new Map();
+  const nestedFields = [...host.querySelectorAll('[data-edit-field]')].map(el => {
+    const fieldName = el.getAttribute('data-edit-field');
+    if (!fieldName) return null;
+    const occurrence = occurrenceCounts.get(fieldName) || 0;
+    occurrenceCounts.set(fieldName, occurrence + 1);
+    return { fieldName, occurrence };
+  }).filter(Boolean);
+  const findNestedField = ({ fieldName, occurrence }) => [...host.querySelectorAll('[data-edit-field]')]
+    .filter(el => el.getAttribute('data-edit-field') === fieldName)[occurrence];
+  for (const nestedField of nestedFields) {
+    const { fieldName } = nestedField;
+    const current = () => findNestedField(nestedField);
     const container = current(); if (!container) continue;
     const label = container.querySelector('.field-label')?.textContent.trim() || fieldName;
     const valEl = container.querySelector('.content-value');
@@ -237,14 +244,13 @@ async function main() {
 
   // Save every nested leaf, approve every affected section, and verify the exact field path reached
   // the edit API. This catches controls that open correctly but are disconnected from persistence.
-  for (const fieldName of nestedFieldNames) {
-    const container = [...host.querySelectorAll('[data-edit-field]')]
-      .find(el => el.getAttribute('data-edit-field') === fieldName);
+  for (const nestedField of nestedFields) {
+    const { fieldName } = nestedField;
+    const container = findNestedField(nestedField);
     const row = container?.querySelector('.numbered-row.editable-row');
     if (!row) continue;
     await act(async () => { row.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
-    const liveContainer = [...host.querySelectorAll('[data-edit-field]')]
-      .find(el => el.getAttribute('data-edit-field') === fieldName);
+    const liveContainer = findNestedField(nestedField);
     const save = [...(liveContainer?.querySelectorAll('button') || [])]
       .find(button => button.textContent.trim() === 'Save');
     if (!save) {
@@ -261,7 +267,7 @@ async function main() {
     });
   }
   const persistedFields = new Set(apiCalls.filter(call => /\/edit$/.test(call.url)).map(call => call.payload?.field));
-  for (const fieldName of nestedFieldNames) {
+  for (const { fieldName } of nestedFields) {
     if (!persistedFields.has(fieldName)) {
       flags.push({ label: fieldName, value: '', kind: 'persistence', widget: 'Save', why: 'Save + Pending Approve did not send this exact field path to the edit API' });
     }
@@ -283,7 +289,7 @@ async function main() {
     console.log('\nFix the widget for each flagged field, then re-run. (enums are judgment calls — verify dropdowns visually.)');
     process.exit(1);
   }
-  if (nestedFieldNames.length) console.log(`\n✅ ${nestedFieldNames.length} nested field Save + Pending Approve API paths verified.`);
+  if (nestedFields.length) console.log(`\n✅ ${nestedFields.length} nested field occurrences opened and saved; all Pending Approve API paths verified.`);
   console.log('\n✅ No mechanical widget mismatches. (Still eyeball enum dropdowns + sentence splitting — those are judgment calls.)');
   process.exit(0);
 }

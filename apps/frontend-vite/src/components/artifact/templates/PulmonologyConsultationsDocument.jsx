@@ -104,6 +104,8 @@ const BOOLEAN_FIELDS = [];
 const DATE_FIELDS = ['date', 'pulmonaryFunctionTests.date', 'quitDate', 'imagingDate'];
 const ARRAY_FIELDS = ['secondaryDiagnoses', 'respiratoryMedications'];
 const STRING_FIELDS = ['type', 'provider', 'facility', 'status', 'primaryDiagnosis', 'severity', 'exacerbationRisk', 'pulmonaryFunctionTests.fev1', 'pulmonaryFunctionTests.fvc', 'pulmonaryFunctionTests.fev1FvcRatio', 'pulmonaryFunctionTests.dlco', 'pulmonaryFunctionTests.interpretation', 'peakFlow', 'breathingSounds', 'chestPain', 'smokingStatus', 'chestXrayFindings', 'ctScanFindings', 'assessment', 'plan', 'findings', 'notes'];
+const COMMA_FIELDS = ['pulmonaryFunctionTests.fev1', 'pulmonaryFunctionTests.fvc', 'pulmonaryFunctionTests.fev1FvcRatio', 'breathingSounds'];
+const COMMA_SENTENCE_FIELDS = ['notes'];
 const MEANINGFUL_ZERO_FIELDS = [];
 const COPY_LINE_EQ = '='.repeat(40);
 const COPY_LINE_DASH = '-'.repeat(40);
@@ -156,7 +158,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -529,7 +531,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatSentenceFieldLines = useCallback((text) => {
+  const formatSentenceFieldLines = useCallback((text, fn) => {
     const sentences = splitBySentence(text);
     const lines = []; let n = 1;
     sentences.forEach(s => {
@@ -540,7 +542,10 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           lines.push(parsed.label, COPY_LINE_DASH);
           parts.forEach(item => { lines.push(`${n++}. ${item}`); });
         } else { lines.push(parsed.label, COPY_LINE_DASH, `${n++}. ${parsed.value}`); }
-      } else { lines.push(`${n++}. ${s}`); }
+      } else {
+        const parts = COMMA_SENTENCE_FIELDS.includes(fn) ? splitByComma(s) : [s];
+        parts.forEach(part => { lines.push(`${n++}. ${part}`); });
+      }
     });
     return lines;
   }, [splitBySentence]);
@@ -566,9 +571,12 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+        const commaParts = COMMA_FIELDS.includes(f) ? splitByComma(strVal) : [];
+        if (commaParts.length > 1) {
+          body += `${labelLine}${commaParts.map((part, partIdx) => `${partIdx + 1}. ${part}`).join('\n')}\n\n`;
+        } else if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
           body += labelLine;
-          formatSentenceFieldLines(strVal).forEach(l => { body += `${l}\n`; });
+          formatSentenceFieldLines(strVal, f).forEach(l => { body += `${l}\n`; });
           body += '\n';
         } else {
           body += `${labelLine}1. ${strVal}\n\n`;
@@ -683,16 +691,16 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       // Add bronchodilators, corticosteroids, recommendations
       if (r.bronchodilators?.length) {
         text += `Bronchodilators\n${COPY_LINE_EQ}\n\n`;
-        r.bronchodilators.forEach((med) => { text += `${med.medication}${med.type ? ` (${med.type})` : ''}\n`; if (med.dose) text += `Dose\n${COPY_LINE_DASH}\n1. ${med.dose}\n`; if (med.device) text += `Device\n${COPY_LINE_DASH}\n1. ${med.device}\n`; text += '\n'; });
+        r.bronchodilators.forEach((med, medIdx) => { text += `Bronchodilator ${medIdx + 1}\n${COPY_LINE_DASH}\n`; if (med.medication) text += `Medication\n${COPY_LINE_DASH}\n1. ${med.medication}\n`; if (med.type) text += `Type\n${COPY_LINE_DASH}\n1. ${med.type}\n`; if (med.dose) text += `Dose\n${COPY_LINE_DASH}\n1. ${med.dose}\n`; if (med.device) text += `Device\n${COPY_LINE_DASH}\n1. ${med.device}\n`; text += '\n'; });
       }
       if (r.corticosteroids?.length) {
         text += `Corticosteroids\n${COPY_LINE_EQ}\n\n`;
-        r.corticosteroids.forEach((med) => { text += `${med.medication}\n`; if (med.route) text += `Route\n${COPY_LINE_DASH}\n1. ${med.route}\n`; if (med.dose) text += `Dose\n${COPY_LINE_DASH}\n1. ${med.dose}\n`; text += '\n'; });
+        r.corticosteroids.forEach((med, medIdx) => { text += `Corticosteroid ${medIdx + 1}\n${COPY_LINE_DASH}\n`; if (med.medication) text += `Medication\n${COPY_LINE_DASH}\n1. ${med.medication}\n`; if (med.route) text += `Route\n${COPY_LINE_DASH}\n1. ${med.route}\n`; if (med.dose) text += `Dose\n${COPY_LINE_DASH}\n1. ${med.dose}\n`; text += '\n'; });
       }
       if (r.recommendations?.length) {
         text += `Recommendations\n${COPY_LINE_EQ}\n\n`;
         const grouped = r.recommendations.reduce((acc, rec) => { const k = rec.date || 'No Date'; (acc[k] ||= []).push(rec); return acc; }, {});
-        Object.entries(grouped).forEach(([date, recs]) => { text += `${date}\n${COPY_LINE_DASH}\n`; recs.forEach((rec, i) => { text += `${i + 1}. ${rec.recommendation}\n`; }); text += '\n'; });
+        Object.entries(grouped).forEach(([date, recs]) => { text += `${date === 'No Date' ? date : formatDate(date)}\n${COPY_LINE_DASH}\n`; recs.forEach((rec, i) => { text += `${i + 1}. ${rec.recommendation}\n`; }); text += '\n'; });
       }
       text += buildResultsCopyText(r);
       text += '\n';
@@ -799,7 +807,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} data-edit-field={fn}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
@@ -833,6 +841,49 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
+    const commaItems = COMMA_FIELDS.includes(fn) ? splitByComma(strVal) : [];
+    if (commaItems.length > 1) {
+      return (
+        <div key={fn} className="rec-mini-card">
+          {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+          {commaItems.map((item, partIdx) => {
+            const partKey = `${fn}-${idx}-c${partIdx}`;
+            const isEditing = editingField === partKey;
+            const isModified = editedFields[partKey];
+            return (
+              <div key={partKey} data-edit-field={fn}>
+                <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(partKey); setEditValue(item); setSaveError(null); } }}>
+                  {isEditing ? (
+                    <div className="edit-field-container">
+                      <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      {saveError && <div className="save-error">{saveError}</div>}
+                      <div className="edit-actions">
+                        <button className="save-btn" disabled={saving} onClick={e => {
+                          e.stopPropagation();
+                          const liveParts = splitByComma(String(getFieldValue(record, fn, idx) || ''));
+                          const nextValue = editValue.trim();
+                          if (nextValue) liveParts[partIdx] = nextValue;
+                          else liveParts.splice(partIdx, 1);
+                          handleSaveField(record, fn, idx, sid, null, liveParts.join(', '), partKey);
+                        }}>{saving ? 'Saving...' : 'Save'}</button>
+                        <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(item)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[partKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(item, partKey); }}>{copiedItems[partKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+                {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     /* Multi-sentence: render with splitBySentence */
     if (sentences.length > 1) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
@@ -850,13 +901,14 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
               if (!sentenceMatches && searchTerm.trim()) return null;
 
               const parsed = parseLabel(sentence);
-              if (parsed.isLabeled) {
-                const commaItems = splitByComma(parsed.value);
+              const commaItems = splitByComma(parsed.isLabeled ? parsed.value : sentence);
+              const splitSentenceByComma = parsed.isLabeled || COMMA_SENTENCE_FIELDS.includes(fn);
+              if (splitSentenceByComma) {
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
                 if (commaItems.length >= 2) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                      <div className="nested-subtitle">{highlightText(parsed.label)}</div>
+                    <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                      {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
                         const ciEditing = editingField === commaKey;
@@ -864,14 +916,14 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
                                   <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                                   {saveError && <div className="save-error">{saveError}</div>}
                                   <div className="edit-actions">
-                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const currentVal2 = String(getFieldValue(record, fn, idx) || ''); const sentences2 = splitBySentence(currentVal2); const s2 = sentences2[sIdx] || ''; const p2 = parseLabel(s2); if (!p2.isLabeled) return; const items2 = splitByComma(p2.value); const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s); if (subParts.length > 1) { items2.splice(ciIdx, 1, ...subParts); } else { items2[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); } const rebuilt = `${p2.label}: ${items2.join(', ')}.`; const allS = [...sentences2]; allS[sIdx] = rebuilt; const fullText2 = reconstructFullText(allS); const marks = { [commaKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ciIdx + ei}`] = 'added'; stageSentenceDraft(record, fn, idx, sid, fullText2, marks); }}>{saving ? 'Saving...' : 'Save'}</button>
+                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const currentVal2 = String(getFieldValue(record, fn, idx) || ''); const sentences2 = splitBySentence(currentVal2); const s2 = sentences2[sIdx] || ''; const p2 = parseLabel(s2); const items2 = splitByComma(p2.isLabeled ? p2.value : s2); const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s); if (subParts.length > 1) { items2.splice(ciIdx, 1, ...subParts); } else if (subParts.length === 1) { items2[ciIdx] = subParts[0]; } else { items2.splice(ciIdx, 1); } const rebuilt = p2.isLabeled ? `${p2.label}: ${items2.join(', ')}` : items2.join(', '); const allS = [...sentences2]; allS[sIdx] = rebuilt; const fullText2 = reconstructFullText(allS); const marks = { [commaKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ciIdx + ei}`] = 'added'; stageSentenceDraft(record, fn, idx, sid, fullText2, marks); }}>{saving ? 'Saving...' : 'Save'}</button>
                                     <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                                   </div>
                                 </div>
@@ -893,7 +945,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} data-edit-field={fn} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -983,7 +1035,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="nested-field-card" data-edit-field={fn}>
-        <div className="field-label">{highlightText(label)}</div>
+        {label && <div className="field-label">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(editStart); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -1011,8 +1063,36 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(label ? `${label}: ${displayVal}` : displayVal, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  const renderEditableDateSubtitle = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx);
+    if (!hasVal(val) || isEpochSentinel(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const isModified = editedFields[editKey];
+    const displayVal = formatDate(val);
+    return (
+      <div key={fn} data-edit-field={fn}>
+        <div className={`nested-subtitle recommendation-date-subtitle numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value); setSaveError(null); }} />
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
@@ -1073,7 +1153,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Bronchodilators')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Bronchodilators', COPY_LINE_EQ]; copyBronchodilators.forEach((med) => { lines.push('', `${med.medication}${med.type ? ` (${med.type})` : ''}`); if (med.dose) lines.push('Dose', COPY_LINE_DASH, `1. ${med.dose}`); if (med.device) lines.push('Device', COPY_LINE_DASH, `1. ${med.device}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Bronchodilators', COPY_LINE_EQ]; copyBronchodilators.forEach((med, medIdx) => { lines.push('', `Bronchodilator ${medIdx + 1}`, COPY_LINE_DASH); if (med.medication) lines.push('Medication', COPY_LINE_DASH, `1. ${med.medication}`); if (med.type) lines.push('Type', COPY_LINE_DASH, `1. ${med.type}`); if (med.dose) lines.push('Dose', COPY_LINE_DASH, `1. ${med.dose}`); if (med.device) lines.push('Device', COPY_LINE_DASH, `1. ${med.device}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
               {renderApproveButton(record, sid, idx)}
             </div>
           </div>
@@ -1116,7 +1196,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Corticosteroids')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Corticosteroids', COPY_LINE_EQ]; copyCorticosteroids.forEach((med) => { lines.push('', med.medication); if (med.route) lines.push('Route', COPY_LINE_DASH, `1. ${med.route}`); if (med.dose) lines.push('Dose', COPY_LINE_DASH, `1. ${med.dose}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Corticosteroids', COPY_LINE_EQ]; copyCorticosteroids.forEach((med, medIdx) => { lines.push('', `Corticosteroid ${medIdx + 1}`, COPY_LINE_DASH); if (med.medication) lines.push('Medication', COPY_LINE_DASH, `1. ${med.medication}`); if (med.route) lines.push('Route', COPY_LINE_DASH, `1. ${med.route}`); if (med.dose) lines.push('Dose', COPY_LINE_DASH, `1. ${med.dose}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
               {renderApproveButton(record, sid, idx)}
             </div>
           </div>
@@ -1166,7 +1246,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Recommendations')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Recommendations', COPY_LINE_EQ]; Object.entries(groupedByDate).forEach(([date, recs]) => { lines.push('', date, COPY_LINE_DASH); recs.forEach((rec, i) => lines.push(`${i + 1}. ${rec.recommendation}`)); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Recommendations', COPY_LINE_EQ]; Object.entries(groupedByDate).forEach(([date, recs]) => { lines.push('', date === 'No Date' ? date : formatDate(date), COPY_LINE_DASH); recs.forEach((rec, i) => lines.push(`${i + 1}. ${rec.recommendation}`)); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
               {renderApproveButton(record, sid, idx)}
             </div>
           </div>
@@ -1178,9 +1258,8 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
             }
             return (
               <div key={recIdx} className="rec-mini-card">
-                <div className="nested-subtitle">{highlightText(`Recommendation ${recIdx + 1}`)}</div>
-                {renderNestedEditableField(record, `recommendations.${recIdx}.recommendation`, idx, sid, 'Recommendation')}
-                {renderNestedEditableField(record, `recommendations.${recIdx}.date`, idx, sid, 'Date', 'date')}
+                {renderEditableDateSubtitle(record, `recommendations.${recIdx}.date`, idx, sid)}
+                {renderNestedEditableField(record, `recommendations.${recIdx}.recommendation`, idx, sid, '')}
               </div>
             );
           })}

@@ -13,6 +13,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PsychiatricProgressNotesDocumentPDFTemplate from '../pdf-templates/PsychiatricProgressNotesDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './PsychiatricProgressNotesDocument.css';
 
@@ -173,7 +174,7 @@ const PsychiatricProgressNotesDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   const splitBySemicolon = useCallback((text) => {
@@ -446,22 +447,25 @@ const PsychiatricProgressNotesDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      const showLabel = label.toLowerCase() !== (title || '').toLowerCase();
+      const labelLine = showLabel ? `${label}\n` : '';
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${labelLine}1. ${formatDate(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val.filter(Boolean) : [];
         if (items.length > 0) {
-          text += `${label}\n`;
+          text += labelLine;
           items.forEach((item, i) => {
             const rec = item?.recommendation || item;
             const dt = item?.date ? ` (${formatDate(item.date)})` : '';
-            text += `  ${i + 1}. ${rec}${dt}\n`;
+            text += `${i + 1}. ${rec}${dt}\n`;
           });
           text += '\n';
         }
@@ -470,17 +474,17 @@ const PsychiatricProgressNotesDocument = ({ document: docProp }) => {
         const useSemicolon = SEMICOLON_FIELDS.includes(f);
         const items = useSemicolon ? splitBySemicolon(strVal) : splitBySentence(strVal);
         if (items.length > 1) {
-          text += `${label}\n`;
+          text += labelLine;
           formatSentenceFieldLines(strVal, useSemicolon).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, splitBySemicolon, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
@@ -512,7 +516,7 @@ const PsychiatricProgressNotesDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -762,7 +766,7 @@ const PsychiatricProgressNotesDocument = ({ document: docProp }) => {
         <h2 className="document-title">Psychiatric Progress Notes</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PsychiatricProgressNotesDocumentPDFTemplate document={pdfData} />} fileName={`psychiatric-progress-notes-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PsychiatricProgressNotesDocumentPDFTemplate document={pdfData} />} fileName="Psychiatric_Progress_Notes.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -775,11 +779,6 @@ const PsychiatricProgressNotesDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.consultDate) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.consultDate)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Psychiatric Progress Notes ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'visit-info')}

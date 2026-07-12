@@ -23,6 +23,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PsychosocialFactorsDocumentPDFTemplate from '../pdf-templates/PsychosocialFactorsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PsychosocialFactorsDocument.css';
 
@@ -179,6 +181,9 @@ const toInputDate = (dateValue) => {
   try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
 
+/* stepFor: decimal-aware -/+ step size for the num-stepper (0.8 -> 0.1, 5 -> 1) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
+
 /* ═══════ COMPONENT ═══════ */
 const PsychosocialFactorsDocument = ({ document: docProp }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -247,7 +252,7 @@ const PsychosocialFactorsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -596,7 +601,7 @@ const PsychosocialFactorsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -756,7 +761,10 @@ const PsychosocialFactorsDocument = ({ document: docProp }) => {
     const isBool = typeof value === 'boolean';
     const ratio = isBool ? null : splitRatio(leafValueString);
     const nu = (isBool || ratio) ? null : splitNumberUnit(leafValueString);
-    const editStartValue = isBool ? (value ? 'yes' : 'no') : ratio ? ratio.num : nu ? nu.num : leafValueString;
+    const editStartValue = isBool ? (value ? 'Yes' : 'No') : ratio ? ratio.num : nu ? nu.num : leafValueString;
+    const leafStep = stepFor(editStartValue);
+    const leafSafeNum = Number.isFinite(parseFloat(editValue)) ? parseFloat(editValue) : 0;
+    const leafRound = (n) => { const p = String(leafStep).includes('.') ? String(leafStep).split('.')[1].length : 0; return Number(n.toFixed(p)); };
     return (
       <div key={path[path.length - 1]} className="nested-mini-card">
         <div className="nested-subtitle sub-label">{highlightText(humanizeKey(path[path.length - 1]))}</div>
@@ -764,13 +772,14 @@ const PsychosocialFactorsDocument = ({ document: docProp }) => {
           {isEditing ? (
             <div className="edit-field-container">
               {isBool ? (
-                <select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               ) : (ratio || nu) ? (
                 <div className="number-edit-row">
-                  <input type="number" step="any" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <div className="num-stepper-row">
+                    <button className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(leafRound(leafSafeNum - leafStep))); }}>&minus;</button>
+                    <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} onClick={e => e.stopPropagation()} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    <button className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(leafRound(leafSafeNum + leafStep))); }}>+</button>
+                  </div>
                   {ratio ? <span className="number-edit-unit">{`/ ${ratio.denom}`}</span> : (nu.unit && <span className="number-edit-unit">{nu.unit}</span>)}
                 </div>
               ) : (
@@ -782,7 +791,7 @@ const PsychosocialFactorsDocument = ({ document: docProp }) => {
                   e.stopPropagation();
                   let newVal;
                   if (isBool) {
-                    newVal = editValue === 'yes';
+                    newVal = editValue === 'Yes';
                   } else if (ratio) {
                     const n = parseFloat(editValue);
                     if (isNaN(n)) { setSaveError('Please enter a valid number'); return; }
@@ -977,7 +986,7 @@ const PsychosocialFactorsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Psychosocial Factors</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PsychosocialFactorsDocumentPDFTemplate document={pdfData} />} fileName={`psychosocial-factors-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PsychosocialFactorsDocumentPDFTemplate document={pdfData} />} fileName="Psychosocial_Factors.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -990,11 +999,6 @@ const PsychosocialFactorsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Psychosocial Factor ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'clinical-info')}

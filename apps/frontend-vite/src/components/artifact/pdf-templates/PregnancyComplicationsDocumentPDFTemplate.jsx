@@ -1,40 +1,37 @@
 /**
  * PregnancyComplicationsDocumentPDFTemplate.jsx
- * June 2026 — Helvetica — LETTER size — BLACK & WHITE ONLY (grayscale)
+ * July 2026 — Helvetica — LETTER — BLACK & WHITE — box-free (underline rules, no boxes/tints)
  * Collection: pregnancy_complications
  *
- * Field handling mirrors the JSX:
- *   - date                     → date-picker formatted
- *   - iugr/poly/oligohydramnios→ Yes/No (false still shown)
+ * Mirrors the JSX:
+ *   - date                        → formatted date
+ *   - iugr/poly/oligohydramnios   → Yes/No
  *   - 4 objects (hypertensiveDisorders, placentalComplications, pretermLabor, results)
- *                              → recursive humanizeKey key/value (arrays supported)
- *   - infections (array of {type,status,notes}) → numbered recursive entries
- *   - recommendations (array of {recommendation,date}) → date-grouped numbered list
+ *                                 → recursive humanizeKey sub-labels; narrative string leaves split per-sentence
+ *   - infections (array {type,status,notes}) → numbered recursive entries
+ *   - recommendations (array {recommendation,date}) → date-grouped numbered list
  *   - findings/assessment/plan/notes → per-sentence numbered lines
- *   - Rule #74: per-field wrap gating; sectionTitle INSIDE first present View
+ * Anti-orphan: each section renders as a FLAT list of small elements; the sectionTitle + first element are
+ * glued inside one wrap={false} View, the rest flow — so wrap=false never wraps a page-tall subtree.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#000000', fontFamily: 'Helvetica' },
+  recordHeader: { marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  fieldGroup: { marginBottom: 10 },
-  sectionTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#000000', marginTop: 6, marginBottom: 2 },
-  subLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 1 },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', marginTop: 2 },
-  recDate: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#000000', textAlign: 'center', marginTop: 40 },
+  section: { marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginTop: 8, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 8, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  recDate: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
+  separator: { marginTop: 16, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
+  noDataText: { fontSize: 14, color: '#000000', textAlign: 'center', marginTop: 40 },
 });
 
 /* ======= FIELD CONFIG (mirror JSX) ======= */
@@ -111,170 +108,164 @@ const hasVal = (v) => !isEmptyDeep(v);
 const isScalar = (v) => v === null || typeof v !== 'object';
 const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
 const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
+
+/* printable scrub for Helvetica (unicode escapes only — no invisible-char strip, record has none) */
+const safeString = (s) => String(s == null ? '' : s)
+  .replace(/×/g, 'x')
+  .replace(/[“”]/g, '"')
+  .replace(/[‘’]/g, "'")
+  .replace(/[–—]/g, '-')
+  .replace(/…/g, '...');
+
+/* canonical splitBySentence — [.;] + abbrev/single-initial/digit guards; paren-protect '.'/';' inside () */
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  const P1 = String.fromCharCode(1), P2 = String.fromCharCode(2);
+  let depth = 0, masked = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; masked += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); masked += ch; }
+    else if (depth > 0 && ch === '.') masked += P1;
+    else if (depth > 0 && ch === ';') masked += P2;
+    else masked += ch;
+  }
+  return masked
+    .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/)
+    .map(s => s.split(P1).join('.').split(P2).join(';').replace(/^\d+\.\s+/, '').trim())
+    .filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
-/* recursive object node: label = bold heading; value = plain line below */
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
+/* paren-aware comma split with thousands/year guard (keeps "138,000" / "1,050 g" / "46,XX" whole) */
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+/* narrative string → flat Text elements (mirrors JSX formatSentenceFieldLines: labeled sub-label + numbered items) */
+const narrativeElements = (raw, keyPrefix) => {
+  const s = safeString(raw);
+  const sentences = splitBySentence(s);
+  const whole = parseLabel(s);
+  const structured = sentences.length > 1 || (whole.isLabeled && splitByComma(whole.value).length >= 2);
+  if (!structured) return [<Text key={`${keyPrefix}-v`} style={styles.value}>{s}</Text>];
+  const out = []; let n = 1;
+  sentences.forEach((sent, si) => {
+    const p = parseLabel(sent);
+    if (p.isLabeled) {
+      const parts = splitByComma(p.value);
+      out.push(<Text key={`${keyPrefix}-${si}-l`} style={styles.subLabel}>{p.label}</Text>);
+      if (parts.length >= 2) parts.forEach((pt, pi) => out.push(<Text key={`${keyPrefix}-${si}-${pi}`} style={styles.listItem}>{n++}. {pt}</Text>));
+      else out.push(<Text key={`${keyPrefix}-${si}-v`} style={styles.listItem}>{n++}. {p.value}</Text>);
+    } else {
+      out.push(<Text key={`${keyPrefix}-${si}`} style={styles.listItem}>{n++}. {sent}</Text>);
+    }
+  });
+  return out;
+};
+
+/* recursive object node → flat Text elements (sub-labels + values; narrative strings split) */
+const objectNodeElements = (label, value, keyPath) => {
+  if (isEmptyDeep(value)) return [];
+  const out = [];
   if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
-      </View>
-    );
+    if (label) out.push(<Text key={`${keyPath}-l`} style={styles.subLabel}>{label}</Text>);
+    if (typeof value === 'string') out.push(...narrativeElements(value, keyPath));
+    else out.push(<Text key={`${keyPath}-v`} style={styles.value}>{safeString(fmtScalar(value))}</Text>);
+    return out;
   }
   if (Array.isArray(value)) {
-    const items = value.map((v, i) => [i, v]).filter(([, v]) => !isEmptyDeep(v));
-    if (items.length === 0) return null;
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <View style={label ? styles.nested : undefined}>
-          {items.map(([i, v]) => (
-            isScalar(v)
-              ? <Text key={i} style={styles.listItem}>{i + 1}. {fmtScalar(v)}</Text>
-              : renderObjectNode('', v, `${keyPath}-${i}`, depth + 1)
-          ))}
-        </View>
-      </View>
-    );
+    if (label) out.push(<Text key={`${keyPath}-l`} style={styles.subLabel}>{label}</Text>);
+    value.filter(x => !isEmptyDeep(x)).forEach((v, i) => {
+      if (isScalar(v)) out.push(<Text key={`${keyPath}-${i}`} style={styles.listItem}>{i + 1}. {safeString(fmtScalar(v))}</Text>);
+      else out.push(...objectNodeElements('', v, `${keyPath}-${i}`));
+    });
+    return out;
   }
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
-  );
+  if (label) out.push(<Text key={`${keyPath}-l`} style={styles.subLabel}>{label}</Text>);
+  Object.entries(value).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => out.push(...objectNodeElements(humanizeKey(k), v, `${keyPath}-${k}`)));
+  return out;
 };
 
-/* count rows for the wrap heuristic */
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-/* Rule #74 per-field gating: returns an ARRAY of Views (each a wrap unit).
-   sectionTitle goes INSIDE the first View (isFirst) — never a sibling. */
-const renderField = (record, field, sectionTitle, isFirst) => {
+/* one field → flat array of small Views/Texts (NO section title, NO wrap prop) */
+const fieldElements = (record, field, sectionTitle) => {
   const val = record[field];
   if (!hasVal(val)) return [];
   const label = FIELD_LABELS[field] || field;
   const showLabel = label.trim().toLowerCase() !== (sectionTitle || '').trim().toLowerCase();
-  const titleNode = isFirst ? <Text style={styles.sectionTitle}>{sectionTitle}</Text> : null;
+  const out = [];
+  if (showLabel) out.push(<Text key={`${field}-fl`} style={styles.fieldLabel}>{label}</Text>);
 
-  if (DATE_FIELDS.includes(field)) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        <Text style={styles.fieldValue}>{formatDate(val)}</Text>
-      </View>
-    )];
-  }
-
-  if (BOOLEAN_FIELDS.includes(field)) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        <Text style={styles.fieldValue}>{val ? 'Yes' : 'No'}</Text>
-      </View>
-    )];
-  }
+  if (DATE_FIELDS.includes(field)) { out.push(<Text key={field} style={styles.value}>{formatDate(val)}</Text>); return out; }
+  if (BOOLEAN_FIELDS.includes(field)) { out.push(<Text key={field} style={styles.value}>{val ? 'Yes' : 'No'}</Text>); return out; }
 
   if (OBJECT_ARRAY_FIELDS.includes(field)) {
     const recs = Array.isArray(val) ? val : [];
-    if (recs.length === 0) return [];
     const groups = [];
     recs.forEach((r) => { const d = (r?.date || '').trim(); const last = groups[groups.length - 1]; if (last && last.date === d) last.items.push(r); else groups.push({ date: d, items: [r] }); });
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={recs.length > 8 ? undefined : false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        {groups.map((group, gIdx) => (
-          <View key={gIdx}>
-            {group.date ? <Text style={styles.recDate}>{group.date}</Text> : null}
-            {group.items.map((r, i) => (<Text key={i} style={styles.listItem}>{i + 1}. {(r?.recommendation || '').trim()}</Text>))}
-          </View>
-        ))}
-      </View>
-    )];
+    groups.forEach((g, gi) => {
+      if (g.date) out.push(<Text key={`${field}-d${gi}`} style={styles.recDate}>{g.date}</Text>);
+      g.items.forEach((r, i) => out.push(<Text key={`${field}-${gi}-${i}`} style={styles.listItem}>{i + 1}. {safeString((r?.recommendation || '').trim())}</Text>));
+    });
+    return out;
   }
 
   if (INFECTION_ARRAY_FIELDS.includes(field)) {
     const items = (Array.isArray(val) ? val : []).filter(x => !isEmptyDeep(x));
-    if (items.length === 0) return [];
-    return items.map((item, i) => {
-      const rows = countRows(item);
-      return (
-        <View key={`${field}-${i}`} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
-          {i === 0 ? titleNode : null}
-          {i === 0 && showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
-          {isScalar(item)
-            ? <Text style={styles.fieldValue}>{i + 1}. {fmtScalar(item)}</Text>
-            : <View>
-                <Text style={styles.subLabel}>{i + 1}.</Text>
-                <View style={styles.nested}>{Object.entries(item).filter(([, v]) => !isEmptyDeep(v)).map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${field}-${i}-${k}`, 1))}</View>
-              </View>}
-        </View>
-      );
+    items.forEach((item, i) => {
+      if (isScalar(item)) out.push(<Text key={`${field}-${i}`} style={styles.value}>{i + 1}. {safeString(fmtScalar(item))}</Text>);
+      else {
+        out.push(<Text key={`${field}-${i}-n`} style={styles.subLabel}>{i + 1}.</Text>);
+        Object.entries(item).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => out.push(...objectNodeElements(humanizeKey(k), v, `${field}-${i}-${k}`)));
+      }
     });
+    return out;
   }
 
   if (OBJECT_FIELDS.includes(field)) {
-    const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return [];
-    return entries.map(([k, v], i) => {
-      const rows = countRows(v);
-      return (
-        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
-          {i === 0 ? titleNode : null}
-          {i === 0 && showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
-          {renderObjectNode(humanizeKey(k), v, `${field}-${k}`, 1)}
-        </View>
-      );
-    });
+    Object.entries(val).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => out.push(...objectNodeElements(humanizeKey(k), v, `${field}-${k}`)));
+    return out;
   }
 
-  /* string — split into sentences */
-  const strVal = fmtVal(val);
-  const sentences = splitBySentence(strVal);
-  if (sentences.length > 1) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={sentences.length > 8 ? undefined : false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {s}</Text>))}
-      </View>
-    )];
-  }
-  return [(
-    <View key={field} style={styles.fieldGroup} wrap={false}>
-      {titleNode}
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.fieldValue}>{strVal}</Text>
-    </View>
-  )];
+  /* string (SENTENCE_FIELDS + provider/facility/etc.) */
+  out.push(...narrativeElements(fmtVal(val), field));
+  return out;
 };
 
-/* ======= RENDER SECTION — title INSIDE first present field's View (no section wrapper wrap prop) ======= */
+/* ======= RENDER SECTION — flatten, glue sectionTitle + first element in one wrap=false View ======= */
 const renderSection = (record, sid) => {
   const title = SECTION_TITLES[sid];
-  const fields = SECTION_FIELDS[sid] || [];
-  const presentFields = fields.filter(f => hasVal(record[f]));
-  if (presentFields.length === 0) return null;
-  const out = [];
-  presentFields.forEach((f, i) => { out.push(...renderField(record, f, title, i === 0)); });
-  return <React.Fragment key={sid}>{out}</React.Fragment>;
+  const fields = (SECTION_FIELDS[sid] || []).filter(f => hasVal(record[f]));
+  if (fields.length === 0) return null;
+  const els = [];
+  fields.forEach(f => els.push(...fieldElements(record, f, title)));
+  if (els.length === 0) return null;
+  const [first, ...rest] = els;
+  return (
+    <View key={sid} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {first}
+      </View>
+      {rest.map((el, i) => <React.Fragment key={i}>{el}</React.Fragment>)}
+    </View>
+  );
 };
 
 /* ======= MAIN COMPONENT ======= */
@@ -302,9 +293,7 @@ const PregnancyComplicationsDocumentPDFTemplate = ({ document: docProp }) => {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Pregnancy Complications</Text>
-          </View>
+          <Text style={styles.documentTitle}>Pregnancy Complications</Text>
           <Text style={styles.noDataText}>No pregnancy complications data available.</Text>
         </Page>
       </Document>
@@ -314,18 +303,11 @@ const PregnancyComplicationsDocumentPDFTemplate = ({ document: docProp }) => {
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Pregnancy Complications</Text>
-        </View>
+        <Text style={styles.documentTitle}>Pregnancy Complications</Text>
         {records.map((record, idx) => (
           <View key={idx} style={styles.recordContainer}>
             <View style={styles.recordHeader} wrap={false}>
-              {hasVal(record.date) && (
-                <View style={styles.recordDateRow}>
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                </View>
-              )}
-              <Text style={styles.recordTitle}>{record.provider || `Pregnancy Complications ${idx + 1}`}</Text>
+              <Text style={styles.recordTitle}>{safeString(record.provider || `Pregnancy Complications ${idx + 1}`)}</Text>
             </View>
             {SECTION_ORDER.map(sid => renderSection(record, sid))}
             {idx < records.length - 1 && <View style={styles.separator} />}

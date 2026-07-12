@@ -34,7 +34,9 @@ import OutcomesPredictionTemplate from './OutcomesPredictionTemplate';
 import GuidelineComplianceTemplate from './GuidelineComplianceDocumentPDFTemplate';
 import QualityMetricsTemplate from './QualityMetricsTemplate';
 import ConsultationNotesTemplate from './ConsultationNotesTemplate';
-import ProgressNotesTemplate from './ProgressNotesPDFTemplate';
+// Single source of truth: route to the same box-free template the Document's Export button imports
+// (the legacy ./ProgressNotesPDFTemplate was renamed to the standard ...DocumentPDFTemplate).
+import ProgressNotesTemplate from './ProgressNotesDocumentPDFTemplate';
 import DischargeSummariesTemplate from './DischargeSummariesTemplate';
 import HospitalDischargeSummariesTemplate from './HospitalDischargeSummariesDocumentPDFTemplate';
 import EmergencyDischargeSummariesTemplate from './EmergencyDischargeSummariesDocumentPDFTemplate';

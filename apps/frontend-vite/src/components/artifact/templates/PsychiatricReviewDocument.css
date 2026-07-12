@@ -1,5 +1,8 @@
 /* PsychiatricReviewDocument.css — March 2026 Blue glow editing theme */
-.psychiatric-review-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+:root { direction: ltr; }
+* { direction: ltr; }
+.psychiatric-review-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; text-align: left; }
+.psychiatric-review-document * { direction: ltr; }
 .psychiatric-review-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .psychiatric-review-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .psychiatric-review-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -7,9 +10,6 @@
 .psychiatric-review-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
 .psychiatric-review-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .psychiatric-review-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
-.psychiatric-review-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.psychiatric-review-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
-.psychiatric-review-document .record-status { font-size: 12px; color: #4ade80; background: rgba(34, 197, 94, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(34, 197, 94, 0.25); text-transform: capitalize; }
 .psychiatric-review-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .psychiatric-review-document .section { margin-top: 16px; }
 .psychiatric-review-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
@@ -36,16 +36,19 @@
 .psychiatric-review-document .modified-badge.added { color: #4ade80; }
 .psychiatric-review-document .edit-field-container { width: 100%; }
 .psychiatric-review-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.psychiatric-review-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.psychiatric-review-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-.psychiatric-review-document .edit-input { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
-.psychiatric-review-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.psychiatric-review-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.psychiatric-review-document .number-edit-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.psychiatric-review-document .num-stepper-row { display: flex; align-items: center; gap: 8px; flex: 1; }
+.psychiatric-review-document .num-step { width: 36px; height: 36px; flex-shrink: 0; background: rgba(96, 165, 250, 0.15); border: 2px solid #60a5fa; border-radius: 6px; color: #93c5fd; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'Comfortaa', sans-serif; }
+.psychiatric-review-document .num-step:hover { background: rgba(96, 165, 250, 0.3); }
+.psychiatric-review-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.psychiatric-review-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
+.psychiatric-review-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
 .psychiatric-review-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .psychiatric-review-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .psychiatric-review-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
-.psychiatric-review-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
-.psychiatric-review-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.psychiatric-review-document .approve-btn { margin-top: 4px; text-transform: capitalize; }
+.psychiatric-review-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.psychiatric-review-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
 .psychiatric-review-document .search-container { margin-bottom: 20px; }
 .psychiatric-review-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
 .psychiatric-review-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }

@@ -13,6 +13,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PsychiatricReviewDocumentPDFTemplate from '../pdf-templates/PsychiatricReviewDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PsychiatricReviewDocument.css';
 
@@ -142,6 +144,9 @@ const splitByComma = (text) => {
   return result.length > 0 ? result : [text];
 };
 
+/* stepFor: decimal-aware −/+ step size for the num-stepper (0.8 → 0.1, 5 → 1) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
+
 /* ═══════ COMPONENT ═══════ */
 const PsychiatricReviewDocument = ({ document: docProp }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -217,7 +222,7 @@ const PsychiatricReviewDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   const splitBySemicolon = useCallback((text) => {
@@ -545,7 +550,8 @@ const PsychiatricReviewDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
 
     if (sid === 'results') {
@@ -554,35 +560,36 @@ const PsychiatricReviewDocument = ({ document: docProp }) => {
         objectCopyLines(rv, 0, '').forEach(l => { text += `${l}\n`; });
         text += '\n';
       }
-      return text;
+      return text === header ? '' : text;
     }
 
     if (sid === 'lab-monitoring') {
-      // bloodLevels
+      // bloodLevels — medication is a numbered group header; each sub-field label on its own line, value numbered below
       const levels = safeArray(getFieldValue(record, 'bloodLevels', idx));
       if (levels.length > 0) {
         text += 'Blood Levels\n';
         levels.forEach((bl, bi) => {
-          text += `  ${bi + 1}. ${bl.medication || 'Unknown'}\n`;
-          BLOOD_LEVEL_SUB_FIELDS.forEach(sf => { if (bl[sf.key]) text += `     ${sf.label}: ${bl[sf.key]}\n`; });
+          text += `${bi + 1}. ${bl.medication || 'Unknown'}\n`;
+          BLOOD_LEVEL_SUB_FIELDS.forEach(sf => { if (hasVal(bl[sf.key])) text += `${sf.label}\n1. ${fmtVal(bl[sf.key])}\n`; });
         });
         text += '\n';
       }
-      // metabolicMonitoring
+      // metabolicMonitoring — each key label on its own line, value numbered below
       const meta = getFieldValue(record, 'metabolicMonitoring', idx);
       if (meta && typeof meta === 'object') {
-        text += 'Metabolic Monitoring\n';
-        Object.entries(meta).forEach(([k, v]) => {
-          if (hasVal(v)) text += `  ${METABOLIC_LABELS[k] || k}: ${fmtVal(v)}\n`;
-        });
-        text += '\n';
+        const entries = Object.entries(meta).filter(([, v]) => hasVal(v));
+        if (entries.length > 0) {
+          text += 'Metabolic Monitoring\n';
+          entries.forEach(([k, v]) => { text += `${METABOLIC_LABELS[k] || k}\n1. ${fmtVal(v)}\n`; });
+          text += '\n';
+        }
       }
       // ekg, geneticTesting
       ['ekg', 'geneticTesting'].forEach(f => {
         const val = getFieldValue(record, f, idx);
-        if (hasVal(val)) text += `${FIELD_LABELS[f]}\n${fmtVal(val)}\n\n`;
+        if (hasVal(val)) text += `${FIELD_LABELS[f]}\n1. ${fmtVal(val)}\n\n`;
       });
-      return text;
+      return text === header ? '' : text;
     }
 
     if (sid === 'management') {
@@ -590,14 +597,16 @@ const PsychiatricReviewDocument = ({ document: docProp }) => {
       const planVal = getFieldValue(record, 'plan', idx);
       if (hasVal(planVal)) {
         text += 'Plan\n';
-        splitBySemicolon(String(planVal)).forEach((item, i) => { text += `  ${i + 1}. ${stripNumber(item)}\n`; });
+        splitBySemicolon(String(planVal)).forEach((item, i) => { text += `${i + 1}. ${stripNumber(item)}\n`; });
         text += '\n';
       }
       // notes (sentence)
       const notesVal = getFieldValue(record, 'notes', idx);
       if (hasVal(notesVal)) {
+        const strVal = fmtVal(notesVal);
         text += 'Notes\n';
-        formatSentenceFieldLines(String(notesVal)).forEach(l => { text += `${l}\n`; });
+        if (splitBySentence(strVal).length > 1) formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
+        else text += `1. ${strVal}\n`;
         text += '\n';
       }
       // recommendations
@@ -605,49 +614,51 @@ const PsychiatricReviewDocument = ({ document: docProp }) => {
       if (recs.length > 0) {
         text += 'Recommendations\n';
         recs.forEach((rec, ri) => {
-          text += `  ${ri + 1}. ${rec.recommendation || 'Unknown'}\n`;
-          if (rec.date) text += `     Date: ${rec.date}\n`;
+          const dt = rec.date ? ` (${formatDate(rec.date)})` : '';
+          text += `${ri + 1}. ${rec.recommendation || 'Unknown'}${dt}\n`;
         });
         text += '\n';
       }
-      return text;
+      return text === header ? '' : text;
     }
 
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      const showLabel = label.toLowerCase() !== (title || '').toLowerCase();
+      const labelLine = showLabel ? `${label}\n` : '';
 
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${labelLine}1. ${formatDate(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = safeArray(val);
         if (items.length > 0) {
-          text += `${label}\n`;
-          items.forEach((item, i) => { text += `  ${i + 1}. ${item}\n`; });
+          text += labelLine;
+          items.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
           text += '\n';
         }
       } else if (SEMICOLON_FIELDS.includes(f)) {
         const parts = splitBySemicolon(String(val));
-        if (parts.length <= 1) { text += `${label}\n${val}\n\n`; return; }
-        text += `${label}\n`;
-        parts.forEach((p, i) => { text += `  ${i + 1}. ${stripNumber(p)}\n`; });
+        if (parts.length <= 1) { text += `${labelLine}1. ${fmtVal(val)}\n\n`; return; }
+        text += labelLine;
+        parts.forEach((p, i) => { text += `${i + 1}. ${stripNumber(p)}\n`; });
         text += '\n';
       } else if (SENTENCE_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
         if (sentences.length > 1) {
-          text += `${label}\n`;
+          text += labelLine;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, splitBySemicolon, formatSentenceFieldLines, formatDate, safeArray, stripNumber, objectCopyLines]);
 
   const copyAllText = useCallback(async () => {
@@ -679,7 +690,7 @@ const PsychiatricReviewDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(isoVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -1120,6 +1131,9 @@ const PsychiatricReviewDocument = ({ document: docProp }) => {
     const isNum = typeof value === 'number';
     const displayVal = fmtVal(value);
     const copyKey = leafKey;
+    const leafStep = stepFor(isNum ? value : editValue);
+    const leafNum = parseFloat(editValue); const leafSafeNum = Number.isFinite(leafNum) ? leafNum : 0;
+    const leafRound = (n) => { const p = String(leafStep).includes('.') ? String(leafStep).split('.')[1].length : 0; return Number(n.toFixed(p)); };
 
     if (searchTerm.trim() && !sectionTitleMatches('results') && !record._showAllSections) {
       const phrase = searchTerm.toLowerCase().trim();
@@ -1133,12 +1147,15 @@ const PsychiatricReviewDocument = ({ document: docProp }) => {
           {isEditing ? (
             <div className="edit-field-container">
               {isBool ? (
-                <select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
+                <BlueSelect value={editValue} options={['Yes', 'No']} onSelect={v => setEditValue(v)} />
               ) : isNum ? (
-                <input type="number" className="edit-input" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <div className="number-edit-row">
+                  <div className="num-stepper-row">
+                    <button className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(leafRound(leafSafeNum - leafStep))); }}>&minus;</button>
+                    <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} onClick={e => e.stopPropagation()} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    <button className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(leafRound(leafSafeNum + leafStep))); }}>+</button>
+                  </div>
+                </div>
               ) : (
                 <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
               )}
@@ -1283,7 +1300,7 @@ const PsychiatricReviewDocument = ({ document: docProp }) => {
         <h2 className="document-title">Psychiatric Review</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PsychiatricReviewDocumentPDFTemplate document={pdfData} />} fileName={`psychiatric-review-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PsychiatricReviewDocumentPDFTemplate document={pdfData} />} fileName="Psychiatric_Review.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1296,10 +1313,6 @@ const PsychiatricReviewDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              <div className="record-meta-row">
-                {record.date && <span className="record-date">{formatDate(record.date)}</span>}
-                {record.status && <span className="record-status">{record.status}</span>}
-              </div>
               <h3 className="record-name">{highlightText(`Psychiatric Review ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'visit-info')}

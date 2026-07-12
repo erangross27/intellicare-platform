@@ -1,174 +1,259 @@
-/**
- * PrePregnancyWeightDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt -- LETTER size -- US medical platform
- * Collection: pre_pregnancy_weight
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, backgroundColor: '#f5f5f5', padding: 12, borderWidth: 2, borderColor: '#000000', borderLeftWidth: 5, borderLeftColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 11, color: '#333333', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, marginBottom: 2 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
-});
+/**
+ * PrePregnancyWeightDocumentPDFTemplate — box-free B&W LETTER rewrite
+ * Config-driven mirror of PrePregnancyWeightDocument.jsx (section-driven flat).
+ * Bare underlined field labels above stacked values; anti-orphan glue (section
+ * title + first field kept together). No date is rendered — the record has no clinical
+ * date field (only createdAt/updatedAt ingestion timestamps).
+ */
 
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; };
-/* numShown: numeric fields (weight/BMI/height/A1c/weight-gain) have no meaningful zero — 0 is a
-   sentinel/missing marker, so hide it. Mirrors numberShows in the on-screen template. */
-const numShown = (v) => { if (v === null || v === undefined || v === '') return false; const n = Number(v); return !Number.isNaN(n) && n !== 0; };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; const result = []; let current = ''; let inQuote = false; for (let i = 0; i < text.length; i++) { const ch = text[i]; if (ch === '"' || ch === '\u201C' || ch === '\u201D') { const wasInQuote = inQuote; inQuote = !inQuote; current += ch; if (wasInQuote && !inQuote && current.length >= 2 && current[current.length - 2] === '.' && i + 1 < text.length && /\s/.test(text[i + 1])) { const t2 = current.trim(); if (t2 && !/^[;.,!?]+$/.test(t2)) result.push(t2); current = ''; } continue; } if (ch === '.' && !inQuote && i + 1 < text.length && /\s/.test(text[i + 1])) { const before = current.trim().split(/\s+/).pop() || ''; if (/^(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)$/i.test(before)) { current += ch; continue; } const t = current.trim(); if (t && !/^[;.,!?]+$/.test(t)) result.push(t); current = ''; } else { current += ch; } } const t = current.trim(); if (t && !/^[;.,!?]+$/.test(t)) result.push(t); return result; };
-const parseLabel = (s) => { const m = s.replace(/[;.]+$/, '').trim().match(/^([A-Za-z][A-Za-z0-9 /()-]{1,40}):\s*(.+)$/s); return m ? { label: m[1].trim(), value: m[2].trim() } : { label: null, value: s }; };
-const renderFieldRow = (label, value) => { if (!hasVal(value)) return null; return (<View style={{ marginBottom: 4 }}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{String(value)}</Text></View>); };
-
-const renderSentenceField = (label, text, sectionTitle) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(String(text));
-  if (sentences.length === 0) return null;
-  let totalItems = sentences.length;
-  sentences.forEach(s => { const p = parseLabel(s); const rv = p.label ? p.value : s; const ci = rv.split(/[,;]\s+/).filter(x => x.trim()); if (ci.length > 1) totalItems += ci.length - 1; });
-  let counter = 1;
-  return (<View style={styles.fieldBox} wrap={totalItems > 8 ? undefined : false}>
-    {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-    <Text style={styles.fieldLabel}>{label}</Text>
-    {sentences.map((s, i) => {
-      const p = parseLabel(s);
-      const rawVal = p.label ? p.value : s.replace(/[;.]+$/, '').trim();
-      // Quote-aware comma/semicolon split
-      const cItems = (() => { const r2 = []; let c2 = ''; let q2 = false; for (let j = 0; j < rawVal.length; j++) { const cc = rawVal[j]; if (cc === '"') { q2 = !q2; c2 += cc; } else if ((cc === ',' || cc === ';') && !q2 && /\s/.test(rawVal[j+1] || '')) { const tt = c2.trim(); if (tt) r2.push(tt); c2 = ''; } else { c2 += cc; } } const tt = c2.trim(); if (tt) r2.push(tt); return r2.length > 0 ? r2 : [rawVal]; })();
-      return (<View key={i} style={{ marginBottom: 3, marginLeft: 8 }}>
-        {p.label && <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 1 }}>{p.label}</Text>}
-        {cItems.length > 1 ? cItems.map((item, ci) => <Text key={ci} style={styles.listItem}>{counter++}. {item.trim()}</Text>) : <Text style={styles.listItem}>{counter++}. {rawVal}</Text>}
-      </View>);
-    })}
-  </View>);
+/* ═══════ CONFIG (mirrors the JSX) ═══════ */
+const SECTION_TITLES = {
+  'measurements': 'Measurements',
+  'weight-history': 'Weight History',
+  'risk-factors': 'Risk Factors',
+  'interventions': 'Interventions',
 };
 
-const PrePregnancyWeightDocumentPDFTemplate = ({ document: data }) => {
-  // Handle data unwrapping
-  let records = [];
-  if (Array.isArray(data)) {
-    records = data;
-  } else if (data?.pre_pregnancy_weight && Array.isArray(data.pre_pregnancy_weight)) {
-    records = data.pre_pregnancy_weight;
-  } else if (data?.documentData) {
-    const docData = data.documentData;
-    if (Array.isArray(docData)) {
-      records = docData;
-    } else if (docData?.pre_pregnancy_weight) {
-      records = docData.pre_pregnancy_weight;
-    } else if (docData && typeof docData === 'object') {
-      records = [docData];
+const FIELD_LABELS = {
+  prePregnancyWeight: 'Pre-Pregnancy Weight',
+  prePregnancyBmi: 'Pre-Pregnancy BMI',
+  bmiCategory: 'BMI Category',
+  heightMeasurement: 'Height Measurement',
+  weightMeasurementMethod: 'Weight Measurement Method',
+  obesityClass: 'Obesity Class',
+  weightStability: 'Weight Stability',
+  weightLossHistory: 'Weight Loss History',
+  previousPregnancyWeightGain: 'Previous Pregnancy Weight Gain',
+  gestationalWeightGainGoal: 'Gestational Weight Gain Goal',
+  metabolicRiskFactors: 'Metabolic Risk Factors',
+  insulinResistanceMarkers: 'Insulin Resistance Markers',
+  prePregnancyA1c: 'Pre-Pregnancy A1c',
+  thyroidFunction: 'Thyroid Function',
+  cardiovascularRisk: 'Cardiovascular Risk',
+  sleepApneaRisk: 'Sleep Apnea Risk',
+  nutritionalDeficiencies: 'Nutritional Deficiencies',
+  nutritionalCounseling: 'Nutritional Counseling',
+  bariatricSurgeryHistory: 'Bariatric Surgery History',
+  exerciseTolerance: 'Exercise Tolerance',
+  eatingDisorderHistory: 'Eating Disorder History',
+  contraceptiveWeightEffect: 'Contraceptive Weight Effect',
+};
+
+const SECTION_FIELDS = {
+  'measurements': ['prePregnancyWeight', 'prePregnancyBmi', 'bmiCategory', 'heightMeasurement', 'weightMeasurementMethod', 'obesityClass'],
+  'weight-history': ['weightStability', 'weightLossHistory', 'previousPregnancyWeightGain', 'gestationalWeightGainGoal'],
+  'risk-factors': ['metabolicRiskFactors', 'insulinResistanceMarkers', 'prePregnancyA1c', 'thyroidFunction', 'cardiovascularRisk', 'sleepApneaRisk', 'nutritionalDeficiencies'],
+  'interventions': ['nutritionalCounseling', 'bariatricSurgeryHistory', 'exerciseTolerance', 'eatingDisorderHistory', 'contraceptiveWeightEffect'],
+};
+
+const NUMBER_FIELDS = ['prePregnancyWeight', 'prePregnancyBmi', 'heightMeasurement', 'prePregnancyA1c', 'previousPregnancyWeightGain'];
+const BOOLEAN_FIELDS = ['weightStability', 'nutritionalCounseling', 'bariatricSurgeryHistory', 'sleepApneaRisk', 'eatingDisorderHistory'];
+const ARRAY_FIELDS = ['metabolicRiskFactors', 'nutritionalDeficiencies'];
+
+/* ═══════ HELPERS (mirror the JSX) ═══════ */
+const filterNulls = (arr) => (Array.isArray(arr) ? arr.filter(item => item !== null && item !== undefined) : []);
+
+// Scrub glyphs Helvetica cannot render (multiplication sign → x, smart quotes/dashes → ascii, strip zero-width).
+const safeString = (v) => {
+  if (v === null || v === undefined) return '';
+  return String(v)
+    .replace(/×/g, 'x')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[–—]/g, '-')
+    .replace(/…/g, '...')
+    .replace(/[​‌‍﻿]/g, '');
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v).length > 0;
+  return true;
+};
+
+// numShown: numeric fields (weight/BMI/height/A1c/weight-gain) have no meaningful zero — hide the 0 sentinel.
+const numShown = (v) => { if (v === null || v === undefined || v === '') return false; const n = Number(v); return !Number.isNaN(n) && n !== 0; };
+
+/* ═══════ STYLES (box-free) ═══════ */
+const styles = StyleSheet.create({
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#FFFFFF' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000' },
+  recordTitle: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 18, marginBottom: 8 },
+  section: { marginTop: 12 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldBox: { marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 3, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', marginTop: 4, marginBottom: 3 },
+  value: { fontSize: 14, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, color: '#000000', marginBottom: 2, marginLeft: 12 },
+  divider: { marginTop: 14, marginBottom: 14, borderBottomWidth: 0.5, borderBottomColor: '#cccccc' },
+  pageNumber: { position: 'absolute', bottom: 20, right: 40, fontSize: 9, color: '#666666' },
+});
+
+/* Build the value elements for a STRING field (mirrors formatSentenceFieldLines numbering) */
+function stringValueElements(strVal, keyPrefix) {
+  const sentences = splitBySentence(strVal);
+  const wholeParsed = parseLabel(strVal);
+  const structured = sentences.length > 1 || (wholeParsed.isLabeled && splitByComma(wholeParsed.value).length >= 2);
+  if (!structured) {
+    return [<Text key={`${keyPrefix}-v`} style={styles.value}>{safeString(strVal)}</Text>];
+  }
+  const els = []; let n = 1;
+  sentences.forEach((s, si) => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const items = splitByComma(parsed.value);
+      els.push(<Text key={`${keyPrefix}-s${si}-l`} style={styles.nestedSubtitle}>{safeString(parsed.label)}</Text>);
+      if (items.length >= 2) {
+        items.forEach((it, ii) => els.push(<Text key={`${keyPrefix}-s${si}-i${ii}`} style={styles.listItem}>{n++}. {safeString(it)}</Text>));
+      } else {
+        els.push(<Text key={`${keyPrefix}-s${si}-v`} style={styles.listItem}>{n++}. {safeString(parsed.value)}</Text>);
+      }
+    } else {
+      els.push(<Text key={`${keyPrefix}-s${si}`} style={styles.listItem}>{n++}. {safeString(s)}</Text>);
     }
-  } else if (data && typeof data === 'object') {
-    records = [data];
+  });
+  return els;
+}
+
+/* Render a single field → a <View> block (bare label + stacked value), or null when empty/hidden */
+function renderField(record, fn, keyPrefix) {
+  const val = record[fn];
+  const label = FIELD_LABELS[fn] || fn;
+  const labelEl = <Text style={styles.fieldLabel}>{safeString(label)}</Text>;
+
+  if (BOOLEAN_FIELDS.includes(fn)) {
+    if (!hasVal(val)) return null;
+    return (
+      <View key={keyPrefix} style={styles.fieldBox}>
+        {labelEl}
+        <Text style={styles.value}>{val ? 'Yes' : 'No'}</Text>
+      </View>
+    );
   }
 
-  if (!records || records.length === 0) {
-    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Pre-Pregnancy Weight</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+  if (NUMBER_FIELDS.includes(fn)) {
+    if (!numShown(val)) return null;
+    return (
+      <View key={keyPrefix} style={styles.fieldBox}>
+        {labelEl}
+        <Text style={styles.value}>{safeString(String(val))}</Text>
+      </View>
+    );
+  }
+
+  if (ARRAY_FIELDS.includes(fn)) {
+    const items = filterNulls(Array.isArray(val) ? val : []).map(String).filter(s => s.trim());
+    if (items.length === 0) return null;
+    return (
+      <View key={keyPrefix} style={styles.fieldBox}>
+        {labelEl}
+        {items.map((it, i) => <Text key={i} style={styles.listItem}>{i + 1}. {safeString(it)}</Text>)}
+      </View>
+    );
+  }
+
+  if (!hasVal(val)) return null;
+  return (
+    <View key={keyPrefix} style={styles.fieldBox}>
+      {labelEl}
+      {stringValueElements(String(val), keyPrefix)}
+    </View>
+  );
+}
+
+/* Render a section with anti-orphan glue (title + first field kept together) */
+function renderSection(record, sid, idx) {
+  const fields = SECTION_FIELDS[sid] || [];
+  const els = fields.map((f, fi) => renderField(record, f, `${sid}-${idx}-${fi}`)).filter(Boolean);
+  if (els.length === 0) return null;
+  const title = SECTION_TITLES[sid];
+  const [first, ...rest] = els;
+  return (
+    <View key={sid} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{safeString(title)}</Text>
+        {first}
+      </View>
+      {rest.map((el, i) => <React.Fragment key={i}>{el}</React.Fragment>)}
+    </View>
+  );
+}
+
+const PrePregnancyWeightDocumentPDFTemplate = ({ document: data }) => {
+  let records = [];
+  if (Array.isArray(data)) records = data;
+  else if (data?.pre_pregnancy_weight && Array.isArray(data.pre_pregnancy_weight)) records = data.pre_pregnancy_weight;
+  else if (data?.documentData) {
+    const dd = data.documentData;
+    if (Array.isArray(dd)) records = dd;
+    else if (dd?.pre_pregnancy_weight) records = Array.isArray(dd.pre_pregnancy_weight) ? dd.pre_pregnancy_weight : [dd.pre_pregnancy_weight];
+    else if (dd && typeof dd === 'object') records = [dd];
+  } else if (data && typeof data === 'object') records = [data];
+  records = filterNulls(records);
+
+  if (records.length === 0) {
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page}>
+          <Text style={styles.documentTitle}>Pre-Pregnancy Weight</Text>
+          <Text style={styles.value}>No records available</Text>
+        </Page>
+      </Document>
+    );
   }
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Pre-Pregnancy Weight</Text></View>
-        {records.map((record, idx) => {
-          let counter = 1;
-          return (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>{`Pre-Pregnancy Weight ${idx + 1}`}</Text>
-              {record.createdAt && <Text style={styles.recordMeta}>{formatDate(record.createdAt)}</Text>}
-            </View>
+        <Text style={styles.documentTitle}>Pre-Pregnancy Weight</Text>
 
-            {/* 1. Measurements */}
-            {(numShown(record.prePregnancyWeight) || numShown(record.prePregnancyBmi) || hasVal(record.bmiCategory) || numShown(record.heightMeasurement) || hasVal(record.weightMeasurementMethod) || hasVal(record.obesityClass)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Measurements</Text>
-                {numShown(record.prePregnancyWeight) && renderFieldRow('Pre-Pregnancy Weight', String(record.prePregnancyWeight))}
-                {numShown(record.prePregnancyBmi) && renderFieldRow('Pre-Pregnancy BMI', String(record.prePregnancyBmi))}
-                {renderSentenceField('BMI Category', record.bmiCategory)}
-                {numShown(record.heightMeasurement) && renderFieldRow('Height Measurement', String(record.heightMeasurement))}
-                {renderSentenceField('Weight Measurement Method', record.weightMeasurementMethod)}
-                {renderSentenceField('Obesity Class', record.obesityClass)}
-              </View>
-            )}
-
-            {/* 2. Weight History */}
-            {(hasVal(record.weightStability) || hasVal(record.weightLossHistory) || numShown(record.previousPregnancyWeightGain) || hasVal(record.gestationalWeightGainGoal)) && (
-              <View style={styles.section}>
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Weight History</Text>
-                  {hasVal(record.weightStability) && renderFieldRow('Weight Stability', record.weightStability ? 'Yes' : 'No')}
-                  {numShown(record.previousPregnancyWeightGain) && renderFieldRow('Previous Pregnancy Weight Gain', String(record.previousPregnancyWeightGain))}
-                  {renderSentenceField('Gestational Weight Gain Goal', record.gestationalWeightGainGoal)}
-                </View>
-                {renderSentenceField('Weight Loss History', record.weightLossHistory)}
-              </View>
-            )}
-
-            {/* 3. Risk Factors */}
-            {(hasVal(record.metabolicRiskFactors) || hasVal(record.insulinResistanceMarkers) || numShown(record.prePregnancyA1c) || hasVal(record.thyroidFunction) || hasVal(record.cardiovascularRisk) || hasVal(record.sleepApneaRisk) || hasVal(record.nutritionalDeficiencies)) && (
-              <View style={styles.section}>
-                {Array.isArray(record.metabolicRiskFactors) && record.metabolicRiskFactors.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.metabolicRiskFactors.length > 8 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>Risk Factors</Text>
-                    <Text style={styles.fieldLabel}>Metabolic Risk Factors</Text>
-                    {record.metabolicRiskFactors.filter(Boolean).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {renderSentenceField('Insulin Resistance Markers', record.insulinResistanceMarkers, (!Array.isArray(record.metabolicRiskFactors) || record.metabolicRiskFactors.length === 0) ? 'Risk Factors' : undefined)}
-                {numShown(record.prePregnancyA1c) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    {(!Array.isArray(record.metabolicRiskFactors) || record.metabolicRiskFactors.length === 0) && !hasVal(record.insulinResistanceMarkers) && <Text style={styles.sectionTitle}>Risk Factors</Text>}
-                    {renderFieldRow('Pre-Pregnancy A1c', String(record.prePregnancyA1c))}
-                  </View>
-                )}
-                {renderSentenceField('Thyroid Function', record.thyroidFunction)}
-                {renderSentenceField('Cardiovascular Risk', record.cardiovascularRisk)}
-                {hasVal(record.sleepApneaRisk) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    {renderFieldRow('Sleep Apnea Risk', record.sleepApneaRisk ? 'Yes' : 'No')}
-                  </View>
-                )}
-                {Array.isArray(record.nutritionalDeficiencies) && record.nutritionalDeficiencies.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.nutritionalDeficiencies.length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Nutritional Deficiencies</Text>
-                    {record.nutritionalDeficiencies.filter(Boolean).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* 4. Interventions */}
-            {(hasVal(record.nutritionalCounseling) || hasVal(record.bariatricSurgeryHistory) || hasVal(record.exerciseTolerance) || hasVal(record.eatingDisorderHistory) || hasVal(record.contraceptiveWeightEffect)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Interventions</Text>
-                {hasVal(record.nutritionalCounseling) && renderFieldRow('Nutritional Counseling', record.nutritionalCounseling ? 'Yes' : 'No')}
-                {hasVal(record.bariatricSurgeryHistory) && renderFieldRow('Bariatric Surgery History', record.bariatricSurgeryHistory ? 'Yes' : 'No')}
-                {renderSentenceField('Exercise Tolerance', record.exerciseTolerance)}
-                {hasVal(record.eatingDisorderHistory) && renderFieldRow('Eating Disorder History', record.eatingDisorderHistory ? 'Yes' : 'No')}
-                {renderSentenceField('Contraceptive Weight Effect', record.contraceptiveWeightEffect)}
-              </View>
-            )}
+        {records.map((record, idx) => (
+          <View key={idx}>
+            <Text style={styles.recordTitle}>Pre-Pregnancy Weight {idx + 1}</Text>
+            {Object.keys(SECTION_TITLES).map(sid => renderSection(record, sid, idx))}
+            {idx < records.length - 1 && <View style={styles.divider} />}
           </View>
-          );
-        })}
+        ))}
+
+        <Text
+          style={styles.pageNumber}
+          render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
+          fixed
+        />
       </Page>
     </Document>
   );

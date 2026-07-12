@@ -15,6 +15,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PreventiveCareDocumentPDFTemplate from '../pdf-templates/PreventiveCareDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './PreventiveCareDocument.css';
 
@@ -95,12 +96,18 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
+
+/* sameAsTitle: hide a field label that duplicates its section title */
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* stepFor: decimal-aware step increment for the number stepper */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
 
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
@@ -185,7 +192,19 @@ const PreventiveCareDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    /* paren-protect: mask '.' and ';' inside parentheses so the [.;] split never breaks a parenthetical */
+    const P1 = String.fromCharCode(1), P2 = String.fromCharCode(2);
+    let masked = ''; let depth = 0;
+    for (const ch of text) {
+      if (ch === '(') { depth++; masked += ch; }
+      else if (ch === ')') { depth = Math.max(0, depth - 1); masked += ch; }
+      else if (depth > 0 && ch === '.') { masked += P1; }
+      else if (depth > 0 && ch === ';') { masked += P2; }
+      else { masked += ch; }
+    }
+    return masked.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/)
+      .map(s => s.split(P1).join('.').split(P2).join(';').trim())
+      .filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -447,14 +466,16 @@ const PreventiveCareDocument = ({ document: docProp }) => {
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
     let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = text;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n`;
       if (f === 'recommendations') {
         const recs = Array.isArray(val) ? val : [val];
-        text += `${label}\n`;
+        text += labelLine;
         recs.forEach((rec, i) => {
           const recText = typeof rec === 'object' && rec.recommendation
             ? `${rec.recommendation}${rec.date ? ` (${formatDate(rec.date)})` : ''}`
@@ -463,44 +484,46 @@ const PreventiveCareDocument = ({ document: docProp }) => {
         });
         text += '\n';
       } else if (f === 'immunizations' && typeof val === 'object') {
-        text += `${label}\n`;
+        text += labelLine;
         Object.entries(val).forEach(([k, v]) => {
           if (!hasVal(v)) return;
           const subLabel = IMMUNIZATION_LABELS[k] || humanizeKey(k);
           if (Array.isArray(v)) {
-            text += `${subLabel}:\n`;
-            v.forEach((item, i) => { text += `  ${i + 1}. ${fmtVal(item)}\n`; });
+            const its = v.filter(x => hasVal(x));
+            if (its.length === 0) return;
+            text += `${subLabel}\n`;
+            its.forEach((item, i) => { text += `${i + 1}. ${fmtVal(item)}\n`; });
           } else {
-            text += `${subLabel}: ${fmtVal(v)}\n`;
+            text += `${subLabel}\n1. ${fmtVal(v)}\n`;
           }
         });
         text += '\n';
       } else if (f === 'results' && typeof val === 'object') {
-        text += `${label}\n`;
+        text += labelLine;
         Object.entries(val).forEach(([k, v]) => {
           if (!hasVal(v)) return;
-          text += `${k}: ${fmtVal(v)}\n`;
+          text += `${k}\n1. ${fmtVal(v)}\n`;
         });
         text += '\n';
       } else if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${labelLine}1. ${formatDate(val)}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `${labelLine}1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
+        if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+          text += labelLine;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
@@ -528,11 +551,11 @@ const PreventiveCareDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -559,15 +582,15 @@ const PreventiveCareDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* Multi-sentence (or a single labeled "Label: value" sentence): render with splitBySentence */
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -654,7 +677,7 @@ const PreventiveCareDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -726,13 +749,24 @@ const PreventiveCareDocument = ({ document: docProp }) => {
 
     if (!hasVal(rawValue)) return null;
     const strVal = fmtVal(rawValue);
+    const looksNumeric = /^-?\d+(\.\d+)?$/.test(strVal.trim());
     return (
       <div key={key} className="rec-mini-card" style={{ marginTop: 8 }}>
         <div className="nested-subtitle">{highlightText(subLabel)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              {looksNumeric ? (
+                <div className="number-edit-row">
+                  <div className="num-stepper-row">
+                    <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const step = stepFor(editValue); const n = Math.max(0, (parseFloat(editValue) || 0) - step); setEditValue(String(Number(n.toFixed(4)))); setSaveError(null); }}>&minus;</button>
+                    <input className="edit-number" type="text" inputMode="decimal" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const step = stepFor(editValue); const n = Math.max(0, (parseFloat(editValue) || 0) + step); setEditValue(String(Number(n.toFixed(4)))); setSaveError(null); }}>+</button>
+                  </div>
+                </div>
+              ) : (
+                <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              )}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const cur = getFieldValue(record, rootField, idx); const baseObj = (cur && typeof cur === 'object' && !Array.isArray(cur)) ? cur : {}; const newObj = { ...baseObj, [key]: editValue }; setSaveError(null); stageDraft(record, idx, rootField, newObj, sid); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -760,7 +794,7 @@ const PreventiveCareDocument = ({ document: docProp }) => {
     if (entries.length === 0) return null;
     return (
       <div key="immunizations" className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText('Immunizations')}</div>
+        {!sameAsTitle('Immunizations', sid) && <div className="nested-subtitle">{highlightText('Immunizations')}</div>}
         {entries.map(([k, v]) => renderObjectSubRow(record, idx, 'immunizations', k, IMMUNIZATION_LABELS[k] || humanizeKey(k), v, sid))}
       </div>
     );
@@ -778,7 +812,7 @@ const PreventiveCareDocument = ({ document: docProp }) => {
       if (entries.length === 0) return null;
       return (
         <div key={fn} className="rec-mini-card">
-          <div className="nested-subtitle">{highlightText(label)}</div>
+          {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
           {entries.map(([k, v]) => renderObjectSubRow(record, idx, fn, k, k, v, sid))}
         </div>
       );
@@ -824,7 +858,7 @@ const PreventiveCareDocument = ({ document: docProp }) => {
 
     return (
       <div key="recommendations" className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const recText = typeof item === 'object' && item.recommendation
             ? `${item.recommendation}${item.date ? ` (${formatDate(item.date)})` : ''}`
@@ -917,7 +951,7 @@ const PreventiveCareDocument = ({ document: docProp }) => {
         <h2 className="document-title">Preventive Care</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PreventiveCareDocumentPDFTemplate document={pdfData} />} fileName={`preventive-care-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PreventiveCareDocumentPDFTemplate document={pdfData} />} fileName="Preventive_Care.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -930,13 +964,7 @@ const PreventiveCareDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Preventive Care Record ${idx + 1}`)}</h3>
-              {record.provider && <span className="record-provider">{highlightText(record.provider)}</span>}
             </div>
             {renderSection(record, idx, 'cancer-screenings')}
             {renderSection(record, idx, 'mental-health')}

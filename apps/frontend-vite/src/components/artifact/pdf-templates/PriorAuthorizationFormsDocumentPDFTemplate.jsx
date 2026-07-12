@@ -1,0 +1,256 @@
+/**
+ * PriorAuthorizationFormsDocumentPDFTemplate.jsx
+ * Box-free B&W — LETTER size — prior authorization forms
+ * Collection: prior_authorization_forms
+ */
+import React from 'react';
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+
+const styles = StyleSheet.create({
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 24 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 6, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 10 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
+});
+
+/* ======= UTILS ======= */
+const safeString = (val) => {
+  let s;
+  if (val === null || val === undefined) s = '';
+  else if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else s = String(val);
+  return s
+    .replace(/×/g, 'x')
+    .replace(/[μµ]/g, 'u')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/…/g, '...');
+};
+
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v).length > 0;
+  return true;
+};
+
+const fmtVal = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return String(v);
+  return String(v || '');
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+
+/* ======= CONFIG (mirrors JSX) ======= */
+const SECTION_TITLES = {
+  'patient-identification': 'Patient Identification',
+  'requested-service': 'Requested Service / Medication',
+  'diagnosis-info': 'Diagnosis Information',
+  'clinical-history': 'Clinical History',
+  'supporting-evidence': 'Supporting Evidence',
+  'provider-info': 'Provider Information',
+  'patient-status': 'Patient Status',
+};
+
+const FIELD_LABELS = {
+  memberIdNumber: 'Member ID Number',
+  subscriberIdNumber: 'Subscriber ID Number',
+  requestedServiceCptCode: 'Requested Service CPT Code',
+  requestedMedicationNdcNumber: 'Requested Medication NDC Number',
+  medicationDosageAmount: 'Medication Dosage Amount',
+  medicationFrequency: 'Medication Frequency',
+  treatmentDurationDays: 'Treatment Duration (Days)',
+  requestedServiceLocation: 'Requested Service Location',
+  primaryDiagnosisIcd10Code: 'Primary Diagnosis (ICD-10)',
+  secondaryDiagnosisIcd10Codes: 'Secondary Diagnosis Codes',
+  urgencyLevel: 'Urgency Level',
+  priorTriedMedications: 'Prior Tried Medications',
+  contraindicationsPresent: 'Contraindications Present',
+  allergiesToMedications: 'Allergies to Medications',
+  comorbidConditions: 'Comorbid Conditions',
+  labResultsSupporting: 'Lab Results Supporting',
+  imagingStudiesSupporting: 'Imaging Studies Supporting',
+  functionalStatusScore: 'Functional Status Score',
+  painScaleRating: 'Pain Scale Rating',
+  symptomSeverityScore: 'Symptom Severity Score',
+  estimatedCostOfTreatment: 'Estimated Cost of Treatment',
+  physicianSpecialty: 'Physician Specialty',
+  clinicalTrialEligibility: 'Clinical Trial Eligibility',
+  pregnancyStatus: 'Pregnancy Status',
+  renalFunctionGfr: 'Renal Function (GFR)',
+};
+
+const SECTION_FIELDS = {
+  'patient-identification': ['memberIdNumber', 'subscriberIdNumber'],
+  'requested-service': ['requestedServiceCptCode', 'requestedMedicationNdcNumber', 'medicationDosageAmount', 'medicationFrequency', 'treatmentDurationDays', 'requestedServiceLocation'],
+  'diagnosis-info': ['primaryDiagnosisIcd10Code', 'secondaryDiagnosisIcd10Codes', 'urgencyLevel'],
+  'clinical-history': ['priorTriedMedications', 'contraindicationsPresent', 'allergiesToMedications', 'comorbidConditions'],
+  'supporting-evidence': ['labResultsSupporting', 'imagingStudiesSupporting', 'functionalStatusScore', 'painScaleRating', 'symptomSeverityScore'],
+  'provider-info': ['physicianSpecialty', 'estimatedCostOfTreatment', 'clinicalTrialEligibility'],
+  'patient-status': ['pregnancyStatus', 'renalFunctionGfr'],
+};
+
+const SECTION_ORDER = ['patient-identification', 'requested-service', 'diagnosis-info', 'clinical-history', 'supporting-evidence', 'provider-info', 'patient-status'];
+const BOOLEAN_FIELDS = ['clinicalTrialEligibility'];
+const NUMBER_FIELDS = ['treatmentDurationDays', 'painScaleRating', 'estimatedCostOfTreatment', 'renalFunctionGfr'];
+const MEANINGFUL_ZERO_FIELDS = [];
+const ARRAY_FIELDS = ['secondaryDiagnosisIcd10Codes', 'priorTriedMedications', 'contraindicationsPresent', 'allergiesToMedications', 'comorbidConditions', 'labResultsSupporting', 'imagingStudiesSupporting'];
+const STRING_FIELDS = ['memberIdNumber', 'subscriberIdNumber', 'requestedServiceCptCode', 'requestedMedicationNdcNumber', 'medicationDosageAmount', 'medicationFrequency', 'requestedServiceLocation', 'primaryDiagnosisIcd10Code', 'urgencyLevel', 'functionalStatusScore', 'symptomSeverityScore', 'physicianSpecialty', 'pregnancyStatus'];
+
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+const isHiddenZero = (fn, val) => NUMBER_FIELDS.includes(fn) && val !== null && val !== undefined && val !== '' && Number(val) === 0 && !MEANINGFUL_ZERO_FIELDS.includes(fn);
+
+/* formatSentenceLines: mirror JSX formatSentenceFieldLines (labeled sub + comma-split, else numbered) */
+const formatSentenceLines = (text) => {
+  const sentences = splitBySentence(fmtVal(text));
+  const rows = []; let n = 1;
+  sentences.forEach(s => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      if (parts.length >= 2) {
+        rows.push({ type: 'sub', text: parsed.label });
+        parts.forEach(item => rows.push({ type: 'item', text: item, num: n++ }));
+      } else {
+        rows.push({ type: 'sub', text: parsed.label });
+        rows.push({ type: 'item', text: parsed.value, num: n++ });
+      }
+    } else {
+      rows.push({ type: 'item', text: s, num: n++ });
+    }
+  });
+  return rows;
+};
+
+/* fieldBody: FLAT array of small Text elements (bare sameAsTitle-gated label + value/numbered rows) */
+const fieldBody = (record, sid, f) => {
+  const val = record[f];
+  if (!hasVal(val) || isHiddenZero(f, val)) return [];
+  const label = FIELD_LABELS[f] || f;
+  const els = [];
+  if (!sameAsTitle(label, sid)) els.push(<Text style={styles.fieldLabel}>{safeString(label)}</Text>);
+  if (BOOLEAN_FIELDS.includes(f)) {
+    els.push(<Text style={styles.value}>{val ? 'Yes' : 'No'}</Text>);
+  } else if (NUMBER_FIELDS.includes(f)) {
+    els.push(<Text style={styles.value}>{safeString(String(val))}</Text>);
+  } else if (ARRAY_FIELDS.includes(f)) {
+    const items = (Array.isArray(val) ? val : [val]).filter(Boolean);
+    items.forEach((item, i) => els.push(<Text style={styles.listItem}>{`${i + 1}. ${safeString(item)}`}</Text>));
+  } else if (STRING_FIELDS.includes(f)) {
+    const strVal = fmtVal(val);
+    const sentences = splitBySentence(strVal);
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+      formatSentenceLines(strVal).forEach(row => {
+        if (row.type === 'sub') els.push(<Text style={styles.subLabel}>{safeString(row.text)}</Text>);
+        else els.push(<Text style={styles.listItem}>{`${row.num}. ${safeString(row.text)}`}</Text>);
+      });
+    } else {
+      els.push(<Text style={styles.value}>{safeString(strVal)}</Text>);
+    }
+  } else {
+    els.push(<Text style={styles.value}>{safeString(fmtVal(val))}</Text>);
+  }
+  return els;
+};
+
+/* renderSection: FLATTEN anti-orphan — glue sectionTitle + first element, rest flow */
+const renderSection = (record, sid, sIdx) => {
+  const title = SECTION_TITLES[sid];
+  const fields = SECTION_FIELDS[sid] || [];
+  const allEls = [];
+  fields.forEach(f => {
+    fieldBody(record, sid, f).forEach((el, i) => {
+      allEls.push(React.cloneElement(el, { key: `${f}-${i}` }));
+    });
+  });
+  if (allEls.length === 0) return null;
+  const [first, ...rest] = allEls;
+  return (
+    <View key={sIdx} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{safeString(title)}</Text>
+        {first}
+      </View>
+      {rest}
+    </View>
+  );
+};
+
+/* ======= COMPONENT ======= */
+const PriorAuthorizationFormsDocumentPDFTemplate = ({ document: data }) => {
+  const records = React.useMemo(() => {
+    if (!data) return [];
+    let arr = Array.isArray(data) ? data : [data];
+    arr = arr.flatMap(r => {
+      if (r?.prior_authorization_forms) return Array.isArray(r.prior_authorization_forms) ? r.prior_authorization_forms : [r.prior_authorization_forms];
+      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.prior_authorization_forms) return Array.isArray(dd.prior_authorization_forms) ? dd.prior_authorization_forms : [dd.prior_authorization_forms]; return [dd]; }
+      return [r];
+    });
+    return arr.filter(r => r && typeof r === 'object');
+  }, [data]);
+
+  if (!records || records.length === 0) {
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page}>
+          <Text style={styles.documentTitle}>Prior Authorization Forms</Text>
+          <Text style={styles.noDataText}>No data available</Text>
+        </Page>
+      </Document>
+    );
+  }
+
+  return (
+    <Document>
+      <Page size="LETTER" style={styles.page}>
+        <Text style={styles.documentTitle}>Prior Authorization Forms</Text>
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <Text style={styles.recordTitle}>{`Prior Authorization Form ${index + 1}`}</Text>
+            {SECTION_ORDER.map((sid, sIdx) => renderSection(record, sid, sIdx))}
+          </View>
+        ))}
+      </Page>
+    </Document>
+  );
+};
+
+export default PriorAuthorizationFormsDocumentPDFTemplate;

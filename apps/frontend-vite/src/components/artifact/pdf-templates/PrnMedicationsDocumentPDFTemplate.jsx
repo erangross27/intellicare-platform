@@ -1,164 +1,250 @@
 /**
  * PrnMedicationsDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — PRN medications
+ * Box-free B&W — LETTER size — PRN medications
  * Collection: prn_medications
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordStatus: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 6, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 10 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
-  try { const d = new Date(dateStr.$date || dateStr); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateStr); }
+  try {
+    const date = new Date(dateStr.$date || dateStr);
+    if (isNaN(date.getTime())) return String(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(dateStr); }
 };
 
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; return true; };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
+const safeString = (val) => {
+  let s;
+  if (val === null || val === undefined) s = '';
+  else if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s
+    .replace(/×/g, 'x')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/…/g, '...');
+};
+
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v).length > 0;
+  return true;
+};
+
+const fmtVal = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return String(v);
+  return String(v || '');
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+
+/* ======= CONFIG (mirrors JSX) ======= */
+const SECTION_TITLES = {
+  'medication-info': 'Medication Information',
+  'prescriber-details': 'Prescriber Details',
+  'duration': 'Duration',
+  'safety': 'Safety',
+};
+
+const FIELD_LABELS = {
+  name: 'Name',
+  genericName: 'Generic Name',
+  dosage: 'Dosage',
+  frequency: 'Frequency',
+  route: 'Route',
+  prescriber: 'Prescriber',
+  indication: 'Indication',
+  instructions: 'Instructions',
+  startDate: 'Start Date',
+  endDate: 'End Date',
+  duration: 'Duration',
+  durationDays: 'Duration (Days)',
+  durationUnit: 'Duration Unit',
+  active: 'Active',
+  refills: 'Refills',
+  safetyWarning: 'Safety Warning',
+  sideEffects: 'Side Effects',
+  drugInteractions: 'Drug Interactions',
+};
+
+const SECTION_FIELDS = {
+  'medication-info': ['name', 'genericName', 'dosage', 'frequency', 'route'],
+  'prescriber-details': ['prescriber', 'indication', 'instructions'],
+  'duration': ['startDate', 'endDate', 'duration', 'durationDays', 'durationUnit', 'active', 'refills'],
+  'safety': ['safetyWarning', 'sideEffects', 'drugInteractions'],
+};
+
+const SECTION_ORDER = ['medication-info', 'prescriber-details', 'duration', 'safety'];
+const BOOLEAN_FIELDS = ['active'];
+const DATE_FIELDS = ['startDate', 'endDate'];
+const NUMBER_FIELDS = ['durationDays', 'refills'];
+const MEANINGFUL_ZERO_FIELDS = ['refills'];
+const ARRAY_FIELDS = ['sideEffects', 'drugInteractions'];
+const STRING_FIELDS = ['name', 'genericName', 'dosage', 'frequency', 'route', 'duration', 'durationUnit', 'prescriber', 'indication', 'instructions', 'safetyWarning'];
+
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+const isHiddenZero = (fn, val) => NUMBER_FIELDS.includes(fn) && val !== null && val !== undefined && val !== '' && Number(val) === 0 && !MEANINGFUL_ZERO_FIELDS.includes(fn);
+
+/* formatSentenceLines: mirror JSX formatSentenceFieldLines (labeled sub + comma-split, else numbered) */
+const formatSentenceLines = (text) => {
+  const sentences = splitBySentence(fmtVal(text));
+  const rows = []; let n = 1;
+  sentences.forEach(s => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      if (parts.length >= 2) {
+        rows.push({ type: 'sub', text: parsed.label });
+        parts.forEach(item => rows.push({ type: 'item', text: item, num: n++ }));
+      } else {
+        rows.push({ type: 'sub', text: parsed.label });
+        rows.push({ type: 'item', text: parsed.value, num: n++ });
+      }
+    } else {
+      rows.push({ type: 'item', text: s, num: n++ });
+    }
+  });
+  return rows;
+};
+
+/* fieldBody: FLAT array of small Text elements (bare sameAsTitle-gated label + value/numbered rows) */
+const fieldBody = (record, sid, f) => {
+  const val = record[f];
+  if (!hasVal(val) || isHiddenZero(f, val)) return [];
+  const label = FIELD_LABELS[f] || f;
+  const els = [];
+  if (!sameAsTitle(label, sid)) els.push(<Text style={styles.fieldLabel}>{safeString(label)}</Text>);
+  if (DATE_FIELDS.includes(f)) {
+    els.push(<Text style={styles.value}>{formatDate(val)}</Text>);
+  } else if (BOOLEAN_FIELDS.includes(f)) {
+    els.push(<Text style={styles.value}>{val ? 'Yes' : 'No'}</Text>);
+  } else if (NUMBER_FIELDS.includes(f)) {
+    els.push(<Text style={styles.value}>{safeString(String(val))}</Text>);
+  } else if (ARRAY_FIELDS.includes(f)) {
+    const items = (Array.isArray(val) ? val : [val]).filter(Boolean);
+    items.forEach((item, i) => els.push(<Text style={styles.listItem}>{`${i + 1}. ${safeString(item)}`}</Text>));
+  } else if (STRING_FIELDS.includes(f)) {
+    const strVal = fmtVal(val);
+    const sentences = splitBySentence(strVal);
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+      formatSentenceLines(strVal).forEach(row => {
+        if (row.type === 'sub') els.push(<Text style={styles.subLabel}>{safeString(row.text)}</Text>);
+        else els.push(<Text style={styles.listItem}>{`${row.num}. ${safeString(row.text)}`}</Text>);
+      });
+    } else {
+      els.push(<Text style={styles.value}>{safeString(strVal)}</Text>);
+    }
+  } else {
+    els.push(<Text style={styles.value}>{safeString(fmtVal(val))}</Text>);
+  }
+  return els;
+};
+
+/* renderSection: FLATTEN anti-orphan — glue sectionTitle + first element, rest flow */
+const renderSection = (record, sid, sIdx) => {
+  const title = SECTION_TITLES[sid];
+  const fields = SECTION_FIELDS[sid] || [];
+  const allEls = [];
+  fields.forEach(f => {
+    fieldBody(record, sid, f).forEach((el, i) => {
+      allEls.push(React.cloneElement(el, { key: `${f}-${i}` }));
+    });
+  });
+  if (allEls.length === 0) return null;
+  const [first, ...rest] = allEls;
+  return (
+    <View key={sIdx} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{safeString(title)}</Text>
+        {first}
+      </View>
+      {rest}
+    </View>
+  );
+};
 
 /* ======= COMPONENT ======= */
 const PrnMedicationsDocumentPDFTemplate = ({ document: data }) => {
-  let records = [];
-  if (Array.isArray(data)) {
-    if (data.length > 0 && data[0].records) records = data[0].records;
-    else records = data;
-  } else if (data?.records) {
-    records = data.records;
-  } else if (data) {
-    records = [data];
-  }
+  const records = React.useMemo(() => {
+    if (!data) return [];
+    let arr = Array.isArray(data) ? data : [data];
+    arr = arr.flatMap(r => {
+      if (r?.prn_medications) return Array.isArray(r.prn_medications) ? r.prn_medications : [r.prn_medications];
+      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.prn_medications) return Array.isArray(dd.prn_medications) ? dd.prn_medications : [dd.prn_medications]; return [dd]; }
+      return [r];
+    });
+    return arr.filter(r => r && typeof r === 'object');
+  }, [data]);
 
-  if (!Array.isArray(records) || records.length === 0) {
+  if (!records || records.length === 0) {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>PRN Medications</Text>
-          </View>
+          <Text style={styles.documentTitle}>PRN Medications</Text>
           <Text style={styles.noDataText}>No data available</Text>
         </Page>
       </Document>
     );
   }
 
-  const renderField = (label, value) => {
-    if (!hasVal(value)) return null;
-    return (
-      <View style={styles.fieldBox} key={label}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        <Text style={styles.fieldValue}>{fmtVal(value)}</Text>
-      </View>
-    );
-  };
-
-  const renderDateField = (label, value) => {
-    if (!hasVal(value)) return null;
-    return (
-      <View style={styles.fieldBox} key={label}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        <Text style={styles.fieldValue}>{formatDate(value)}</Text>
-      </View>
-    );
-  };
-
-  const renderArrayField = (label, items) => {
-    if (!Array.isArray(items) || items.length === 0) return null;
-    return (
-      <View style={styles.fieldBox} key={label}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        {items.map((item, i) => {
-          const itemStr = String(item || '').trim();
-          if (!itemStr) return null;
-          return <Text key={i} style={styles.listItem}>{i + 1}. {itemStr}</Text>;
-        })}
-      </View>
-    );
-  };
-
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>PRN Medications</Text>
-        </View>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer} wrap={false}>
-            <View style={styles.recordHeader}>
-              <View style={styles.recordDateRow}>
-                {hasVal(record.startDate) && <Text style={styles.recordDate}>{formatDate(record.startDate)}</Text>}
-                {record.active !== undefined && <Text style={styles.recordStatus}>{record.active ? 'Active' : 'Inactive'}</Text>}
-              </View>
-              <Text style={styles.recordTitle}>{String(record.name || `PRN Medication ${idx + 1}`)}</Text>
-            </View>
-
-            {/* Section 1: Medication Information */}
-            {(hasVal(record.name) || hasVal(record.genericName) || hasVal(record.dosage) || hasVal(record.frequency) || hasVal(record.route)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Medication Information</Text>
-                {renderField('Name', record.name)}
-                {renderField('Generic Name', record.genericName)}
-                {renderField('Dosage', record.dosage)}
-                {renderField('Frequency', record.frequency)}
-                {renderField('Route', record.route)}
-              </View>
-            )}
-
-            {/* Section 2: Prescriber Details */}
-            {(hasVal(record.prescriber) || hasVal(record.indication) || hasVal(record.instructions)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Prescriber Details</Text>
-                {renderField('Prescriber', record.prescriber)}
-                {renderField('Indication', record.indication)}
-                {renderField('Instructions', record.instructions)}
-              </View>
-            )}
-
-            {/* Section 3: Duration */}
-            {(hasVal(record.startDate) || hasVal(record.endDate) || hasVal(record.duration) || hasVal(record.durationDays) || hasVal(record.durationUnit) || hasVal(record.active) || hasVal(record.refills)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Duration</Text>
-                {renderDateField('Start Date', record.startDate)}
-                {renderDateField('End Date', record.endDate)}
-                {renderField('Duration', record.duration)}
-                {renderField('Duration (Days)', record.durationDays)}
-                {renderField('Duration Unit', record.durationUnit)}
-                {renderField('Active', record.active)}
-                {renderField('Refills', record.refills)}
-              </View>
-            )}
-
-            {/* Section 4: Safety */}
-            {(hasVal(record.safetyWarning) || (record.sideEffects && record.sideEffects.length > 0) || (record.drugInteractions && record.drugInteractions.length > 0)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Safety</Text>
-                {renderField('Safety Warning', record.safetyWarning)}
-                {renderArrayField('Side Effects', record.sideEffects)}
-                {renderArrayField('Drug Interactions', record.drugInteractions)}
-              </View>
-            )}
-
-            {idx < records.length - 1 && <View style={styles.separator} />}
+        <Text style={styles.documentTitle}>PRN Medications</Text>
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <Text style={styles.recordTitle}>{`PRN Medication ${index + 1}`}</Text>
+            {SECTION_ORDER.map((sid, sIdx) => renderSection(record, sid, sIdx))}
           </View>
         ))}
       </Page>

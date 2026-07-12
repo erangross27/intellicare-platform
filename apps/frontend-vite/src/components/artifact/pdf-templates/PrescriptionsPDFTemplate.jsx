@@ -1,313 +1,205 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * Prescriptions PDF Template — March 2026
- * Helvetica font, LETTER size, 20pt titles / 12pt body
- * Black & white, clean layout
- */
-
+/* ═══════ BOX-FREE B&W STYLES ═══════ */
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentHeader: {
-    marginBottom: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  documentSubtitle: {
-    fontSize: 9,
-    textAlign: 'center',
-  },
-  recordHeader: {
-    marginBottom: 16,
-  },
-  recordDate: {
-    fontSize: 10,
-    textAlign: 'right',
-    marginBottom: 4,
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-  },
-  medicationName: {
-    fontSize: 13,
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-    color: '#424242',
-  },
-  section: {
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-    paddingBottom: 3,
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    marginBottom: 3,
-    paddingLeft: 8,
-  },
-  fieldLabel: {
-    width: 90,
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-  },
-  fieldValue: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 1.4,
-  },
-  numberedItem: {
-    flexDirection: 'row',
-    marginBottom: 3,
-    paddingLeft: 8,
-  },
-  itemNumber: {
-    width: 20,
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-  },
-  itemContent: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 1.4,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    fontSize: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#000000',
-    paddingTop: 6,
-    textAlign: 'center',
-  },
-  pageNumber: {
-    position: 'absolute',
-    bottom: 16,
-    right: 40,
-    fontSize: 8,
-  },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000' },
+  recordCard: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  section: { marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 6, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldBox: { marginBottom: 8 },
+  fieldLabel: { fontSize: 13, color: '#333333', marginBottom: 2, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
+  fieldValue: { fontSize: 14, lineHeight: 1.4, color: '#000000' },
+  listItem: { fontSize: 14, marginBottom: 3, lineHeight: 1.4, color: '#000000', paddingLeft: 8 },
 });
 
-// ============== HELPER FUNCTIONS ==============
+/* ═══════ CONFIG MAPS (mirror the JSX) ═══════ */
+const SECTION_TITLES = {
+  'prescription-details': 'Prescription Details',
+  'provider-info': 'Provider Information',
+  'indication': 'Indication',
+  'instructions': 'Instructions',
+};
 
+const FIELD_LABELS = {
+  medication: 'Medication',
+  dosage: 'Dosage',
+  frequency: 'Frequency',
+  quantity: 'Quantity',
+  refills: 'Refills',
+  prescriber: 'Prescriber',
+  pharmacy: 'Pharmacy',
+  date: 'Date',
+  indication: 'Indication',
+  instructions: 'Instructions',
+};
+
+const SECTION_FIELDS = {
+  'prescription-details': ['medication', 'dosage', 'frequency', 'quantity', 'refills'],
+  'provider-info': ['prescriber', 'pharmacy', 'date'],
+  'indication': ['indication'],
+  'instructions': ['instructions'],
+};
+const SECTION_ORDER = ['prescription-details', 'provider-info', 'indication', 'instructions'];
+
+const DATE_FIELDS = ['date'];
+const NUMBER_FIELDS = ['refills'];
+
+/* sameAsTitle: hide a field label that duplicates its section title */
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* ═══════ HELPERS ═══════ */
 const safeString = (val) => {
   if (val === null || val === undefined) return '';
-  let str = typeof val === 'string' ? val : String(val);
-  str = str.replace(/\u03BCm/g, 'um');
-  str = str.replace(/\u00B5m/g, 'um');
-  str = str.replace(/\u00B0/g, ' deg');
-  str = str.replace(/\u00B1/g, '+/-');
-  str = str.replace(/\u2265/g, '>=');
-  str = str.replace(/\u2264/g, '<=');
-  str = str.replace(/\u2192/g, '->');
-  str = str.replace(/\u2190/g, '<-');
-  str = str.replace(/\u00D7/g, 'x');
-  str = str.replace(/\u00F7/g, '/');
-  str = str.replace(/\u2022/g, '-');
-  str = str.replace(/\u2013/g, '-');
-  str = str.replace(/\u2014/g, '-');
-  str = str.replace(/\u201C/g, '"');
-  str = str.replace(/\u201D/g, '"');
-  str = str.replace(/\u2018/g, "'");
-  str = str.replace(/\u2019/g, "'");
-  return str;
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else s = String(val);
+  return s
+    .replace(/×/g, 'x')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[—–]/g, '-')
+    .replace(/…/g, '...');
 };
 
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  try {
-    const date = new Date(dateString.$date || dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return String(dateString);
-  }
-};
-
-const hasValue = (val) => {
-  if (val === null || val === undefined) return false;
-  if (typeof val === 'string') return val.trim().length > 0;
-  if (typeof val === 'number') return true;
-  if (typeof val === 'boolean') return true;
-  if (Array.isArray(val)) return val.length > 0;
-  if (typeof val === 'object') return Object.keys(val).length > 0;
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v).length > 0;
   return true;
+};
+
+const formatDate = (dateValue) => {
+  if (!dateValue) return '';
+  try {
+    const date = new Date(dateValue.$date || dateValue);
+    if (isNaN(date.getTime())) return String(dateValue || '');
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(dateValue || ''); }
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
 };
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
-// ============== COMPONENTS ==============
-
-const FieldRow = ({ label, value }) => {
-  if (!hasValue(value)) return null;
-  return (
-    <View style={styles.fieldRow}>
-      <Text style={styles.fieldLabel}>{safeString(label)}:</Text>
-      <Text style={styles.fieldValue}>{safeString(value)}</Text>
-    </View>
-  );
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
 };
 
-const NumberedSection = ({ title, text }) => {
+/* mirror of JSX formatSentenceFieldLines */
+const formatSentenceLines = (text) => {
   const sentences = splitBySentence(text);
-  if (sentences.length === 0) return null;
-  const isSmall = sentences.length <= 4;
-
-  if (isSmall) {
-    return (
-      <View style={styles.section} wrap={false}>
-        <Text style={styles.sectionTitle}>{safeString(title)}</Text>
-        {sentences.map((sentence, idx) => (
-          <View key={idx} style={styles.numberedItem}>
-            <Text style={styles.itemNumber}>{idx + 1}.</Text>
-            <Text style={styles.itemContent}>{safeString(sentence)}{sentence.endsWith('.') ? '' : '.'}</Text>
-          </View>
-        ))}
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.section}>
-      <View wrap={false}>
-        <Text style={styles.sectionTitle}>{safeString(title)}</Text>
-        {sentences.slice(0, 1).map((sentence, idx) => (
-          <View key={idx} style={styles.numberedItem}>
-            <Text style={styles.itemNumber}>{idx + 1}.</Text>
-            <Text style={styles.itemContent}>{safeString(sentence)}{sentence.endsWith('.') ? '' : '.'}</Text>
-          </View>
-        ))}
-      </View>
-      {sentences.slice(1).map((sentence, idx) => (
-        <View key={idx + 1} style={styles.numberedItem}>
-          <Text style={styles.itemNumber}>{idx + 2}.</Text>
-          <Text style={styles.itemContent}>{safeString(sentence)}{sentence.endsWith('.') ? '' : '.'}</Text>
-        </View>
-      ))}
-    </View>
-  );
+  const lines = []; let n = 1;
+  sentences.forEach(s => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      if (parts.length >= 2) {
+        lines.push(parsed.label + ':');
+        parts.forEach(item => lines.push(`${n++}. ${item}`));
+      } else {
+        lines.push(parsed.label + ':');
+        lines.push(`${n++}. ${parsed.value}`);
+      }
+    } else {
+      lines.push(`${n++}. ${s}`);
+    }
+  });
+  return lines;
 };
 
-// ============== MAIN COMPONENT ==============
-
-const PrescriptionsPDFTemplate = ({ document: docProp, data, documents }) => {
-  let prescriptions = [];
-
-  // Handle documents array (legacy)
-  if (documents && Array.isArray(documents)) {
-    documents.forEach(doc => {
-      if (doc.prescriptions && Array.isArray(doc.prescriptions)) {
-        prescriptions = prescriptions.concat(doc.prescriptions);
-      } else if (Array.isArray(doc)) {
-        prescriptions = prescriptions.concat(doc);
-      }
-    });
-  }
-
-  // Then check document or data props
-  const templateData = docProp || data;
-
-  if (prescriptions.length === 0 && templateData) {
-    if (Array.isArray(templateData)) {
-      prescriptions = templateData.flatMap(item => {
-        if (item.prescriptions) return item.prescriptions;
-        if (item._records) return item._records;
-        return item;
-      });
-    } else if (templateData.documentData?._records) {
-      prescriptions = templateData.documentData._records;
-    } else if (templateData._records) {
-      prescriptions = templateData._records;
-    } else if (templateData.prescriptions) {
-      prescriptions = Array.isArray(templateData.prescriptions) ? templateData.prescriptions : [templateData.prescriptions];
-    } else if (templateData.medication || templateData.prescriber) {
-      prescriptions = [templateData];
+/* ═══════ FIELD RENDER (flat elements, one glue View per field) ═══════ */
+const fieldBody = (record, f, sid) => {
+  const val = record[f];
+  if (!hasVal(val)) return null;
+  const label = FIELD_LABELS[f] || f;
+  const els = [];
+  if (!sameAsTitle(label, sid)) els.push(<Text key="l" style={styles.fieldLabel}>{safeString(label)}</Text>);
+  if (DATE_FIELDS.includes(f)) {
+    els.push(<Text key="v" style={styles.fieldValue}>{formatDate(val)}</Text>);
+  } else if (NUMBER_FIELDS.includes(f)) {
+    els.push(<Text key="v" style={styles.fieldValue}>{safeString(val)}</Text>);
+  } else {
+    const strVal = safeString(val);
+    const sentences = splitBySentence(strVal);
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+      formatSentenceLines(strVal).forEach((line, i) => els.push(<Text key={`s${i}`} style={styles.listItem}>{line}</Text>));
+    } else {
+      els.push(<Text key="v" style={styles.fieldValue}>{strVal}</Text>);
     }
   }
+  return els.length > 0 ? els : null;
+};
 
-  prescriptions = prescriptions.filter(r => r !== null && r !== undefined);
+const fieldView = (record, f, sid) => {
+  const body = fieldBody(record, f, sid);
+  if (!body) return null;
+  return <View key={f} style={styles.fieldBox} wrap={false}>{body}</View>;
+};
 
-  const useMultiplePages = prescriptions.length > 2;
-
-  const renderRecord = (record, recordIdx) => (
-    <View key={recordIdx} style={{ marginBottom: 20 }}>
-      <View style={styles.recordHeader} wrap={false}>
-        {record.date && <Text style={styles.recordDate}>{formatDate(record.date)}</Text>}
-        <Text style={styles.recordTitle}>Prescription {recordIdx + 1}</Text>
-        {record.medication && <Text style={styles.medicationName}>{safeString(record.medication)}</Text>}
+/* anti-orphan: sectionTitle + first field glued in a wrap={false} View, rest flow */
+const renderSection = (record, sid) => {
+  const fields = SECTION_FIELDS[sid] || [];
+  const views = fields.map(f => fieldView(record, f, sid)).filter(Boolean);
+  if (views.length === 0) return null;
+  const [first, ...rest] = views;
+  return (
+    <View key={sid} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{safeString(SECTION_TITLES[sid])}</Text>
+        {first}
       </View>
-
-      <View style={styles.section} wrap={false}>
-        <Text style={styles.sectionTitle}>Prescription Details</Text>
-        <FieldRow label="Medication" value={record.medication} />
-        <FieldRow label="Dosage" value={record.dosage} />
-        <FieldRow label="Frequency" value={record.frequency} />
-        <FieldRow label="Quantity" value={record.quantity} />
-        <FieldRow label="Refills" value={record.refills} />
-      </View>
-
-      {(hasValue(record.prescriber) || hasValue(record.pharmacy) || hasValue(record.date)) && (
-        <View style={styles.section} wrap={false}>
-          <Text style={styles.sectionTitle}>Provider Information</Text>
-          <FieldRow label="Prescriber" value={record.prescriber} />
-          <FieldRow label="Pharmacy" value={record.pharmacy} />
-          <FieldRow label="Date" value={formatDate(record.date)} />
-        </View>
-      )}
-
-      {hasValue(record.indication) && (
-        <View style={styles.section} wrap={false}>
-          <Text style={styles.sectionTitle}>Indication</Text>
-          <Text style={[styles.fieldValue, { paddingLeft: 8 }]}>{safeString(record.indication)}</Text>
-        </View>
-      )}
-
-      {hasValue(record.instructions) && (
-        <NumberedSection title="Instructions" text={record.instructions} />
-      )}
+      {rest}
     </View>
   );
+};
 
-  if (!useMultiplePages) {
+const PrescriptionsPDFTemplate = ({ document }) => {
+  let records = [];
+  if (Array.isArray(document)) {
+    if (document.length > 0 && document[0]?.prescriptions) records = document[0].prescriptions;
+    else if (document.length > 0 && document[0]?.records) records = document[0].records;
+    else if (document.length > 0 && document[0]?._records) records = document[0]._records;
+    else records = document;
+  } else if (document?.prescriptions) records = Array.isArray(document.prescriptions) ? document.prescriptions : [document.prescriptions];
+  else if (document?.records) records = document.records;
+  else if (document?._records) records = document._records;
+  else if (document) records = [document];
+
+  const validRecords = Array.isArray(records) ? records.filter(r => r && typeof r === 'object') : [];
+
+  if (!validRecords.length) {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader} fixed>
-            <Text style={styles.documentTitle}>Prescriptions</Text>
-            <Text style={styles.documentSubtitle}>
-              Generated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </Text>
-          </View>
-          {prescriptions.map((record, recordIdx) => renderRecord(record, recordIdx))}
-          <Text style={styles.footer} fixed>PROTECTED HEALTH INFORMATION (PHI) - Handle according to HIPAA regulations</Text>
-          <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} fixed />
+          <Text style={styles.documentTitle}>Prescriptions</Text>
+          <Text style={{ textAlign: 'center', color: '#6b7280' }}>No prescription data available</Text>
         </Page>
       </Document>
     );
@@ -315,19 +207,15 @@ const PrescriptionsPDFTemplate = ({ document: docProp, data, documents }) => {
 
   return (
     <Document>
-      {prescriptions.map((record, recordIdx) => (
-        <Page key={recordIdx} size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader} fixed>
-            <Text style={styles.documentTitle}>Prescription</Text>
-            <Text style={styles.documentSubtitle}>
-              Generated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </Text>
+      <Page size="LETTER" style={styles.page}>
+        <Text style={styles.documentTitle}>Prescriptions</Text>
+        {validRecords.map((record, idx) => (
+          <View key={idx} style={styles.recordCard} break={idx > 0}>
+            <Text style={styles.recordTitle}>{`Prescription ${idx + 1}`}</Text>
+            {SECTION_ORDER.map(sid => renderSection(record, sid))}
           </View>
-          {renderRecord(record, recordIdx)}
-          <Text style={styles.footer} fixed>PROTECTED HEALTH INFORMATION (PHI) - Handle according to HIPAA regulations</Text>
-          <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} fixed />
-        </Page>
-      ))}
+        ))}
+      </Page>
     </Document>
   );
 };

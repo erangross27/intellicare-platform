@@ -129,6 +129,22 @@ const ChatContainer = memo(({
   // within 2s of mount, if panel is already open, these are re-fires to ignore
   const mountTimeRef = useRef(Date.now());
 
+  // Becomes true on the first real user interaction (pointer/keyboard) after mount.
+  // Historical <Message> components re-fire openArtifactPanel on mount during a cold
+  // restore; those all happen BEFORE any user interaction. Used as a robust re-fire
+  // guard that does not depend on the cold load finishing within a fixed time window
+  // (a slow re-login restore can push past the old 2s window and thrash the panel).
+  const hasUserInteractedRef = useRef(false);
+  useEffect(() => {
+    const markInteracted = () => { hasUserInteractedRef.current = true; };
+    window.addEventListener('pointerdown', markInteracted, { once: true, capture: true });
+    window.addEventListener('keydown', markInteracted, { once: true, capture: true });
+    return () => {
+      window.removeEventListener('pointerdown', markInteracted, { capture: true });
+      window.removeEventListener('keydown', markInteracted, { capture: true });
+    };
+  }, []);
+
   // Artifact panel state - with localStorage persistence
   const [artifactPanelOpen, setArtifactPanelOpen] = useState(() => {
     try {
@@ -2845,12 +2861,15 @@ The analysis results will appear automatically when ready - no need to refresh!`
       console.log(`  Current category: ${artifactCategory || 'none'}`);
       console.log(`  New category: ${event.detail?.category || event.detail?.type || 'none'}`);
 
-      // Guard: On page refresh, Message.js re-fires old events with stale data
-      // within ~100ms of mount. If the panel is already open (restored from localStorage),
-      // skip these re-fired events to preserve fresh data from CollectionDocumentView.
+      // Guard: On a refresh/cold restore, every historical <Message> re-fires its
+      // openArtifactPanel event on mount with stale data. If the panel is already open
+      // (restored from localStorage or the DB), skip these so they don't thrash/close the
+      // restored panel. A slow re-login restore can render messages well past a fixed time
+      // window, so the primary signal is "no real user interaction has happened yet" — a
+      // genuine open always follows a click or keystroke. The 2s window stays as a backstop.
       const msSinceMount = Date.now() - mountTimeRef.current;
-      if (msSinceMount < 2000 && artifactPanelOpen) {
-        console.log(`⏭️ [ARTIFACT] Skipping re-fired event ${msSinceMount}ms after mount — panel already open`);
+      if ((!hasUserInteractedRef.current || msSinceMount < 2000) && artifactPanelOpen) {
+        console.log(`⏭️ [ARTIFACT] Skipping re-fired event (interacted=${hasUserInteractedRef.current}, ${msSinceMount}ms after mount) — panel already open`);
         return;
       }
 

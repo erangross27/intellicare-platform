@@ -1,48 +1,86 @@
-/**
- * PrepAndDrapeDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — prep and drape
- * Collection: prep_and_drape
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+/* ═══════ BOX-FREE B&W STYLES ═══════ */
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000' },
+  recordCard: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  section: { marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 6, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldBox: { marginBottom: 8 },
+  fieldLabel: { fontSize: 13, color: '#333333', marginBottom: 2, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
+  fieldValue: { fontSize: 14, lineHeight: 1.4, color: '#000000' },
+  listItem: { fontSize: 14, marginBottom: 3, lineHeight: 1.4, color: '#000000', paddingLeft: 8 },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
+/* ═══════ CONFIG MAPS (mirror the JSX) ═══════ */
+const SECTION_TITLES = {
+  'procedure': 'Procedure',
+  'prep-information': 'Prep Information',
+  'draping': 'Draping',
+  'verification': 'Verification',
+  'prep-team': 'Prep Team',
+  'details': 'Details',
 };
 
+const FIELD_LABELS = {
+  procedureName: 'Procedure Name',
+  prepArea: 'Prep Area',
+  prepSolution: 'Prep Solution',
+  prepMethod: 'Prep Method',
+  prepTime: 'Prep Time',
+  hairRemoval: 'Hair Removal',
+  drapeType: 'Drape Type',
+  drapingMethod: 'Draping Method',
+  inciseDrape: 'Incise Drape',
+  timeoutPerformed: 'Timeout Performed',
+  sterilityVerified: 'Sterility Verified',
+  prepTeam: 'Prep Team',
+  date: 'Date',
+  facility: 'Facility',
+  notes: 'Notes',
+  additionalData: 'Additional Data',
+};
+
+const SECTION_FIELDS = {
+  'procedure': ['procedureName'],
+  'prep-information': ['prepArea', 'prepSolution', 'prepMethod', 'prepTime', 'hairRemoval'],
+  'draping': ['drapeType', 'drapingMethod', 'inciseDrape'],
+  'verification': ['timeoutPerformed', 'sterilityVerified'],
+  'prep-team': ['prepTeam'],
+  'details': ['date', 'facility', 'notes', 'additionalData'],
+};
+const SECTION_ORDER = ['procedure', 'prep-information', 'draping', 'verification', 'prep-team', 'details'];
+
+const DATE_FIELDS = ['date'];
+const ARRAY_FIELDS = ['prepTeam'];
+const OBJECT_FIELDS = ['additionalData'];
+
+/* sameAsTitle: hide a field label that duplicates its section title */
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* ═══════ HELPERS ═══════ */
 const safeString = (val) => {
   if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object') {
+    if (Object.keys(val).length === 0) return '';
+    if (val.value !== undefined) s = String(val.value);
+    else if (val.text !== undefined) s = String(val.text);
+    else s = JSON.stringify(val);
+  } else s = String(val);
+  return s
+    .replace(/×/g, 'x')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[—–]/g, '-')
+    .replace(/…/g, '...');
 };
 
 const hasVal = (v) => {
@@ -55,15 +93,13 @@ const hasVal = (v) => {
   return true;
 };
 
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
-};
-
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+const formatDate = (dateValue) => {
+  if (!dateValue) return '';
+  try {
+    const date = new Date(dateValue.$date || dateValue);
+    if (isNaN(date.getTime())) return String(dateValue || '');
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(dateValue || ''); }
 };
 
 const parseLabel = (text) => {
@@ -73,6 +109,11 @@ const parseLabel = (text) => {
   return { isLabeled: false, label: '', value: text };
 };
 
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
 const splitByComma = (text) => {
   if (!text || typeof text !== 'string') return [text || ''];
   const result = []; let current = ''; let depth = 0;
@@ -80,175 +121,106 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
 
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
-
-/* renderDateField */
-const renderDateFieldPDF = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
-  const rows = [];
-  let n = 1;
+/* mirror of JSX formatSentenceFieldLines */
+const formatSentenceLines = (text) => {
+  const sentences = splitBySentence(text);
+  const lines = []; let n = 1;
   sentences.forEach(s => {
     const parsed = parseLabel(s);
     if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
+      const parts = splitByComma(parsed.value);
+      if (parts.length >= 2) {
+        lines.push(parsed.label + ':');
+        parts.forEach(item => lines.push(`${n++}. ${item}`));
       } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
+        lines.push(parsed.label + ':');
+        lines.push(`${n++}. ${parsed.value}`);
       }
     } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
+      lines.push(`${n++}. ${s}`);
     }
   });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
+  return lines;
 };
 
-/* renderObjectField: flatten dynamic-key object into key: value rows */
-const renderObjectFieldPDF = (label, obj) => {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
-  const entries = Object.entries(obj).filter(([, v]) => hasVal(v));
-  if (entries.length === 0) return null;
-  return (
-    <View style={styles.fieldBox} wrap={entries.length > 8 ? undefined : false}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {entries.map(([k, v], i) => (
-        <Text key={i} style={styles.listItem}>{k}: {safeString(v)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* renderArrayField */
-const renderArrayFieldPDF = (label, items) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* SECTION CONFIGS */
-const SECTION_CONFIGS = [
-  {
-    title: 'Procedure',
-    fields: [
-      { key: 'procedureName', label: 'Procedure Name', isSentence: true },
-    ],
-  },
-  {
-    title: 'Prep Information',
-    fields: [
-      { key: 'prepArea', label: 'Prep Area', isSentence: true },
-      { key: 'prepSolution', label: 'Prep Solution', isSentence: true },
-      { key: 'prepMethod', label: 'Prep Method', isSentence: true },
-      { key: 'prepTime', label: 'Prep Time', isSentence: true },
-      { key: 'hairRemoval', label: 'Hair Removal', isSentence: true },
-    ],
-  },
-  {
-    title: 'Draping',
-    fields: [
-      { key: 'drapeType', label: 'Drape Type', isSentence: true },
-      { key: 'drapingMethod', label: 'Draping Method', isSentence: true },
-      { key: 'inciseDrape', label: 'Incise Drape', isSentence: true },
-    ],
-  },
-  {
-    title: 'Verification',
-    fields: [
-      { key: 'timeoutPerformed', label: 'Timeout Performed', isSentence: true },
-      { key: 'sterilityVerified', label: 'Sterility Verified', isSentence: true },
-    ],
-  },
-  {
-    title: 'Prep Team',
-    fields: [
-      { key: 'prepTeam', label: 'Prep Team', isArray: true },
-    ],
-  },
-  {
-    title: 'Details',
-    fields: [
-      { key: 'date', label: 'Date', isDate: true },
-      { key: 'facility', label: 'Facility', isSentence: true },
-      { key: 'notes', label: 'Notes', isSentence: true },
-      { key: 'additionalData', label: 'Additional Data', isObject: true },
-    ],
-  },
-];
-
-/* ======= COMPONENT ======= */
-const PrepAndDrapeDocumentPDFTemplate = ({ document: data }) => {
-  const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.prep_and_drape) return Array.isArray(r.prep_and_drape) ? r.prep_and_drape : [r.prep_and_drape];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.prep_and_drape) return Array.isArray(dd.prep_and_drape) ? dd.prep_and_drape : [dd.prep_and_drape]; return [dd]; }
-      return [r];
+/* ═══════ FIELD RENDER (flat elements, one glue View per field) ═══════ */
+const fieldBody = (record, f, sid) => {
+  const val = record[f];
+  if (!hasVal(val)) return null;
+  const label = FIELD_LABELS[f] || f;
+  const els = [];
+  if (!sameAsTitle(label, sid)) els.push(<Text key="l" style={styles.fieldLabel}>{safeString(label)}</Text>);
+  if (DATE_FIELDS.includes(f)) {
+    els.push(<Text key="v" style={styles.fieldValue}>{formatDate(val)}</Text>);
+  } else if (ARRAY_FIELDS.includes(f)) {
+    const items = Array.isArray(val) ? val.filter(Boolean) : [val];
+    items.forEach((it, i) => els.push(<Text key={`i${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(it)}`}</Text>));
+  } else if (OBJECT_FIELDS.includes(f)) {
+    const entries = Object.entries(val).filter(([, v]) => hasVal(v));
+    entries.forEach(([k, v], i) => {
+      els.push(<Text key={`k${i}`} style={styles.subLabel}>{safeString(k)}</Text>);
+      els.push(<Text key={`ov${i}`} style={styles.fieldValue}>{safeString(v)}</Text>);
     });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  } else {
+    const strVal = safeString(val);
+    const sentences = splitBySentence(strVal);
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+      formatSentenceLines(strVal).forEach((line, i) => els.push(<Text key={`s${i}`} style={styles.listItem}>{line}</Text>));
+    } else {
+      els.push(<Text key="v" style={styles.fieldValue}>{strVal}</Text>);
+    }
+  }
+  return els.length > 0 ? els : null;
+};
 
-  if (!records || records.length === 0) {
+const fieldView = (record, f, sid) => {
+  const body = fieldBody(record, f, sid);
+  if (!body) return null;
+  return <View key={f} style={styles.fieldBox} wrap={false}>{body}</View>;
+};
+
+/* anti-orphan: sectionTitle + first field glued in a wrap={false} View, rest flow */
+const renderSection = (record, sid) => {
+  const fields = SECTION_FIELDS[sid] || [];
+  const views = fields.map(f => fieldView(record, f, sid)).filter(Boolean);
+  if (views.length === 0) return null;
+  const [first, ...rest] = views;
+  return (
+    <View key={sid} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{safeString(SECTION_TITLES[sid])}</Text>
+        {first}
+      </View>
+      {rest}
+    </View>
+  );
+};
+
+const PrepAndDrapeDocumentPDFTemplate = ({ document }) => {
+  let records = [];
+  if (Array.isArray(document)) {
+    if (document.length > 0 && document[0]?.records) records = document[0].records;
+    else if (document.length > 0 && document[0]?._records) records = document[0]._records;
+    else records = document;
+  } else if (document?.records) records = document.records;
+  else if (document?._records) records = document._records;
+  else if (document) records = [document];
+
+  const validRecords = Array.isArray(records) ? records : [];
+
+  if (!validRecords.length) {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Prep and Drape</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
+          <Text style={styles.documentTitle}>Prep and Drape</Text>
+          <Text style={{ textAlign: 'center', color: '#6b7280' }}>No prep and drape data available</Text>
         </Page>
       </Document>
     );
@@ -257,48 +229,11 @@ const PrepAndDrapeDocumentPDFTemplate = ({ document: data }) => {
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Prep and Drape</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {record.procedureName || `Prep and Drape ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const hasAnyVal = sectionConfig.fields.some(f => hasVal(record[f.key]));
-              if (!hasAnyVal) return null;
-
-              return (
-                <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = record[field.key];
-                    if (!hasVal(val)) return null;
-
-                    if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
-                    if (field.isObject) return <View key={fIdx}>{renderObjectFieldPDF(field.label, val)}</View>;
-                    if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
-                  })}
-                </View>
-              );
-            })}
+        <Text style={styles.documentTitle}>Prep and Drape</Text>
+        {validRecords.map((record, idx) => (
+          <View key={idx} style={styles.recordCard} break={idx > 0}>
+            <Text style={styles.recordTitle}>{`Prep and Drape ${idx + 1}`}</Text>
+            {SECTION_ORDER.map(sid => renderSection(record, sid))}
           </View>
         ))}
       </Page>

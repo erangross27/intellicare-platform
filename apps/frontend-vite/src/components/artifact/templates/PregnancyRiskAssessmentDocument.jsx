@@ -13,6 +13,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PregnancyRiskAssessmentDocumentPDFTemplate from '../pdf-templates/PregnancyRiskAssessmentDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PregnancyRiskAssessmentDocument.css';
 
@@ -73,6 +75,9 @@ const STRING_FIELDS = ['provider', 'facility', 'riskLevel', 'surveillancePlan', 
 const NESTED_ARRAY_FIELDS = ['antenatalTesting'];
 const OBJECT_FIELDS = ['results'];
 const OBJECT_ARRAY_FIELDS = ['recommendations'];
+const COMMA_SPLIT_FIELDS = ['surveillancePlan'];
+/* single-name gate: hide a field's sub-label when it equals the section title */
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
 
 const KEY_OVERRIDES = {};
 const humanizeKey = (key) => {
@@ -117,7 +122,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -199,7 +204,21 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    // paren-protect '.'/';' inside parentheses (via char-code consts — no literal control chars)
+    const P1 = String.fromCharCode(1), P2 = String.fromCharCode(2);
+    let depth = 0, masked = '';
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '(') { depth++; masked += ch; }
+      else if (ch === ')') { depth = Math.max(0, depth - 1); masked += ch; }
+      else if (depth > 0 && ch === '.') masked += P1;
+      else if (depth > 0 && ch === ';') masked += P2;
+      else masked += ch;
+    }
+    return masked
+      .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/)
+      .map(s => s.split(P1).join('.').split(P2).join(';').replace(/^\d+\.\s+/, '').trim())
+      .filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -475,7 +494,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
   const objectCopyLines = useCallback((label, value, indent) => {
     const pad = '  '.repeat(indent); const out = [];
     if (isEmptyDeep(value)) return out;
-    if (isScalar(value)) { out.push(`${pad}${label ? label + ': ' : ''}${fmtScalar(value)}`); return out; }
+    if (isScalar(value)) { if (label) out.push(`${pad}${label}`); out.push(`${pad}${fmtScalar(value)}`); return out; }
     if (label) out.push(`${pad}${label}:`);
     Object.entries(value).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => out.push(...objectCopyLines(humanizeKey(k), v, indent + (label ? 1 : 0))));
     return out;
@@ -489,9 +508,11 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      // single-name gate: if the field label equals the section title, the '===' header already covers it
+      const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n`;
       if (OBJECT_ARRAY_FIELDS.includes(f)) {
         const recs = Array.isArray(val) ? val : [];
-        text += `${label}\n`;
+        text += labelLine;
         let lastDate = null; let n = 1;
         recs.forEach((r) => {
           const rec = (r?.recommendation || '').trim();
@@ -501,17 +522,17 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
         });
         text += '\n';
       } else if (OBJECT_FIELDS.includes(f)) {
-        text += `${label}\n`;
+        text += labelLine;
         Object.entries(val).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => objectCopyLines(humanizeKey(k), v, 0).forEach(l => { text += `${l}\n`; }));
         text += '\n';
       } else if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${labelLine}${formatDate(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        text += `${labelLine}${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (NESTED_ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => {
+        text += `${labelLine}${items.map((item, i) => {
           const testName = item?.test || item?.type || '';
           const freq = item?.frequency || '';
           const startAt = item?.startingAt ? ` (starting at ${item.startingAt})` : '';
@@ -520,18 +541,22 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
+        const commaParts = splitByComma(strVal);
+        if (COMMA_SPLIT_FIELDS.includes(f) && sentences.length <= 1 && !parseLabel(strVal).isLabeled && commaParts.length >= 2) {
+          text += `${labelLine}${commaParts.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n`;
+        } else if (sentences.length > 1) {
+          text += labelLine;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    // empty-section sentinel: a section with only its header (no populated fields) is dropped from Copy All
+    return text === `${title}\n${'='.repeat(40)}\n\n` ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines, objectCopyLines]);
 
   const copyAllText = useCallback(async () => {
@@ -563,7 +588,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -592,7 +617,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
@@ -648,6 +673,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
           const freq = item?.frequency || '';
           const startAt = item?.startingAt || '';
           const displayText = `${testName}: ${freq}${startAt ? ` (starting at ${startAt})` : ''}`;
+          const valueText = `${freq}${startAt ? ` (starting at ${startAt})` : ''}`;
           const editKeyTest = `antenatalTesting.${itemIdx}.test-${idx}`;
           const editKeyFreq = `antenatalTesting.${itemIdx}.frequency-${idx}`;
           const editKeyStart = `antenatalTesting.${itemIdx}.startingAt-${idx}`;
@@ -672,7 +698,8 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
           const copyKey = `antenatalTesting-${idx}-${itemIdx}`;
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} className="nested-mini-card">
+              <div className="nested-subtitle sub-label">{highlightText(testName)}</div>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditingAny) { setEditingField(editKeyTest); setEditValue(testName); setSaveError(null); } }}>
                 {isEditingAny ? (
                   <div className="edit-field-container">
@@ -692,7 +719,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
                   </div>
                 ) : (
                   <>
-                    <div className="row-content"><span className="content-value">{highlightText(displayText)}</span><span className="edit-indicator">&#9998;</span></div>
+                    <div className="row-content"><span className="content-value">{highlightText(valueText)}</span><span className="edit-indicator">&#9998;</span></div>
                     <button className={`copy-btn ${copiedItems[copyKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(displayText, copyKey); }}>{copiedItems[copyKey] ? 'Copied!' : 'Copy'}</button>
                   </>
                 )}
@@ -721,7 +748,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -801,6 +828,43 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
       );
     }
 
+    /* Scoped comma-split (unlabeled single-sentence, >=2 parts) → value-only editable rows */
+    const commaParts0 = splitByComma(strVal);
+    if (COMMA_SPLIT_FIELDS.includes(fn) && sentences.length <= 1 && !parseLabel(strVal).isLabeled && commaParts0.length >= 2) {
+      return (
+        <div key={fn} className="rec-mini-card">
+          {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+          {commaParts0.map((part, ci) => {
+            const partKey = `${fn}-${idx}-c${ci}`;
+            const ciEditing = editingField === partKey;
+            const ciBadge = editedFields[partKey];
+            return (
+              <div key={ci}>
+                <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(partKey); setEditValue(part); setSaveError(null); } }}>
+                  {ciEditing ? (
+                    <div className="edit-field-container">
+                      <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      {saveError && <div className="save-error">{saveError}</div>}
+                      <div className="edit-actions">
+                        <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const liveParts = splitByComma(String(getFieldValue(record, fn, idx) || '')); liveParts[ci] = editValue.trim(); const joined = liveParts.filter(p => p !== '').join(', '); setSaveError(null); handleSaveField(record, fn, idx, sid, null, joined, partKey); }}>{saving ? 'Saving...' : 'Save'}</button>
+                        <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(part)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[partKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(part, partKey); }}>{copiedItems[partKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+                {ciBadge && <span className="modified-badge">edited - click Pending Approve to save</span>}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     /* Single-value string: simple editable */
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
@@ -808,7 +872,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -853,7 +917,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
     const isEditing = editingField === leafKey;
     const isModified = editedFields[leafKey];
     const isBool = typeof value === 'boolean';
-    const editStartValue = isBool ? (value ? 'yes' : 'no') : leafValueString;
+    const editStartValue = isBool ? (value ? 'Yes' : 'No') : leafValueString;
     return (
       <div key={path[path.length - 1]} className="nested-mini-card">
         <div className="nested-subtitle sub-label">{highlightText(humanizeKey(path[path.length - 1]))}</div>
@@ -861,10 +925,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
           {isEditing ? (
             <div className="edit-field-container">
               {isBool ? (
-                <select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               ) : (
                 <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
               )}
@@ -872,7 +933,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => {
                   e.stopPropagation();
-                  const newVal = isBool ? (editValue === 'yes') : editValue.trim();
+                  const newVal = isBool ? (editValue === 'Yes') : editValue.trim();
                   saveLeaf(record, rootField, path, idx, sid, leafKey, newVal);
                 }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
@@ -919,7 +980,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
     if (entries.length === 0) return null;
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {entries.map(([k, v]) => (
           isScalar(v) ? renderObjectLeaf(record, fn, [k], idx, sid, v)
             : <div className="nested-mini-card" key={k}>{renderObjectNode(record, fn, idx, sid, humanizeKey(k), v, [k], 1)}</div>
@@ -949,7 +1010,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {groups.map((group, gIdx) => {
           const anyVisible = !searchTerm.trim() || phraseMatch || labelMatch || group.date.toLowerCase().includes(phrase) || group.items.some(({ rec }) => (rec?.recommendation || '').toLowerCase().includes(phrase));
           if (searchTerm.trim() && !anyVisible) return null;
@@ -1056,7 +1117,7 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pregnancy Risk Assessment</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PregnancyRiskAssessmentDocumentPDFTemplate document={pdfData} />} fileName={`pregnancy-risk-assessment-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PregnancyRiskAssessmentDocumentPDFTemplate document={pdfData} />} fileName="Pregnancy_Risk_Assessment.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1070,9 +1131,6 @@ const PregnancyRiskAssessmentDocument = ({ document: docProp }) => {
           <div key={idx} className="record-card">
             <div className="record-header">
               <div className="record-meta-row">
-                {hasVal(record.date) && (
-                  <span className="record-date">{formatDate(record.date)}</span>
-                )}
                 {record.riskLevel && (
                   <span className={`risk-badge risk-${String(record.riskLevel).toLowerCase()}`}>
                     {String(record.riskLevel).toUpperCase()} RISK

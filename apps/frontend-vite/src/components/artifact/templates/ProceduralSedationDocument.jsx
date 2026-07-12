@@ -16,6 +16,8 @@ import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ProceduralSedationDocumentPDFTemplate from '../pdf-templates/ProceduralSedationDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import './ProceduralSedationDocument.css';
 
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
@@ -109,6 +111,9 @@ const splitByComma = (text) => {
   return result.length > 0 ? result : [text];
 };
 
+/* stepFor: decimal-aware +/- step for the number stepper */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
+
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
   try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
@@ -180,7 +185,7 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   const splitBySemicolon = useCallback((text) => {
@@ -461,7 +466,8 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
@@ -522,14 +528,14 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
           text += '\n';
         } else {
           if (showLabelCopy) text += `${label}\n`;
-          text += `${strVal}\n\n`;
+          text += `1. ${strVal}\n\n`;
         }
       } else {
         if (showLabelCopy) text += `${label}\n`;
-        text += `${fmtVal(val)}\n\n`;
+        text += `1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, splitBySemicolon, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
@@ -562,7 +568,7 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -598,10 +604,7 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue === 'Yes'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -611,7 +614,7 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -716,6 +719,7 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
 
                 return (
                   <div key={mf.key}>
+                    <div className="nested-subtitle">{highlightText(mf.label)}</div>
                     <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(medVal)); setSaveError(null); } }}>
                       {isEditing ? (
                         <div className="edit-field-container">
@@ -728,8 +732,8 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
                         </div>
                       ) : (
                         <>
-                          <div className="row-content"><span className="content-value"><strong>{highlightText(mf.label)}:</strong> {highlightText(String(medVal))}</span><span className="edit-indicator">&#9998;</span></div>
-                          <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${mf.label}: ${medVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                          <div className="row-content"><span className="content-value">{highlightText(String(medVal))}</span><span className="edit-indicator">&#9998;</span></div>
+                          <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${mf.label}\n${medVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                         </>
                       )}
                     </div>
@@ -762,6 +766,7 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
 
         return (
           <div key={entryIdx}>
+            <div className="nested-subtitle">{highlightText(formattedKey)}</div>
             <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
               {isEditing ? (
                 <div className="edit-field-container">
@@ -774,8 +779,8 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
                 </div>
               ) : (
                 <>
-                  <div className="row-content"><span className="content-value"><strong>{highlightText(formattedKey)}:</strong> {highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-                  <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${formattedKey}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                  <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+                  <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${formattedKey}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                 </>
               )}
             </div>
@@ -894,16 +899,14 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
 
         return (
           <div key={dotPath}>
+            <div className="nested-subtitle">{highlightText(dispKey)}</div>
             <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(isBoolLeaf ? (value ? 'Yes' : 'No') : String(value)); setSaveError(null); } }}>
               {isEditing ? (
                 <div className="edit-field-container">
                   {isBoolLeaf ? (
-                    <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
+                    <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
                   ) : isNumberLeaf ? (
-                    <input type="number" step="any" className="edit-input" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    <div className="number-edit-row"><div className="num-stepper-row"><button type="button" className="num-step" onClick={e => { e.stopPropagation(); const step = stepFor(editValue); const n = Math.max(0, (parseFloat(editValue) || 0) - step); setEditValue(String(Number(n.toFixed(4)))); setSaveError(null); }}>&minus;</button><input className="edit-number" type="text" inputMode="decimal" value={editValue} onChange={e => { setEditValue(e.target.value); setSaveError(null); }} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} /><button type="button" className="num-step" onClick={e => { e.stopPropagation(); const step = stepFor(editValue); const n = Math.max(0, (parseFloat(editValue) || 0) + step); setEditValue(String(Number(n.toFixed(4)))); setSaveError(null); }}>+</button></div></div>
                   ) : (
                     <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                   )}
@@ -932,8 +935,8 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
                 </div>
               ) : (
                 <>
-                  <div className="row-content"><span className="content-value"><strong>{highlightText(dispKey)}:</strong> {highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-                  <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${dispKey}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                  <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+                  <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${dispKey}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                 </>
               )}
             </div>
@@ -1073,7 +1076,7 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
                     {isEditing ? (
                       <div className="edit-field-container">
                         {isDateValue ? (
-                          <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                          <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
                         ) : (
                           <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                         )}
@@ -1254,7 +1257,7 @@ const ProceduralSedationDocument = ({ document: docProp }) => {
         <h2 className="document-title">Procedural Sedation</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<ProceduralSedationDocumentPDFTemplate document={pdfData} />} fileName={`procedural-sedation-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<ProceduralSedationDocumentPDFTemplate document={pdfData} />} fileName="Procedural_Sedation.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

@@ -18,6 +18,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PsychiatricEvaluationsDocumentPDFTemplate from '../pdf-templates/PsychiatricEvaluationsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './PsychiatricEvaluationsDocument.css';
 
@@ -123,6 +124,9 @@ const SUBFIELD_LABELS = {
 
 const formatLabel = (key) => key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).trim();
 
+/* Decimal-aware step for the num-stepper (integer values step by 1) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
+
 /* Derive ordered dot-path subfields for a dynamic-key object root from actual data */
 const deriveObjectFields = (record, sid) => {
   const cfg = OBJECT_SECTIONS[sid];
@@ -136,7 +140,7 @@ const deriveObjectFields = (record, sid) => {
 };
 
 const STATIC_SECTION_FIELDS = {
-  'record-info': ['psychiatrist'],
+  'record-info': ['date', 'psychiatrist'],
   'chief-complaint': ['chiefComplaint'],
   'hpi': ['historyOfPresentIllness'],
   'diagnosis': ['diagnosis'],
@@ -151,7 +155,7 @@ const resolveSectionFields = (record, sid) => {
 
 /* SECTION_FIELDS retained for search loops; object sections use root marker only */
 const SECTION_FIELDS = {
-  'record-info': ['psychiatrist'],
+  'record-info': ['date', 'psychiatrist'],
   'chief-complaint': ['chiefComplaint'],
   'hpi': ['historyOfPresentIllness'],
   'psychiatric-history': ['psychiatricHistory'],
@@ -269,7 +273,7 @@ const PsychiatricEvaluationsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -534,36 +538,46 @@ const PsychiatricEvaluationsDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = resolveSectionFields(record, sid);
     fields.forEach(f => {
       const label = getFieldLabel(f);
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      // single-name gate: a field label identical to its section title renders no label line
+      const showLabel = label.toLowerCase() !== (title || '').toLowerCase();
+      const labelLine = showLabel ? `${label}\n` : '';
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${labelLine}1. ${formatDate(val)}\n\n`;
       } else if (Array.isArray(val)) {
-        text += `${label}\n${val.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        const items = val.filter(Boolean);
+        if (items.length > 0) {
+          text += labelLine;
+          items.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
+          text += '\n';
+        }
+      } else if (typeof val === 'number') {
+        text += `${labelLine}1. ${fmtVal(val)}\n\n`;
       } else {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
         if (sentences.length > 1) {
-          text += `${label}\n`;
+          text += labelLine;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}1. ${strVal}\n\n`;
         }
       }
     });
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== PSYCHIATRIC EVALUATIONS ===\n\n';
     pdfData.forEach((r, idx) => {
       text += `Psychiatric Evaluation ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      if (r.date) text += `Date: ${formatDate(r.date)}\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -581,15 +595,16 @@ const PsychiatricEvaluationsDocument = ({ document: docProp }) => {
     const label = getFieldLabel(fn);
     const displayVal = formatDate(val);
     const isModified = editedFields[editKey];
+    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -614,11 +629,12 @@ const PsychiatricEvaluationsDocument = ({ document: docProp }) => {
     const items = Array.isArray(val) ? val.filter(Boolean) : [];
     if (items.length === 0) return null;
     const label = getFieldLabel(fn);
+    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
@@ -658,12 +674,58 @@ const PsychiatricEvaluationsDocument = ({ document: docProp }) => {
     );
   };
 
+  /* ======= RENDER: NUMBER FIELD (−/+ num-stepper) ======= */
+  const renderNumberField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = getFieldLabel(fn);
+    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
+    const displayVal = fmtVal(val);
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const step = stepFor(editValue);
+    const num = parseFloat(editValue); const safeNum = Number.isFinite(num) ? num : 0;
+    const round = (n) => { const p = String(step).includes('.') ? String(step).split('.')[1].length : 0; return Number(n.toFixed(p)); };
+
+    return (
+      <div key={fn} className="rec-mini-card">
+        {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(val)); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <div className="number-edit-row">
+                <div className="num-stepper-row">
+                  <button className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(round(safeNum - step))); }}>&minus;</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} onClick={e => e.stopPropagation()} autoFocus />
+                  <button className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(round(safeNum + step))); }}>+</button>
+                </div>
+              </div>
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const n = parseFloat(editValue); if (isNaN(n)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, n); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
   /* ======= RENDER: STRING FIELD with splitBySentence ======= */
   const renderStringField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
     const label = getFieldLabel(fn);
+    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     /* Multi-sentence: render with splitBySentence */
@@ -674,7 +736,7 @@ const PsychiatricEvaluationsDocument = ({ document: docProp }) => {
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -761,7 +823,7 @@ const PsychiatricEvaluationsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -809,7 +871,9 @@ const PsychiatricEvaluationsDocument = ({ document: docProp }) => {
           </div>
           {fields.map(f => {
             if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
-            if (isArrayValue(getFieldValue(record, f, idx))) return renderArrayField(record, f, idx, sid);
+            const fv = getFieldValue(record, f, idx);
+            if (isArrayValue(fv)) return renderArrayField(record, f, idx, sid);
+            if (typeof fv === 'number') return renderNumberField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
           })}
         </div>
@@ -833,7 +897,7 @@ const PsychiatricEvaluationsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Psychiatric Evaluations</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PsychiatricEvaluationsDocumentPDFTemplate document={pdfData} />} fileName={`psychiatric-evaluations-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PsychiatricEvaluationsDocumentPDFTemplate document={pdfData} />} fileName="Psychiatric_Evaluations.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -846,12 +910,7 @@ const PsychiatricEvaluationsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                </div>
-              )}
-              <h3 className="record-name">{highlightText(record.psychiatrist || `Psychiatric Evaluation ${idx + 1}`)}</h3>
+              <h3 className="record-name">{highlightText(`Psychiatric Evaluation ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'record-info')}
             {renderSection(record, idx, 'chief-complaint')}

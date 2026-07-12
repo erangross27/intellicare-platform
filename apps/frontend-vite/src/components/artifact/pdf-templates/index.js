@@ -56,7 +56,7 @@ import CurrentMedicationsTemplate from './CurrentMedicationsTemplate';
 import DoctorsMedicationsRecommendationsTemplate from './DoctorsMedicationRecommendationsDocumentPDFTemplate';
 import MedicationsOptimizationsTemplate from './MedicationsOptimizationsTemplate';
 import MedicationsDocumentPDFTemplate from './MedicationsDocumentPDFTemplate';
-import PsychiatricEvaluationsTemplate from './PsychiatricEvaluationsTemplate';
+import PsychiatricEvaluationsDocumentPDFTemplate from './PsychiatricEvaluationsDocumentPDFTemplate';
 import NeuropsychologicalAssessmentsTemplate from './NeuropsychologicalAssessmentsTemplate';
 import GeriatricAssessmentsTemplate from './GeriatricAssessmentsTemplate';
 import FunctionalAssessmentTemplate from './FunctionalAssessmentTemplate';
@@ -130,7 +130,7 @@ const templateRegistry = {
   'doctors_medication_recommendations': DoctorsMedicationsRecommendationsTemplate, // singular legacy flat schema — same box-free dual-schema PDF
   'medications_optimizations': MedicationsOptimizationsTemplate,
   'medications': MedicationsDocumentPDFTemplate,
-  'psychiatric_evaluations': PsychiatricEvaluationsTemplate,
+  'psychiatric_evaluations': PsychiatricEvaluationsDocumentPDFTemplate,
   'neuropsychological_assessments': NeuropsychologicalAssessmentsTemplate,
   'geriatric_assessments': GeriatricAssessmentsTemplate,
   'functional_assessment': FunctionalAssessmentTemplate,

@@ -1,277 +1,283 @@
 /**
  * PsychiatricDischargeSummariesDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt -- LETTER size -- US medical platform
+ * Box-free canonical PDF — Helvetica — LETTER — psychiatric discharge summaries
  * Collection: psychiatric_discharge_summaries
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, backgroundColor: '#f5f5f5', padding: 12, borderWidth: 2, borderColor: '#000000', borderLeftWidth: 5, borderLeftColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 11, color: '#333333', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, marginBottom: 2 },
-  subLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#555555', marginBottom: 1, marginLeft: 8 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 8, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  noDataText: { fontSize: 14, color: '#000000', textAlign: 'center', marginTop: 40 },
 });
 
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; const result = []; let current = ''; let inQuote = false; for (let i = 0; i < text.length; i++) { const ch = text[i]; if (ch === '"' || ch === '\u201C' || ch === '\u201D') { const wasInQuote = inQuote; inQuote = !inQuote; current += ch; if (wasInQuote && !inQuote && current.length >= 2 && current[current.length - 2] === '.' && i + 1 < text.length && /\s/.test(text[i + 1])) { const t2 = current.trim(); if (t2 && !/^[;.,!?]+$/.test(t2)) result.push(t2); current = ''; } continue; } if (ch === '.' && !inQuote && i + 1 < text.length && /\s/.test(text[i + 1])) { const before = current.trim().split(/\s+/).pop() || ''; if (/^(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)$/i.test(before)) { current += ch; continue; } const t = current.trim(); if (t && !/^[;.,!?]+$/.test(t)) result.push(t); current = ''; } else { current += ch; } } const t = current.trim(); if (t && !/^[;.,!?]+$/.test(t)) result.push(t); return result; };
-const parseLabel = (s) => { const m = s.replace(/[;.]+$/, '').trim().match(/^([A-Za-z][A-Za-z0-9 /()-]{1,40}):\s*(.+)$/s); return m ? { label: m[1].trim(), value: m[2].trim() } : { label: null, value: s }; };
-const renderFieldRow = (label, value) => { if (!hasVal(value)) return null; return (<View style={{ marginBottom: 4 }}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{String(value)}</Text></View>); };
-const prettifyKey = (key) => key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
-
-const renderSentenceField = (label, text, sectionTitle) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(String(text));
-  if (sentences.length === 0) return null;
-  let totalItems = sentences.length;
-  sentences.forEach(s => { const p = parseLabel(s); const rv = p.label ? p.value : s; const ci = rv.split(/[,;]\s+/).filter(x => x.trim()); if (ci.length > 1) totalItems += ci.length - 1; });
-  let counter = 1;
-  return (<View style={styles.fieldBox} wrap={totalItems > 8 ? undefined : false}>
-    {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-    <Text style={styles.fieldLabel}>{label}</Text>
-    {sentences.map((s, i) => {
-      const p = parseLabel(s);
-      const rawVal = p.label ? p.value : s.replace(/[;.]+$/, '').trim();
-      // Quote-aware comma/semicolon split
-      const cItems = (() => { const r2 = []; let c2 = ''; let q2 = false; for (let j = 0; j < rawVal.length; j++) { const cc = rawVal[j]; if (cc === '"') { q2 = !q2; c2 += cc; } else if ((cc === ',' || cc === ';') && !q2 && /\s/.test(rawVal[j+1] || '')) { const tt = c2.trim(); if (tt) r2.push(tt); c2 = ''; } else { c2 += cc; } } const tt = c2.trim(); if (tt) r2.push(tt); return r2.length > 0 ? r2 : [rawVal]; })();
-      return (<View key={i} style={{ marginBottom: 3, marginLeft: 8 }}>
-        {p.label && <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 1 }}>{p.label}</Text>}
-        {cItems.length > 1 ? cItems.map((item, ci) => <Text key={ci} style={styles.listItem}>{counter++}. {item.trim()}</Text>) : <Text style={styles.listItem}>{counter++}. {rawVal}</Text>}
-      </View>);
-    })}
-  </View>);
+/* ======= UTILS ======= */
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr.$date || dateStr);
+    if (isNaN(date.getTime())) return String(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(dateStr); }
 };
 
-const PsychiatricDischargeSummariesDocumentPDFTemplate = ({ document: data }) => {
-  /* Handle data unwrapping */
-  let records = [];
-  if (Array.isArray(data)) {
-    records = data;
-  } else if (data?.psychiatric_discharge_summaries && Array.isArray(data.psychiatric_discharge_summaries)) {
-    records = data.psychiatric_discharge_summaries;
-  } else if (data?.documentData) {
-    const docData = data.documentData;
-    if (Array.isArray(docData)) {
-      records = docData;
-    } else if (docData?.psychiatric_discharge_summaries) {
-      records = docData.psychiatric_discharge_summaries;
-    } else if (docData && typeof docData === 'object') {
-      records = [docData];
-    }
-  } else if (data && typeof data === 'object') {
-    records = [data];
+const safeString = (val) => {
+  if (val === null || val === undefined) return '';
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s.replace(/×/g, 'x').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
+};
+
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v).length > 0;
+  return true;
+};
+
+const fmtVal = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return String(v);
+  return String(v || '');
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else { current += ch; }
   }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+
+const prettifyKey = (key) => String(key).replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
+
+/* ======= CONFIG ======= */
+const SECTION_TITLES = {
+  'admission-info': 'Admission Information',
+  'presentation': 'Presentation',
+  'diagnoses': 'Diagnoses',
+  'clinical-assessment': 'Clinical Assessment',
+  'treatment': 'Treatment',
+  'substance-use': 'Substance Use History',
+  'safety-plan': 'Discharge Safety Plan',
+  'discharge-plan': 'Discharge Plan',
+};
+const SECTION_ORDER = ['admission-info', 'presentation', 'diagnoses', 'clinical-assessment', 'treatment', 'substance-use', 'safety-plan', 'discharge-plan'];
+const SECTION_FIELDS = {
+  'admission-info': ['admissionDate', 'dischargeDate', 'legalStatus', 'dischargeDisposition'],
+  'presentation': ['presentingComplaint', 'precipitatingFactors', 'psychoticSymptoms'],
+  'diagnoses': ['primaryDiagnosis', 'secondaryDiagnoses'],
+  'clinical-assessment': ['suicidalIdeation', 'homicidalIdeation', 'mentalStatusExamAtDischarge', 'riskAssessmentAtDischarge'],
+  'treatment': ['therapeuticInterventions', 'dischargeMedications', 'medicationChanges', 'treatmentCompliance', 'restraintSeclusionEvents'],
+  'substance-use': ['substanceUseHistory'],
+  'safety-plan': ['dischargeSafetyPlan'],
+  'discharge-plan': ['aftercareArrangements', 'familyInvolvement', 'functionalStatus', 'insightAndJudgment'],
+};
+const FIELD_LABELS = {
+  admissionDate: 'Admission Date',
+  dischargeDate: 'Discharge Date',
+  legalStatus: 'Legal Status',
+  dischargeDisposition: 'Discharge Disposition',
+  presentingComplaint: 'Presenting Complaint',
+  precipitatingFactors: 'Precipitating Factors',
+  psychoticSymptoms: 'Psychotic Symptoms',
+  primaryDiagnosis: 'Primary Diagnosis',
+  secondaryDiagnoses: 'Secondary Diagnoses',
+  suicidalIdeation: 'Suicidal Ideation',
+  homicidalIdeation: 'Homicidal Ideation',
+  mentalStatusExamAtDischarge: 'Mental Status Exam at Discharge',
+  riskAssessmentAtDischarge: 'Risk Assessment at Discharge',
+  therapeuticInterventions: 'Therapeutic Interventions',
+  dischargeMedications: 'Discharge Medications',
+  medicationChanges: 'Medication Changes',
+  treatmentCompliance: 'Treatment Compliance',
+  restraintSeclusionEvents: 'Restraint/Seclusion Events',
+  substanceUseHistory: 'Substance Use History',
+  dischargeSafetyPlan: 'Discharge Safety Plan',
+  aftercareArrangements: 'Aftercare Arrangements',
+  familyInvolvement: 'Family Involvement',
+  functionalStatus: 'Functional Status',
+  insightAndJudgment: 'Insight and Judgment',
+};
+const DATE_FIELDS = ['admissionDate', 'dischargeDate'];
+const ARRAY_FIELDS = ['secondaryDiagnoses', 'precipitatingFactors', 'psychoticSymptoms', 'dischargeMedications', 'medicationChanges', 'therapeuticInterventions', 'restraintSeclusionEvents'];
+const OBJECT_FIELDS = ['substanceUseHistory', 'mentalStatusExamAtDischarge', 'riskAssessmentAtDischarge', 'dischargeSafetyPlan', 'aftercareArrangements'];
+
+const MSE_SUB_LABELS = { appearance: 'Appearance', behavior: 'Behavior', speech: 'Speech', mood: 'Mood', affect: 'Affect', thoughtProcess: 'Thought Process', thoughtContent: 'Thought Content', perceptions: 'Perceptions', cognition: 'Cognition', insight: 'Insight', judgment: 'Judgment' };
+const RISK_SUB_LABELS = { suicideRisk: 'Suicide Risk', homicideRisk: 'Homicide Risk', relapseRisk: 'Relapse Risk' };
+const SUBSTANCE_SUB_LABELS = { current: 'Current Use', past: 'Past Use', lastUse: 'Last Use', withdrawalSymptoms: 'Withdrawal Symptoms' };
+const SAFETY_PLAN_SUB_LABELS = { warningSigns: 'Warning Signs', copingStrategies: 'Coping Strategies', emergencyContacts: 'Emergency Contacts', crisisResources: 'Crisis Resources' };
+const AFTERCARE_SUB_LABELS = { psychiatry: 'Psychiatry', therapy: 'Therapy', primaryCare: 'Primary Care', caseManagement: 'Case Management', peerSupport: 'Peer Support' };
+const SUB_LABELS_BY_FIELD = {
+  mentalStatusExamAtDischarge: MSE_SUB_LABELS,
+  riskAssessmentAtDischarge: RISK_SUB_LABELS,
+  substanceUseHistory: SUBSTANCE_SUB_LABELS,
+  dischargeSafetyPlan: SAFETY_PLAN_SUB_LABELS,
+  aftercareArrangements: AFTERCARE_SUB_LABELS,
+};
+
+/* ======= FLAT ELEMENT BUILDERS (each returns an array of small <Text> elements) ======= */
+const labelEl = (f) => <Text key={`${f}-l`} style={styles.fieldLabel}>{FIELD_LABELS[f] || f}</Text>;
+
+/* string field → bare label + sentence/comma value lines (mirrors JSX renderStringField display) */
+const stringFieldEls = (f, val, showLabel) => {
+  const strVal = fmtVal(val);
+  const sentences = splitBySentence(strVal);
+  const els = [];
+  if (showLabel) els.push(labelEl(f));
+  if (sentences.length <= 1) {
+    els.push(<Text key={`${f}-v`} style={styles.value}>{safeString(strVal)}</Text>);
+    return els;
+  }
+  let n = 1;
+  sentences.forEach((s, si) => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      els.push(<Text key={`${f}-sl${si}`} style={styles.subLabel}>{safeString(parsed.label)}</Text>);
+      if (parts.length >= 2) parts.forEach((p, pi) => els.push(<Text key={`${f}-s${si}c${pi}`} style={styles.listItem}>{`${n++}. ${safeString(p)}`}</Text>));
+      else els.push(<Text key={`${f}-s${si}v`} style={styles.listItem}>{`${n++}. ${safeString(parsed.value)}`}</Text>);
+    } else {
+      els.push(<Text key={`${f}-s${si}`} style={styles.listItem}>{`${n++}. ${safeString(s)}`}</Text>);
+    }
+  });
+  return els;
+};
+
+/* string array → bare label + one numbered line per item */
+const arrayFieldEls = (f, val, showLabel) => {
+  const items = Array.isArray(val) ? val.filter(Boolean) : [];
+  if (items.length === 0) return [];
+  const els = [];
+  if (showLabel) els.push(labelEl(f));
+  items.forEach((item, i) => els.push(<Text key={`${f}-${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(item)}`}</Text>));
+  return els;
+};
+
+/* nested STRING-leaf object → optional bare label + per-key sub-label + value/list rows */
+const objectFieldEls = (f, val, showLabel) => {
+  if (!val || typeof val !== 'object' || Array.isArray(val)) return [];
+  const entries = Object.entries(val).filter(([, v]) => hasVal(v));
+  if (entries.length === 0) return [];
+  const subLabels = SUB_LABELS_BY_FIELD[f] || null;
+  const els = [];
+  if (showLabel) els.push(labelEl(f));
+  entries.forEach(([k, v]) => {
+    const subLabel = (subLabels && subLabels[k]) || prettifyKey(k);
+    if (Array.isArray(v)) {
+      const items = v.filter(Boolean);
+      if (items.length === 0) return;
+      els.push(<Text key={`${f}-${k}-l`} style={styles.subLabel}>{safeString(subLabel)}</Text>);
+      items.forEach((item, i) => els.push(<Text key={`${f}-${k}-${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(item)}`}</Text>));
+    } else {
+      els.push(<Text key={`${f}-${k}-l`} style={styles.subLabel}>{safeString(subLabel)}</Text>);
+      els.push(<Text key={`${f}-${k}-v`} style={styles.value}>{safeString(fmtVal(v))}</Text>);
+    }
+  });
+  return els;
+};
+
+/* dispatch one field → flat element array */
+const fieldEls = (record, f, sid) => {
+  const val = record[f];
+  if (!hasVal(val)) return [];
+  const sectionTitle = SECTION_TITLES[sid] || '';
+  const label = FIELD_LABELS[f] || f;
+  const showLabel = label.toLowerCase() !== sectionTitle.toLowerCase();
+  if (DATE_FIELDS.includes(f)) return [labelEl(f), <Text key={`${f}-v`} style={styles.value}>{formatDate(val)}</Text>];
+  if (ARRAY_FIELDS.includes(f)) return arrayFieldEls(f, val, showLabel);
+  if (OBJECT_FIELDS.includes(f)) return objectFieldEls(f, val, showLabel);
+  return stringFieldEls(f, val, showLabel);
+};
+
+/* ======= COMPONENT ======= */
+const PsychiatricDischargeSummariesDocumentPDFTemplate = ({ document: data }) => {
+  const records = React.useMemo(() => {
+    if (!data) return [];
+    let arr = Array.isArray(data) ? data : [data];
+    arr = arr.flatMap(r => {
+      if (r?.psychiatric_discharge_summaries) return Array.isArray(r.psychiatric_discharge_summaries) ? r.psychiatric_discharge_summaries : [r.psychiatric_discharge_summaries];
+      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.psychiatric_discharge_summaries) return Array.isArray(dd.psychiatric_discharge_summaries) ? dd.psychiatric_discharge_summaries : [dd.psychiatric_discharge_summaries]; return [dd]; }
+      return [r];
+    });
+    return arr.filter(r => r && typeof r === 'object');
+  }, [data]);
 
   if (!records || records.length === 0) {
-    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Psychiatric Discharge Summary</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page}>
+          <Text style={styles.documentTitle}>Psychiatric Discharge Summary</Text>
+          <Text style={styles.noDataText}>No data available</Text>
+        </Page>
+      </Document>
+    );
   }
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Psychiatric Discharge Summary</Text></View>
-        {records.map((record, idx) => {
-          let counter = 1;
-          return (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>{`Psychiatric Discharge Summary ${idx + 1}`}</Text>
-              {record.createdAt && <Text style={styles.recordMeta}>{formatDate(record.createdAt)}</Text>}
+        <Text style={styles.documentTitle}>Psychiatric Discharge Summary</Text>
+
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <View wrap={false}>
+              <Text style={styles.recordTitle}>{`Psychiatric Discharge Summary ${index + 1}`}</Text>
             </View>
 
-            {/* 1. Admission Information */}
-            {(hasVal(record.admissionDate) || hasVal(record.dischargeDate) || hasVal(record.legalStatus) || hasVal(record.dischargeDisposition)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Admission Information</Text>
-                {hasVal(record.admissionDate) && renderFieldRow('Admission Date', formatDate(record.admissionDate))}
-                {hasVal(record.dischargeDate) && renderFieldRow('Discharge Date', formatDate(record.dischargeDate))}
-                {renderSentenceField('Legal Status', record.legalStatus)}
-                {renderSentenceField('Discharge Disposition', record.dischargeDisposition)}
-              </View>
-            )}
-
-            {/* 2. Presentation */}
-            {(hasVal(record.presentingComplaint) || (Array.isArray(record.precipitatingFactors) && record.precipitatingFactors.length > 0) || (Array.isArray(record.psychoticSymptoms) && record.psychoticSymptoms.length > 0)) && (
-              <View style={styles.section}>
-                {renderSentenceField('Presenting Complaint', record.presentingComplaint, 'Presentation')}
-                {Array.isArray(record.precipitatingFactors) && record.precipitatingFactors.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.precipitatingFactors.length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Precipitating Factors</Text>
-                    {record.precipitatingFactors.filter(Boolean).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
+            {SECTION_ORDER.map((sid) => {
+              const fields = SECTION_FIELDS[sid] || [];
+              const flat = [];
+              fields.forEach(f => flat.push(...fieldEls(record, f, sid)));
+              if (flat.length === 0) return null;
+              const first = React.cloneElement(flat[0], { key: 'f0' });
+              const rest = flat.slice(1).map((el, i) => React.cloneElement(el, { key: `f${i + 1}` }));
+              return (
+                <View key={sid} style={styles.section}>
+                  <View wrap={false}>
+                    <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
+                    {first}
                   </View>
-                )}
-                {Array.isArray(record.psychoticSymptoms) && record.psychoticSymptoms.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.psychoticSymptoms.length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Psychotic Symptoms</Text>
-                    {record.psychoticSymptoms.filter(Boolean).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* 3. Diagnoses */}
-            {(hasVal(record.primaryDiagnosis) || (Array.isArray(record.secondaryDiagnoses) && record.secondaryDiagnoses.length > 0)) && (
-              <View style={styles.section}>
-                {renderSentenceField('Primary Diagnosis', record.primaryDiagnosis, 'Diagnoses')}
-                {Array.isArray(record.secondaryDiagnoses) && record.secondaryDiagnoses.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.secondaryDiagnoses.length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Secondary Diagnoses</Text>
-                    {record.secondaryDiagnoses.filter(Boolean).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* 4. Clinical Assessment */}
-            {(hasVal(record.suicidalIdeation) || hasVal(record.homicidalIdeation) || hasVal(record.mentalStatusExamAtDischarge) || hasVal(record.riskAssessmentAtDischarge)) && (
-              <View style={styles.section}>
-                {renderSentenceField('Suicidal Ideation', record.suicidalIdeation, 'Clinical Assessment')}
-                {renderSentenceField('Homicidal Ideation', record.homicidalIdeation)}
-                {hasVal(record.mentalStatusExamAtDischarge) && typeof record.mentalStatusExamAtDischarge === 'object' && (
-                  <View style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>Mental Status Exam at Discharge</Text>
-                    {Object.entries(record.mentalStatusExamAtDischarge).filter(([, v]) => hasVal(v)).map(([k, v]) => (
-                      <View key={k} style={{ marginBottom: 3, marginLeft: 8 }}>
-                        <Text style={styles.subLabel}>{prettifyKey(k)}</Text>
-                        <Text style={{ ...styles.fieldValue, marginLeft: 8 }}>{String(v)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-                {hasVal(record.riskAssessmentAtDischarge) && typeof record.riskAssessmentAtDischarge === 'object' && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>Risk Assessment at Discharge</Text>
-                    {Object.entries(record.riskAssessmentAtDischarge).filter(([, v]) => hasVal(v)).map(([k, v]) => (
-                      <View key={k} style={{ marginBottom: 3, marginLeft: 8 }}>
-                        <Text style={styles.subLabel}>{prettifyKey(k)}</Text>
-                        <Text style={{ ...styles.fieldValue, marginLeft: 8 }}>{String(v)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* 5. Treatment */}
-            {(hasVal(record.therapeuticInterventions) || hasVal(record.dischargeMedications) || hasVal(record.medicationChanges) || hasVal(record.treatmentCompliance) || hasVal(record.restraintSeclusionEvents)) && (
-              <View style={styles.section}>
-                {Array.isArray(record.therapeuticInterventions) && record.therapeuticInterventions.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.therapeuticInterventions.length > 8 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>Treatment</Text>
-                    <Text style={styles.fieldLabel}>Therapeutic Interventions</Text>
-                    {record.therapeuticInterventions.filter(Boolean).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {Array.isArray(record.dischargeMedications) && record.dischargeMedications.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.dischargeMedications.length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Discharge Medications</Text>
-                    {record.dischargeMedications.filter(Boolean).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {Array.isArray(record.medicationChanges) && record.medicationChanges.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.medicationChanges.length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Medication Changes</Text>
-                    {record.medicationChanges.filter(Boolean).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {renderSentenceField('Treatment Compliance', record.treatmentCompliance)}
-                {Array.isArray(record.restraintSeclusionEvents) && record.restraintSeclusionEvents.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.restraintSeclusionEvents.length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Restraint/Seclusion Events</Text>
-                    {record.restraintSeclusionEvents.filter(Boolean).map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* 6. Substance Use History */}
-            {hasVal(record.substanceUseHistory) && typeof record.substanceUseHistory === 'object' && (
-              <View style={styles.section}>
-                {(() => { const entries = Object.entries(record.substanceUseHistory).filter(([, v]) => hasVal(v)); return entries.length > 0 ? <View style={styles.fieldBox} wrap={entries.length > 8 ? undefined : false}><Text style={styles.sectionTitle}>Substance Use History</Text>{entries.map(([k, v]) => (
-                  <View key={k} style={{ marginBottom: 4, marginLeft: 8 }}>
-                    <Text style={styles.subLabel}>{prettifyKey(k)}</Text>
-                    <Text style={{ ...styles.fieldValue, marginLeft: 8 }}>{String(v)}</Text>
-                  </View>
-                ))}</View> : null; })()}
-              </View>
-            )}
-
-            {/* 7. Discharge Safety Plan */}
-            {hasVal(record.dischargeSafetyPlan) && typeof record.dischargeSafetyPlan === 'object' && (
-              <View style={styles.section}>
-                {(() => { let first = true; return Object.entries(record.dischargeSafetyPlan).filter(([, v]) => hasVal(v)).map(([k, v]) => {
-                  const showTitle = first; first = false;
-                  if (Array.isArray(v) && v.length > 0) {
-                    return (
-                      <View key={k} style={styles.fieldBox} wrap={v.length > 8 ? undefined : false}>
-                        {showTitle && <Text style={styles.sectionTitle}>Discharge Safety Plan</Text>}
-                        <Text style={styles.subLabel}>{prettifyKey(k)}</Text>
-                        {v.filter(Boolean).map((item, i) => (
-                          <Text key={i} style={{ ...styles.listItem, marginLeft: 16 }}>{i + 1}. {String(item)}</Text>
-                        ))}
-                      </View>
-                    );
-                  }
-                  return (
-                    <View key={k} style={styles.fieldBox} wrap={false}>
-                      {showTitle && <Text style={styles.sectionTitle}>Discharge Safety Plan</Text>}
-                      <Text style={styles.subLabel}>{prettifyKey(k)}</Text>
-                      <Text style={{ ...styles.fieldValue, marginLeft: 8 }}>{String(v)}</Text>
-                    </View>
-                  );
-                }); })()}
-              </View>
-            )}
-
-            {/* 8. Discharge Plan */}
-            {(hasVal(record.aftercareArrangements) || hasVal(record.familyInvolvement) || hasVal(record.functionalStatus) || hasVal(record.insightAndJudgment)) && (
-              <View style={styles.section}>
-                {hasVal(record.aftercareArrangements) && typeof record.aftercareArrangements === 'object' && (
-                  <View style={styles.fieldBox} wrap={Object.keys(record.aftercareArrangements).length > 8 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>Discharge Plan</Text>
-                    <Text style={styles.fieldLabel}>Aftercare Arrangements</Text>
-                    {Object.entries(record.aftercareArrangements).filter(([, v]) => hasVal(v)).map(([k, v]) => (
-                      <View key={k} style={{ marginBottom: 3, marginLeft: 8 }}>
-                        <Text style={styles.subLabel}>{prettifyKey(k)}</Text>
-                        <Text style={{ ...styles.fieldValue, marginLeft: 8 }}>{String(v)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-                {renderSentenceField('Family Involvement', record.familyInvolvement)}
-                {renderSentenceField('Functional Status', record.functionalStatus)}
-                {renderSentenceField('Insight and Judgment', record.insightAndJudgment)}
-              </View>
-            )}
+                  {rest}
+                </View>
+              );
+            })}
           </View>
-          );
-        })}
+        ))}
       </Page>
     </Document>
   );

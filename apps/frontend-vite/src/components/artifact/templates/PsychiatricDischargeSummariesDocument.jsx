@@ -16,6 +16,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PsychiatricDischargeSummariesDocumentPDFTemplate from '../pdf-templates/PsychiatricDischargeSummariesDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './PsychiatricDischargeSummariesDocument.css';
 
@@ -131,6 +132,15 @@ const AFTERCARE_SUB_LABELS = {
   peerSupport: 'Peer Support',
 };
 
+/* Per-object sub-label maps — keep Copy/PDF sub-labels consistent with the JSX renderObjectField. */
+const SUB_LABELS_BY_FIELD = {
+  mentalStatusExamAtDischarge: MSE_SUB_LABELS,
+  riskAssessmentAtDischarge: RISK_SUB_LABELS,
+  substanceUseHistory: SUBSTANCE_SUB_LABELS,
+  dischargeSafetyPlan: SAFETY_PLAN_SUB_LABELS,
+  aftercareArrangements: AFTERCARE_SUB_LABELS,
+};
+
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
@@ -224,26 +234,7 @@ const PsychiatricDischargeSummariesDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    const result = []; let current = ''; let inQuote = false;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (ch === '"' || ch === '\u201C' || ch === '\u201D') {
-        const wasInQuote = inQuote; inQuote = !inQuote; current += ch;
-        // After closing quote: if previous char was '.', split here (e.g., `long-term." Judgment:`)
-        if (wasInQuote && !inQuote && current.length >= 2 && current[current.length - 2] === '.' && i + 1 < text.length && /\s/.test(text[i + 1])) {
-          const t = current.trim(); if (t && !/^[;.,!?]+$/.test(t)) result.push(t); current = '';
-        }
-        continue;
-      }
-      if (ch === '.' && !inQuote && i + 1 < text.length && /\s/.test(text[i + 1])) {
-        const before = current.trim().split(/\s+/).pop() || '';
-        if (/^(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)$/i.test(before)) { current += ch; continue; }
-        const t = current.trim(); if (t && !/^[;.,!?]+$/.test(t)) result.push(t);
-        current = '';
-      } else { current += ch; }
-    }
-    const t = current.trim(); if (t && !/^[;.,!?]+$/.test(t)) result.push(t);
-    return result;
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   const splitBySemicolon = useCallback((text) => {
@@ -560,36 +551,43 @@ const PsychiatricDischargeSummariesDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      const showLabel = label.toLowerCase() !== (title || '').toLowerCase();
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${label}\n1. ${formatDate(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val.filter(Boolean) : [];
         if (items.length > 0) {
           text += `${label}\n`;
-          items.forEach((item, i) => { text += `  ${i + 1}. ${item}\n`; });
+          items.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
           text += '\n';
         }
       } else if (OBJECT_FIELDS.includes(f)) {
-        text += `${label}\n`;
         if (typeof val === 'object' && val !== null) {
-          Object.entries(val).forEach(([k, v]) => {
-            if (!hasVal(v)) return;
-            const subLabel = prettifyKey(k);
-            if (Array.isArray(v)) {
-              text += `  ${subLabel}:\n`;
-              v.filter(Boolean).forEach((item, i) => { text += `    ${i + 1}. ${item}\n`; });
-            } else {
-              text += `  ${subLabel}: ${String(v)}\n`;
-            }
-          });
+          const entries = Object.entries(val).filter(([, v]) => hasVal(v));
+          if (entries.length > 0) {
+            if (showLabel) text += `${label}\n`;
+            const subLabels = SUB_LABELS_BY_FIELD[f] || null;
+            entries.forEach(([k, v]) => {
+              const subLabel = (subLabels && subLabels[k]) || prettifyKey(k);
+              if (Array.isArray(v)) {
+                const arrItems = v.filter(Boolean);
+                if (arrItems.length === 0) return;
+                text += `${subLabel}\n`;
+                arrItems.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
+              } else {
+                text += `${subLabel}\n1. ${fmtVal(v)}\n`;
+              }
+            });
+            text += '\n';
+          }
         }
-        text += '\n';
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
@@ -598,21 +596,14 @@ const PsychiatricDischargeSummariesDocument = ({ document: docProp }) => {
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          const scItems = splitBySemicolon(strVal);
-          if (scItems.length >= 3) {
-            text += `${label}\n`;
-            scItems.forEach((item, i) => { text += `  ${i + 1}. ${item}\n`; });
-            text += '\n';
-          } else {
-            text += `${label}\n${strVal}\n\n`;
-          }
+          text += `${label}\n1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${label}\n1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
-  }, [getFieldValue, hasVal, fmtVal, formatDate, splitBySentence, splitBySemicolon, formatSentenceFieldLines]);
+    return text === header ? '' : text;
+  }, [getFieldValue, hasVal, fmtVal, formatDate, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== PSYCHIATRIC DISCHARGE SUMMARY ===\n\n';
@@ -643,7 +634,7 @@ const PsychiatricDischargeSummariesDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(isoVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -1081,7 +1072,7 @@ const PsychiatricDischargeSummariesDocument = ({ document: docProp }) => {
         <h2 className="document-title">Psychiatric Discharge Summary</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PsychiatricDischargeSummariesDocumentPDFTemplate document={pdfData} />} fileName={`psychiatric-discharge-summary-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PsychiatricDischargeSummariesDocumentPDFTemplate document={pdfData} />} fileName="Psychiatric_Discharge_Summaries.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1094,11 +1085,6 @@ const PsychiatricDischargeSummariesDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.createdAt)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Psychiatric Discharge Summary ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'admission-info')}

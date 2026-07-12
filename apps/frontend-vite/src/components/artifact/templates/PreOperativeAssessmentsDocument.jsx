@@ -16,6 +16,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PreOperativeAssessmentsDocumentPDFTemplate from '../pdf-templates/PreOperativeAssessmentsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './PreOperativeAssessmentsDocument.css';
 
@@ -86,6 +87,11 @@ const SECTION_FIELDS = {
 const DATE_FIELDS = ['assessmentDate', 'scheduledSurgeryDate'];
 const ARRAY_FIELDS = ['recommendations'];
 const STRING_FIELDS = ['plannedProcedure', 'preOpDiagnosis', 'medicalHistory', 'surgicalHistory', 'currentMedications', 'allergies', 'asaClass', 'functionalStatus', 'cardiovascularRisk', 'pulmonaryRisk', 'airwayAssessment', 'renalFunction', 'hepaticFunction', 'coagulationStatus', 'anesthesiaType', 'npoStatus', 'preOpTesting', 'riskStratification', 'clearance', 'specialConsiderations'];
+/* Unlabeled clinical comma-lists → split into value-only rows (user prefers aggressive splitting). Guarded per-field to fall back when labeled/multi-sentence/single-part. */
+const COMMA_SPLIT_FIELDS = ['preOpDiagnosis', 'medicalHistory', 'surgicalHistory', 'currentMedications'];
+
+/* sameAsTitle: a field label that equals its section title (single-name collision) → suppress the duplicate nested-subtitle */
+const sameAsTitle = (label, sid) => (SECTION_TITLES[sid] || '') === label;
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -103,7 +109,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -192,8 +198,14 @@ const PreOperativeAssessmentsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
+
+  /* shouldCommaSplit: unlabeled, single-sentence value with ≥2 comma parts → render as value-only rows */
+  const shouldCommaSplit = useCallback((v) => {
+    const s = String(v || '');
+    return !parseLabel(s).isLabeled && splitBySentence(s).length <= 1 && splitByComma(s).length >= 2;
+  }, [splitBySentence]);
 
   function reconstructFullText(sentences) {
     if (!sentences || sentences.length === 0) return '';
@@ -464,11 +476,16 @@ const PreOperativeAssessmentsDocument = ({ document: docProp }) => {
         text += `${label}\n${formatDate(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${getRecText(item)}`).join('\n')}\n\n`;
+        text += `${sameAsTitle(label, sid) ? '' : `${label}\n`}${items.map((item, i) => `${i + 1}. ${getRecText(item)}`).join('\n')}\n\n`;
+      } else if (COMMA_SPLIT_FIELDS.includes(f) && shouldCommaSplit(fmtVal(val))) {
+        const parts = splitByComma(fmtVal(val));
+        text += `${label}\n${parts.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
+        const parsedWhole = parseLabel(strVal);
+        const structured = sentences.length > 1 || (parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2);
+        if (structured) {
           text += `${label}\n`;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
@@ -479,8 +496,9 @@ const PreOperativeAssessmentsDocument = ({ document: docProp }) => {
         text += `${label}\n${fmtVal(val)}\n\n`;
       }
     });
-    return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines, getRecText]);
+    /* Drop an all-empty section entirely (matches JSX renderSection + PDF, keeps Copy All aligned) */
+    return text === `${title}\n${'='.repeat(40)}\n\n` ? '' : text;
+  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines, getRecText, shouldCommaSplit]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== PRE-OPERATIVE ASSESSMENTS ===\n\n';
@@ -511,10 +529,10 @@ const PreOperativeAssessmentsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (!editValue || isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -540,7 +558,7 @@ const PreOperativeAssessmentsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
@@ -589,8 +607,10 @@ const PreOperativeAssessmentsDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* Structured: multi-sentence OR a single labeled comma-list (e.g. "Procedural risks: a, b, c") */
+    const parsedWhole = parseLabel(strVal);
+    const structured = sentences.length > 1 || (parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2);
+    if (structured) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
@@ -707,6 +727,72 @@ const PreOperativeAssessmentsDocument = ({ document: docProp }) => {
     );
   };
 
+  /* ═══════ RENDER: COMMA-SPLIT FIELD (unlabeled clinical lists → value-only rows) ═══════ */
+  function saveCommaPart(record, fn, idx, sid, ci, commaKey) {
+    const id = safeId(record); if (!id) return;
+    const parts = splitByComma(String(getFieldValue(record, fn, idx) || ''));
+    const trimmed = editValue.trim();
+    if (!trimmed) parts.splice(ci, 1); else parts[ci] = trimmed;
+    const fullText = parts.filter(p => p !== '').join(', ');
+    const editKey = `${fn}-${idx}`;
+    setLocalEdits(prev => ({ ...prev, [editKey]: fullText }));
+    setPendingEdits(prev => ({ ...prev, [editKey]: true }));
+    setEditedFields(prev => ({ ...prev, [commaKey]: 'edited' }));
+    setApprovedSections(prev => { const k = `${sid}-${idx}`; if (!prev[k]) return prev; const n = { ...prev }; delete n[k]; return n; });
+    const store = readDrafts();
+    if (!store[id]) store[id] = {};
+    store[id][fn] = fullText;
+    writeDrafts(store);
+    setEditingField(null); setEditValue(''); setSaveError(null);
+  }
+
+  const renderCommaField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const strVal = fmtVal(val);
+    /* Fall back to the string renderer when labeled, multi-sentence, or single-part */
+    if (!shouldCommaSplit(strVal)) return renderStringField(record, fn, idx, sid);
+    const label = FIELD_LABELS[fn] || fn;
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const parts = splitByComma(strVal);
+
+    return (
+      <div key={fn} className="rec-mini-card">
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        {parts.map((part, ci) => {
+          const commaKey = `${fn}-${idx}-c${ci}`;
+          const isEditing = editingField === commaKey;
+          const isModified = editedFields[commaKey];
+          if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
+            const phrase = searchTerm.toLowerCase().trim();
+            if (!part.toLowerCase().includes(phrase) && !label.toLowerCase().includes(phrase)) return null;
+          }
+          return (
+            <div key={ci}>
+              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(commaKey); setEditValue(part); setSaveError(null); } }}>
+                {isEditing ? (
+                  <div className="edit-field-container">
+                    <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    {saveError && <div className="save-error">{saveError}</div>}
+                    <div className="edit-actions">
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveCommaPart(record, fn, idx, sid, ci, commaKey); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="row-content"><span className="content-value">{highlightText(part)}</span><span className="edit-indicator">&#9998;</span></div>
+                    <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(part, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
+                  </>
+                )}
+              </div>
+              {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -733,6 +819,7 @@ const PreOperativeAssessmentsDocument = ({ document: docProp }) => {
           {fields.map(f => {
             if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
+            if (COMMA_SPLIT_FIELDS.includes(f)) return renderCommaField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
           })}
         </div>
@@ -756,7 +843,7 @@ const PreOperativeAssessmentsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pre-Operative Assessments</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PreOperativeAssessmentsDocumentPDFTemplate data={pdfData} />} fileName={`pre-operative-assessments-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PreOperativeAssessmentsDocumentPDFTemplate document={pdfData} />} fileName="Pre_Operative_Assessments.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -769,11 +856,6 @@ const PreOperativeAssessmentsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.assessmentDate) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.assessmentDate)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(record.plannedProcedure || `Pre-Operative Assessment ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'assessment-info')}

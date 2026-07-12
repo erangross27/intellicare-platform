@@ -13,6 +13,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PreeclampsiaMonitoringDocumentPDFTemplate from '../pdf-templates/PreeclampsiaMonitoringDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PreeclampsiaMonitoringDocument.css';
 
@@ -64,6 +65,11 @@ const BOOLEAN_FIELDS = ['visualDisturbances', 'severeHeadache', 'epigastricPain'
 const NUMBER_FIELDS = ['systolicBloodPressure', 'diastolicBloodPressure', 'proteinuria24Hour', 'proteinCreatinineRatio', 'serumCreatinine', 'plateletCount', 'altLevel', 'astLevel', 'ldhLevel', 'serumAlbumin', 'gestationalAge', 'uricAcidLevel', 'fetalWeightPercentile'];
 const STRING_FIELDS = ['dipstickProteinuria', 'umbilicalArteryDoppler', 'middleCerebralArteryDoppler', 'amnioticFluidVolume', 'antihypertensiveMedication'];
 const DATE_FIELDS = [];
+/* Unlabeled comma-list fields the user wants split into value-only rows (aggressive splitting). */
+const COMMA_SPLIT_FIELDS = ['umbilicalArteryDoppler', 'middleCerebralArteryDoppler'];
+
+/* stepFor: decimal-aware +/- step (matches the value's own precision) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -81,7 +87,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -165,8 +171,11 @@ const PreeclampsiaMonitoringDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
+
+  /* shouldCommaSplit: a scoped Doppler field that is an unlabeled single-sentence comma-list (>=2 parts). */
+  const shouldCommaSplit = useCallback((fn, strVal) => COMMA_SPLIT_FIELDS.includes(fn) && !parseLabel(strVal).isLabeled && splitBySentence(strVal).length <= 1 && splitByComma(strVal).length >= 2, [splitBySentence]);
 
   function reconstructFullText(sentences) {
     if (!sentences || sentences.length === 0) return '';
@@ -415,9 +424,12 @@ const PreeclampsiaMonitoringDocument = ({ document: docProp }) => {
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
       if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `${label}\n1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${String(val)}\n\n`;
+        text += `${label}\n1. ${String(val)}\n\n`;
+      } else if (COMMA_SPLIT_FIELDS.includes(f) && shouldCommaSplit(f, fmtVal(val))) {
+        const parts = splitByComma(fmtVal(val));
+        text += `${label}\n${parts.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
@@ -426,14 +438,16 @@ const PreeclampsiaMonitoringDocument = ({ document: docProp }) => {
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${label}\n1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${label}\n1. ${fmtVal(val)}\n\n`;
       }
     });
+    /* Empty-section sentinel: drop a section from Copy All when only its header would be emitted. */
+    if (text === `${title}\n${'='.repeat(40)}\n\n`) return '';
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines, shouldCommaSplit]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== PREECLAMPSIA MONITORING ===\n\n';
@@ -464,10 +478,7 @@ const PreeclampsiaMonitoringDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -502,7 +513,7 @@ const PreeclampsiaMonitoringDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} style={{ minHeight: 'auto', padding: '10px' }} />
+              <div className="number-edit-row"><div className="num-stepper-row"><button className="num-step" onClick={() => setEditValue(v => { const s = stepFor(v); const n = (parseFloat(v) || 0) - s; return String(Math.max(0, parseFloat(n.toFixed(6)))); })}>&minus;</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); } if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} /><button className="num-step" onClick={() => setEditValue(v => { const s = stepFor(v); const n = (parseFloat(v) || 0) + s; return String(parseFloat(n.toFixed(6))); })}>+</button></div></div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -517,6 +528,52 @@ const PreeclampsiaMonitoringDocument = ({ document: docProp }) => {
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: COMMA-SPLIT FIELD (unlabeled comma-list → value-only rows) ═══════ */
+  const renderCommaField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const strVal = fmtVal(val);
+    const parts = splitByComma(strVal);
+    const label = FIELD_LABELS[fn] || fn;
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        {parts.map((part, ci) => {
+          const editKey = `${fn}-${idx}-c${ci}`;
+          const isEditing = editingField === editKey;
+          const isModified = editedFields[editKey];
+          if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
+            const phrase = searchTerm.toLowerCase().trim();
+            if (!label.toLowerCase().includes(phrase) && !part.toLowerCase().includes(phrase)) return null;
+          }
+          return (
+            <div key={ci}>
+              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(part); setSaveError(null); } }}>
+                {isEditing ? (
+                  <div className="edit-field-container">
+                    <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    {saveError && <div className="save-error">{saveError}</div>}
+                    <div className="edit-actions">
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; setSaveError(null); const liveParts = splitByComma(String(getFieldValue(record, fn, idx) || '')); liveParts[ci] = editValue.trim(); const joined = liveParts.filter(p => p !== '').join(', '); handleSaveField(record, fn, idx, sid, null, joined, editKey); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="row-content"><span className="content-value">{highlightText(part)}</span><span className="edit-indicator">&#9998;</span></div>
+                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(part, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                  </>
+                )}
+              </div>
+              {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -675,6 +732,7 @@ const PreeclampsiaMonitoringDocument = ({ document: docProp }) => {
           {fields.map(f => {
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
+            if (COMMA_SPLIT_FIELDS.includes(f) && shouldCommaSplit(f, fmtVal(getFieldValue(record, f, idx)))) return renderCommaField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
           })}
         </div>
@@ -698,7 +756,7 @@ const PreeclampsiaMonitoringDocument = ({ document: docProp }) => {
         <h2 className="document-title">Preeclampsia Monitoring</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PreeclampsiaMonitoringDocumentPDFTemplate document={pdfData} />} fileName={`preeclampsia-monitoring-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PreeclampsiaMonitoringDocumentPDFTemplate document={pdfData} />} fileName="Preeclampsia_Monitoring.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

@@ -1,29 +1,23 @@
 /**
  * PrimaryProphylaxisDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — primary prophylaxis
+ * Box-free B&W — LETTER size — primary prophylaxis
  * Collection: primary_prophylaxis
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 6, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 10 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
@@ -37,12 +31,19 @@ const formatDate = (dateStr) => {
 };
 
 const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+  let s;
+  if (val === null || val === undefined) s = '';
+  else if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s
+    .replace(/×/g, 'x')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/…/g, '...');
 };
 
 const hasVal = (v) => {
@@ -63,7 +64,7 @@ const fmtVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -87,118 +88,108 @@ const splitByComma = (text) => {
   return result.length > 0 ? result : [text];
 };
 
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
+/* ======= CONFIG (mirrors JSX) ======= */
+const SECTION_TITLES = {
+  'prophylaxis-info': 'Prophylaxis Information',
+  'clinical-details': 'Clinical Details',
+  'recommendations': 'Recommendations',
+  'notes': 'Notes',
 };
 
-/* renderDateField */
-const renderDateFieldPDF = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
-    </View>
-  );
+const FIELD_LABELS = {
+  date: 'Date', infection: 'Infection', medication: 'Medication', threshold: 'Threshold',
+  provider: 'Provider', status: 'Status', type: 'Type', facility: 'Facility',
+  findings: 'Findings', assessment: 'Assessment', plan: 'Plan',
+  recommendations: 'Recommendations', notes: 'Notes',
 };
 
-/* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
-  if (!hasVal(text)) return null;
+const SECTION_FIELDS = {
+  'prophylaxis-info': ['date', 'infection', 'medication', 'threshold', 'provider', 'status'],
+  'clinical-details': ['type', 'facility', 'findings', 'assessment', 'plan'],
+  'recommendations': ['recommendations'],
+  'notes': ['notes'],
+};
+
+const SECTION_ORDER = ['prophylaxis-info', 'clinical-details', 'recommendations', 'notes'];
+const DATE_FIELDS = ['date'];
+const ARRAY_FIELDS = ['recommendations'];
+const STRING_FIELDS = ['infection', 'medication', 'threshold', 'provider', 'status', 'type', 'facility', 'findings', 'assessment', 'plan', 'notes'];
+
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* formatSentenceLines: mirror JSX formatSentenceFieldLines (labeled sub + comma-split, else numbered) */
+const formatSentenceLines = (text) => {
   const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
-  const rows = [];
-  let n = 1;
+  const rows = []; let n = 1;
   sentences.forEach(s => {
     const parsed = parseLabel(s);
     if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
+      const parts = splitByComma(parsed.value);
+      if (parts.length >= 2) {
+        rows.push({ type: 'sub', text: parsed.label });
+        parts.forEach(item => rows.push({ type: 'item', text: item, num: n++ }));
       } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
+        rows.push({ type: 'sub', text: parsed.label });
+        rows.push({ type: 'item', text: parsed.value, num: n++ });
       }
     } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
+      rows.push({ type: 'item', text: s, num: n++ });
     }
   });
+  return rows;
+};
 
-  const wrapProp = rows.length > 8 ? undefined : false;
+/* fieldBody: FLAT array of small Text elements (bare sameAsTitle-gated label + value/numbered rows) */
+const fieldBody = (record, sid, f) => {
+  const val = record[f];
+  if (!hasVal(val)) return [];
+  const label = FIELD_LABELS[f] || f;
+  const els = [];
+  if (!sameAsTitle(label, sid)) els.push(<Text style={styles.fieldLabel}>{safeString(label)}</Text>);
+  if (DATE_FIELDS.includes(f)) {
+    els.push(<Text style={styles.value}>{formatDate(val)}</Text>);
+  } else if (ARRAY_FIELDS.includes(f)) {
+    const items = (Array.isArray(val) ? val : [val]).filter(Boolean);
+    items.forEach((item, i) => els.push(<Text style={styles.listItem}>{`${i + 1}. ${safeString(item)}`}</Text>));
+  } else if (STRING_FIELDS.includes(f)) {
+    const strVal = fmtVal(val);
+    const sentences = splitBySentence(strVal);
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+      formatSentenceLines(strVal).forEach(row => {
+        if (row.type === 'sub') els.push(<Text style={styles.subLabel}>{safeString(row.text)}</Text>);
+        else els.push(<Text style={styles.listItem}>{`${row.num}. ${safeString(row.text)}`}</Text>);
+      });
+    } else {
+      els.push(<Text style={styles.value}>{safeString(strVal)}</Text>);
+    }
+  } else {
+    els.push(<Text style={styles.value}>{safeString(fmtVal(val))}</Text>);
+  }
+  return els;
+};
 
+/* renderSection: FLATTEN anti-orphan — glue sectionTitle + first element, rest flow */
+const renderSection = (record, sid, sIdx) => {
+  const title = SECTION_TITLES[sid];
+  const fields = SECTION_FIELDS[sid] || [];
+  const allEls = [];
+  fields.forEach(f => {
+    fieldBody(record, sid, f).forEach((el, i) => {
+      allEls.push(React.cloneElement(el, { key: `${f}-${i}` }));
+    });
+  });
+  if (allEls.length === 0) return null;
+  const [first, ...rest] = allEls;
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
+    <View key={sIdx} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{safeString(title)}</Text>
+        {first}
+      </View>
+      {rest}
     </View>
   );
 };
-
-/* renderArrayField */
-const renderArrayFieldPDF = (label, items) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* SECTION CONFIGS */
-const SECTION_CONFIGS = [
-  {
-    title: 'Prophylaxis Information',
-    fields: [
-      { key: 'date', label: 'Date', isDate: true },
-      { key: 'infection', label: 'Infection', isSentence: true },
-      { key: 'medication', label: 'Medication', isSentence: true },
-      { key: 'threshold', label: 'Threshold', isSentence: true },
-      { key: 'provider', label: 'Provider', isSentence: true },
-      { key: 'status', label: 'Status', isSentence: true },
-    ],
-  },
-  {
-    title: 'Clinical Details',
-    fields: [
-      { key: 'type', label: 'Type', isSentence: true },
-      { key: 'facility', label: 'Facility', isSentence: true },
-      { key: 'findings', label: 'Findings', isSentence: true },
-      { key: 'assessment', label: 'Assessment', isSentence: true },
-      { key: 'plan', label: 'Plan', isSentence: true },
-    ],
-  },
-  {
-    title: 'Recommendations',
-    fields: [
-      { key: 'recommendations', label: 'Recommendations', isArray: true },
-    ],
-  },
-  {
-    title: 'Notes',
-    fields: [
-      { key: 'notes', label: 'Notes', isSentence: true },
-    ],
-  },
-];
 
 /* ======= COMPONENT ======= */
 const PrimaryProphylaxisDocumentPDFTemplate = ({ document: data }) => {
@@ -217,9 +208,7 @@ const PrimaryProphylaxisDocumentPDFTemplate = ({ document: data }) => {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Primary Prophylaxis</Text>
-          </View>
+          <Text style={styles.documentTitle}>Primary Prophylaxis</Text>
           <Text style={styles.noDataText}>No data available</Text>
         </Page>
       </Document>
@@ -229,47 +218,11 @@ const PrimaryProphylaxisDocumentPDFTemplate = ({ document: data }) => {
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Primary Prophylaxis</Text>
-        </View>
-
+        <Text style={styles.documentTitle}>Primary Prophylaxis</Text>
         {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {record.infection || `Primary Prophylaxis ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const hasAnyVal = sectionConfig.fields.some(f => hasVal(record[f.key]));
-              if (!hasAnyVal) return null;
-
-              return (
-                <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = record[field.key];
-                    if (!hasVal(val)) return null;
-
-                    if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
-                    if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
-                  })}
-                </View>
-              );
-            })}
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <Text style={styles.recordTitle}>{`Primary Prophylaxis ${index + 1}`}</Text>
+            {SECTION_ORDER.map((sid, sIdx) => renderSection(record, sid, sIdx))}
           </View>
         ))}
       </Page>

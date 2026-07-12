@@ -18,6 +18,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PreconceptionCounselingDocumentPDFTemplate from '../pdf-templates/PreconceptionCounselingDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PreconceptionCounselingDocument.css';
 
@@ -111,9 +112,15 @@ const flattenResults = (obj, prefix = '', labelPrefix = '') => {
 };
 
 const BOOLEAN_FIELDS = ['planning', 'contraceptionDiscussed', 'geneticCounseling'];
-const DATE_FIELDS = ['date'];
+const DATE_FIELDS = [];
 const ARRAY_FIELDS = ['medicationAdjustments', 'risksDiscussed', 'recommendations'];
 const STRING_FIELDS = ['provider', 'facility', 'targetHbA1c', 'folicAcidDose', 'findings', 'assessment', 'plan', 'notes'];
+
+/* sameAsTitle: gate a nested-subtitle when the field label duplicates its section title */
+const sameAsTitle = (label, sid) => (SECTION_TITLES[sid] || '') === label;
+
+/* stepFor: decimal-aware +/- step (matches the value's own precision) */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -131,7 +138,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '') && !/^\s*\d{4}\b/.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -206,7 +213,7 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.replace(/^\d+\.\s+/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -442,13 +449,12 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
-      if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
-      } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+      const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n`;
+      if (BOOLEAN_FIELDS.includes(f)) {
+        text += `${label}\n${val ? 'Yes' : 'No'}\n\n`;
       } else if (f === 'medicationAdjustments') {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n`;
+        text += labelLine;
         items.forEach((item, i) => {
           const medName = item.medication || item.name || '';
           const medAction = item.change || item.action || item.adjustment || '';
@@ -458,15 +464,15 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
       } else if (f === 'results') {
         const rows = flattenResults(val);
         if (rows.length === 0) return;
-        text += `${label}\n`;
-        rows.forEach(row => { text += `${row.label}: ${row.value}\n`; });
+        text += labelLine;
+        rows.forEach(row => { text += `${row.label}\n${row.value}\n`; });
         text += '\n';
       } else if (f === 'risksDiscussed') {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        text += `${labelLine}${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (f === 'recommendations') {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n`;
+        text += labelLine;
         items.forEach((item, i) => {
           const recText = typeof item === 'string' ? item : item.recommendation || '';
           const recDate = typeof item === 'object' && item.date ? formatDate(item.date) : null;
@@ -477,17 +483,22 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
+        const parsedWhole = parseLabel(strVal);
+        const structured = sentences.length > 1 || (parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2);
+        if (structured) {
+          text += labelLine;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}${fmtVal(val)}\n\n`;
       }
     });
+    /* Empty-section sentinel: if only the header would be emitted, drop the section from Copy All
+       (keeps Copy==PDF parity — an empty section renders nothing in the PDF). */
+    if (text === `${title}\n${'='.repeat(40)}\n\n`) return '';
     return text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
@@ -495,9 +506,8 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
     let text = '=== PRECONCEPTION COUNSELING ===\n\n';
     pdfData.forEach((r, idx) => {
       text += `Preconception Counseling ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      if (r.date) text += `Date: ${formatDate(r.date)}\n`;
-      if (r.status) text += `Status: ${r.status}\n`;
-      text += '\n';
+      if (r.date) text += `Date\n${formatDate(r.date)}\n\n`;
+      if (r.status) text += `Status\n${r.status}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -507,40 +517,8 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
-  /* ═══════ RENDER: DATE FIELD ═══════ */
-  const renderDateField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
-    const displayVal = formatDate(val);
-    const isModified = editedFields[editKey];
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
+  /* Date is a real clinical date rendered as a display-only header pill (not a section field),
+     so there is no editable date widget here (avoids a native <input type=date>). */
 
   /* ═══════ RENDER: BOOLEAN FIELD ═══════ */
   const renderBooleanField = (record, fn, idx, sid) => {
@@ -554,14 +532,11 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={v => { setEditValue(v); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -590,7 +565,7 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const medName = item.medication || item.name || '';
           const medAction = item.change || item.action || item.adjustment || '';
@@ -667,7 +642,7 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
     if (fn === 'recommendations') {
       return (
         <div key={fn} className="rec-mini-card">
-          <div className="nested-subtitle">{highlightText(label)}</div>
+          {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
           {items.map((item, itemIdx) => {
             const recText = typeof item === 'string' ? item : (item.recommendation || '');
             const recDate = typeof item === 'object' && item.date ? formatDate(item.date) : null;
@@ -712,7 +687,7 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
     /* risksDiscussed: simple string array */
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
@@ -760,15 +735,20 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
+    /* A single sentence that is itself "Label: a, b, c" must route through the sentence renderer
+       (sub-label + comma rows), else the whole "Label: ..." lands in one row = side-by-side. */
+    const parsedWhole = parseLabel(strVal);
+    const singleLabeledList = sentences.length === 1 && parsedWhole.isLabeled && splitByComma(parsedWhole.value).length >= 2;
+
     /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    if (sentences.length > 1 || singleLabeledList) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -855,7 +835,7 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -889,7 +869,7 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {rows.map((row) => {
           const editKey = `${fn}.${row.keyPath}-${idx}`;
           const isEditing = editingField === editKey;
@@ -922,7 +902,7 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
                 {isEditing ? (
                   <div className="edit-field-container">
                     {isNumeric
-                      ? <input type="number" step="any" className="edit-input" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      ? <div className="number-edit-row"><div className="num-stepper-row"><button className="num-step" onClick={() => setEditValue(v => { const s = stepFor(v); const n = (parseFloat(v) || 0) - s; return String(Math.max(0, parseFloat(n.toFixed(6)))); })}>&minus;</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveLeaf(); } if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} /><button className="num-step" onClick={() => setEditValue(v => { const s = stepFor(v); const n = (parseFloat(v) || 0) + s; return String(parseFloat(n.toFixed(6))); })}>+</button></div></div>
                       : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
                     {saveError && <div className="save-error">{saveError}</div>}
                     <div className="edit-actions">
@@ -971,7 +951,6 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
           {fields.map(f => {
             if (f === 'results') return renderResultsField(record, f, idx, sid);
             if (f === 'medicationAdjustments') return renderMedicationAdjustments(record, f, idx, sid);
-            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid, title);
@@ -997,7 +976,7 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
         <h2 className="document-title">Preconception Counseling</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PreconceptionCounselingDocumentPDFTemplate document={pdfData} />} fileName={`preconception-counseling-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PreconceptionCounselingDocumentPDFTemplate document={pdfData} />} fileName="Preconception_Counseling.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1027,6 +1006,7 @@ const PreconceptionCounselingDocument = ({ document: docProp }) => {
             {renderSection(record, idx, 'assessment')}
             {renderSection(record, idx, 'plan')}
             {renderSection(record, idx, 'recommendations')}
+            {renderSection(record, idx, 'results')}
             {renderSection(record, idx, 'notes')}
           </div>
         ))}

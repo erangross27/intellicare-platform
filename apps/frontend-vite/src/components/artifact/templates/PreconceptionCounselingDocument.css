@@ -1,5 +1,6 @@
 /* PreconceptionCounselingDocument.css — March 2026 Blue glow editing theme */
-.preconception-counseling-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.preconception-counseling-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; }
+.preconception-counseling-document * { direction: ltr; }
 .preconception-counseling-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .preconception-counseling-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .preconception-counseling-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -39,17 +40,18 @@
 .preconception-counseling-document .modified-badge.added { color: #4ade80; }
 .preconception-counseling-document .edit-field-container { width: 100%; }
 .preconception-counseling-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.preconception-counseling-document .edit-input { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
-.preconception-counseling-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
-.preconception-counseling-document .edit-select option { background: #0F1B33; color: #ececf1; }
-.preconception-counseling-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.preconception-counseling-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-.preconception-counseling-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.preconception-counseling-document .number-edit-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.preconception-counseling-document .num-stepper-row { display: flex; align-items: center; gap: 8px; flex: 1; }
+.preconception-counseling-document .num-step { width: 40px; height: 40px; flex-shrink: 0; background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 2px solid #60a5fa; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'Comfortaa', sans-serif; }
+.preconception-counseling-document .num-step:hover { background: rgba(96, 165, 250, 0.3); }
+.preconception-counseling-document .edit-number { flex: 1; text-align: center; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.preconception-counseling-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
 .preconception-counseling-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .preconception-counseling-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .preconception-counseling-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
-.preconception-counseling-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
-.preconception-counseling-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.preconception-counseling-document .approve-btn { text-transform: capitalize; }
+.preconception-counseling-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.preconception-counseling-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
 .preconception-counseling-document .search-container { margin-bottom: 20px; }
 .preconception-counseling-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
 .preconception-counseling-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }

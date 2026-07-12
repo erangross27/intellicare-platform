@@ -32,9 +32,10 @@
 .pulmonology-consultations-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
 .pulmonology-consultations-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
 .pulmonology-consultations-document .modified-badge.added { color: #4ade80; }
-.pulmonology-consultations-document .edit-field-container { width: 100%; }
+.pulmonology-consultations-document .edit-field-container { width: 100%; flex: 1 1 100%; }
 .pulmonology-consultations-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.pulmonology-consultations-document .number-edit-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.pulmonology-consultations-document .number-edit-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.pulmonology-consultations-document .num-stepper-row { display: flex; align-items: center; gap: 8px; flex: 1; width: 100%; }
 .pulmonology-consultations-document .num-step { width: 42px; min-height: 42px; flex: 0 0 42px; border: 2px solid #60a5fa; border-radius: 6px; background: rgba(96, 165, 250, 0.15); color: #bfdbfe; font-family: 'Comfortaa', sans-serif; font-size: 20px; font-weight: 700; cursor: pointer; }
 .pulmonology-consultations-document .num-step:hover { background: rgba(96, 165, 250, 0.28); }
 .pulmonology-consultations-document .edit-number { flex: 1; min-width: 0; min-height: 42px; padding: 8px 12px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; text-align: center; }

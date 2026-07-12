@@ -19,6 +19,7 @@ import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PulmonologyConsultationsDocumentPDFTemplate from '../pdf-templates/PulmonologyConsultationsDocumentPDFTemplate';
 import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PulmonologyConsultationsDocument.css';
 
@@ -106,6 +107,30 @@ const STRING_FIELDS = ['type', 'provider', 'facility', 'status', 'primaryDiagnos
 const MEANINGFUL_ZERO_FIELDS = [];
 const COPY_LINE_EQ = '='.repeat(40);
 const COPY_LINE_DASH = '-'.repeat(40);
+
+const SPECIAL_SECTION_PREFIXES = {
+  symptoms: ['cough.', 'dyspnea.'],
+  bronchodilators: ['bronchodilators.'],
+  corticosteroids: ['corticosteroids.'],
+  recommendations: ['recommendations.'],
+  'arterial-blood-gas': ['arterialBloodGas.'],
+  'oxygen-therapy': ['oxygenTherapy.'],
+  'smoking-cessation': ['smokingCessation.'],
+};
+
+const sectionOwnsField = (sid, field) => {
+  if ((SECTION_FIELDS[sid] || []).includes(field)) return true;
+  return (SPECIAL_SECTION_PREFIXES[sid] || []).some(prefix => field.startsWith(prefix));
+};
+
+const setNestedCopy = (source, path, value) => {
+  if (path.length === 0) return value;
+  const [head, ...rest] = path;
+  const base = source ?? (/^\d+$/.test(head) ? [] : {});
+  const copy = Array.isArray(base) ? [...base] : { ...base };
+  copy[head] = setNestedCopy(base?.[head], rest, value);
+  return copy;
+};
 
 const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
 const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
@@ -337,10 +362,8 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           const fieldName = m[1];
           if (fieldName.includes('.')) {
             const parts = fieldName.split('.');
-            if (parts.length === 2) {
-              if (!merged[parts[0]]) merged[parts[0]] = {};
-              merged[parts[0]] = { ...merged[parts[0]], [parts[1]]: localEdits[key] };
-            }
+            const [root, ...path] = parts;
+            merged[root] = setNestedCopy(merged[root], path, localEdits[key]);
           } else {
             merged[fieldName] = localEdits[key];
           }
@@ -413,10 +436,13 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       return Object.keys(editedFields).some(k => k.startsWith('results.') && k.endsWith(`-${idx}`));
     }
     const fields = SECTION_FIELDS[sid] || [];
-    return fields.some(f =>
+    const genericEdit = fields.some(f =>
       Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) ||
       Object.keys(editedSentences).some(k => k.startsWith(`${f}-${idx}`))
     );
+    if (genericEdit) return true;
+    const suffix = `-${idx}`;
+    return Object.keys(editedFields).some(k => k.endsWith(suffix) && sectionOwnsField(sid, k.slice(0, -suffix.length)));
   }, [editedFields, editedSentences]);
 
   // Approve = COMMIT all staged drafts for this section to MongoDB, then clear pending so the committed
@@ -440,10 +466,21 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           }
           committedKeys.push(resKey);
         }
+        const suffix = `-${idx}`;
+        const nestedResultDrafts = Object.keys(pendingEdits)
+          .filter(k => pendingEdits[k] && k.startsWith('results.') && k.endsWith(suffix));
+        for (const editKey of nestedResultDrafts) {
+          const field = editKey.slice(0, -suffix.length);
+          await secureApiClient.put(`/api/edit/pulmonology_consultations/${id}/edit`, { field, value: localEdits[editKey] });
+          committedKeys.push(editKey);
+        }
       } else {
-        for (const f of fields) {
-          const editKey = `${f}-${idx}`;
-          if (!pendingEdits[editKey]) continue;
+        const suffix = `-${idx}`;
+        const stagedFields = Object.keys(pendingEdits)
+          .filter(k => pendingEdits[k] && k.endsWith(suffix))
+          .map(k => ({ editKey: k, field: k.slice(0, -suffix.length) }))
+          .filter(({ field }) => sectionOwnsField(sid, field));
+        for (const { editKey, field: f } of stagedFields) {
           const value = localEdits[editKey];
           // Treat a dot-suffix as arrayIndex ONLY when the segment after the LAST dot is purely numeric.
           const lastDot = f.lastIndexOf('.');
@@ -473,7 +510,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
 
       setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
       if (sid === 'results') { setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { if (k.startsWith('results.') && k.endsWith(`-${idx}`)) delete n[k]; }); return n; }); }
-      setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) delete n[k]; }); }); return n; });
+      setEditedFields(prev => { const n = { ...prev }; const suffix = `-${idx}`; Object.keys(n).forEach(k => { const special = k.endsWith(suffix) && sectionOwnsField(sid, k.slice(0, -suffix.length)); fields.forEach(f => { if (special || k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(suffix))) delete n[k]; }); if (special && fields.length === 0) delete n[k]; }); return n; });
       setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
     } catch (err) { console.error(err); }
   }, [safeId, localEdits, pendingEdits, editedFields]);
@@ -561,7 +598,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     const ox = record.oxygenTherapy;
     if (!ox || typeof ox !== 'object') return '';
     const rows = [];
-    if (ox.prescribed === true) rows.push(['Prescribed', 'Yes']);
+    if (typeof ox.prescribed === 'boolean') rows.push(['Prescribed', ox.prescribed ? 'Yes' : 'No']);
     if (hasVal(ox.deliveryMethod)) rows.push(['Delivery Method', ox.deliveryMethod]);
     if (hasVal(ox.flowRate)) rows.push(['Flow Rate', ox.flowRate]);
     if (hasVal(ox.duration)) rows.push(['Duration', ox.duration]);
@@ -914,6 +951,75 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     );
   };
 
+  /* ═══════ RENDER: NESTED SCALAR FIELD (all bespoke object/array sections) ═══════ */
+  const renderNestedEditableField = (record, fn, idx, sid, label, fieldType = 'text', selectOptions = []) => {
+    const val = getFieldValue(record, fn, idx);
+    if (!hasVal(val) || (fieldType === 'date' && isEpochSentinel(val))) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const isModified = editedFields[editKey];
+    const displayVal = fieldType === 'boolean' ? (val ? 'Yes' : 'No') : fieldType === 'date' ? formatDate(val) : String(val);
+    const editStart = fieldType === 'boolean' ? (val ? 'Yes' : 'No') : fieldType === 'date' ? toInputDate(val) : String(val);
+    const options = selectOptions.includes(displayVal) || !displayVal ? selectOptions : [displayVal, ...selectOptions];
+    const step = stepFor(editValue || val);
+    const numeric = Number(editValue);
+    const safeNumeric = Number.isFinite(numeric) ? numeric : 0;
+    const decimals = String(step).includes('.') ? String(step).split('.')[1].length : 0;
+    const adjust = amount => setEditValue(String(Number((safeNumeric + amount).toFixed(decimals))));
+
+    const save = e => {
+      e.stopPropagation();
+      let saveVal = editValue;
+      if (fieldType === 'boolean') saveVal = editValue === 'Yes';
+      if (fieldType === 'number') {
+        const parsed = Number(editValue);
+        if (!Number.isFinite(parsed)) { setSaveError('Please enter a valid number'); return; }
+        saveVal = parsed;
+      }
+      if (fieldType === 'date' && isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; }
+      if (fieldType === 'text' || fieldType === 'select') saveVal = editValue.trim();
+      handleSaveField(record, fn, idx, sid, null, saveVal);
+    };
+
+    return (
+      <div key={fn} className="nested-field-card" data-edit-field={fn}>
+        <div className="field-label">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(editStart); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              {fieldType === 'boolean' || fieldType === 'select' ? (
+                <BlueSelect value={editValue} options={fieldType === 'boolean' ? ['Yes', 'No'] : options} onChange={value => setEditValue(value)} />
+              ) : fieldType === 'date' ? (
+                <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value); setSaveError(null); }} />
+              ) : fieldType === 'number' ? (
+                <div className="number-edit-row" onClick={e => e.stopPropagation()}>
+                  <div className="num-stepper-row">
+                    <button type="button" className="num-step" onClick={() => adjust(-step)}>&minus;</button>
+                    <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    <button type="button" className="num-step" onClick={() => adjust(step)}>+</button>
+                  </div>
+                </div>
+              ) : (
+                <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              )}
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={save}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -960,13 +1066,15 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       if (!titleMatch && !contentMatch) return null;
     }
     const copyId = `bronchodilators-${idx}`;
+    const copyBronchodilators = pdfData[idx]?.bronchodilators || record.bronchodilators;
     return (
       <div className="section">
         <div className="mini-cards-container">
           <div className="section-header">
             <h4 className="section-title">{highlightText('Bronchodilators')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Bronchodilators', COPY_LINE_EQ]; record.bronchodilators.forEach((med) => { lines.push('', `${med.medication}${med.type ? ` (${med.type})` : ''}`); if (med.dose) lines.push('Dose', COPY_LINE_DASH, `1. ${med.dose}`); if (med.device) lines.push('Device', COPY_LINE_DASH, `1. ${med.device}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Bronchodilators', COPY_LINE_EQ]; copyBronchodilators.forEach((med) => { lines.push('', `${med.medication}${med.type ? ` (${med.type})` : ''}`); if (med.dose) lines.push('Dose', COPY_LINE_DASH, `1. ${med.dose}`); if (med.device) lines.push('Device', COPY_LINE_DASH, `1. ${med.device}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              {renderApproveButton(record, sid, idx)}
             </div>
           </div>
           {record.bronchodilators.map((med, medIdx) => {
@@ -977,22 +1085,11 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
             }
             return (
               <div key={medIdx} className="rec-mini-card">
-                <div className="nested-subtitle">{highlightText(`${med.medication} (${med.type})`)}</div>
-                <div className="nested-field-card">
-                  <div className="field-label">{highlightText('Dose')}</div>
-                  <div className="numbered-row">
-                    <div className="row-content"><span className="content-value">{highlightText(med.dose)}</span></div>
-                    <button className={`copy-btn ${copiedItems[`broncho-${idx}-${medIdx}`] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${med.medication} (${med.type}): ${med.dose}`, `broncho-${idx}-${medIdx}`); }}>{copiedItems[`broncho-${idx}-${medIdx}`] ? 'Copied!' : 'Copy'}</button>
-                  </div>
-                </div>
-                {med.device && (
-                  <div className="nested-field-card">
-                    <div className="field-label">{highlightText('Device')}</div>
-                    <div className="numbered-row">
-                      <div className="row-content"><span className="content-value">{highlightText(med.device)}</span></div>
-                    </div>
-                  </div>
-                )}
+                <div className="nested-subtitle">{highlightText(`Bronchodilator ${medIdx + 1}`)}</div>
+                {renderNestedEditableField(record, `bronchodilators.${medIdx}.medication`, idx, sid, 'Medication')}
+                {renderNestedEditableField(record, `bronchodilators.${medIdx}.type`, idx, sid, 'Type')}
+                {renderNestedEditableField(record, `bronchodilators.${medIdx}.dose`, idx, sid, 'Dose')}
+                {renderNestedEditableField(record, `bronchodilators.${medIdx}.device`, idx, sid, 'Device')}
               </div>
             );
           })}
@@ -1004,6 +1101,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
   /* ═══════ RENDER: CORTICOSTEROIDS SECTION ═══════ */
   const renderCorticosteroids = (record, idx) => {
     if (!record.corticosteroids?.length) return null;
+    const sid = 'corticosteroids';
     if (searchTerm.trim() && !record._showAllSections) {
       const phrase = searchTerm.toLowerCase().trim();
       const titleMatch = 'corticosteroids'.includes(phrase) || phrase.includes('corticosteroids');
@@ -1011,13 +1109,15 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       if (!titleMatch && !contentMatch) return null;
     }
     const copyId = `corticosteroids-${idx}`;
+    const copyCorticosteroids = pdfData[idx]?.corticosteroids || record.corticosteroids;
     return (
       <div className="section">
         <div className="mini-cards-container">
           <div className="section-header">
             <h4 className="section-title">{highlightText('Corticosteroids')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Corticosteroids', COPY_LINE_EQ]; record.corticosteroids.forEach((med) => { lines.push('', med.medication); if (med.route) lines.push('Route', COPY_LINE_DASH, `1. ${med.route}`); if (med.dose) lines.push('Dose', COPY_LINE_DASH, `1. ${med.dose}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Corticosteroids', COPY_LINE_EQ]; copyCorticosteroids.forEach((med) => { lines.push('', med.medication); if (med.route) lines.push('Route', COPY_LINE_DASH, `1. ${med.route}`); if (med.dose) lines.push('Dose', COPY_LINE_DASH, `1. ${med.dose}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              {renderApproveButton(record, sid, idx)}
             </div>
           </div>
           {record.corticosteroids.map((med, medIdx) => {
@@ -1028,20 +1128,10 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
             }
             return (
               <div key={medIdx} className="rec-mini-card">
-                <div className="nested-subtitle">{highlightText(med.medication)}</div>
-                <div className="nested-field-card">
-                  <div className="field-label">{highlightText('Route')}</div>
-                  <div className="numbered-row">
-                    <div className="row-content"><span className="content-value">{highlightText(med.route)}</span></div>
-                  </div>
-                </div>
-                <div className="nested-field-card">
-                  <div className="field-label">{highlightText('Dose')}</div>
-                  <div className="numbered-row">
-                    <div className="row-content"><span className="content-value">{highlightText(med.dose)}</span></div>
-                    <button className={`copy-btn ${copiedItems[`cortico-${idx}-${medIdx}`] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${med.medication}\nRoute: ${med.route}\nDose: ${med.dose}`, `cortico-${idx}-${medIdx}`); }}>{copiedItems[`cortico-${idx}-${medIdx}`] ? 'Copied!' : 'Copy'}</button>
-                  </div>
-                </div>
+                <div className="nested-subtitle">{highlightText(`Corticosteroid ${medIdx + 1}`)}</div>
+                {renderNestedEditableField(record, `corticosteroids.${medIdx}.medication`, idx, sid, 'Medication')}
+                {renderNestedEditableField(record, `corticosteroids.${medIdx}.route`, idx, sid, 'Route')}
+                {renderNestedEditableField(record, `corticosteroids.${medIdx}.dose`, idx, sid, 'Dose')}
               </div>
             );
           })}
@@ -1053,6 +1143,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
   /* ═══════ RENDER: RECOMMENDATIONS SECTION ═══════ */
   const renderRecommendations = (record, idx) => {
     if (!record.recommendations?.length) return null;
+    const sid = 'recommendations';
     if (searchTerm.trim() && !record._showAllSections) {
       const phrase = searchTerm.toLowerCase().trim();
       const titleMatch = 'recommendations'.includes(phrase) || phrase.includes('recommendations');
@@ -1061,7 +1152,8 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     }
     const copyId = `recommendations-${idx}`;
     // Group recommendations by date
-    const groupedByDate = record.recommendations.reduce((acc, rec, rIdx) => {
+    const copyRecommendations = pdfData[idx]?.recommendations || record.recommendations;
+    const groupedByDate = copyRecommendations.reduce((acc, rec, rIdx) => {
       const dateKey = rec.date || 'No Date';
       if (!acc[dateKey]) acc[dateKey] = [];
       acc[dateKey].push({ ...rec, originalIdx: rIdx });
@@ -1075,26 +1167,23 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
             <h4 className="section-title">{highlightText('Recommendations')}</h4>
             <div className="header-right-actions">
               <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Recommendations', COPY_LINE_EQ]; Object.entries(groupedByDate).forEach(([date, recs]) => { lines.push('', date, COPY_LINE_DASH); recs.forEach((rec, i) => lines.push(`${i + 1}. ${rec.recommendation}`)); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              {renderApproveButton(record, sid, idx)}
             </div>
           </div>
-          {Object.entries(groupedByDate).map(([date, recs]) => (
-            <div key={date} className="rec-mini-card">
-              <div className="nested-subtitle">{highlightText(date)}</div>
-              {recs.map((rec) => {
-                if (searchTerm.trim() && !record._showAllSections) {
-                  const phrase = searchTerm.toLowerCase().trim();
-                  const titleMatch = 'recommendations'.includes(phrase) || phrase.includes('recommendations');
-                  if (!titleMatch && !`${rec.recommendation} ${rec.date || ''}`.toLowerCase().includes(phrase)) return null;
-                }
-                return (
-                  <div key={rec.originalIdx} className="numbered-row">
-                    <div className="row-content"><span className="content-value">{highlightText(rec.recommendation)}</span></div>
-                    <button className={`copy-btn ${copiedItems[`rec-${idx}-${rec.originalIdx}`] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${rec.recommendation}${rec.date ? `\nDate: ${rec.date}` : ''}`, `rec-${idx}-${rec.originalIdx}`); }}>{copiedItems[`rec-${idx}-${rec.originalIdx}`] ? 'Copied!' : 'Copy'}</button>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+          {record.recommendations.map((rec, recIdx) => {
+            if (searchTerm.trim() && !record._showAllSections) {
+              const phrase = searchTerm.toLowerCase().trim();
+              const titleMatch = 'recommendations'.includes(phrase) || phrase.includes('recommendations');
+              if (!titleMatch && !`${rec.recommendation} ${rec.date || ''}`.toLowerCase().includes(phrase)) return null;
+            }
+            return (
+              <div key={recIdx} className="rec-mini-card">
+                <div className="nested-subtitle">{highlightText(`Recommendation ${recIdx + 1}`)}</div>
+                {renderNestedEditableField(record, `recommendations.${recIdx}.recommendation`, idx, sid, 'Recommendation')}
+                {renderNestedEditableField(record, `recommendations.${recIdx}.date`, idx, sid, 'Date', 'date')}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -1104,8 +1193,13 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
   const renderArterialBloodGas = (record, idx) => {
     const abg = record.arterialBloodGas;
     if (!abg || typeof abg !== 'object') return null;
+    const sid = 'arterial-blood-gas';
     const rows = [
-      ['pH', abg.pH], ['paCO2', abg.paCO2], ['paO2', abg.paO2], ['HCO3', abg.hco3], ['Interpretation', abg.interpretation],
+      ['pH', abg.pH, 'arterialBloodGas.pH'],
+      ['paCO2', abg.paCO2, 'arterialBloodGas.paCO2'],
+      ['paO2', abg.paO2, 'arterialBloodGas.paO2'],
+      ['HCO3', abg.hco3, 'arterialBloodGas.hco3'],
+      ['Interpretation', abg.interpretation, 'arterialBloodGas.interpretation'],
     ].filter(([, v]) => hasVal(v));
     if (rows.length === 0) return null;
     if (searchTerm.trim() && !record._showAllSections) {
@@ -1121,21 +1215,11 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Arterial Blood Gas')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Arterial Blood Gas', COPY_LINE_EQ]; rows.forEach(([l, v]) => lines.push('', l, COPY_LINE_DASH, `1. ${v}`)); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => copySection(buildAbgCopyText(pdfData[idx] || record), copyId)}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              {renderApproveButton(record, sid, idx)}
             </div>
           </div>
-          {rows.map(([label, val], rIdx) => {
-            const itemKey = `abg-${idx}-${rIdx}`;
-            return (
-              <div key={itemKey} className="nested-field-card">
-                <div className="field-label">{highlightText(label)}</div>
-                <div className="numbered-row">
-                  <div className="row-content"><span className="content-value">{highlightText(String(val))}</span></div>
-                  <button className={`copy-btn ${copiedItems[itemKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${val}`, itemKey); }}>{copiedItems[itemKey] ? 'Copied!' : 'Copy'}</button>
-                </div>
-              </div>
-            );
-          })}
+          {rows.map(([label, val, fn]) => renderNestedEditableField(record, fn, idx, sid, label, typeof val === 'number' ? 'number' : 'text'))}
         </div>
       </div>
     );
@@ -1145,11 +1229,12 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
   const renderOxygenTherapy = (record, idx) => {
     const ox = record.oxygenTherapy;
     if (!ox || typeof ox !== 'object') return null;
+    const sid = 'oxygen-therapy';
     const rows = [];
-    if (ox.prescribed === true) rows.push(['Prescribed', 'Yes']);
-    if (hasVal(ox.deliveryMethod)) rows.push(['Delivery Method', ox.deliveryMethod]);
-    if (hasVal(ox.flowRate)) rows.push(['Flow Rate', ox.flowRate]);
-    if (hasVal(ox.duration)) rows.push(['Duration', ox.duration]);
+    if (typeof ox.prescribed === 'boolean') rows.push(['Prescribed', ox.prescribed, 'oxygenTherapy.prescribed', 'boolean']);
+    if (hasVal(ox.deliveryMethod)) rows.push(['Delivery Method', ox.deliveryMethod, 'oxygenTherapy.deliveryMethod', 'text']);
+    if (hasVal(ox.flowRate)) rows.push(['Flow Rate', ox.flowRate, 'oxygenTherapy.flowRate', typeof ox.flowRate === 'number' ? 'number' : 'text']);
+    if (hasVal(ox.duration)) rows.push(['Duration', ox.duration, 'oxygenTherapy.duration', typeof ox.duration === 'number' ? 'number' : 'text']);
     if (rows.length === 0) return null;
     if (searchTerm.trim() && !record._showAllSections) {
       const phrase = searchTerm.toLowerCase().trim();
@@ -1164,21 +1249,11 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Oxygen Therapy')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Oxygen Therapy', COPY_LINE_EQ]; rows.forEach(([l, v]) => lines.push('', l, COPY_LINE_DASH, `1. ${v}`)); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => copySection(buildOxygenTherapyCopyText(pdfData[idx] || record), copyId)}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              {renderApproveButton(record, sid, idx)}
             </div>
           </div>
-          {rows.map(([label, val], rIdx) => {
-            const itemKey = `oxy-${idx}-${rIdx}`;
-            return (
-              <div key={itemKey} className="nested-field-card">
-                <div className="field-label">{highlightText(label)}</div>
-                <div className="numbered-row">
-                  <div className="row-content"><span className="content-value">{highlightText(String(val))}</span></div>
-                  <button className={`copy-btn ${copiedItems[itemKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${val}`, itemKey); }}>{copiedItems[itemKey] ? 'Copied!' : 'Copy'}</button>
-                </div>
-              </div>
-            );
-          })}
+          {rows.map(([label, , fn, type]) => renderNestedEditableField(record, fn, idx, sid, label, type))}
         </div>
       </div>
     );
@@ -1186,15 +1261,20 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
 
   /* ═══════ RENDER: SYMPTOM OBJECTS (cough + dyspnea) inside the Symptoms area ═══════ */
   const renderSymptomObjects = (record, idx) => {
+    const sid = 'symptoms';
     const cgh = record.cough;
     const dys = record.dyspnea;
     const coughRows = (cgh && typeof cgh === 'object')
-      ? [['Present', typeof cgh.present === 'boolean' ? (cgh.present ? 'Yes' : 'No') : ''], ['Type', cgh.type], ['Sputum', cgh.sputum]].filter(([, v]) => hasVal(v)) : [];
+      ? [
+          ['Present', cgh.present, 'cough.present', 'boolean'],
+          ['Type', cgh.type, 'cough.type', 'text'],
+          ['Sputum', cgh.sputum, 'cough.sputum', 'text'],
+        ].filter(([, v]) => hasVal(v)) : [];
     const dyspneaRows = [];
     if (dys && typeof dys === 'object') {
-      if (hasVal(dys.severity)) dyspneaRows.push(['Severity', dys.severity]);
-      if (hasVal(dys.triggers)) dyspneaRows.push(['Triggers', dys.triggers]);
-      if (typeof dys.mMRCScale === 'number') dyspneaRows.push(['mMRC', String(dys.mMRCScale)]);
+      if (hasVal(dys.severity)) dyspneaRows.push(['Severity', dys.severity, 'dyspnea.severity', 'select', ['Mild', 'Moderate', 'Severe', 'Very Severe']]);
+      if (hasVal(dys.triggers)) dyspneaRows.push(['Triggers', dys.triggers, 'dyspnea.triggers', 'text']);
+      if (typeof dys.mMRCScale === 'number') dyspneaRows.push(['mMRC', dys.mMRCScale, 'dyspnea.mMRCScale', 'number']);
     }
     if (coughRows.length === 0 && dyspneaRows.length === 0) return null;
     if (searchTerm.trim() && !record._showAllSections) {
@@ -1203,31 +1283,19 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       const contentMatch = [...coughRows, ...dyspneaRows].some(([, v]) => String(v).toLowerCase().includes(phrase));
       if (!labelMatch && !contentMatch) return null;
     }
-    const renderObjCard = (title, objRows, keyPrefix) => {
+    const renderObjCard = (title, objRows) => {
       if (objRows.length === 0) return null;
       return (
         <div className="rec-mini-card">
           <div className="nested-subtitle">{highlightText(title)}</div>
-          {objRows.map(([label, val], rIdx) => {
-            const itemKey = `${keyPrefix}-${idx}-${rIdx}`;
-            const display = label === 'mMRC' ? `mMRC ${val}` : String(val);
-            return (
-              <div key={itemKey} className="nested-field-card">
-                <div className="field-label">{highlightText(label)}</div>
-                <div className="numbered-row">
-                  <div className="row-content"><span className="content-value">{highlightText(display)}</span></div>
-                  <button className={`copy-btn ${copiedItems[itemKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${title} ${label}: ${val}`, itemKey); }}>{copiedItems[itemKey] ? 'Copied!' : 'Copy'}</button>
-                </div>
-              </div>
-            );
-          })}
+          {objRows.map(([label, , fn, type, options]) => renderNestedEditableField(record, fn, idx, sid, label, type, options))}
         </div>
       );
     };
     return (
       <>
-        {renderObjCard('Cough', coughRows, 'cough')}
-        {renderObjCard('Dyspnea', dyspneaRows, 'dyspnea')}
+        {renderObjCard('Cough', coughRows)}
+        {renderObjCard('Dyspnea', dyspneaRows)}
       </>
     );
   };
@@ -1257,7 +1325,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     const copyId = `${sid}-${idx}`;
     const buildCopy = () => {
       let t = buildSectionCopyText(record, idx, sid);
-      const objs = buildSymptomObjectsCopyText(record);
+      const objs = buildSymptomObjectsCopyText(pdfData[idx] || record);
       if (objs) { if (!t) t = `${title}\n${'='.repeat(40)}\n\n`; t += objs; }
       return t;
     };
@@ -1325,15 +1393,16 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
   const renderSmokingCessation = (record, idx) => {
     const sc = record.smokingCessation;
     if (!sc || typeof sc !== 'object' || Array.isArray(sc)) return null;
+    const sid = 'smoking-cessation';
     const rows = Object.entries(sc)
       .filter(([k]) => k !== '_id')
-      .map(([k, v]) => [humanizeKey(k), v])
-      .filter(([, v]) => hasVal(v));
+      .map(([k, v]) => [k, humanizeKey(k), v])
+      .filter(([, , v]) => hasVal(v));
     if (rows.length === 0) return null;
     if (searchTerm.trim() && !record._showAllSections) {
       const phrase = searchTerm.toLowerCase().trim();
       const titleMatch = 'smoking cessation'.includes(phrase) || phrase.includes('smoking cessation');
-      const contentMatch = rows.some(([l, v]) => l.toLowerCase().includes(phrase) || fmtVal(v).toLowerCase().includes(phrase));
+      const contentMatch = rows.some(([, l, v]) => l.toLowerCase().includes(phrase) || fmtVal(v).toLowerCase().includes(phrase));
       if (!titleMatch && !contentMatch) return null;
     }
     const copyId = `smokingCessation-${idx}`;
@@ -1343,21 +1412,11 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Smoking Cessation')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Smoking Cessation', COPY_LINE_EQ]; rows.forEach(([l, v]) => lines.push('', l, COPY_LINE_DASH, `1. ${fmtVal(v)}`)); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => copySection(buildSmokingCessationCopyText(pdfData[idx] || record), copyId)}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              {renderApproveButton(record, sid, idx)}
             </div>
           </div>
-          {rows.map(([label, val], rIdx) => {
-            const itemKey = `smkcess-${idx}-${rIdx}`;
-            return (
-              <div key={itemKey} className="nested-field-card">
-                <div className="field-label">{highlightText(label)}</div>
-                <div className="numbered-row">
-                  <div className="row-content"><span className="content-value">{highlightText(fmtVal(val))}</span></div>
-                  <button className={`copy-btn ${copiedItems[itemKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${fmtVal(val)}`, itemKey); }}>{copiedItems[itemKey] ? 'Copied!' : 'Copy'}</button>
-                </div>
-              </div>
-            );
-          })}
+          {rows.map(([key, label, val]) => renderNestedEditableField(record, `smokingCessation.${key}`, idx, sid, label, typeof val === 'boolean' ? 'boolean' : typeof val === 'number' ? 'number' : 'text'))}
         </div>
       </div>
     );
@@ -1472,21 +1531,31 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       );
     };
 
-    /* read-only flattened rows for nested objects / arrays */
+    const flattenEditableLeaves = (value, path = []) => {
+      if (!hasVal(value)) return [];
+      if (Array.isArray(value)) return value.flatMap((item, itemIdx) => flattenEditableLeaves(item, [...path, String(itemIdx)]));
+      if (value && typeof value === 'object' && !value.$date) {
+        return Object.entries(value)
+          .filter(([nestedKey]) => nestedKey !== '_id' && nestedKey !== '$oid')
+          .flatMap(([nestedKey, nestedValue]) => flattenEditableLeaves(nestedValue, [...path, nestedKey]));
+      }
+      return [[path, value]];
+    };
+
+    /* recursively editable rows for nested objects / arrays */
     const renderNestedCard = (key, val) => {
-      const rows = flattenResultsRows(Array.isArray(val) ? { [key]: val } : val, Array.isArray(val) ? '' : '');
-      if (rows.length === 0) return null;
+      const leaves = flattenEditableLeaves(val);
+      if (leaves.length === 0) return null;
       return (
         <div key={key} className="rec-mini-card">
-          {!Array.isArray(val) && <div className="nested-subtitle">{highlightText(humanizeKey(key))}</div>}
-          {rows.map((r, ri) => (
-            <div key={ri} className="nested-field-card">
-              <div className="numbered-row">
-                <div className="row-content"><span className="content-value">{highlightText(r)}</span></div>
-                <button className={`copy-btn ${copiedItems[`resnest-${idx}-${key}-${ri}`] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(r, `resnest-${idx}-${key}-${ri}`); }}>{copiedItems[`resnest-${idx}-${key}-${ri}`] ? 'Copied!' : 'Copy'}</button>
-              </div>
-            </div>
-          ))}
+          <div className="nested-subtitle">{highlightText(humanizeKey(key))}</div>
+          {leaves.map(([path, value]) => {
+            const fn = `results.${[key, ...path].join('.')}`;
+            const lastPath = path[path.length - 1];
+            const label = /^\d+$/.test(String(lastPath)) ? `Item ${Number(lastPath) + 1}` : humanizeKey(lastPath || key);
+            const type = typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : value?.$date ? 'date' : 'text';
+            return renderNestedEditableField(record, fn, idx, 'results', label, type);
+          })}
         </div>
       );
     };

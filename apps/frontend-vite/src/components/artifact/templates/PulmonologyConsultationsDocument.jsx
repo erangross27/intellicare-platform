@@ -18,6 +18,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PulmonologyConsultationsDocumentPDFTemplate from '../pdf-templates/PulmonologyConsultationsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './PulmonologyConsultationsDocument.css';
 
@@ -51,6 +52,7 @@ const SECTION_TITLES = {
 };
 
 const FIELD_LABELS = {
+  date: 'Date',
   type: 'Type',
   provider: 'Provider',
   facility: 'Facility',
@@ -62,7 +64,9 @@ const FIELD_LABELS = {
   'pulmonaryFunctionTests.fev1': 'FEV1',
   'pulmonaryFunctionTests.fvc': 'FVC',
   'pulmonaryFunctionTests.fev1FvcRatio': 'FEV1/FVC Ratio',
+  'pulmonaryFunctionTests.dlco': 'DLCO',
   'pulmonaryFunctionTests.interpretation': 'Interpretation',
+  'pulmonaryFunctionTests.date': 'PFT Date',
   peakFlow: 'Peak Flow',
   respiratoryRate: 'Respiratory Rate',
   oxygenSaturation: 'Oxygen Saturation (SpO2)',
@@ -82,23 +86,34 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
-  'visit-info': ['type', 'provider', 'facility', 'status'],
+  'visit-info': ['date', 'type', 'provider', 'facility', 'status'],
   'diagnosis': ['primaryDiagnosis', 'severity', 'exacerbationRisk'],
   'secondary-diagnoses': ['secondaryDiagnoses'],
-  'pulmonary-function': ['pulmonaryFunctionTests.fev1', 'pulmonaryFunctionTests.fvc', 'pulmonaryFunctionTests.fev1FvcRatio', 'pulmonaryFunctionTests.interpretation', 'peakFlow'],
+  'pulmonary-function': ['pulmonaryFunctionTests.fev1', 'pulmonaryFunctionTests.fvc', 'pulmonaryFunctionTests.fev1FvcRatio', 'pulmonaryFunctionTests.dlco', 'pulmonaryFunctionTests.interpretation', 'pulmonaryFunctionTests.date', 'peakFlow'],
   'respiratory-vitals': ['respiratoryRate', 'oxygenSaturation'],
   'symptoms': ['breathingSounds', 'chestPain'],
   'medications': ['respiratoryMedications'],
-  'smoking': ['smokingStatus', 'packYears'],
-  'imaging': ['chestXrayFindings', 'ctScanFindings'],
+  'smoking': ['smokingStatus', 'packYears', 'quitDate'],
+  'imaging': ['chestXrayFindings', 'ctScanFindings', 'imagingDate'],
   'assessment-plan': ['assessment', 'plan', 'findings', 'notes'],
 };
 
 const NUMBER_FIELDS = ['respiratoryRate', 'oxygenSaturation', 'packYears'];
 const BOOLEAN_FIELDS = [];
-const DATE_FIELDS = [];
+const DATE_FIELDS = ['date', 'pulmonaryFunctionTests.date', 'quitDate', 'imagingDate'];
 const ARRAY_FIELDS = ['secondaryDiagnoses', 'respiratoryMedications'];
-const STRING_FIELDS = ['type', 'provider', 'facility', 'status', 'primaryDiagnosis', 'severity', 'exacerbationRisk', 'pulmonaryFunctionTests.fev1', 'pulmonaryFunctionTests.fvc', 'pulmonaryFunctionTests.fev1FvcRatio', 'pulmonaryFunctionTests.interpretation', 'peakFlow', 'breathingSounds', 'chestPain', 'smokingStatus', 'chestXrayFindings', 'ctScanFindings', 'assessment', 'plan', 'findings', 'notes'];
+const STRING_FIELDS = ['type', 'provider', 'facility', 'status', 'primaryDiagnosis', 'severity', 'exacerbationRisk', 'pulmonaryFunctionTests.fev1', 'pulmonaryFunctionTests.fvc', 'pulmonaryFunctionTests.fev1FvcRatio', 'pulmonaryFunctionTests.dlco', 'pulmonaryFunctionTests.interpretation', 'peakFlow', 'breathingSounds', 'chestPain', 'smokingStatus', 'chestXrayFindings', 'ctScanFindings', 'assessment', 'plan', 'findings', 'notes'];
+const MEANINGFUL_ZERO_FIELDS = [];
+const COPY_LINE_EQ = '='.repeat(40);
+const COPY_LINE_DASH = '-'.repeat(40);
+
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
+const isHiddenZero = (fn, val) => NUMBER_FIELDS.includes(fn) && Number(val) === 0 && !MEANINGFUL_ZERO_FIELDS.includes(fn);
+const isEpochSentinel = (v) => {
+  if (!v) return false;
+  try { const d = new Date(v.$date || v); return !isNaN(d.getTime()) && d.getUTCFullYear() <= 1970; } catch { return false; }
+};
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -195,7 +210,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -485,9 +500,9 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       if (parsed.isLabeled) {
         const parts = splitByComma(parsed.value);
         if (parts.length >= 2) {
-          lines.push(parsed.label + ':');
-          parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
-        } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
+          lines.push(parsed.label, COPY_LINE_DASH);
+          parts.forEach(item => { lines.push(`${n++}. ${item}`); });
+        } else { lines.push(parsed.label, COPY_LINE_DASH, `${n++}. ${parsed.value}`); }
       } else { lines.push(`${n++}. ${s}`); }
     });
     return lines;
@@ -495,36 +510,37 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    let body = '';
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
-      if (!hasVal(val)) return;
+      if (!hasVal(val) || isHiddenZero(f, val) || (DATE_FIELDS.includes(f) && isEpochSentinel(val))) return;
+      const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n${COPY_LINE_DASH}\n`;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        body += `${labelLine}1. ${formatDate(val)}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        body += `${labelLine}1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
+        body += `${labelLine}1. ${val}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        body += `${labelLine}${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
+        if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+          body += labelLine;
+          formatSentenceFieldLines(strVal).forEach(l => { body += `${l}\n`; });
+          body += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          body += `${labelLine}1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        body += `${labelLine}1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
+    return body.trim() ? `${title}\n${COPY_LINE_EQ}\n\n${body}` : '';
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   /* ═══════ COPY TEXT: OBJECT/DATE FIELDS (ABG, oxygen therapy, cough, dyspnea, dates) ═══════ */
@@ -532,25 +548,25 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     const abg = record.arterialBloodGas;
     if (!abg || typeof abg !== 'object') return '';
     const rows = [];
-    if (hasVal(abg.pH)) rows.push(`pH: ${abg.pH}`);
-    if (hasVal(abg.paCO2)) rows.push(`paCO2: ${abg.paCO2}`);
-    if (hasVal(abg.paO2)) rows.push(`paO2: ${abg.paO2}`);
-    if (hasVal(abg.hco3)) rows.push(`HCO3: ${abg.hco3}`);
-    if (hasVal(abg.interpretation)) rows.push(`Interpretation: ${abg.interpretation}`);
+    if (hasVal(abg.pH)) rows.push(['pH', abg.pH]);
+    if (hasVal(abg.paCO2)) rows.push(['paCO2', abg.paCO2]);
+    if (hasVal(abg.paO2)) rows.push(['paO2', abg.paO2]);
+    if (hasVal(abg.hco3)) rows.push(['HCO3', abg.hco3]);
+    if (hasVal(abg.interpretation)) rows.push(['Interpretation', abg.interpretation]);
     if (rows.length === 0) return '';
-    return `Arterial Blood Gas\n${'='.repeat(40)}\n\n${rows.join('\n')}\n\n`;
+    return `Arterial Blood Gas\n${COPY_LINE_EQ}\n\n${rows.map(([l, v]) => `${l}\n${COPY_LINE_DASH}\n1. ${v}`).join('\n\n')}\n\n`;
   }, [hasVal]);
 
   const buildOxygenTherapyCopyText = useCallback((record) => {
     const ox = record.oxygenTherapy;
     if (!ox || typeof ox !== 'object') return '';
     const rows = [];
-    if (ox.prescribed === true) rows.push('Prescribed: Yes');
-    if (hasVal(ox.deliveryMethod)) rows.push(`Delivery Method: ${ox.deliveryMethod}`);
-    if (hasVal(ox.flowRate)) rows.push(`Flow Rate: ${ox.flowRate}`);
-    if (hasVal(ox.duration)) rows.push(`Duration: ${ox.duration}`);
+    if (ox.prescribed === true) rows.push(['Prescribed', 'Yes']);
+    if (hasVal(ox.deliveryMethod)) rows.push(['Delivery Method', ox.deliveryMethod]);
+    if (hasVal(ox.flowRate)) rows.push(['Flow Rate', ox.flowRate]);
+    if (hasVal(ox.duration)) rows.push(['Duration', ox.duration]);
     if (rows.length === 0) return '';
-    return `Oxygen Therapy\n${'='.repeat(40)}\n\n${rows.join('\n')}\n\n`;
+    return `Oxygen Therapy\n${COPY_LINE_EQ}\n\n${rows.map(([l, v]) => `${l}\n${COPY_LINE_DASH}\n1. ${v}`).join('\n\n')}\n\n`;
   }, [hasVal]);
 
   const buildSymptomObjectsCopyText = useCallback((record) => {
@@ -558,17 +574,18 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     const cgh = record.cough;
     if (cgh && typeof cgh === 'object') {
       const rows = [];
-      if (hasVal(cgh.type)) rows.push(`Type: ${cgh.type}`);
-      if (hasVal(cgh.sputum)) rows.push(`Sputum: ${cgh.sputum}`);
-      if (rows.length > 0) text += `Cough\n${rows.join('\n')}\n\n`;
+      if (typeof cgh.present === 'boolean') rows.push(['Present', cgh.present ? 'Yes' : 'No']);
+      if (hasVal(cgh.type)) rows.push(['Type', cgh.type]);
+      if (hasVal(cgh.sputum)) rows.push(['Sputum', cgh.sputum]);
+      if (rows.length > 0) text += `Cough\n${COPY_LINE_DASH}\n${rows.map(([l, v]) => `${l}\n${COPY_LINE_DASH}\n1. ${v}`).join('\n')}\n\n`;
     }
     const dys = record.dyspnea;
     if (dys && typeof dys === 'object') {
       const rows = [];
-      if (hasVal(dys.severity)) rows.push(`Severity: ${dys.severity}`);
-      if (hasVal(dys.triggers)) rows.push(`Triggers: ${dys.triggers}`);
-      if (typeof dys.mMRCScale === 'number') rows.push(`mMRC ${dys.mMRCScale}`);
-      if (rows.length > 0) text += `Dyspnea\n${rows.join('\n')}\n\n`;
+      if (hasVal(dys.severity)) rows.push(['Severity', dys.severity]);
+      if (hasVal(dys.triggers)) rows.push(['Triggers', dys.triggers]);
+      if (typeof dys.mMRCScale === 'number') rows.push(['mMRC', dys.mMRCScale]);
+      if (rows.length > 0) text += `Dyspnea\n${COPY_LINE_DASH}\n${rows.map(([l, v]) => `${l}\n${COPY_LINE_DASH}\n1. ${v}`).join('\n')}\n\n`;
     }
     return text;
   }, [hasVal]);
@@ -578,7 +595,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     if (!sc || typeof sc !== 'object' || Array.isArray(sc)) return '';
     const rows = Object.entries(sc).filter(([k]) => k !== '_id').filter(([, v]) => hasVal(v));
     if (rows.length === 0) return '';
-    return `Smoking Cessation\n${'='.repeat(40)}\n\n${rows.map(([k, v]) => `${humanizeKey(k)}: ${fmtVal(v)}`).join('\n')}\n\n`;
+    return `Smoking Cessation\n${COPY_LINE_EQ}\n\n${rows.map(([k, v]) => `${humanizeKey(k)}\n${COPY_LINE_DASH}\n1. ${fmtVal(v)}`).join('\n\n')}\n\n`;
   }, [hasVal, fmtVal]);
 
   /* flatten a dynamic-key object (recursively) into "Label: value" / nested lines for Copy */
@@ -591,9 +608,10 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       if (v && typeof v === 'object' && !Array.isArray(v) && !v.$date) {
         rows.push(...flattenResultsRows(v, `${label} - `));
       } else if (Array.isArray(v)) {
-        v.filter(item => hasVal(item)).forEach((item, i) => rows.push(`${label} ${i + 1}: ${fmtVal(item)}`));
+        const items = v.filter(item => hasVal(item));
+        if (items.length) rows.push(`${label}\n${COPY_LINE_DASH}\n${items.map((item, i) => `${i + 1}. ${fmtVal(item)}`).join('\n')}`);
       } else {
-        rows.push(`${label}: ${fmtVal(v)}`);
+        rows.push(`${label}\n${COPY_LINE_DASH}\n1. ${fmtVal(v)}`);
       }
     });
     return rows;
@@ -602,26 +620,16 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
   const buildResultsCopyText = useCallback((record) => {
     const rows = flattenResultsRows(record.results);
     if (rows.length === 0) return '';
-    return `Results\n${'='.repeat(40)}\n\n${rows.join('\n')}\n\n`;
+    return `Results\n${COPY_LINE_EQ}\n\n${rows.join('\n\n')}\n\n`;
   }, [flattenResultsRows]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== PULMONOLOGY CONSULTATIONS ===\n\n';
+    let text = `Pulmonology Consultations\n${COPY_LINE_EQ}\n\n`;
     pdfData.forEach((r, idx) => {
       text += `Pulmonology Consultation ${idx + 1}\n${'='.repeat(40)}\n`;
-      if (r.date) text += `Date: ${formatDate(r.date)}\n`;
       text += '\n';
       Object.keys(SECTION_FIELDS).forEach(sid => {
         let sectionText = buildSectionCopyText(r, idx, sid);
-        // Append object/date fields to their owning sections so order matches the on-screen render
-        if (sid === 'smoking' && hasVal(r.quitDate)) {
-          if (!sectionText) sectionText = `${SECTION_TITLES.smoking}\n${'='.repeat(40)}\n\n`;
-          sectionText += `Quit Date\n${formatDate(r.quitDate)}\n\n`;
-        }
-        if (sid === 'imaging' && hasVal(r.imagingDate)) {
-          if (!sectionText) sectionText = `${SECTION_TITLES.imaging}\n${'='.repeat(40)}\n\n`;
-          sectionText += `Imaging Date\n${formatDate(r.imagingDate)}\n\n`;
-        }
         if (sid === 'symptoms') {
           const symptomObjs = buildSymptomObjectsCopyText(r);
           if (symptomObjs) {
@@ -637,16 +645,17 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       });
       // Add bronchodilators, corticosteroids, recommendations
       if (r.bronchodilators?.length) {
-        text += `Bronchodilators\n${'='.repeat(40)}\n\n`;
-        r.bronchodilators.forEach((med, i) => { text += `${i + 1}. ${med.medication} (${med.type})\n   Dose: ${med.dose}\n`; if (med.device) text += `   Device: ${med.device}\n`; text += '\n'; });
+        text += `Bronchodilators\n${COPY_LINE_EQ}\n\n`;
+        r.bronchodilators.forEach((med) => { text += `${med.medication}${med.type ? ` (${med.type})` : ''}\n`; if (med.dose) text += `Dose\n${COPY_LINE_DASH}\n1. ${med.dose}\n`; if (med.device) text += `Device\n${COPY_LINE_DASH}\n1. ${med.device}\n`; text += '\n'; });
       }
       if (r.corticosteroids?.length) {
-        text += `Corticosteroids\n${'='.repeat(40)}\n\n`;
-        r.corticosteroids.forEach((med, i) => { text += `${i + 1}. ${med.medication}\n   Route: ${med.route}, Dose: ${med.dose}\n\n`; });
+        text += `Corticosteroids\n${COPY_LINE_EQ}\n\n`;
+        r.corticosteroids.forEach((med) => { text += `${med.medication}\n`; if (med.route) text += `Route\n${COPY_LINE_DASH}\n1. ${med.route}\n`; if (med.dose) text += `Dose\n${COPY_LINE_DASH}\n1. ${med.dose}\n`; text += '\n'; });
       }
       if (r.recommendations?.length) {
-        text += `Recommendations\n${'='.repeat(40)}\n\n`;
-        r.recommendations.forEach((rec, i) => { text += `${i + 1}. ${rec.recommendation}\n`; if (rec.date) text += `   Date: ${rec.date}\n`; text += '\n'; });
+        text += `Recommendations\n${COPY_LINE_EQ}\n\n`;
+        const grouped = r.recommendations.reduce((acc, rec) => { const k = rec.date || 'No Date'; (acc[k] ||= []).push(rec); return acc; }, {});
+        Object.entries(grouped).forEach(([date, recs]) => { text += `${date}\n${COPY_LINE_DASH}\n`; recs.forEach((rec, i) => { text += `${i + 1}. ${rec.recommendation}\n`; }); text += '\n'; });
       }
       text += buildResultsCopyText(r);
       text += '\n';
@@ -655,9 +664,44 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
   }, [pdfData, copyToClipboard, buildSectionCopyText, hasVal, buildAbgCopyText, buildOxygenTherapyCopyText, buildSymptomObjectsCopyText, buildSmokingCessationCopyText, buildResultsCopyText]);
 
+  /* ═══════ RENDER: DATE FIELD ═══════ */
+  const renderDateField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val) || isEpochSentinel(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = FIELD_LABELS[fn] || fn;
+    const displayVal = formatDate(val);
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card">
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, `${editValue}T00:00:00.000Z`); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: NUMBER FIELD ═══════ */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val) || val === 0) return null;
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val) || isHiddenZero(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
@@ -667,11 +711,15 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} style={{ minHeight: 'auto', height: '40px' }} />
+              <div className="number-edit-row" onClick={e => e.stopPropagation()}>
+                <button type="button" className="num-step" onClick={() => setEditValue(String(Number(editValue || 0) - stepFor(editValue || val)))}>&minus;</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" onClick={() => setEditValue(String(Number(editValue || 0) + stepFor(editValue || val)))}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -681,7 +729,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -700,7 +748,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
@@ -756,7 +804,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -843,7 +891,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -874,7 +922,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
-      return hasVal(val) && (typeof val !== 'number' || val !== 0);
+      return hasVal(val) && !isHiddenZero(f, val) && !(DATE_FIELDS.includes(f) && isEpochSentinel(val));
     });
     if (!hasAnyVal) return null;
 
@@ -890,7 +938,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
-            if (DATE_FIELDS.includes(f)) return null;
+            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return null;
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
@@ -918,7 +966,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Bronchodilators')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['BRONCHODILATORS']; record.bronchodilators.forEach((med, i) => { lines.push(`${i + 1}. ${med.medication} (${med.type})`); lines.push(`   Dose: ${med.dose}`); if (med.device) lines.push(`   Device: ${med.device}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Bronchodilators', COPY_LINE_EQ]; record.bronchodilators.forEach((med) => { lines.push('', `${med.medication}${med.type ? ` (${med.type})` : ''}`); if (med.dose) lines.push('Dose', COPY_LINE_DASH, `1. ${med.dose}`); if (med.device) lines.push('Device', COPY_LINE_DASH, `1. ${med.device}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
             </div>
           </div>
           {record.bronchodilators.map((med, medIdx) => {
@@ -969,7 +1017,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Corticosteroids')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['CORTICOSTEROIDS']; record.corticosteroids.forEach((med, i) => { lines.push(`${i + 1}. ${med.medication}`); lines.push(`   Route: ${med.route}, Dose: ${med.dose}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Corticosteroids', COPY_LINE_EQ]; record.corticosteroids.forEach((med) => { lines.push('', med.medication); if (med.route) lines.push('Route', COPY_LINE_DASH, `1. ${med.route}`); if (med.dose) lines.push('Dose', COPY_LINE_DASH, `1. ${med.dose}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
             </div>
           </div>
           {record.corticosteroids.map((med, medIdx) => {
@@ -1026,7 +1074,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Recommendations')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['RECOMMENDATIONS']; record.recommendations.forEach((rec, i) => { lines.push(`${i + 1}. ${rec.recommendation}`); if (rec.date) lines.push(`   Date: ${rec.date}`); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Recommendations', COPY_LINE_EQ]; Object.entries(groupedByDate).forEach(([date, recs]) => { lines.push('', date, COPY_LINE_DASH); recs.forEach((rec, i) => lines.push(`${i + 1}. ${rec.recommendation}`)); }); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
             </div>
           </div>
           {Object.entries(groupedByDate).map(([date, recs]) => (
@@ -1073,7 +1121,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Arterial Blood Gas')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['ARTERIAL BLOOD GAS']; rows.forEach(([l, v]) => lines.push(`${l}: ${v}`)); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Arterial Blood Gas', COPY_LINE_EQ]; rows.forEach(([l, v]) => lines.push('', l, COPY_LINE_DASH, `1. ${v}`)); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
             </div>
           </div>
           {rows.map(([label, val], rIdx) => {
@@ -1116,7 +1164,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Oxygen Therapy')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['OXYGEN THERAPY']; rows.forEach(([l, v]) => lines.push(`${l}: ${v}`)); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Oxygen Therapy', COPY_LINE_EQ]; rows.forEach(([l, v]) => lines.push('', l, COPY_LINE_DASH, `1. ${v}`)); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
             </div>
           </div>
           {rows.map(([label, val], rIdx) => {
@@ -1141,7 +1189,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     const cgh = record.cough;
     const dys = record.dyspnea;
     const coughRows = (cgh && typeof cgh === 'object')
-      ? [['Type', cgh.type], ['Sputum', cgh.sputum]].filter(([, v]) => hasVal(v)) : [];
+      ? [['Present', typeof cgh.present === 'boolean' ? (cgh.present ? 'Yes' : 'No') : ''], ['Type', cgh.type], ['Sputum', cgh.sputum]].filter(([, v]) => hasVal(v)) : [];
     const dyspneaRows = [];
     if (dys && typeof dys === 'object') {
       if (hasVal(dys.severity)) dyspneaRows.push(['Severity', dys.severity]);
@@ -1190,14 +1238,14 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     const fields = SECTION_FIELDS[sid] || [];
     const hasStringVal = fields.some(f => hasVal(getFieldValue(record, f, idx)));
     const cgh = record.cough; const dys = record.dyspnea;
-    const coughHas = cgh && typeof cgh === 'object' && (hasVal(cgh.type) || hasVal(cgh.sputum));
+    const coughHas = cgh && typeof cgh === 'object' && (typeof cgh.present === 'boolean' || hasVal(cgh.type) || hasVal(cgh.sputum));
     const dyspneaHas = dys && typeof dys === 'object' && (hasVal(dys.severity) || hasVal(dys.triggers) || typeof dys.mMRCScale === 'number');
     if (!hasStringVal && !coughHas && !dyspneaHas) return null;
     if (!shouldShowSection(record, sid)) {
       // section title / string fields didn't match; still show if a symptom object matches
       if (searchTerm.trim() && !record._showAllSections) {
         const phrase = searchTerm.toLowerCase().trim();
-        const objContent = [cgh?.type, cgh?.sputum, dys?.severity, dys?.triggers, (typeof dys?.mMRCScale === 'number') ? `mmrc ${dys.mMRCScale}` : '']
+        const objContent = [typeof cgh?.present === 'boolean' ? (cgh.present ? 'yes' : 'no') : '', cgh?.type, cgh?.sputum, dys?.severity, dys?.triggers, (typeof dys?.mMRCScale === 'number') ? `mmrc ${dys.mMRCScale}` : '']
           .some(v => v && String(v).toLowerCase().includes(phrase));
         const objLabel = 'cough'.includes(phrase) || 'dyspnea'.includes(phrase) || 'mmrc'.includes(phrase);
         if (!objContent && !objLabel) return null;
@@ -1230,34 +1278,12 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     );
   };
 
-  /* ═══════ RENDER: SMOKING QUIT DATE (date row inside Smoking area) ═══════ */
-  const renderDateRow = (record, idx, fieldName, label, keyPrefix) => {
-    const val = record[fieldName];
-    if (!hasVal(val)) return null;
-    const formatted = formatDate(val);
-    if (!formatted) return null;
-    if (searchTerm.trim() && !record._showAllSections) {
-      const phrase = searchTerm.toLowerCase().trim();
-      if (!label.toLowerCase().includes(phrase) && !phrase.includes(label.toLowerCase()) && !formatted.toLowerCase().includes(phrase)) return null;
-    }
-    const itemKey = `${keyPrefix}-${idx}`;
-    return (
-      <div className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className="numbered-row">
-          <div className="row-content"><span className="content-value">{highlightText(formatted)}</span></div>
-          <button className={`copy-btn ${copiedItems[itemKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${formatted}`, itemKey); }}>{copiedItems[itemKey] ? 'Copied!' : 'Copy'}</button>
-        </div>
-      </div>
-    );
-  };
-
   /* ═══════ RENDER: SMOKING SECTION (strings + quitDate) ═══════ */
   const renderSmokingSection = (record, idx) => {
     const sid = 'smoking';
     const fields = SECTION_FIELDS[sid] || [];
     const hasStringVal = fields.some(f => { const v = getFieldValue(record, f, idx); return hasVal(v) && (typeof v !== 'number' || v !== 0); });
-    const dateHas = hasVal(record.quitDate) && !!formatDate(record.quitDate);
+    const dateHas = hasVal(record.quitDate) && !isEpochSentinel(record.quitDate) && !!formatDate(record.quitDate);
     if (!hasStringVal && !dateHas) return null;
     if (!shouldShowSection(record, sid)) {
       if (searchTerm.trim() && !record._showAllSections) {
@@ -1272,7 +1298,6 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     const copyId = `${sid}-${idx}`;
     const buildCopy = () => {
       let t = buildSectionCopyText(record, idx, sid);
-      if (dateHas) { if (!t) t = `${title}\n${'='.repeat(40)}\n\n`; t += `Quit Date\n${formatDate(record.quitDate)}\n\n`; }
       return t;
     };
     return (
@@ -1286,11 +1311,11 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
+            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid, title);
           })}
-          {renderDateRow(record, idx, 'quitDate', 'Quit Date', 'quitDate')}
         </div>
       </div>
     );
@@ -1318,7 +1343,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Smoking Cessation')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['SMOKING CESSATION']; rows.forEach(([l, v]) => lines.push(`${l}: ${fmtVal(v)}`)); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Smoking Cessation', COPY_LINE_EQ]; rows.forEach(([l, v]) => lines.push('', l, COPY_LINE_DASH, `1. ${fmtVal(v)}`)); copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
             </div>
           </div>
           {rows.map(([label, val], rIdx) => {
@@ -1343,7 +1368,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     const sid = 'imaging';
     const fields = SECTION_FIELDS[sid] || [];
     const hasStringVal = fields.some(f => hasVal(getFieldValue(record, f, idx)));
-    const dateHas = hasVal(record.imagingDate) && !!formatDate(record.imagingDate);
+    const dateHas = hasVal(record.imagingDate) && !isEpochSentinel(record.imagingDate) && !!formatDate(record.imagingDate);
     if (!hasStringVal && !dateHas) return null;
     if (!shouldShowSection(record, sid)) {
       if (searchTerm.trim() && !record._showAllSections) {
@@ -1358,7 +1383,6 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
     const copyId = `${sid}-${idx}`;
     const buildCopy = () => {
       let t = buildSectionCopyText(record, idx, sid);
-      if (dateHas) { if (!t) t = `${title}\n${'='.repeat(40)}\n\n`; t += `Imaging Date\n${formatDate(record.imagingDate)}\n\n`; }
       return t;
     };
     return (
@@ -1371,8 +1395,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
               {renderApproveButton(record, sid, idx)}
             </div>
           </div>
-          {fields.map(f => renderStringField(record, f, idx, sid, title))}
-          {renderDateRow(record, idx, 'imagingDate', 'Imaging Date', 'imagingDate')}
+          {fields.map(f => DATE_FIELDS.includes(f) ? renderDateField(record, f, idx, sid) : renderStringField(record, f, idx, sid, title))}
         </div>
       </div>
     );
@@ -1407,7 +1430,11 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
             {isEditing ? (
               <div className="edit-field-container">
                 {isNum
-                  ? <input type="number" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} style={{ minHeight: 'auto', height: '40px' }} />
+                  ? <div className="number-edit-row" onClick={e => e.stopPropagation()}>
+                      <button type="button" className="num-step" onClick={() => setEditValue(String(Number(editValue || 0) - stepFor(editValue || val)))}>&minus;</button>
+                      <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      <button type="button" className="num-step" onClick={() => setEditValue(String(Number(editValue || 0) + stepFor(editValue || val)))}>+</button>
+                    </div>
                   : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
                 {saveError && <div className="save-error">{saveError}</div>}
                 <div className="edit-actions">
@@ -1474,7 +1501,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText('Results')}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['RESULTS', ...flattenResultsRows(liveRes)]; copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => { const lines = ['Results', COPY_LINE_EQ, '', ...flattenResultsRows(liveRes)]; copySection(lines.join('\n'), copyId); }}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
               {renderApproveButton(record, 'results', idx)}
             </div>
           </div>
@@ -1504,7 +1531,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pulmonology Consultations</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PulmonologyConsultationsDocumentPDFTemplate document={pdfData} />} fileName={`pulmonology-consultations-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PulmonologyConsultationsDocumentPDFTemplate document={pdfData} />} fileName="Pulmonology_Consultations.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1517,12 +1544,7 @@ const PulmonologyConsultationsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                </div>
-              )}
-              <h3 className="record-name">{highlightText(record.type || `Pulmonology Consultation ${idx + 1}`)}</h3>
+              <h3 className="record-name">{highlightText(`Pulmonology Consultation ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'visit-info')}
             {renderSection(record, idx, 'diagnosis')}

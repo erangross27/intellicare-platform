@@ -1,213 +1,373 @@
 /**
  * PulmonologyConsultationsDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — pulmonology consultations
- * Collection: pulmonology_consultations
+ * Box-free LETTER PDF for pulmonology_consultations.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
-  medicationCard: { marginBottom: 12, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#404040', borderLeftStyle: 'solid' },
-  medicationLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 2 },
-  medicationContent: { fontSize: 11, color: '#1f2937', lineHeight: 1.5 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  record: { paddingBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginTop: 12, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 7, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 2 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
+const SECTION_TITLES = {
+  'visit-info': 'Visit Information',
+  diagnosis: 'Diagnosis',
+  'secondary-diagnoses': 'Secondary Diagnoses',
+  'pulmonary-function': 'Pulmonary Function Tests',
+  'arterial-blood-gas': 'Arterial Blood Gas',
+  'respiratory-vitals': 'Respiratory Vitals',
+  'oxygen-therapy': 'Oxygen Therapy',
+  symptoms: 'Symptoms',
+  medications: 'Respiratory Medications',
+  bronchodilators: 'Bronchodilators',
+  corticosteroids: 'Corticosteroids',
+  smoking: 'Smoking History',
+  'smoking-cessation': 'Smoking Cessation',
+  imaging: 'Imaging',
+  'assessment-plan': 'Assessment and Plan',
+  results: 'Results',
+  recommendations: 'Recommendations',
+};
+
+const SECTION_ORDER = [
+  'visit-info', 'diagnosis', 'secondary-diagnoses', 'pulmonary-function',
+  'arterial-blood-gas', 'respiratory-vitals', 'oxygen-therapy', 'symptoms',
+  'medications', 'bronchodilators', 'corticosteroids', 'smoking',
+  'smoking-cessation', 'imaging', 'assessment-plan', 'results', 'recommendations',
+];
+
+const FIELD_LABELS = {
+  date: 'Date',
+  type: 'Type',
+  provider: 'Provider',
+  facility: 'Facility',
+  status: 'Status',
+  primaryDiagnosis: 'Primary Diagnosis',
+  severity: 'Severity',
+  exacerbationRisk: 'Exacerbation Risk',
+  secondaryDiagnoses: 'Secondary Diagnoses',
+  'pulmonaryFunctionTests.fev1': 'FEV1',
+  'pulmonaryFunctionTests.fvc': 'FVC',
+  'pulmonaryFunctionTests.fev1FvcRatio': 'FEV1/FVC Ratio',
+  'pulmonaryFunctionTests.dlco': 'DLCO',
+  'pulmonaryFunctionTests.interpretation': 'Interpretation',
+  'pulmonaryFunctionTests.date': 'PFT Date',
+  peakFlow: 'Peak Flow',
+  respiratoryRate: 'Respiratory Rate',
+  oxygenSaturation: 'Oxygen Saturation (SpO2)',
+  breathingSounds: 'Breathing Sounds',
+  chestPain: 'Chest Pain',
+  respiratoryMedications: 'Respiratory Medications',
+  smokingStatus: 'Smoking Status',
+  packYears: 'Pack Years',
+  quitDate: 'Quit Date',
+  chestXrayFindings: 'Chest X-ray Findings',
+  ctScanFindings: 'CT Scan Findings',
+  imagingDate: 'Imaging Date',
+  assessment: 'Assessment',
+  plan: 'Plan',
+  findings: 'Findings',
+  notes: 'Notes',
+};
+
+const SECTION_FIELDS = {
+  'visit-info': ['date', 'type', 'provider', 'facility', 'status'],
+  diagnosis: ['primaryDiagnosis', 'severity', 'exacerbationRisk'],
+  'secondary-diagnoses': ['secondaryDiagnoses'],
+  'pulmonary-function': ['pulmonaryFunctionTests.fev1', 'pulmonaryFunctionTests.fvc', 'pulmonaryFunctionTests.fev1FvcRatio', 'pulmonaryFunctionTests.dlco', 'pulmonaryFunctionTests.interpretation', 'pulmonaryFunctionTests.date', 'peakFlow'],
+  'respiratory-vitals': ['respiratoryRate', 'oxygenSaturation'],
+  symptoms: ['breathingSounds', 'chestPain'],
+  medications: ['respiratoryMedications'],
+  smoking: ['smokingStatus', 'packYears', 'quitDate'],
+  imaging: ['chestXrayFindings', 'ctScanFindings', 'imagingDate'],
+  'assessment-plan': ['assessment', 'plan', 'findings', 'notes'],
+};
+
+const DATE_FIELDS = ['date', 'pulmonaryFunctionTests.date', 'quitDate', 'imagingDate'];
+const NUMBER_FIELDS = ['respiratoryRate', 'oxygenSaturation', 'packYears'];
+const ARRAY_FIELDS = ['secondaryDiagnoses', 'respiratoryMedications'];
+const MEANINGFUL_ZERO_FIELDS = [];
+
+const safeString = (value) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  return String(value)
+    .replace(/\u00d7/g, 'x')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/\u00a0/g, ' ');
+};
+
+const formatDate = (value) => {
+  if (!value) return '';
   try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
+    const date = new Date(value.$date || value);
+    if (isNaN(date.getTime())) return safeString(value);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
+  } catch { return safeString(value); }
 };
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/\u2014/g, '-').replace(/\u2013/g, '-').replace(/\u2026/g, '...').replace(/[\u00A0]/g, ' ');
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+const getPath = (record, path) => String(path).split('.').reduce((value, key) => value?.[key], record);
+const isEpochSentinel = (value) => {
+  if (!value) return false;
+  try { const date = new Date(value.$date || value); return !isNaN(date.getTime()) && date.getUTCFullYear() <= 1970; } catch { return false; }
+};
+const isHiddenZero = (field, value) => NUMBER_FIELDS.includes(field) && Number(value) === 0 && !MEANINGFUL_ZERO_FIELDS.includes(field);
+const isEmptyDeep = (value) => {
+  if (value === null || value === undefined || value === '') return true;
+  if (typeof value === 'boolean') return false;
+  if (typeof value === 'number') return !Number.isFinite(value);
+  if (typeof value === 'string') return value.trim() === '';
+  if (Array.isArray(value)) return value.every(isEmptyDeep);
+  if (typeof value === 'object') return Object.values(value).every(isEmptyDeep);
+  return false;
+};
+const hasFieldValue = (record, field) => {
+  const value = getPath(record, field);
+  if (isHiddenZero(field, value)) return false;
+  if (DATE_FIELDS.includes(field) && isEpochSentinel(value)) return false;
+  return !isEmptyDeep(value);
 };
 
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return v !== 0;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
-};
+const humanizeKey = (key) => String(key || '')
+  .replace(/_/g, ' ')
+  .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  .replace(/^./, (char) => char.toUpperCase());
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/)
+    .map((part) => part.trim()).filter((part) => part && !/^[;.,!?]+$/.test(part));
 };
-
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
+  const match = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  return match ? { isLabeled: true, label: match[1].trim(), value: match[2].trim() } : { isLabeled: false, label: '', value: text };
 };
-
 const splitByComma = (text) => {
   if (!text || typeof text !== 'string') return [text || ''];
   const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === '(') { depth += 1; current += char; }
+    else if (char === ')') { depth = Math.max(0, depth - 1); current += char; }
+    else if (char === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const value = current.trim(); if (value) result.push(value); current = ''; }
+    else current += char;
   }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
+  const value = current.trim(); if (value) result.push(value);
+  return result.length ? result : [text];
 };
 
-/* humanizeKey: camelCase sub-key -> "Title Case" label (for smokingCessation / results objects) */
-const humanizeKey = (key) => String(key || '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
+const unwrapData = (input) => {
+  if (!input) return [];
+  if (Array.isArray(input)) return input.flatMap(unwrapData);
+  if (input.pulmonology_consultations) return unwrapData(input.pulmonology_consultations);
+  if (input.documentData) return unwrapData(input.documentData);
+  if (input.data) return unwrapData(input.data);
+  if (input.records) return unwrapData(input.records);
+  return [input];
+};
 
-/* renderDynamicObject: recursively render a dynamic-key object (e.g. `results`) as
-   humanized label + typed leaf, content-gated, never "[object Object]". */
-const renderDynamicObject = (obj, depth = 0) => {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
-  const entries = Object.entries(obj).filter(([k, v]) => k !== '_id' && k !== '$oid' && hasVal(v));
-  if (entries.length === 0) return null;
-  return entries.map(([k, v], i) => {
-    if (v && typeof v === 'object' && !Array.isArray(v) && !v.$date) {
-      const inner = renderDynamicObject(v, depth + 1);
-      if (!inner) return null;
-      return (
-        <View key={`${depth}-${k}-${i}`} style={{ marginTop: 4, marginBottom: 2, paddingLeft: depth > 0 ? 8 : 0 }}>
-          <Text style={styles.nestedSubtitle}>{humanizeKey(k)}</Text>
-          {inner}
-        </View>
+const PulmonologyConsultationsDocumentPDFTemplate = ({ document: data }) => {
+  const records = unwrapData(data).filter((record) => record && typeof record === 'object');
+
+  const labelElement = (label, key, sub = false) => <Text key={`${key}-label`} style={sub ? styles.subLabel : styles.fieldLabel}>{safeString(label)}</Text>;
+  const valueElement = (value, key, list = false) => <Text key={`${key}-value`} style={list ? styles.listItem : styles.value}>{safeString(value)}</Text>;
+
+  const sentenceElements = (text, keyBase) => {
+    const sentences = splitBySentence(safeString(text));
+    const elements = []; let n = 1;
+    sentences.forEach((sentence, sentenceIndex) => {
+      const parsed = parseLabel(sentence);
+      if (parsed.isLabeled) {
+        elements.push(labelElement(parsed.label, `${keyBase}-s${sentenceIndex}`, true));
+        const parts = splitByComma(parsed.value);
+        parts.forEach((part, partIndex) => elements.push(valueElement(`${n++}. ${part}`, `${keyBase}-s${sentenceIndex}-p${partIndex}`, true)));
+      } else {
+        elements.push(valueElement(`${n++}. ${sentence}`, `${keyBase}-s${sentenceIndex}`));
+      }
+    });
+    return elements;
+  };
+
+  const fieldElements = (record, field, sid) => {
+    if (!hasFieldValue(record, field)) return [];
+    const value = getPath(record, field);
+    const label = FIELD_LABELS[field] || humanizeKey(field);
+    const elements = [];
+    if (!sameAsTitle(label, sid)) elements.push(labelElement(label, field));
+    if (DATE_FIELDS.includes(field)) {
+      elements.push(valueElement(`1. ${formatDate(value)}`, field));
+    } else if (ARRAY_FIELDS.includes(field)) {
+      (Array.isArray(value) ? value : [value]).filter((item) => !isEmptyDeep(item)).forEach((item, index) => elements.push(valueElement(`${index + 1}. ${safeString(item)}`, `${field}-${index}`, true)));
+    } else if (NUMBER_FIELDS.includes(field)) {
+      elements.push(valueElement(`1. ${safeString(value)}`, field));
+    } else {
+      const stringValue = safeString(value);
+      const sentences = splitBySentence(stringValue);
+      if (sentences.length > 1 || parseLabel(stringValue).isLabeled) elements.push(...sentenceElements(stringValue, field));
+      else elements.push(valueElement(`1. ${stringValue}`, field));
+    }
+    return elements;
+  };
+
+  const pairElements = (pairs, keyBase) => {
+    const elements = [];
+    pairs.filter(([, value]) => !isEmptyDeep(value)).forEach(([label, value], index) => {
+      elements.push(labelElement(label, `${keyBase}-${index}`));
+      elements.push(valueElement(`1. ${safeString(value)}`, `${keyBase}-${index}`));
+    });
+    return elements;
+  };
+
+  const recursiveResultElements = (object, prefix = '', keyBase = 'result') => {
+    const elements = [];
+    if (!object || typeof object !== 'object') return elements;
+    Object.entries(object).filter(([key, value]) => key !== '_id' && key !== '$oid' && !isEmptyDeep(value)).forEach(([key, value], index) => {
+      const label = prefix ? `${prefix} - ${humanizeKey(key)}` : humanizeKey(key);
+      if (Array.isArray(value)) {
+        elements.push(labelElement(label, `${keyBase}-${index}`));
+        value.filter((item) => !isEmptyDeep(item)).forEach((item, itemIndex) => elements.push(valueElement(`${itemIndex + 1}. ${safeString(item)}`, `${keyBase}-${index}-${itemIndex}`, true)));
+      } else if (value && typeof value === 'object' && !value.$date) {
+        elements.push(...recursiveResultElements(value, label, `${keyBase}-${index}`));
+      } else {
+        elements.push(labelElement(label, `${keyBase}-${index}`));
+        elements.push(valueElement(`1. ${safeString(value)}`, `${keyBase}-${index}`));
+      }
+    });
+    return elements;
+  };
+
+  const sectionBody = (record, sid) => {
+    if (SECTION_FIELDS[sid]) return SECTION_FIELDS[sid].flatMap((field) => fieldElements(record, field, sid));
+
+    if (sid === 'arterial-blood-gas') {
+      const value = record.arterialBloodGas;
+      if (!value || isEmptyDeep(value)) return [];
+      return pairElements([['pH', value.pH], ['paCO2', value.paCO2], ['paO2', value.paO2], ['HCO3', value.hco3], ['Interpretation', value.interpretation]], sid);
+    }
+    if (sid === 'oxygen-therapy') {
+      const value = record.oxygenTherapy;
+      if (!value || isEmptyDeep(value)) return [];
+      return pairElements([['Prescribed', typeof value.prescribed === 'boolean' ? (value.prescribed ? 'Yes' : 'No') : ''], ['Delivery Method', value.deliveryMethod], ['Flow Rate', value.flowRate], ['Duration', value.duration]], sid);
+    }
+    if (sid === 'bronchodilators') {
+      const elements = [];
+      (record.bronchodilators || []).filter((item) => !isEmptyDeep(item)).forEach((item, index) => {
+        elements.push(labelElement(`${item.medication || 'Bronchodilator'}${item.type ? ` (${item.type})` : ''}`, `${sid}-${index}`, true));
+        elements.push(...pairElements([['Dose', item.dose], ['Device', item.device]], `${sid}-${index}`));
+      });
+      return elements;
+    }
+    if (sid === 'corticosteroids') {
+      const elements = [];
+      (record.corticosteroids || []).filter((item) => !isEmptyDeep(item)).forEach((item, index) => {
+        elements.push(labelElement(item.medication || 'Corticosteroid', `${sid}-${index}`, true));
+        elements.push(...pairElements([['Route', item.route], ['Dose', item.dose]], `${sid}-${index}`));
+      });
+      return elements;
+    }
+    if (sid === 'smoking-cessation') return recursiveResultElements(record.smokingCessation, '', sid);
+    if (sid === 'results') return recursiveResultElements(record.results, '', sid);
+    if (sid === 'recommendations') {
+      const groups = (record.recommendations || []).reduce((acc, item) => { const key = item?.date || 'No Date'; (acc[key] ||= []).push(item); return acc; }, {});
+      const elements = [];
+      Object.entries(groups).forEach(([date, items], groupIndex) => {
+        elements.push(labelElement(date, `${sid}-${groupIndex}`, true));
+        items.forEach((item, itemIndex) => elements.push(valueElement(`${itemIndex + 1}. ${safeString(typeof item === 'string' ? item : item.recommendation)}`, `${sid}-${groupIndex}-${itemIndex}`, true)));
+      });
+      return elements;
+    }
+    return [];
+  };
+
+  const symptomBody = (record) => {
+    const elements = SECTION_FIELDS.symptoms.flatMap((field) => fieldElements(record, field, 'symptoms'));
+    const cough = record.cough;
+    if (cough && !isEmptyDeep(cough)) {
+      elements.push(labelElement('Cough', 'cough', true));
+      elements.push(...pairElements([['Present', typeof cough.present === 'boolean' ? (cough.present ? 'Yes' : 'No') : ''], ['Type', cough.type], ['Sputum', cough.sputum]], 'cough'));
+    }
+    const dyspnea = record.dyspnea;
+    if (dyspnea && !isEmptyDeep(dyspnea)) {
+      elements.push(labelElement('Dyspnea', 'dyspnea', true));
+      elements.push(...pairElements([['Severity', dyspnea.severity], ['Triggers', dyspnea.triggers], ['mMRC', typeof dyspnea.mMRCScale === 'number' ? dyspnea.mMRCScale : '']], 'dyspnea'));
+    }
+    return elements;
+  };
+
+  /* Convert flat label/value Text nodes into small atomic blocks. A sub-label travels with its
+     first labeled leaf; a field label travels with its first value. This prevents page-bottom
+     orphans such as "Cough" or "Dose" without making the whole section unbreakable. */
+  const atomicBlocks = (elements, sid) => {
+    const blocks = [];
+    let index = 0;
+    const isFieldLabel = (element) => element?.props?.style === styles.fieldLabel;
+    const isSubLabel = (element) => element?.props?.style === styles.subLabel;
+    const isLabel = (element) => isFieldLabel(element) || isSubLabel(element);
+
+    while (index < elements.length) {
+      const group = [elements[index]];
+      const startsSubLabel = isSubLabel(elements[index]);
+      const startsFieldLabel = isFieldLabel(elements[index]);
+      index += 1;
+
+      if (startsSubLabel && index < elements.length && isFieldLabel(elements[index])) {
+        group.push(elements[index]);
+        index += 1;
+      } else if (startsFieldLabel && index < elements.length && isSubLabel(elements[index])) {
+        group.push(elements[index]);
+        index += 1;
+      }
+
+      while (index < elements.length && !isLabel(elements[index])) {
+        group.push(elements[index]);
+        index += 1;
+      }
+
+      blocks.push(
+        <View key={`${sid}-block-${blocks.length}`} wrap={group.length > 8 ? true : false}>
+          {group}
+        </View>,
       );
     }
-    if (Array.isArray(v)) {
-      return (
-        <View key={`${depth}-${k}-${i}`} style={{ marginTop: 4, paddingLeft: depth > 0 ? 8 : 0 }}>
-          <Text style={styles.nestedSubtitle}>{humanizeKey(k)}</Text>
-          {v.filter(item => hasVal(item)).map((item, ii) => (
-            <Text key={ii} style={styles.listItem}>{ii + 1}. {safeString(item)}</Text>
-          ))}
-        </View>
-      );
-    }
+    return blocks;
+  };
+
+  const renderSection = (record, sid) => {
+    let body = sid === 'symptoms' ? symptomBody(record) : sectionBody(record, sid);
+    if (!body.length) return null;
+    body = atomicBlocks(body, sid);
+    const [first, ...rest] = body;
+    const firstWithTitle = React.cloneElement(first, {
+      key: `${sid}-first`,
+      children: [<Text key={`${sid}-title`} style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>, ...React.Children.toArray(first.props.children)],
+    });
     return (
-      <View key={`${depth}-${k}-${i}`} style={[styles.fieldBox, depth > 0 ? { paddingLeft: 8 } : null]}>
-        <Text style={styles.fieldLabel}>{humanizeKey(k)}</Text>
-        <Text style={styles.fieldValue}>{safeString(v)}</Text>
+      <View key={sid}>
+        {firstWithTitle}
+        {rest}
       </View>
     );
-  });
-};
+  };
 
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(value)}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceField: multi-sentence string with parseLabel/splitByComma */
-const renderSentenceField = (label, value) => {
-  if (!hasVal(value)) return null;
-  const strVal = safeString(value);
-  const sentences = splitBySentence(strVal);
-  if (sentences.length <= 1) return renderFieldRow(label, value);
-
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {sentences.map((sentence, sIdx) => {
-        const parsed = parseLabel(sentence);
-        if (parsed.isLabeled) {
-          const commaItems = splitByComma(parsed.value);
-          if (commaItems.length >= 2) {
-            return (
-              <View key={sIdx} style={{ marginTop: 4 }}>
-                <Text style={styles.nestedSubtitle}>{parsed.label}:</Text>
-                {commaItems.map((ci, ciIdx) => (
-                  <Text key={ciIdx} style={styles.listItem}>{ciIdx + 1}. {ci}</Text>
-                ))}
-              </View>
-            );
-          }
-          return (
-            <View key={sIdx} style={{ marginTop: 4 }}>
-              <Text style={styles.nestedSubtitle}>{parsed.label}:</Text>
-              <Text style={styles.listItem}>{parsed.value}</Text>
-            </View>
-          );
-        }
-        return <Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {sentence}</Text>;
-      })}
-    </View>
-  );
-};
-
-/* ======= DATA UNWRAP ======= */
-const unwrapData = (templateData) => {
-  if (!templateData) return [];
-  if (Array.isArray(templateData)) {
-    return templateData.flatMap((item) => {
-      if (item.pulmonology_consultations) return Array.isArray(item.pulmonology_consultations) ? item.pulmonology_consultations : [item.pulmonology_consultations];
-      if (item.documentData) { const dd = item.documentData; if (Array.isArray(dd)) return dd; if (dd?.pulmonology_consultations) return Array.isArray(dd.pulmonology_consultations) ? dd.pulmonology_consultations : [dd.pulmonology_consultations]; return [dd]; }
-      if (item.records) return item.records;
-      return item;
-    });
-  }
-  if (templateData.data) {
-    if (Array.isArray(templateData.data)) {
-      return templateData.data.flatMap((item) => {
-        if (item.pulmonology_consultations) return item.pulmonology_consultations;
-        if (item.records) return item.records;
-        return item;
-      });
-    }
-    return [templateData.data];
-  }
-  if (templateData.pulmonology_consultations) return Array.isArray(templateData.pulmonology_consultations) ? templateData.pulmonology_consultations : [templateData.pulmonology_consultations];
-  if (templateData.records) return templateData.records;
-  return [templateData];
-};
-
-const PulmonologyConsultationsDocumentPDFTemplate = ({ document: docProp, data }) => {
-  const templateData = docProp || data;
-  const records = unwrapData(templateData);
-
-  if (!records || records.length === 0) {
+  if (!records.length) {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Pulmonology Consultations</Text>
-          </View>
+          <Text style={styles.documentTitle}>Pulmonology Consultations</Text>
           <Text style={styles.noDataText}>No pulmonology consultation records available.</Text>
         </Page>
       </Document>
@@ -217,277 +377,11 @@ const PulmonologyConsultationsDocumentPDFTemplate = ({ document: docProp, data }
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Pulmonology Consultations</Text>
-        </View>
-        {records.map((record, idx) => (
-          <View key={record._id?.$oid || idx} style={styles.recordContainer} wrap={false}>
-            {/* Record Header */}
-            <View style={styles.recordHeader}>
-              <View style={styles.recordDateRow}>
-                <Text style={styles.recordTitle}>{safeString(record.type || `Pulmonology Consultation ${idx + 1}`)}</Text>
-                {hasVal(record.date) && <Text style={styles.recordDate}>{formatDate(record.date)}</Text>}
-              </View>
-            </View>
-
-            {/* Visit Information */}
-            {(hasVal(record.provider) || hasVal(record.facility) || hasVal(record.status)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Visit Information</Text>
-                {renderFieldRow('Provider', record.provider)}
-                {renderFieldRow('Facility', record.facility)}
-                {renderFieldRow('Status', record.status)}
-              </View>
-            )}
-
-            {/* Diagnosis */}
-            {(hasVal(record.primaryDiagnosis) || hasVal(record.severity) || hasVal(record.exacerbationRisk)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Diagnosis</Text>
-                {renderSentenceField('Primary Diagnosis', record.primaryDiagnosis)}
-                {renderSentenceField('Severity', record.severity)}
-                {renderSentenceField('Exacerbation Risk', record.exacerbationRisk)}
-              </View>
-            )}
-
-            {/* Secondary Diagnoses */}
-            {Array.isArray(record.secondaryDiagnoses) && record.secondaryDiagnoses.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Secondary Diagnoses</Text>
-                {record.secondaryDiagnoses.map((diag, dIdx) => (
-                  <Text key={dIdx} style={styles.listItem}>{dIdx + 1}. {safeString(diag)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Pulmonary Function Tests */}
-            {(hasVal(record.pulmonaryFunctionTests?.fev1) || hasVal(record.pulmonaryFunctionTests?.fvc) || hasVal(record.pulmonaryFunctionTests?.fev1FvcRatio) || hasVal(record.pulmonaryFunctionTests?.interpretation) || hasVal(record.peakFlow)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Pulmonary Function Tests</Text>
-                {renderSentenceField('FEV1', record.pulmonaryFunctionTests?.fev1)}
-                {renderFieldRow('FVC', record.pulmonaryFunctionTests?.fvc)}
-                {renderFieldRow('FEV1/FVC Ratio', record.pulmonaryFunctionTests?.fev1FvcRatio)}
-                {renderSentenceField('Interpretation', record.pulmonaryFunctionTests?.interpretation)}
-                {renderFieldRow('Peak Flow', record.peakFlow)}
-              </View>
-            )}
-
-            {/* Arterial Blood Gas */}
-            {record.arterialBloodGas && typeof record.arterialBloodGas === 'object' &&
-              (hasVal(record.arterialBloodGas.pH) || hasVal(record.arterialBloodGas.paCO2) || hasVal(record.arterialBloodGas.paO2) || hasVal(record.arterialBloodGas.hco3) || hasVal(record.arterialBloodGas.interpretation)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Arterial Blood Gas</Text>
-                {hasVal(record.arterialBloodGas.pH) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>pH</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.arterialBloodGas.pH)}</Text>
-                  </View>
-                )}
-                {hasVal(record.arterialBloodGas.paCO2) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>paCO2</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.arterialBloodGas.paCO2)}</Text>
-                  </View>
-                )}
-                {hasVal(record.arterialBloodGas.paO2) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>paO2</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.arterialBloodGas.paO2)}</Text>
-                  </View>
-                )}
-                {hasVal(record.arterialBloodGas.hco3) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>HCO3</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.arterialBloodGas.hco3)}</Text>
-                  </View>
-                )}
-                {renderSentenceField('Interpretation', record.arterialBloodGas.interpretation)}
-              </View>
-            )}
-
-            {/* Respiratory Vitals */}
-            {(hasVal(record.respiratoryRate) || hasVal(record.oxygenSaturation)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Respiratory Vitals</Text>
-                {hasVal(record.respiratoryRate) && record.respiratoryRate > 0 && renderFieldRow('Respiratory Rate', `${record.respiratoryRate} breaths/min`)}
-                {hasVal(record.oxygenSaturation) && record.oxygenSaturation > 0 && renderFieldRow('Oxygen Saturation (SpO2)', `${record.oxygenSaturation}%`)}
-              </View>
-            )}
-
-            {/* Oxygen Therapy */}
-            {record.oxygenTherapy && typeof record.oxygenTherapy === 'object' &&
-              (record.oxygenTherapy.prescribed === true || hasVal(record.oxygenTherapy.deliveryMethod) || hasVal(record.oxygenTherapy.flowRate) || hasVal(record.oxygenTherapy.duration)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Oxygen Therapy</Text>
-                {record.oxygenTherapy.prescribed === true && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>Prescribed</Text>
-                    <Text style={styles.fieldValue}>Yes</Text>
-                  </View>
-                )}
-                {hasVal(record.oxygenTherapy.deliveryMethod) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>Delivery Method</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.oxygenTherapy.deliveryMethod)}</Text>
-                  </View>
-                )}
-                {hasVal(record.oxygenTherapy.flowRate) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>Flow Rate</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.oxygenTherapy.flowRate)}</Text>
-                  </View>
-                )}
-                {hasVal(record.oxygenTherapy.duration) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>Duration</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.oxygenTherapy.duration)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Symptoms */}
-            {(hasVal(record.breathingSounds) || hasVal(record.chestPain) ||
-              (record.cough && typeof record.cough === 'object' && (hasVal(record.cough.type) || hasVal(record.cough.sputum))) ||
-              (record.dyspnea && typeof record.dyspnea === 'object' && (hasVal(record.dyspnea.severity) || hasVal(record.dyspnea.triggers) || typeof record.dyspnea.mMRCScale === 'number'))) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Symptoms</Text>
-                {renderSentenceField('Breathing Sounds', record.breathingSounds)}
-                {renderSentenceField('Chest Pain', record.chestPain)}
-                {record.cough && typeof record.cough === 'object' && (hasVal(record.cough.type) || hasVal(record.cough.sputum)) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.nestedSubtitle}>Cough</Text>
-                    {hasVal(record.cough.type) && <Text style={styles.listItem}>Type: {safeString(record.cough.type)}</Text>}
-                    {hasVal(record.cough.sputum) && <Text style={styles.listItem}>Sputum: {safeString(record.cough.sputum)}</Text>}
-                  </View>
-                )}
-                {record.dyspnea && typeof record.dyspnea === 'object' && (hasVal(record.dyspnea.severity) || hasVal(record.dyspnea.triggers) || typeof record.dyspnea.mMRCScale === 'number') && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.nestedSubtitle}>Dyspnea</Text>
-                    {hasVal(record.dyspnea.severity) && <Text style={styles.listItem}>Severity: {safeString(record.dyspnea.severity)}</Text>}
-                    {hasVal(record.dyspnea.triggers) && <Text style={styles.listItem}>Triggers: {safeString(record.dyspnea.triggers)}</Text>}
-                    {typeof record.dyspnea.mMRCScale === 'number' && <Text style={styles.listItem}>mMRC {record.dyspnea.mMRCScale}</Text>}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Respiratory Medications */}
-            {Array.isArray(record.respiratoryMedications) && record.respiratoryMedications.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Respiratory Medications</Text>
-                {record.respiratoryMedications.map((med, mIdx) => (
-                  <Text key={mIdx} style={styles.listItem}>{mIdx + 1}. {safeString(med)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Bronchodilators */}
-            {Array.isArray(record.bronchodilators) && record.bronchodilators.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Bronchodilators</Text>
-                {record.bronchodilators.map((med, mIdx) => (
-                  <View key={mIdx} style={styles.medicationCard} wrap={false}>
-                    <Text style={styles.medicationLabel}>{mIdx + 1}. {safeString(med.medication || 'Bronchodilator')} ({safeString(med.type)})</Text>
-                    {hasVal(med.dose) && <Text style={styles.medicationContent}>Dose: {safeString(med.dose)}</Text>}
-                    {hasVal(med.device) && <Text style={styles.medicationContent}>Device: {safeString(med.device)}</Text>}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Corticosteroids */}
-            {Array.isArray(record.corticosteroids) && record.corticosteroids.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Corticosteroids</Text>
-                {record.corticosteroids.map((med, mIdx) => (
-                  <View key={mIdx} style={styles.medicationCard} wrap={false}>
-                    <Text style={styles.medicationLabel}>{mIdx + 1}. {safeString(med.medication || 'Corticosteroid')}</Text>
-                    {hasVal(med.route) && <Text style={styles.medicationContent}>Route: {safeString(med.route)}</Text>}
-                    {hasVal(med.dose) && <Text style={styles.medicationContent}>Dose: {safeString(med.dose)}</Text>}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Smoking History */}
-            {(hasVal(record.smokingStatus) || (hasVal(record.packYears) && record.packYears > 0) || hasVal(record.quitDate)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Smoking History</Text>
-                {renderFieldRow('Smoking Status', record.smokingStatus)}
-                {hasVal(record.packYears) && record.packYears > 0 && renderFieldRow('Pack Years', record.packYears)}
-                {hasVal(record.quitDate) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>Quit Date</Text>
-                    <Text style={styles.fieldValue}>{formatDate(record.quitDate)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Smoking Cessation */}
-            {record.smokingCessation && typeof record.smokingCessation === 'object' && !Array.isArray(record.smokingCessation) &&
-              Object.entries(record.smokingCessation).filter(([k, v]) => k !== '_id' && hasVal(v)).length > 0 && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Smoking Cessation</Text>
-                {Object.entries(record.smokingCessation).filter(([k, v]) => k !== '_id' && hasVal(v)).map(([k, v], scIdx) => (
-                  <View key={scIdx} style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>{humanizeKey(k)}</Text>
-                    <Text style={styles.fieldValue}>{safeString(v)}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Imaging */}
-            {(hasVal(record.chestXrayFindings) || hasVal(record.ctScanFindings) || hasVal(record.imagingDate)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Imaging</Text>
-                {renderSentenceField('Chest X-ray Findings', record.chestXrayFindings)}
-                {renderSentenceField('CT Scan Findings', record.ctScanFindings)}
-                {hasVal(record.imagingDate) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.fieldLabel}>Imaging Date</Text>
-                    <Text style={styles.fieldValue}>{formatDate(record.imagingDate)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Assessment & Plan */}
-            {(hasVal(record.assessment) || hasVal(record.plan) || hasVal(record.findings) || hasVal(record.notes)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Assessment & Plan</Text>
-                {renderSentenceField('Assessment', record.assessment)}
-                {renderSentenceField('Plan', record.plan)}
-                {renderSentenceField('Findings', record.findings)}
-                {renderSentenceField('Notes', record.notes)}
-              </View>
-            )}
-
-            {/* Results (dynamic-key object) */}
-            {record.results && typeof record.results === 'object' && !Array.isArray(record.results) &&
-              Object.entries(record.results).filter(([k, v]) => k !== '_id' && hasVal(v)).length > 0 && (
-              <View style={styles.section} wrap={Object.keys(record.results).length > 8 ? undefined : false}>
-                <Text style={styles.sectionTitle}>Results</Text>
-                {renderDynamicObject(record.results)}
-              </View>
-            )}
-
-            {/* Recommendations */}
-            {Array.isArray(record.recommendations) && record.recommendations.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Recommendations</Text>
-                {record.recommendations.map((rec, rIdx) => (
-                  <View key={rIdx} style={styles.medicationCard} wrap={false}>
-                    <Text style={styles.medicationLabel}>{rIdx + 1}. {safeString(typeof rec === 'string' ? rec : rec.recommendation)}</Text>
-                    {typeof rec === 'object' && rec.date && <Text style={styles.medicationContent}>Date: {formatDate(rec.date)}</Text>}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {idx < records.length - 1 && <View style={styles.separator} />}
+        <Text style={styles.documentTitle}>Pulmonology Consultations</Text>
+        {records.map((record, index) => (
+          <View key={record._id?.$oid || record._id || index} style={styles.record} break={index > 0}>
+            <Text style={styles.recordTitle}>Pulmonology Consultation {index + 1}</Text>
+            {SECTION_ORDER.map((sid) => renderSection(record, sid))}
           </View>
         ))}
       </Page>

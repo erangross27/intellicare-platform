@@ -24,17 +24,17 @@ function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
 const ALLOWED_FIELDS = [
-  'type', 'provider', 'facility', 'status',
+  'date', 'type', 'provider', 'facility', 'status',
   'primaryDiagnosis', 'severity', 'exacerbationRisk',
   'secondaryDiagnoses',
-  'pulmonaryFunctionTests.fev1', 'pulmonaryFunctionTests.fvc', 'pulmonaryFunctionTests.fev1FvcRatio', 'pulmonaryFunctionTests.interpretation',
+  'pulmonaryFunctionTests.fev1', 'pulmonaryFunctionTests.fvc', 'pulmonaryFunctionTests.fev1FvcRatio', 'pulmonaryFunctionTests.dlco', 'pulmonaryFunctionTests.interpretation', 'pulmonaryFunctionTests.date',
   'peakFlow',
   'respiratoryRate', 'oxygenSaturation',
   'breathingSounds', 'chestPain',
   'respiratoryMedications',
-  'smokingStatus', 'packYears',
+  'smokingStatus', 'packYears', 'quitDate',
   'smokingCessation',
-  'chestXrayFindings', 'ctScanFindings',
+  'chestXrayFindings', 'ctScanFindings', 'imagingDate',
   'assessment', 'plan', 'findings', 'notes',
   'results',
 ];

@@ -1,48 +1,39 @@
 /**
  * PrognosisRecordsDocument.jsx
- * March 2026 — Complete rewrite with inline editing, blue glow theme
+ * March 2026 — Canonical one-pass, inline editing, blue glow theme
  * Collection: prognosis_records
  *
- * 6 Sections:
- *   1. disease-stage: currentDiseaseStage, diseaseStagingClassification, diagnosisCode
- *   2. clinical-course: expectedClinicalCourse, survivalEstimateMonths, fiveYearSurvivalRate, treatmentResponseProbability
- *   3. prognosis-overview: functionalRecoveryLikelihood, qualityOfLifeProjection, confidenceLevel, recurrenceRiskPercentage, timeToProgressionEstimate
- *   4. prognostic-indicators: prognosticIndicatorsUsed, comorbidityImpactScore
- *   5. biomarkers-risks: biomarkerValues, predictedComplicationRisks, comparativeReferenceData
- *   6. modifiable-factors: modifiableRiskFactors, anticipatedMilestones, palliativeCareIndicators
+ * Sections:
+ *   1. record-info: date, provider, facility
+ *   2. disease-stage: currentDiseaseStage, diseaseStagingClassification, diagnosisCode
+ *   3. clinical-course: expectedClinicalCourse, survivalEstimateMonths, fiveYearSurvivalRate, treatmentResponseProbability
+ *   4. prognosis-overview: functionalRecoveryLikelihood, qualityOfLifeProjection, confidenceLevel, recurrenceRiskPercentage, timeToProgressionEstimate
+ *   5. prognostic-indicators: prognosticIndicatorsUsed, performanceStatusScore, comorbidityImpactScore
+ *   6. biomarkers-risks: biomarkerValues, predictedComplicationRisks, comparativeReferenceData
+ *   7. modifiable-factors: modifiableRiskFactors, anticipatedMilestones, palliativeCareIndicators
  */
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PrognosisRecordsDocumentPDFTemplate from '../pdf-templates/PrognosisRecordsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './PrognosisRecordsDocument.css';
 
-/* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
-   written to MongoDB and NOT shown in the PDF until the user clicks Approve.
-   Kept in a SEPARATE key (NOT artifactGridData) so drafts never leak into the PDF/DB source.
-   Shape: { [recordId]: { [fieldPart]: value } }  (fieldPart = the field name, value = full field value) */
-const DRAFT_KEY = 'prognosisRecordsPendingEdits';
-const readDrafts = () => {
-  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; }
-};
-const writeDrafts = (store) => {
-  try {
-    if (store && Object.keys(store).length > 0) localStorage.setItem(DRAFT_KEY, JSON.stringify(store));
-    else localStorage.removeItem(DRAFT_KEY);
-  } catch { /* ignore quota/availability errors */ }
-};
-
 /* ═══════ CONSTANTS ═══════ */
 const SECTION_TITLES = {
+  'record-info': 'Record Information',
   'disease-stage': 'Disease Stage',
   'clinical-course': 'Clinical Course',
   'prognosis-overview': 'Prognosis Overview',
   'prognostic-indicators': 'Prognostic Indicators',
-  'biomarkers-risks': 'Biomarkers & Risks',
+  'biomarkers-risks': 'Biomarkers and Risks',
   'modifiable-factors': 'Modifiable Factors',
 };
 
 const FIELD_LABELS = {
+  date: 'Date',
+  provider: 'Provider',
+  facility: 'Facility',
   currentDiseaseStage: 'Current Disease Stage',
   diseaseStagingClassification: 'Disease Staging Classification',
   diagnosisCode: 'Diagnosis Code',
@@ -67,6 +58,7 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
+  'record-info': ['date', 'provider', 'facility'],
   'disease-stage': ['currentDiseaseStage', 'diseaseStagingClassification', 'diagnosisCode'],
   'clinical-course': ['expectedClinicalCourse', 'survivalEstimateMonths', 'fiveYearSurvivalRate', 'treatmentResponseProbability'],
   'prognosis-overview': ['functionalRecoveryLikelihood', 'qualityOfLifeProjection', 'confidenceLevel', 'recurrenceRiskPercentage', 'timeToProgressionEstimate'],
@@ -79,9 +71,11 @@ const NUMBER_FIELDS = ['survivalEstimateMonths', 'fiveYearSurvivalRate', 'treatm
 const DATE_FIELDS = ['date'];
 const ARRAY_FIELDS = ['prognosticIndicatorsUsed', 'biomarkerValues', 'predictedComplicationRisks', 'modifiableRiskFactors', 'anticipatedMilestones', 'palliativeCareIndicators'];
 const OBJECT_FIELDS = ['performanceStatusScore'];
-const STRING_FIELDS = ['currentDiseaseStage', 'diseaseStagingClassification', 'diagnosisCode', 'expectedClinicalCourse', 'functionalRecoveryLikelihood', 'qualityOfLifeProjection', 'confidenceLevel', 'timeToProgressionEstimate', 'comparativeReferenceData'];
+const STRING_FIELDS = ['currentDiseaseStage', 'diseaseStagingClassification', 'diagnosisCode', 'provider', 'facility', 'expectedClinicalCourse', 'functionalRecoveryLikelihood', 'qualityOfLifeProjection', 'confidenceLevel', 'timeToProgressionEstimate', 'comparativeReferenceData'];
+/* No number field's 0 is a meaningful clinical value in this collection (survival/rate/percentage/score
+   default to 0 when not assessed for acute non-oncologic records) → hide sentinel zeros. */
+const MEANINGFUL_ZERO_FIELDS = [];
 
-/* ═══════ OBJECT-FIELD HELPERS (performanceStatusScore — recursive editable object) ═══════ */
 const KEY_OVERRIDES = { ecog: 'ECOG', kps: 'KPS', pps: 'PPS' };
 const humanizeKey = (key) => {
   if (key === null || key === undefined || key === '') return '';
@@ -89,22 +83,36 @@ const humanizeKey = (key) => {
   const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
-/* number+unit leaf splitter — returns null for plain text and "4/5" ratios */
-const splitNumberUnit = (text) => {
-  if (text === null || text === undefined) return null;
-  const s = String(text).trim();
-  if (s === '') return null;
-  if (/^-?\d+(?:\.\d+)?\s*\/\s*\d/.test(s)) return null;
-  const m = s.match(/^(-?[\d,]*\.?\d+)(\s*)(.*)$/);
-  if (!m || !/\d/.test(m[1])) return null;
-  return { num: m[1].replace(/,/g, ''), sep: m[2] || '', unit: (m[3] || '').trim() };
+
+/* parseLabel: detect "Label: value" patterns */
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
 };
-const splitRatio = (text) => {
-  if (text === null || text === undefined) return null;
-  const m = String(text).trim().match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
-  if (!m) return null;
-  return { num: m[1], denom: m[2] };
+
+/* sameAsTitle: field label duplicates its section title (single-name collision) */
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* isHiddenZero: a NUMBER field whose value is 0 and 0 is a "not assessed" sentinel (not clinically meaningful) */
+const isHiddenZero = (fn, val) => NUMBER_FIELDS.includes(fn) && Number(val) === 0 && !MEANINGFUL_ZERO_FIELDS.includes(fn);
+
+/* stepFor: decimal-aware +/- step for the number stepper */
+const stepFor = (val) => { const m = String(val).trim().match(/\.(\d+)/); return m ? Math.pow(10, -m[1].length) : 1; };
+
+/* flattenItem: array item (string or object) → one readable line */
+const flattenItem = (item) => {
+  if (item === null || item === undefined) return '';
+  if (typeof item === 'string') return item;
+  if (typeof item === 'object' && !Array.isArray(item)) {
+    const main = item.value || item.text || item.name || '';
+    if (main) return String(main);
+    return Object.entries(item).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '').map(([k, v]) => `${humanizeKey(k)}: ${v}`).join(', ');
+  }
+  return String(item);
 };
+
 const isEmptyDeep = (v) => {
   if (v === null || v === undefined) return true;
   if (typeof v === 'boolean') return false;
@@ -114,15 +122,15 @@ const isEmptyDeep = (v) => {
   if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
   return false;
 };
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-const isScalar = (v) => v === null || typeof v !== 'object';
 
-/* parseLabel: detect "Label: value" patterns */
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
+const formatDate = (dateValue) => {
+  if (!dateValue) return '';
+  try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
+};
+
+const toInputDate = (dateValue) => {
+  if (!dateValue) return '';
+  try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
 
 /* splitByComma: parenthesis-aware comma split */
@@ -140,81 +148,17 @@ const splitByComma = (text) => {
   return result.length > 0 ? result : [text];
 };
 
-const formatDate = (dateValue) => {
-  if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
+/* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
+   written to MongoDB and NOT shown in the PDF until the user clicks Pending Approve. */
+const DRAFT_KEY = 'prognosisRecordsPendingEdits';
+const readDrafts = () => {
+  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; }
 };
-
-const toInputDate = (dateValue) => {
-  if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
-};
-
-/* ═══════ CHART HELPERS ═══════ */
-const extractScoreFromText = (text) => {
-  if (!text) return null;
-  const match = String(text).match(/:\s*(\d+(?:\.\d+)?)/);
-  return match ? parseFloat(match[1]) : null;
-};
-
-const getGRACEInterpretation = (score) => {
-  if (score <= 108) return { color: '#22c55e', text: 'Low Risk', max: 258 };
-  if (score <= 140) return { color: '#3b82f6', text: 'Intermediate Risk', max: 258 };
-  return { color: '#ef4444', text: 'High Risk', max: 258 };
-};
-
-const getTIMIInterpretation = (score) => {
-  if (score <= 2) return { color: '#22c55e', text: 'Low Risk', max: 7 };
-  if (score <= 4) return { color: '#f59e0b', text: 'Intermediate Risk', max: 7 };
-  return { color: '#ef4444', text: 'High Risk', max: 7 };
-};
-
-const getSurvivalInterpretation = (rate) => {
-  if (rate >= 80) return { color: '#22c55e', text: 'Excellent' };
-  if (rate >= 60) return { color: '#3b82f6', text: 'Good' };
-  if (rate >= 40) return { color: '#f59e0b', text: 'Fair' };
-  return { color: '#ef4444', text: 'Poor' };
-};
-
-const getTreatmentResponseInterpretation = (rate) => {
-  if (rate >= 80) return { color: '#22c55e', text: 'Very Likely' };
-  if (rate >= 60) return { color: '#3b82f6', text: 'Likely' };
-  if (rate >= 40) return { color: '#f59e0b', text: 'Possible' };
-  return { color: '#ef4444', text: 'Unlikely' };
-};
-
-const prepareChartData = (record, safeString) => {
-  const charts = [];
-  if (record.fiveYearSurvivalRate && record.fiveYearSurvivalRate > 0) {
-    const rate = parseFloat(record.fiveYearSurvivalRate);
-    const interp = getSurvivalInterpretation(rate);
-    charts.push({ key: 'survival', label: '5-Year Survival Rate', percentage: rate, rawValue: `${rate}%`, color: interp.color, interpretation: interp.text, category: 'Survival & Response' });
-  }
-  if (record.treatmentResponseProbability && record.treatmentResponseProbability > 0) {
-    const rate = parseFloat(record.treatmentResponseProbability);
-    const interp = getTreatmentResponseInterpretation(rate);
-    charts.push({ key: 'treatment', label: 'Treatment Response Probability', percentage: rate, rawValue: `${rate}%`, color: interp.color, interpretation: interp.text, category: 'Survival & Response' });
-  }
-  if (record.prognosticIndicatorsUsed && Array.isArray(record.prognosticIndicatorsUsed)) {
-    record.prognosticIndicatorsUsed.forEach(indicator => {
-      const indicatorStr = safeString(indicator);
-      if (indicatorStr.toLowerCase().includes('grace')) {
-        const score = extractScoreFromText(indicatorStr);
-        if (score !== null) {
-          const interp = getGRACEInterpretation(score);
-          charts.push({ key: 'grace', label: 'GRACE Score', percentage: Math.min(100, (score / interp.max) * 100), rawValue: `${score}/258`, color: interp.color, interpretation: interp.text, category: 'Risk Scores' });
-        }
-      }
-      if (indicatorStr.toLowerCase().includes('timi')) {
-        const score = extractScoreFromText(indicatorStr);
-        if (score !== null) {
-          const interp = getTIMIInterpretation(score);
-          charts.push({ key: 'timi', label: 'TIMI Risk Score', percentage: (score / interp.max) * 100, rawValue: `${score}/7`, color: interp.color, interpretation: interp.text, category: 'Risk Scores' });
-        }
-      }
-    });
-  }
-  return charts;
+const writeDrafts = (store) => {
+  try {
+    if (store && Object.keys(store).length > 0) localStorage.setItem(DRAFT_KEY, JSON.stringify(store));
+    else localStorage.removeItem(DRAFT_KEY);
+  } catch { /* ignore quota/availability errors */ }
 };
 
 /* ═══════ COMPONENT ═══════ */
@@ -224,13 +168,12 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
   const [copiedItems, setCopiedItems] = useState({});
   const [showCopied, setShowCopied] = useState(false);
   const [localEdits, setLocalEdits] = useState({});
-  // editKeys that are staged drafts (saved locally, NOT yet committed to DB/PDF). Cleared on Approve.
-  const [pendingEdits, setPendingEdits] = useState({});
   const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [editedFields, setEditedFields] = useState({});
   const [editedSentences, setEditedSentences] = useState({});
   const [approvedSections, setApprovedSections] = useState({});
+  const [pendingEdits, setPendingEdits] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const containerRef = useRef(null);
@@ -247,15 +190,15 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
     return arr.filter(r => r && typeof r === 'object');
   }, [docProp]);
 
-  // Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF).
+  /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
     const store = readDrafts();
     if (!store || Object.keys(store).length === 0) return;
-    const recId = (r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); };
+    const idOf = (r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); };
     const nLocal = {}, nPending = {}, nFields = {};
     records.forEach((record, idx) => {
-      const id = recId(record);
-      const recDrafts = id ? store[id] : null;
+      const recId = idOf(record);
+      const recDrafts = recId ? store[recId] : null;
       if (!recDrafts) return;
       Object.entries(recDrafts).forEach(([fieldPart, value]) => {
         const editKey = `${fieldPart}-${idx}`;
@@ -271,13 +214,12 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
   }, [records]);
 
   /* ═══════ UTILS ═══════ */
-  const hasVal = useCallback((v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; }, []);
+  const hasVal = useCallback((v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return Number.isFinite(v); if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length > 0; if (typeof v === 'object') return Object.entries(v).filter(([, x]) => !isEmptyDeep(x)).length > 0; return true; }, []);
   const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
-  const safeString = useCallback((val) => { if (val === null || val === undefined) return ''; if (typeof val === 'string') return val; if (typeof val === 'number') return String(val); if (typeof val === 'object') { if (val.$date) return val.$date; if (Object.keys(val).length === 0) return ''; return JSON.stringify(val); } return String(val); }, []);
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -324,7 +266,8 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
       if (label.includes(phrase) || phrase.includes(label)) return true;
       const val = getFieldValue(record, f, 0);
       if (val !== null && val !== undefined) {
-        if (Array.isArray(val)) { if (val.some(item => String(item).toLowerCase().includes(phrase))) return true; }
+        if (Array.isArray(val)) { if (val.some(item => flattenItem(item).toLowerCase().includes(phrase))) return true; }
+        else if (typeof val === 'object') { if (Object.entries(val).some(([k, v]) => (humanizeKey(k) + ' ' + fmtVal(v)).toLowerCase().includes(phrase))) return true; }
         else if (fmtVal(val).toLowerCase().includes(phrase)) return true;
       }
     }
@@ -338,7 +281,8 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
     if (label.includes(phrase) || phrase.includes(label)) return true;
     const val = getFieldValue(record, fn, idx);
     if (val !== null && val !== undefined) {
-      if (Array.isArray(val)) return val.some(item => String(item).toLowerCase().includes(phrase));
+      if (Array.isArray(val)) return val.some(item => flattenItem(item).toLowerCase().includes(phrase));
+      if (typeof val === 'object') return Object.entries(val).some(([k, v]) => (humanizeKey(k) + ' ' + fmtVal(v)).toLowerCase().includes(phrase));
       return fmtVal(val).toLowerCase().includes(phrase);
     }
     return false;
@@ -356,7 +300,10 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
       for (const fields of Object.values(SECTION_FIELDS)) {
         for (const f of fields) {
           const val = getFieldValue(record, f, idx);
-          if (val && (Array.isArray(val) ? val.some(item => String(item).toLowerCase().includes(phrase)) : fmtVal(val).toLowerCase().includes(phrase))) return true;
+          if (!val) continue;
+          if (Array.isArray(val)) { if (val.some(item => flattenItem(item).toLowerCase().includes(phrase))) return true; }
+          else if (typeof val === 'object') { if (Object.entries(val).some(([k, v]) => (humanizeKey(k) + ' ' + fmtVal(v)).toLowerCase().includes(phrase))) return true; }
+          else if (fmtVal(val).toLowerCase().includes(phrase)) return true;
         }
       }
       return false;
@@ -379,87 +326,73 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
   }, [filteredRecords, localEdits, pendingEdits]);
 
   /* ═══════ EDIT HANDLERS ═══════ */
-  // Save = stage a DRAFT locally + write it to the pending-drafts localStorage store (survives refresh).
-  // NOT written to MongoDB and NOT shown in the PDF until the user clicks Approve (handleApproveSection commits).
   const handleSaveField = useCallback((record, fn, idx, sid, sentIdx, valueOverride, editTrackingKey) => {
     const id = safeId(record); if (!id) return;
     const saveVal = valueOverride !== undefined ? valueOverride : editValue;
-    setSaveError(null);
-    setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: saveVal }));
-    setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true }));
-    const trackKey = editTrackingKey || `${fn}-${idx}`;
+    const editKey = `${fn}-${idx}`;
+    setLocalEdits(prev => ({ ...prev, [editKey]: saveVal }));
+    setPendingEdits(prev => ({ ...prev, [editKey]: true }));
+    const trackKey = editTrackingKey || editKey;
     setEditedFields(prev => ({ ...prev, [trackKey]: 'edited' }));
-    // Re-edit after approval → drop the section 'approved' flag so the button goes back to yellow Pending
-    setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
+    setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
     const store = readDrafts();
     if (!store[id]) store[id] = {};
     store[id][fn] = saveVal;
     writeDrafts(store);
+    setSaveError(null);
     setEditingField(null); setEditValue('');
   }, [editValue, safeId]);
 
-  /* saveLeaf: persist a single nested object leaf via dotted path */
-  const saveLeaf = useCallback((record, rootField, path, idx, sid, leafKeyTrack, newVal) => {
+  function stageFieldDraft(record, fn, idx, sid, fullText, sentenceMarks) {
     const id = safeId(record); if (!id) return;
+    const editKey = `${fn}-${idx}`;
+    setLocalEdits(prev => ({ ...prev, [editKey]: fullText }));
+    setPendingEdits(prev => ({ ...prev, [editKey]: true }));
+    if (sentenceMarks) setEditedSentences(prev => ({ ...prev, ...sentenceMarks }));
+    setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
+    const store = readDrafts();
+    if (!store[id]) store[id] = {};
+    store[id][fn] = fullText;
+    writeDrafts(store);
     setSaveError(null);
-    // Stage the full root object as a DRAFT (no DB write). Approve commits the whole field.
-    const cur = localEdits[`${rootField}-${idx}`] !== undefined ? localEdits[`${rootField}-${idx}`] : record[rootField];
-    const clone = JSON.parse(JSON.stringify(cur ?? {}));
-    let node = clone;
-    for (let i = 0; i < path.length - 1; i++) node = node[path[i]];
-    node[path[path.length - 1]] = newVal;
-    setLocalEdits(prev => ({ ...prev, [`${rootField}-${idx}`]: clone }));
-    setPendingEdits(prev => ({ ...prev, [`${rootField}-${idx}`]: true }));
-    setEditedFields(prev => ({ ...prev, [leafKeyTrack]: 'edited' }));
-    setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-    const store = readDrafts();
-    if (!store[id]) store[id] = {};
-    store[id][rootField] = clone;
-    writeDrafts(store);
     setEditingField(null); setEditValue('');
-  }, [safeId, localEdits]);
-
-  // stageFieldDraft: shared helper — stage a full-field value as a DRAFT (localStorage + state),
-  // NO DB write. Clears the section's approved flag so the button returns to yellow Pending Approve.
-  const stageFieldDraft = useCallback((record, fn, idx, sid, fullValue) => {
-    const id = safeId(record); if (!id) return;
-    setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullValue }));
-    setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true }));
-    if (sid) setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-    const store = readDrafts();
-    if (!store[id]) store[id] = {};
-    store[id][fn] = fullValue;
-    writeDrafts(store);
-  }, [safeId]);
+  }
 
   function saveSentence(record, fn, idx, sid, sentenceIdx) {
     const id = safeId(record); if (!id) return;
     const currentVal = String(getFieldValue(record, fn, idx) || '');
     const sentences = splitBySentence(currentVal);
     const editedVal = editValue.trim();
-    setSaveError(null);
     if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
       const updated = [...sentences]; updated.splice(sentenceIdx, 1);
       const fullText = reconstructFullText(updated);
-      stageFieldDraft(record, fn, idx, sid, fullText);
-      setEditedSentences(prev => ({ ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }));
-      setEditingField(null); setEditValue('');
+      stageFieldDraft(record, fn, idx, sid, fullText, { [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' });
       return;
     }
     const newSentences = splitBySentence(editedVal);
     const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
     const fullText = reconstructFullText(updated);
-    stageFieldDraft(record, fn, idx, sid, fullText);
     const orig = sentences[sentenceIdx] || '';
     const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
-    setEditedSentences(prev => {
-      const n = { ...prev };
-      if (changed) n[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
-      const extra = newSentences.length - 1;
-      for (let ei = 0; ei < extra; ei++) n[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added';
-      return n;
-    });
-    setEditingField(null); setEditValue('');
+    const marks = {};
+    if (changed) marks[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
+    const extra = newSentences.length - 1;
+    for (let ei = 0; ei < extra; ei++) marks[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added';
+    stageFieldDraft(record, fn, idx, sid, fullText, marks);
+  }
+
+  // Save one array item (dot-path key), reconstructing 'Label: value' for labeled items.
+  function saveArrayItem(record, fn, idx, sid, itemIdx, editKey, prefixLabel) {
+    const id = safeId(record); if (!id) return;
+    const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])];
+    currentArr[itemIdx] = prefixLabel ? `${prefixLabel}: ${editValue.trim()}` : editValue;
+    const draftKey = `${fn}-${idx}`;
+    setLocalEdits(prev => ({ ...prev, [draftKey]: currentArr }));
+    setPendingEdits(prev => ({ ...prev, [draftKey]: true }));
+    setEditedFields(prev => ({ ...prev, [editKey]: 'edited' }));
+    setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
+    const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fn] = currentArr; writeDrafts(store);
+    setSaveError(null); setEditingField(null); setEditValue('');
   }
 
   /* ═══════ APPROVE ═══════ */
@@ -471,47 +404,37 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
     );
   }, [editedFields, editedSentences]);
 
-  // Approve = COMMIT all staged drafts for this section to MongoDB, then clear pending so the committed
-  // values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
   const handleApproveSection = useCallback(async (record, sid, idx) => {
     const id = safeId(record); if (!id) return;
     const fields = SECTION_FIELDS[sid] || [];
-    const suffix = `-${idx}`;
-    setSaving(true); setSaveError(null);
     try {
-      // Collect this record's pending edits for this section's fields (key = "field-idx")
       const toCommit = Object.keys(localEdits).filter(k => {
-        if (!pendingEdits[k] || !k.endsWith(suffix)) return false;
-        const fieldPart = k.slice(0, -suffix.length); // field name (whole-field value staged)
-        const baseField = fieldPart.split('.')[0];
-        return fields.includes(baseField);
+        if (!pendingEdits[k]) return false;
+        const m = k.match(/^(.+)-(\d+)$/);
+        if (!m || parseInt(m[2], 10) !== idx) return false;
+        return fields.includes(m[1]);
       });
-      // Persist each staged field to the DB now (whole field/array/object value).
-      // GOTCHA: arrayIndex is added ONLY when the segment after the LAST dot is purely numeric — which
-      // never occurs here (fieldPart is the bare field name), so we always send the full field value.
-      for (const editKey of toCommit) {
-        const fieldPart = editKey.slice(0, -suffix.length);
-        const lastDot = fieldPart.lastIndexOf('.');
-        const trailing = lastDot === -1 ? '' : fieldPart.slice(lastDot + 1);
-        const payload = { value: localEdits[editKey] };
-        if (lastDot !== -1 && /^\d+$/.test(trailing)) { payload.field = fieldPart.slice(0, lastDot); payload.arrayIndex = parseInt(trailing, 10); }
-        else { payload.field = fieldPart; }
+      for (const key of toCommit) {
+        const m = key.match(/^(.+)-(\d+)$/);
+        const fieldPart = m[1];
+        const dotIdx = fieldPart.lastIndexOf('.');
+        const tail = dotIdx === -1 ? '' : fieldPart.slice(dotIdx + 1);
+        const isArrIdx = dotIdx !== -1 && /^\d+$/.test(tail);
+        const payload = { field: isArrIdx ? fieldPart.slice(0, dotIdx) : fieldPart, value: localEdits[key] };
+        if (isArrIdx) payload.arrayIndex = parseInt(tail, 10);
         const resp = await secureApiClient.put(`/api/edit/prognosis_records/${id}/edit`, payload);
         if (resp && resp.success === false) throw new Error(resp.error || 'save failed');
       }
-      // Flag the record/section approved (audit trail)
       await secureApiClient.put(`/api/edit/prognosis_records/${id}/approve`, { sectionId: sid, approved: true });
 
-      // Clear pending → committed edits now flow into pdfData/PDF
-      setPendingEdits(prev => { const next = { ...prev }; toCommit.forEach(k => delete next[k]); return next; });
-      // Drop this record's committed drafts from localStorage
+      setPendingEdits(prev => { const n = { ...prev }; toCommit.forEach(k => delete n[k]); return n; });
       const store = readDrafts();
-      if (store[id]) { toCommit.forEach(k => { const fp = k.slice(0, -suffix.length); delete store[id][fp]; }); if (Object.keys(store[id]).length === 0) delete store[id]; writeDrafts(store); }
+      if (store[id]) { fields.forEach(f => { delete store[id][f]; }); if (Object.keys(store[id]).length === 0) delete store[id]; writeDrafts(store); }
 
       setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
       setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) delete n[k]; }); }); return n; });
       setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
-    } catch (err) { console.error(err); setSaveError('Save failed.'); } finally { setSaving(false); }
+    } catch (err) { console.error(err); }
   }, [safeId, localEdits, pendingEdits]);
 
   const renderApproveButton = useCallback((record, sid, idx) => {
@@ -544,60 +467,48 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
     return lines;
   }, [splitBySentence]);
 
-  const objectCopyLines = useCallback((label, value, indent) => {
-    const pad = '  '.repeat(indent);
-    const out = [];
-    if (isScalar(value)) { out.push(`${pad}${label}: ${fmtScalar(value)}`); return out; }
-    if (label) out.push(`${pad}${label}:`);
-    Object.entries(value).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => out.push(...objectCopyLines(humanizeKey(k), v, indent + (label ? 1 : 0))));
-    return out;
-  }, []);
-
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      if (isHiddenZero(f, val)) return;
+      const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n`;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${labelLine}1. ${formatDate(val)}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
+        text += `${labelLine}1. ${val}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
-        const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        const items = (Array.isArray(val) ? val : [val]).filter(x => !isEmptyDeep(x)).map(flattenItem).filter(s => s && s.trim());
+        if (items.length) text += `${labelLine}${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (OBJECT_FIELDS.includes(f)) {
-        if (!isScalar(val) && !isEmptyDeep(val)) {
-          text += `${label}\n`;
-          Object.entries(val).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => objectCopyLines(humanizeKey(k), v, 0).forEach(l => { text += `${l}\n`; }));
-          text += '\n';
-        }
+        const entries = Object.entries(val).filter(([, v]) => hasVal(v));
+        if (entries.length) { text += labelLine; entries.forEach(([k, v], i) => { text += `${humanizeKey(k)}\n${i + 1}. ${fmtVal(v)}\n`; }); text += '\n'; }
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
+        if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
+          text += labelLine;
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${labelLine}1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines, objectCopyLines]);
+    return text === header ? '' : text;
+  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== PROGNOSIS RECORDS ===\n\n';
     pdfData.forEach((r, idx) => {
       text += `Prognosis Record ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      if (r.date) text += `Date: ${formatDate(r.date)}\n`;
-      if (r.provider) text += `Provider: ${fmtVal(r.provider)}\n`;
-      if (r.facility) text += `Facility: ${fmtVal(r.facility)}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -605,35 +516,35 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
     });
     const ok = await copyToClipboard(text);
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
-  }, [pdfData, copyToClipboard, buildSectionCopyText, fmtVal]);
+  }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
-  /* ═══════ RENDER: NUMBER FIELD ═══════ */
-  const renderNumberField = (record, fn, idx, sid) => {
+  /* ═══════ RENDER: DATE FIELD ═══════ */
+  const renderDateField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
-    const displayVal = fmtVal(val);
+    const displayVal = formatDate(val);
     const isModified = editedFields[editKey];
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(val)); setSaveError(null); } }}>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" className="edit-textarea" style={{ minHeight: 'auto', padding: '10px' }} value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => { setEditValue(iso); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const num = parseFloat(editValue); if (isNaN(num)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, num); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -642,22 +553,63 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
     );
   };
 
-  /* ═══════ RENDER: ARRAY FIELD ═══════ */
+  /* ═══════ RENDER: NUMBER FIELD — −/+ stepper; sentinel-zero hidden ═══════ */
+  const renderNumberField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    if (isHiddenZero(fn, val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = FIELD_LABELS[fn] || fn;
+    const displayVal = String(val);
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card">
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <div className="num-stepper-row">
+                <button type="button" className="num-step" onClick={() => { const step = stepFor(editValue); const n = Math.max(0, (parseFloat(editValue) || 0) - step); setEditValue(String(Number(n.toFixed(4)))); setSaveError(null); }}>&minus;</button>
+                <input className="edit-number" type="text" inputMode="decimal" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" onClick={() => { const step = stepFor(editValue); const n = Math.max(0, (parseFloat(editValue) || 0) + step); setEditValue(String(Number(n.toFixed(4)))); setSaveError(null); }}>+</button>
+              </div>
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: ARRAY FIELD — labeled item → sub-label above value-only row; unlabeled → whole row ═══════ */
   const renderArrayField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
-    const items = Array.isArray(val) ? val.filter(Boolean) : [];
+    const items = Array.isArray(val) ? val.filter(x => !isEmptyDeep(x)) : [];
     if (items.length === 0) return null;
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
+          const itemStr = flattenItem(item);
+          const parsed = parseLabel(itemStr);
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
           const isModified = editedFields[editKey];
-          const itemStr = String(item);
 
           if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
             const phrase = searchTerm.toLowerCase().trim();
@@ -665,22 +617,82 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
             if (!labelLower.includes(phrase) && !phrase.includes(labelLower) && !itemStr.toLowerCase().includes(phrase)) return null;
           }
 
+          const editSeed = parsed.isLabeled ? parsed.value : itemStr;
+          const displayVal = parsed.isLabeled ? parsed.value : itemStr;
+          const rowBlock = (
+            <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(editSeed); setSaveError(null); } }}>
+              {isEditing ? (
+                <div className="edit-field-container">
+                  <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  {saveError && <div className="save-error">{saveError}</div>}
+                  <div className="edit-actions">
+                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveArrayItem(record, fn, idx, sid, itemIdx, editKey, parsed.isLabeled ? parsed.label : null); }}>{saving ? 'Saving...' : 'Save'}</button>
+                    <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+                  <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(parsed.isLabeled ? `${parsed.label}\n${parsed.value}` : itemStr, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                </>
+              )}
+            </div>
+          );
+
+          if (parsed.isLabeled) {
+            return (
+              <div key={itemIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                <div className="nested-subtitle">{highlightText(parsed.label)}</div>
+                {rowBlock}
+                {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+              </div>
+            );
+          }
           return (
             <div key={itemIdx}>
-              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
+              {rowBlock}
+              {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: OBJECT FIELD (dynamic-key object — stacked key sub-label + value) ═══════ */
+  const renderObjectField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx);
+    if (!val || typeof val !== 'object' || Array.isArray(val)) return null;
+    const entries = Object.entries(val).filter(([, v]) => hasVal(v));
+    if (entries.length === 0) return null;
+    const label = FIELD_LABELS[fn] || fn;
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card">
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        {entries.map(([k, v]) => {
+          const editKey = `${fn}.${k}-${idx}`;
+          const isEditing = editingField === editKey;
+          const isModified = editedFields[editKey];
+          const dispVal = fmtVal(v);
+          return (
+            <div key={k} className="rec-mini-card" style={{ marginTop: 8 }}>
+              <div className="nested-subtitle">{highlightText(humanizeKey(k))}</div>
+              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(dispVal); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                     {saveError && <div className="save-error">{saveError}</div>}
                     <div className="edit-actions">
-                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; setSaveError(null); const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])]; currentArr[itemIdx] = editValue; stageFieldDraft(record, fn, idx, sid, currentArr); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const cur = { ...(getFieldValue(record, fn, idx) && typeof getFieldValue(record, fn, idx) === 'object' ? getFieldValue(record, fn, idx) : {}) }; cur[k] = editValue; const draftKey = `${fn}-${idx}`; setLocalEdits(prev => ({ ...prev, [draftKey]: cur })); setPendingEdits(prev => ({ ...prev, [draftKey]: true })); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fn] = cur; writeDrafts(store); setSaveError(null); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
                       <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div className="row-content"><span className="content-value">{highlightText(itemStr)}</span><span className="edit-indicator">&#9998;</span></div>
-                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(itemStr, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                    <div className="row-content"><span className="content-value">{highlightText(dispVal)}</span><span className="edit-indicator">&#9998;</span></div>
+                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${humanizeKey(k)}\n${dispVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                   </>
                 )}
               </div>
@@ -693,22 +705,22 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: STRING FIELD with splitBySentence ═══════ */
-  const renderStringField = (record, fn, idx, sid, title) => {
+  const renderStringField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* Multi-sentence (or single labeled sentence): render with splitBySentence */
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -738,7 +750,7 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
                                   <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                                   {saveError && <div className="save-error">{saveError}</div>}
                                   <div className="edit-actions">
-                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const currentVal2 = String(getFieldValue(record, fn, idx) || ''); const sentences2 = splitBySentence(currentVal2); const s2 = sentences2[sIdx] || ''; const p2 = parseLabel(s2); if (!p2.isLabeled) return; const items2 = splitByComma(p2.value); const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s); if (subParts.length > 1) { items2.splice(ciIdx, 1, ...subParts); } else { items2[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); } const rebuilt = `${p2.label}: ${items2.join(', ')}.`; const allS = [...sentences2]; allS[sIdx] = rebuilt; const fullText2 = reconstructFullText(allS); setSaveError(null); stageFieldDraft(record, fn, idx, sid, fullText2); const marks = { [commaKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ciIdx + ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const currentVal2 = String(getFieldValue(record, fn, idx) || ''); const sentences2 = splitBySentence(currentVal2); const s2 = sentences2[sIdx] || ''; const p2 = parseLabel(s2); if (!p2.isLabeled) return; const items2 = splitByComma(p2.value); const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s); if (subParts.length > 1) { items2.splice(ciIdx, 1, ...subParts); } else { items2[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); } const rebuilt = `${p2.label}: ${items2.join(', ')}.`; const allS = [...sentences2]; allS[sIdx] = rebuilt; const fullText2 = reconstructFullText(allS); const marks = { [commaKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ciIdx + ei}`] = 'added'; stageFieldDraft(record, fn, idx, sid, fullText2, marks); }}>{saving ? 'Saving...' : 'Save'}</button>
                                     <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                                   </div>
                                 </div>
@@ -768,7 +780,7 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
                         <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                         {saveError && <div className="save-error">{saveError}</div>}
                         <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const sentences2 = splitBySentence(String(getFieldValue(record, fn, idx) || '')); sentences2[sIdx] = reconstructed; const fullText = reconstructFullText(sentences2); setSaveError(null); stageFieldDraft(record, fn, idx, sid, fullText); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
+                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const sentences2 = splitBySentence(String(getFieldValue(record, fn, idx) || '')); sentences2[sIdx] = reconstructed; const fullText = reconstructFullText(sentences2); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; stageFieldDraft(record, fn, idx, sid, fullText, marks); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
                           <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                         </div>
                       </div>
@@ -795,7 +807,7 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -818,108 +830,6 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
     );
   };
 
-  /* ═══════ RENDER: OBJECT LEAF (editable; number+unit -> number input, text -> textarea, "4/5" stays text) ═══════ */
-  const renderObjectLeaf = (record, rootField, path, idx, sid, value) => {
-    const leafValueString = fmtScalar(value);
-    const leafKey = `${rootField}-${idx}-${path.join('.')}`;
-    const isEditing = editingField === leafKey;
-    const isModified = editedFields[leafKey];
-    const isBool = typeof value === 'boolean';
-    const ratio = isBool ? null : splitRatio(leafValueString);
-    const nu = (isBool || ratio) ? null : splitNumberUnit(leafValueString);
-    const editStartValue = isBool ? (value ? 'yes' : 'no') : ratio ? ratio.num : nu ? nu.num : leafValueString;
-    return (
-      <div key={path[path.length - 1]} className="nested-mini-card">
-        <div className="nested-subtitle sub-label">{highlightText(humanizeKey(path[path.length - 1]))}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(leafKey); setEditValue(editStartValue); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              {isBool ? (
-                <select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
-              ) : (ratio || nu) ? (
-                <div className="number-edit-row">
-                  <input type="number" step="any" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                  {ratio ? <span className="number-edit-unit">{`/ ${ratio.denom}`}</span> : (nu.unit && <span className="number-edit-unit">{nu.unit}</span>)}
-                </div>
-              ) : (
-                <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              )}
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => {
-                  e.stopPropagation();
-                  let newVal;
-                  if (isBool) {
-                    newVal = editValue === 'yes';
-                  } else if (ratio) {
-                    const n = parseFloat(editValue);
-                    if (isNaN(n)) { setSaveError('Please enter a valid number'); return; }
-                    newVal = `${n}/${ratio.denom}`;
-                  } else if (nu) {
-                    const n = parseFloat(editValue);
-                    if (isNaN(n)) { setSaveError('Please enter a valid number'); return; }
-                    newVal = nu.unit ? `${n}${nu.sep || ' '}${nu.unit}` : String(n);
-                  } else {
-                    newVal = editValue.trim();
-                  }
-                  saveLeaf(record, rootField, path, idx, sid, leafKey, newVal);
-                }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(leafValueString)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[leafKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${humanizeKey(path[path.length - 1])}\n${leafValueString}`, leafKey); }}>{copiedItems[leafKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
-
-  /* ═══════ RENDER: OBJECT NODE (recursive; humanizeKey + nested-mini-card; editable leaves) ═══════ */
-  const renderObjectNode = (record, rootField, idx, sid, label, value, path, depth) => {
-    if (isEmptyDeep(value)) return null;
-    const labelClass = depth > 0 ? 'nested-subtitle sub-label' : 'nested-subtitle';
-    if (isScalar(value)) return renderObjectLeaf(record, rootField, path, idx, sid, value);
-    const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return null;
-    return (
-      <React.Fragment key={path.join('-') || rootField}>
-        {label && <div className={labelClass}>{highlightText(label)}</div>}
-        <div className="nested-group">
-          {entries.map(([k, v]) => (
-            isScalar(v) ? renderObjectLeaf(record, rootField, [...path, k], idx, sid, v)
-              : <div className="nested-mini-card" key={k}>{renderObjectNode(record, rootField, idx, sid, humanizeKey(k), v, [...path, k], depth + 1)}</div>
-          ))}
-        </div>
-      </React.Fragment>
-    );
-  };
-
-  /* ═══════ RENDER: OBJECT FIELD (top-level entry for performanceStatusScore) ═══════ */
-  const renderObjectField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val) || isScalar(val)) return null;
-    const label = FIELD_LABELS[fn] || fn;
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-    const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return null;
-    return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        {entries.map(([k, v]) => (
-          isScalar(v) ? renderObjectLeaf(record, fn, [k], idx, sid, v)
-            : <div className="nested-mini-card" key={k}>{renderObjectNode(record, fn, idx, sid, humanizeKey(k), v, [k], 1)}</div>
-        ))}
-      </div>
-    );
-  };
-
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -928,6 +838,7 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
+      if (isHiddenZero(f, val)) return false;
       return hasVal(val);
     });
     if (!hasAnyVal) return null;
@@ -944,36 +855,16 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
+            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
             if (OBJECT_FIELDS.includes(f)) return renderObjectField(record, f, idx, sid);
-            return renderStringField(record, f, idx, sid, title);
+            return renderStringField(record, f, idx, sid);
           })}
         </div>
       </div>
     );
   };
-
-  /* ═══════ CHART COMPONENTS ═══════ */
-  const Legend = () => (
-    <div className="chart-legend">
-      <div className="legend-item"><div className="legend-color" style={{ backgroundColor: '#22c55e' }} /><span>Excellent/Low Risk</span></div>
-      <div className="legend-item"><div className="legend-color" style={{ backgroundColor: '#3b82f6' }} /><span>Good/Intermediate</span></div>
-      <div className="legend-item"><div className="legend-color" style={{ backgroundColor: '#f59e0b' }} /><span>Fair/Moderate</span></div>
-      <div className="legend-item"><div className="legend-color" style={{ backgroundColor: '#ef4444' }} /><span>Poor/High Risk</span></div>
-    </div>
-  );
-
-  const BarChart = ({ label, percentage, rawValue, color, interpretation }) => (
-    <div className="bar-chart-row">
-      <div className="bar-label">{highlightText(label)}</div>
-      <div className="bar-container">
-        <div className="bar-background"><div className="bar-fill" style={{ width: `${percentage}%`, backgroundColor: color }} /></div>
-        <div className="bar-value">{highlightText(rawValue)}</div>
-      </div>
-      <div className="bar-interpretation" style={{ color }}>{highlightText(interpretation)}</div>
-    </div>
-  );
 
   /* ═══════ MAIN RENDER ═══════ */
   if (!records || records.length === 0) {
@@ -991,7 +882,7 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Prognosis Records</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PrognosisRecordsDocumentPDFTemplate document={pdfData} />} fileName={`prognosis-records-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PrognosisRecordsDocumentPDFTemplate document={pdfData} />} fileName="Prognosis_Records.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1001,71 +892,14 @@ const PrognosisRecordsDocument = ({ document: docProp }) => {
         {searchTerm && <span className="search-results">Showing {filteredRecords.length} of {records.length} records</span>}
       </div>
       <div className="records-container">
-        {filteredRecords.map((record, idx) => {
-          const chartData = prepareChartData(record, safeString);
-          const survivalCharts = chartData.filter(c => c.category === 'Survival & Response');
-          const riskCharts = chartData.filter(c => c.category === 'Risk Scores');
-          const hasChartData = chartData.length > 0;
-
-          return (
-            <div key={idx} className="record-card">
-              <div className="record-header">
-                {(hasVal(record.date) || hasVal(record.currentDiseaseStage)) && (
-                  <div className="record-meta-row">
-                    {hasVal(record.date) && <span className="record-date">{formatDate(record.date)}</span>}
-                    {hasVal(record.currentDiseaseStage) && (() => {
-                      const stage = String(record.currentDiseaseStage).toLowerCase();
-                      let riskClass = 'risk-moderate';
-                      if (stage.includes('high') || stage.includes('severe') || stage.includes('critical')) riskClass = 'risk-high';
-                      else if (stage.includes('low') || stage.includes('mild') || stage.includes('stable')) riskClass = 'risk-low';
-                      return <span className={`risk-badge ${riskClass}`}>{highlightText(record.currentDiseaseStage)}</span>;
-                    })()}
-                  </div>
-                )}
-                <h3 className="record-name">{highlightText(`Prognosis Record ${idx + 1}`)}</h3>
-                {(record.provider || record.facility) && (
-                  <div className="record-provider-row">
-                    {record.provider && <span>{highlightText(record.provider)}</span>}
-                    {record.facility && <span>{highlightText(record.facility)}</span>}
-                  </div>
-                )}
-              </div>
-
-              {/* Score Overview - Bar Charts */}
-              {hasChartData && (
-                <div className="section">
-                  <div className="mini-cards-container">
-                    <div className="section-header">
-                      <h4 className="section-title">{highlightText('Score Overview')}</h4>
-                    </div>
-                    <div className="chart-container">
-                      <Legend />
-                      {survivalCharts.length > 0 && (
-                        <div className="chart-category">
-                          <div className="chart-category-header">{highlightText('Survival & Response')}</div>
-                          {survivalCharts.map(chart => <BarChart key={chart.key} {...chart} />)}
-                        </div>
-                      )}
-                      {riskCharts.length > 0 && (
-                        <div className="chart-category">
-                          <div className="chart-category-header">{highlightText('Risk Scores')}</div>
-                          {riskCharts.map(chart => <BarChart key={chart.key} {...chart} />)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {renderSection(record, idx, 'disease-stage')}
-              {renderSection(record, idx, 'clinical-course')}
-              {renderSection(record, idx, 'prognosis-overview')}
-              {renderSection(record, idx, 'prognostic-indicators')}
-              {renderSection(record, idx, 'biomarkers-risks')}
-              {renderSection(record, idx, 'modifiable-factors')}
+        {filteredRecords.map((record, idx) => (
+          <div key={idx} className="record-card">
+            <div className="record-header">
+              <h3 className="record-name">{highlightText(`Prognosis Record ${idx + 1}`)}</h3>
             </div>
-          );
-        })}
+            {Object.keys(SECTION_FIELDS).map(sid => renderSection(record, idx, sid))}
+          </div>
+        ))}
       </div>
     </div>
   );

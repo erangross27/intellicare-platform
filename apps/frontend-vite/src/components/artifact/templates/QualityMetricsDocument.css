@@ -1,5 +1,6 @@
 /* QualityMetricsDocument.css — March 2026 Blue glow editing theme */
-.quality-metrics-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.quality-metrics-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr !important; text-align: left !important; }
+.quality-metrics-document * { box-sizing: border-box; min-width: 0; direction: ltr !important; text-align: left; }
 .quality-metrics-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .quality-metrics-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .quality-metrics-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -18,12 +19,12 @@
 .quality-metrics-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
 .quality-metrics-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
 .quality-metrics-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
-.quality-metrics-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.quality-metrics-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 24px 18px 18px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
 .quality-metrics-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
 .quality-metrics-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
 .quality-metrics-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
-.quality-metrics-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
-.quality-metrics-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
+.quality-metrics-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: anywhere; overflow: hidden; }
+.quality-metrics-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; }
 .quality-metrics-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
 .quality-metrics-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
 .quality-metrics-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
@@ -34,16 +35,25 @@
 .quality-metrics-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
 .quality-metrics-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
 .quality-metrics-document .modified-badge.added { color: #4ade80; }
-.quality-metrics-document .edit-field-container { width: 100%; }
+.quality-metrics-document .edit-field-container { width: 100%; flex: 1 1 100%; }
 .quality-metrics-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
 .quality-metrics-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
 .quality-metrics-document .edit-select option { background: #0F1B33; color: #ececf1; }
 .quality-metrics-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
 .quality-metrics-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+.quality-metrics-document .num-stepper-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.quality-metrics-document .num-step { width: 38px; height: 38px; flex: 0 0 38px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(96, 165, 250, 0.6); border-radius: 6px; background: rgba(96, 165, 250, 0.16); color: #bfdbfe; font: 700 20px/1 'Comfortaa', sans-serif; cursor: pointer; }
+.quality-metrics-document .num-step:hover { background: rgba(96, 165, 250, 0.28); }
+.quality-metrics-document .edit-number { flex: 1 1 auto; width: 100%; padding: 9px 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font: 15px 'Comfortaa', sans-serif; outline: none; appearance: textfield; }
+.quality-metrics-document .edit-number::-webkit-outer-spin-button,
+.quality-metrics-document .edit-number::-webkit-inner-spin-button { margin: 0; appearance: none; }
+.quality-metrics-document .measurement-unit { flex: 0 0 auto; color: #93c5fd; font-size: 14px; }
 .quality-metrics-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
 .quality-metrics-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .quality-metrics-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .quality-metrics-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.quality-metrics-document .approve-btn { margin-top: 4px; text-transform: capitalize !important; letter-spacing: 0.3px; }
+.quality-metrics-document .approve-btn:disabled { cursor: wait; opacity: 0.6; }
 .quality-metrics-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .quality-metrics-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .quality-metrics-document .search-container { margin-bottom: 20px; }

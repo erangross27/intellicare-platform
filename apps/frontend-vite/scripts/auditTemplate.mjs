@@ -228,12 +228,52 @@ try {
   // so the harness can re-query it after React renders (Pulmonology Consultations row 644, July 2026).
   {
     const scalarRows = [...new Set([...host.querySelectorAll('.content-value')]
-      .map(value => value.closest('.numbered-row')).filter(Boolean))];
+      .map(value => value.closest('.numbered-row, .nested-subtitle.editable-row')).filter(Boolean))];
     jsxScalarValues = [...host.querySelectorAll('.content-value')]
       .map(value => value.textContent.trim()).filter(Boolean);
     const readOnlyRows = scalarRows.filter(row => !row.classList.contains('editable-row'));
     check('JSX every visible scalar row is editable', readOnlyRows.length === 0,
       readOnlyRows.slice(0, 4).map(row => JSON.stringify(row.textContent.trim().slice(0, 50))).join(' | '));
+
+    const orphanRows = scalarRows.filter(row => !row.closest('.rec-mini-card') && !row.closest('.nested-mini-card'));
+    check('JSX every visible scalar row is framed by a mini-card', orphanRows.length === 0,
+      orphanRows.slice(0, 4).map(row => JSON.stringify(row.textContent.trim().slice(0, 50))).join(' | '));
+
+    const recommendationArrays = records.map(record => record?.recommendations).filter(Array.isArray);
+    const repeatedRecommendationDates = recommendationArrays.some(items => {
+      const keys = items.map(item => {
+        try { return item?.date ? new Date(item.date.$date || item.date).toISOString().slice(0, 10) : 'no-date'; }
+        catch { return String(item?.date || 'no-date'); }
+      });
+      return new Set(keys).size < keys.length;
+    });
+    if (repeatedRecommendationDates) {
+      const expectedGroups = recommendationArrays.reduce((total, items) => {
+        const keys = items.map(item => {
+          try { return item?.date ? new Date(item.date.$date || item.date).toISOString().slice(0, 10) : 'no-date'; }
+          catch { return String(item?.date || 'no-date'); }
+        });
+        return total + new Set(keys).size;
+      }, 0);
+      const actualGroups = host.querySelectorAll('.recommendation-group').length;
+      check('JSX recommendations sharing a date render in one date group', actualGroups === expectedGroups,
+        `${actualGroups} group(s) rendered vs ${expectedGroups} unique date(s)`);
+
+      const datedGroups = recommendationArrays.reduce((total, items) => {
+        const keys = items.map(item => {
+          try { return item?.date ? new Date(item.date.$date || item.date).toISOString().slice(0, 10) : 'no-date'; }
+          catch { return String(item?.date || 'no-date'); }
+        }).filter(key => key !== 'no-date');
+        return total + new Set(keys).size;
+      }, 0);
+      const dateSubtitles = [...host.querySelectorAll('.recommendation-group > .editable-date-subtitle .date-subtitle')];
+      check('JSX recommendation date renders once as an editable nested subtitle',
+        dateSubtitles.length === datedGroups && dateSubtitles.every(subtitle => subtitle.classList.contains('nested-subtitle')),
+        `${dateSubtitles.length} subtitle(s) rendered vs ${datedGroups} dated group(s)`);
+      check('JSX recommendation date subtitle is not a numbered row',
+        dateSubtitles.every(subtitle => !subtitle.classList.contains('numbered-row')),
+        `${dateSubtitles.filter(subtitle => subtitle.classList.contains('numbered-row')).length} date subtitle(s) still use numbered-row`);
+    }
 
     const untracked = [];
     for (const card of host.querySelectorAll('.rec-mini-card')) {

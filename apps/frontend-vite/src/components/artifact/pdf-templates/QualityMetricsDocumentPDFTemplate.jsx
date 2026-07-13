@@ -1,251 +1,188 @@
-/**
- * QualityMetricsDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — quality metrics
- * Collection: quality_metrics
- */
+/** Canonical box-free LETTER PDF for quality_metrics. */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordStatus: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { paddingBottom: 12 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginTop: 12, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 7, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 5, marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#333333', marginTop: 40 },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
-};
+const SECTIONS = [
+  { title: 'Metric Overview', fields: [
+    { key: 'metricName', label: 'Metric Name' },
+    { key: 'metricCategory', label: 'Category' },
+    { key: 'metricDate', label: 'Metric Date', type: 'date' },
+    { key: 'metricMet', label: 'Metric Met', type: 'boolean' },
+  ] },
+  { title: 'Target vs Actual', fields: [
+    { key: 'targetValue', label: 'Target Value' },
+    { key: 'actualValue', label: 'Actual Value' },
+    { key: 'variance', label: 'Variance' },
+    { key: 'unit', label: 'Unit' },
+  ] },
+  { title: 'Barriers', fields: [{ key: 'barriers', label: 'Barriers', type: 'array' }] },
+  { title: 'Improvement Plan', fields: [{ key: 'improvementPlan', label: 'Improvement Plan', type: 'commaList' }] },
+  { title: 'Action Items', fields: [{ key: 'actionItems', label: 'Action Items', type: 'array' }] },
+  { title: 'Responsible Party', fields: [{ key: 'responsibleParty', label: 'Responsible Party', type: 'peopleList' }] },
+];
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
-};
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
+const hasVal = value => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value).length > 0;
   return true;
 };
 
-const splitBySentence = (text) => {
+const safeString = value => String(value ?? '')
+  .replace(/×/g, 'x').replace(/[μµ]/g, 'u')
+  .replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
+  .replace(/[–—]/g, '-').replace(/…/g, '...')
+  .replace(/\u2192/g, '->');
+
+const formatDate = value => {
+  if (!value) return '';
+  const date = new Date(value.$date || value);
+  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() <= 1970) return '';
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+};
+
+const sameAsTitle = (label, title) => String(label || '').trim().toLowerCase() === String(title || '').trim().toLowerCase();
+
+const parseLabel = text => {
+  const match = String(text || '').match(/^([A-Za-z0-9%][A-Za-z0-9\s/&().#'"%<>~+=-]{0,119}?):\s+([\s\S]+)$/);
+  return match ? { isLabeled: true, label: match[1].trim(), value: match[2].trim() } : { isLabeled: false, label: '', value: String(text || '') };
+};
+
+const splitBySentence = text => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  const protectedText = text
+    .replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc|approx|no)\./gi, '$1<prd>')
+    .replace(/\b([A-Z])\.(?=\s|[A-Z]\.)/g, '$1<prd>')
+    .replace(/\b(\d+)\.(?=\d)/g, '$1<prd>');
+  return protectedText.split(/[.;](?:\s+|$)/)
+    .map(item => item.replace(/<prd>/g, '.').trim())
+    .filter(item => item && !/^[;.,!?]+$/.test(item));
 };
 
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
-};
-
-const splitByComma = (text) => {
+const splitByComma = text => {
   if (!text || typeof text !== 'string') return [text || ''];
   const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === '(') { depth += 1; current += char; }
+    else if (char === ')') { depth = Math.max(0, depth - 1); current += char; }
+    else if (char === ',' && depth === 0 && /\s/.test(text[index + 1] || '')) { if (current.trim()) result.push(current.trim()); current = ''; }
+    else current += char;
   }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [text];
 };
 
-/* ======= renderStringField for PDF ======= */
-const renderStringFieldPDF = (label, val) => {
-  if (!hasVal(val)) return null;
-  const strVal = safeString(val);
-  const sentences = splitBySentence(strVal);
-  if (sentences.length > 1) {
-    return (
-      <View style={styles.fieldBox}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        {sentences.map((sentence, sIdx) => {
-          const parsed = parseLabel(sentence);
-          if (parsed.isLabeled) {
-            const commaItems = splitByComma(parsed.value);
-            if (commaItems.length >= 2) {
-              return (
-                <View key={sIdx}>
-                  <Text style={styles.nestedSubtitle}>{parsed.label}:</Text>
-                  {commaItems.map((ci, ciIdx) => (
-                    <Text key={ciIdx} style={styles.listItem}>{ciIdx + 1}. {ci}</Text>
-                  ))}
-                </View>
-              );
-            }
-            return (
-              <View key={sIdx}>
-                <Text style={styles.nestedSubtitle}>{parsed.label}:</Text>
-                <Text style={styles.listItem}>{parsed.value}</Text>
-              </View>
-            );
-          }
-          return <Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {sentence}</Text>;
-        })}
-      </View>
-    );
+const splitPeople = text => String(text || '').split(/(?<=\)),\s+/).map(item => item.trim()).filter(Boolean);
+
+const fieldRows = (record, field, sectionTitle) => {
+  const value = record[field.key];
+  if (!hasVal(value)) return [];
+  const fieldLabel = sameAsTitle(field.label, sectionTitle) ? '' : field.label;
+
+  if (field.type === 'date') {
+    const display = formatDate(value);
+    return display ? [{ fieldLabel, text: display, number: 1 }] : [];
   }
+  if (field.type === 'boolean') {
+    return [{ fieldLabel, text: value ? 'Yes' : 'No', number: 1 }];
+  }
+  if (field.type === 'array') {
+    let unlabelledNumber = 0;
+    return (Array.isArray(value) ? value : [value]).filter(hasVal).map((item, index) => {
+      const parsed = parseLabel(item);
+      return {
+        fieldLabel: index === 0 ? fieldLabel : '',
+        subLabel: parsed.isLabeled ? parsed.label : '',
+        text: parsed.isLabeled ? parsed.value : safeString(item),
+        number: parsed.isLabeled ? 1 : ++unlabelledNumber,
+      };
+    });
+  }
+  if (field.type === 'commaList' || field.type === 'peopleList') {
+    const parts = field.type === 'commaList' ? splitByComma(safeString(value)) : splitPeople(safeString(value));
+    return parts.map((part, index) => ({ fieldLabel: index === 0 ? fieldLabel : '', text: part, number: index + 1 }));
+  }
+
+  const sentences = splitBySentence(safeString(value));
+  const parts = sentences.length ? sentences : [safeString(value)];
+  return parts.map((part, index) => ({ fieldLabel: index === 0 ? fieldLabel : '', text: part, number: index + 1 }));
+};
+
+const RowContent = ({ row }) => (
+  <>
+    {row.fieldLabel && <Text style={styles.fieldLabel}>{safeString(row.fieldLabel)}</Text>}
+    {row.subLabel && <Text style={styles.nestedSubtitle}>{safeString(row.subLabel)}</Text>}
+    <Text style={styles.listItem}>{row.number}. {safeString(row.text)}</Text>
+  </>
+);
+
+const renderSection = (record, section, sectionIndex) => {
+  const rows = section.fields.flatMap(field => fieldRows(record, field, section.title));
+  if (!rows.length) return null;
+  const [first, ...rest] = rows;
   return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{strVal}</Text>
-    </View>
+    <React.Fragment key={`section-${sectionIndex}`}>
+      <View style={styles.section} wrap={false}>
+        <Text style={styles.sectionTitle}>{section.title}</Text>
+        <View style={styles.fieldBox} wrap={false}><RowContent row={first} /></View>
+      </View>
+      {rest.map((row, index) => (
+        <View key={`section-${sectionIndex}-row-${index}`} style={styles.fieldBox} wrap={false}>
+          <RowContent row={row} />
+        </View>
+      ))}
+    </React.Fragment>
   );
 };
 
-/* ======= COMPONENT ======= */
+const unwrapRecords = data => {
+  if (!data) return [];
+  return (Array.isArray(data) ? data : [data]).flatMap(record => {
+    if (record?.quality_metrics) return Array.isArray(record.quality_metrics) ? record.quality_metrics : [record.quality_metrics];
+    if (record?.documentData) {
+      const nested = record.documentData;
+      if (Array.isArray(nested)) return nested;
+      if (nested?.quality_metrics) return Array.isArray(nested.quality_metrics) ? nested.quality_metrics : [nested.quality_metrics];
+      return [nested];
+    }
+    if (record?.data?.quality_metrics) return Array.isArray(record.data.quality_metrics) ? record.data.quality_metrics : [record.data.quality_metrics];
+    return [record];
+  }).filter(record => record && typeof record === 'object');
+};
+
 const QualityMetricsDocumentPDFTemplate = ({ document: data }) => {
-  let records = [];
-  if (Array.isArray(data)) {
-    records = data;
-  } else if (data?.quality_metrics) {
-    records = Array.isArray(data.quality_metrics) ? data.quality_metrics : [data.quality_metrics];
-  } else if (data?.documentData) {
-    records = Array.isArray(data.documentData) ? data.documentData : [data.documentData];
-  } else if (data) {
-    records = [data];
-  }
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Quality Metrics</Text>
-          </View>
-          <Text style={styles.noDataText}>No quality metrics records available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
+  const records = React.useMemo(() => unwrapRecords(data), [data]);
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
+        <View style={styles.documentHeader} wrap={false}>
           <Text style={styles.documentTitle}>Quality Metrics</Text>
         </View>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
+        {!records.length && <Text style={styles.noDataText}>No quality metrics records available</Text>}
+        {records.map((record, recordIndex) => (
+          <View key={`record-${recordIndex}`} style={styles.recordContainer} break={recordIndex > 0}>
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {hasVal(record.metricDate) && <Text style={styles.recordDate}>{formatDate(record.metricDate)}</Text>}
-                <Text style={styles.recordStatus}>{record.metricMet ? 'MET' : 'NOT MET'}</Text>
-              </View>
-              <Text style={styles.recordTitle}>{record.metricName || `Quality Metric ${idx + 1}`}</Text>
+              <Text style={styles.recordTitle}>Quality Metric {recordIndex + 1}</Text>
             </View>
-
-            {/* Metric Overview */}
-            {(hasVal(record.metricName) || hasVal(record.metricCategory) || hasVal(record.metricDate) || typeof record.metricMet === 'boolean') && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Metric Overview</Text>
-                {hasVal(record.metricName) && (
-                  <View style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>METRIC NAME</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.metricName)}</Text>
-                  </View>
-                )}
-                {hasVal(record.metricCategory) && (
-                  <View style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>CATEGORY</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.metricCategory)}</Text>
-                  </View>
-                )}
-                {hasVal(record.metricDate) && (
-                  <View style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>METRIC DATE</Text>
-                    <Text style={styles.fieldValue}>{formatDate(record.metricDate)}</Text>
-                  </View>
-                )}
-                {typeof record.metricMet === 'boolean' && (
-                  <View style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>METRIC MET</Text>
-                    <Text style={styles.fieldValue}>{record.metricMet ? 'Yes' : 'No'}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Target vs Actual */}
-            {(hasVal(record.targetValue) || hasVal(record.actualValue) || hasVal(record.variance) || hasVal(record.unit)) && (
-              <View style={styles.section} wrap={(safeString(record.targetValue) + safeString(record.actualValue) + safeString(record.variance)).length > 400 ? undefined : false}>
-                <Text style={styles.sectionTitle}>Target vs Actual</Text>
-                {hasVal(record.targetValue) && renderStringFieldPDF('TARGET VALUE', record.targetValue)}
-                {hasVal(record.actualValue) && renderStringFieldPDF('ACTUAL VALUE', record.actualValue)}
-                {hasVal(record.variance) && renderStringFieldPDF('VARIANCE', record.variance)}
-                {hasVal(record.unit) && renderStringFieldPDF('UNIT', record.unit)}
-              </View>
-            )}
-
-            {/* Barriers */}
-            {hasVal(record.barriers) && (
-              <View style={styles.section} wrap={(Array.isArray(record.barriers) ? record.barriers : [record.barriers]).length > 8 ? undefined : false}>
-                <Text style={styles.sectionTitle}>Barriers</Text>
-                {(Array.isArray(record.barriers) ? record.barriers : [record.barriers]).map((barrier, bIdx) => (
-                  <Text key={bIdx} style={styles.listItem}>{bIdx + 1}. {safeString(barrier)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Improvement Plan */}
-            {hasVal(record.improvementPlan) && (
-              <View style={styles.section} wrap={splitBySentence(safeString(record.improvementPlan)).length > 8 ? undefined : false}>
-                <Text style={styles.sectionTitle}>Improvement Plan</Text>
-                {renderStringFieldPDF('', record.improvementPlan)}
-              </View>
-            )}
-
-            {/* Action Items */}
-            {hasVal(record.actionItems) && (
-              <View style={styles.section} wrap={(Array.isArray(record.actionItems) ? record.actionItems : [record.actionItems]).length > 8 ? undefined : false}>
-                <Text style={styles.sectionTitle}>Action Items</Text>
-                {(Array.isArray(record.actionItems) ? record.actionItems : [record.actionItems]).map((item, aIdx) => (
-                  <Text key={aIdx} style={styles.listItem}>{aIdx + 1}. {safeString(item)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Responsible Party */}
-            {hasVal(record.responsibleParty) && (
-              <View style={styles.section} wrap={splitBySentence(safeString(record.responsibleParty)).length > 8 ? undefined : false}>
-                <Text style={styles.sectionTitle}>Responsible Party</Text>
-                {renderStringFieldPDF('', record.responsibleParty)}
-              </View>
-            )}
-
-            {idx < records.length - 1 && <View style={styles.separator} />}
+            {SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}
           </View>
         ))}
       </Page>

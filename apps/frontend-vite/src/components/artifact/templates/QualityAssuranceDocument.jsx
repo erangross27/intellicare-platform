@@ -129,6 +129,22 @@ const toInputDate = (dateValue) => {
   try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
 
+const groupRecommendationsByDate = (items) => {
+  const groups = [];
+  const byDate = new Map();
+  (Array.isArray(items) ? items : []).forEach((item, itemIdx) => {
+    if (!item || typeof item !== 'object') return;
+    const dateKey = toInputDate(item.date) || 'no-date';
+    if (!byDate.has(dateKey)) {
+      const group = { dateKey, dateValue: item.date, entries: [] };
+      byDate.set(dateKey, group);
+      groups.push(group);
+    }
+    byDate.get(dateKey).entries.push({ item, itemIdx });
+  });
+  return groups;
+};
+
 /* ═══════ COMPONENT ═══════ */
 const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -548,10 +564,11 @@ const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => 
         const items = Array.isArray(val) ? val : [val];
         text += labelLine;
         if (f === 'recommendations') {
-          items.forEach((item, i) => {
-            if (!item || typeof item !== 'object') return;
-            if (hasVal(item.date)) text += `${formatDate(item.date)}\n${COPY_LINE_DASH}\n`;
-            if (hasVal(item.recommendation)) text += `${i + 1}. ${item.recommendation}\n`;
+          groupRecommendationsByDate(items).forEach(group => {
+            if (hasVal(group.dateValue)) text += `${formatDate(group.dateValue)}\n${COPY_LINE_DASH}\n`;
+            group.entries.forEach(({ item }, groupIdx) => {
+              if (hasVal(item.recommendation)) text += `${groupIdx + 1}. ${item.recommendation}\n`;
+            });
           });
         } else {
           items.forEach((item, i) => {
@@ -687,7 +704,7 @@ const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => 
 
   /* renderArraySubfieldRow — one editable scalar row inside an array-of-objects item;
      saves via arrayIndex + subField dot-path so the object shape is preserved */
-  const renderArraySubfieldRow = (record, fn, idx, sid, itemIdx, subKey, subVal, isDateSub) => {
+  const renderArraySubfieldRow = (record, fn, idx, sid, itemIdx, subKey, subVal, isDateSub, compact = false) => {
     const editKey = `${fn}.${itemIdx}.${subKey}-${idx}`;
     const isEditing = editingField === editKey;
     const isModified = editedFields[editKey];
@@ -699,8 +716,8 @@ const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => 
     }
 
     return (
-      <div key={subKey} className="rec-mini-card" style={{ marginTop: 6 }} data-edit-field={`${fn}.${itemIdx}.${subKey}`}>
-        <div className="nested-subtitle">{highlightText(humanizeKey(subKey))}</div>
+      <div key={`${subKey}-${itemIdx}`} className={compact ? 'array-subfield-row' : 'rec-mini-card'} style={compact ? undefined : { marginTop: 6 }} data-edit-field={`${fn}.${itemIdx}.${subKey}`}>
+        {!compact && <div className="nested-subtitle">{highlightText(humanizeKey(subKey))}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(isDateSub ? toInputDate(subVal) : fmtVal(subVal)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -725,7 +742,7 @@ const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => 
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${humanizeKey(subKey)}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(compact ? displayVal : `${humanizeKey(subKey)}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -734,13 +751,18 @@ const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => 
     );
   };
 
-  const renderRecommendationDateSubtitle = (record, idx, sid, itemIdx, dateValue) => {
-    const editKey = `recommendations.${itemIdx}.date-${idx}`;
+  const renderRecommendationDateSubtitle = (record, idx, sid, itemIndices, dateValue) => {
+    const primaryItemIdx = itemIndices[0];
+    const editKey = `recommendations.${primaryItemIdx}.date-${idx}`;
     const isEditing = editingField === editKey;
-    const isModified = editedFields[editKey];
+    const isModified = itemIndices.some(itemIdx => editedFields[`recommendations.${itemIdx}.date-${idx}`]);
     const displayVal = formatDate(dateValue);
     return (
-      <div className="editable-date-subtitle" data-edit-field={`recommendations.${itemIdx}.date`}>
+      <div
+        className="editable-date-subtitle"
+        data-edit-field={`recommendations.${primaryItemIdx}.date`}
+        data-edit-fields={itemIndices.map(itemIdx => `recommendations.${itemIdx}.date`).join(',')}
+      >
         {isEditing ? (
           <div className="edit-field-container">
             <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value); setSaveError(null); }} />
@@ -749,14 +771,16 @@ const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => 
                 e.stopPropagation();
                 const current = Array.isArray(getFieldValue(record, 'recommendations', idx))
                   ? getFieldValue(record, 'recommendations', idx).map(item => ({ ...item })) : [];
-                if (current[itemIdx]) current[itemIdx].date = editValue;
-                stageDraft(record, 'recommendations', idx, sid, `recommendations-${idx}`, current, 'fields', editKey, 'edited');
+                itemIndices.forEach(itemIdx => { if (current[itemIdx]) current[itemIdx].date = editValue; });
+                itemIndices.forEach(itemIdx => {
+                  stageDraft(record, 'recommendations', idx, sid, `recommendations-${idx}`, current, 'fields', `recommendations.${itemIdx}.date-${idx}`, 'edited');
+                });
               }}>{saving ? 'Saving...' : 'Save'}</button>
               <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
             </div>
           </div>
         ) : (
-          <div className={`nested-subtitle date-subtitle numbered-row editable-row ${isModified ? 'modified' : ''}`} onClick={() => { setEditingField(editKey); setEditValue(toInputDate(dateValue)); setSaveError(null); }}>
+          <div className={`nested-subtitle date-subtitle editable-row ${isModified ? 'modified' : ''}`} onClick={() => { setEditingField(editKey); setEditValue(toInputDate(dateValue)); setSaveError(null); }}>
             <span className="content-value">{highlightText(displayVal)}</span> <span className="edit-indicator">&#9998;</span>
           </div>
         )}
@@ -773,6 +797,31 @@ const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => 
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
+    if (fn === 'recommendations') {
+      const groups = groupRecommendationsByDate(items);
+      return (
+        <div key={fn} className="recommendation-groups">
+          {groups.map(group => {
+            const visibleEntries = group.entries.filter(({ item }) => {
+              if (!searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections) return true;
+              const phrase = searchTerm.toLowerCase().trim();
+              return `${formatDate(item.date)} ${item.recommendation || ''}`.toLowerCase().includes(phrase);
+            });
+            if (visibleEntries.length === 0) return null;
+            const itemIndices = group.entries.map(({ itemIdx }) => itemIdx);
+            return (
+              <div key={group.dateKey} className="rec-mini-card recommendation-group">
+                {hasVal(group.dateValue) && renderRecommendationDateSubtitle(record, idx, sid, itemIndices, group.dateValue)}
+                {visibleEntries.map(({ item, itemIdx }) => hasVal(item.recommendation)
+                  ? renderArraySubfieldRow(record, fn, idx, sid, itemIdx, 'recommendation', item.recommendation, false, true)
+                  : null)}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     return (
       <div key={fn} className="rec-mini-card">
         {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
@@ -787,14 +836,6 @@ const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => 
               const phrase = searchTerm.toLowerCase().trim();
               const flat = flattenObjItem(item).toLowerCase();
               if (!label.toLowerCase().includes(phrase) && !flat.includes(phrase)) return null;
-            }
-            if (fn === 'recommendations') {
-              return (
-                <div key={itemIdx} className="rec-mini-card recommendation-group" style={{ marginTop: 8 }}>
-                  {hasVal(item.date) && renderRecommendationDateSubtitle(record, idx, sid, itemIdx, item.date)}
-                  {hasVal(item.recommendation) && renderArraySubfieldRow(record, fn, idx, sid, itemIdx, 'recommendation', item.recommendation, false)}
-                </div>
-              );
             }
             return (
               <div key={itemIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
@@ -819,7 +860,7 @@ const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => 
           }
 
           return (
-            <div key={itemIdx} data-edit-field={`${fn}.${itemIdx}`} className={parsedItem.isLabeled ? 'rec-mini-card' : ''}>
+            <div key={itemIdx} data-edit-field={`${fn}.${itemIdx}`} className="rec-mini-card">
               {parsedItem.isLabeled && <div className="nested-subtitle">{highlightText(parsedItem.label)}</div>}
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayItem); setSaveError(null); } }}>
                 {isEditing ? (
@@ -1038,7 +1079,7 @@ const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => 
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined} data-edit-field={fn}>
+                <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }} data-edit-field={fn}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (

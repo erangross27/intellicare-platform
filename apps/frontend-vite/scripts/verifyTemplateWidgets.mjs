@@ -153,6 +153,10 @@ function widgetOf(container) {
   return 'none';
 }
 
+function editableTarget(container) {
+  return container?.querySelector('.numbered-row.editable-row, .nested-subtitle.editable-row');
+}
+
 /* ─── run ─── */
 const { createRoot } = require('react-dom/client');
 const { act } = React;
@@ -222,7 +226,7 @@ async function main() {
     const label = container.querySelector('.field-label')?.textContent.trim() || fieldName;
     const valEl = container.querySelector('.content-value');
     const value = valEl?.textContent.trim() || '';
-    const row = container.querySelector('.numbered-row.editable-row');
+    const row = editableTarget(container);
     if (!row || !valEl) {
       flags.push({ label, value, kind: classify(value), widget: 'none', why: `data-edit-field="${fieldName}" has no clickable editable row` });
       continue;
@@ -247,7 +251,7 @@ async function main() {
   for (const nestedField of nestedFields) {
     const { fieldName } = nestedField;
     const container = findNestedField(nestedField);
-    const row = container?.querySelector('.numbered-row.editable-row');
+    const row = editableTarget(container);
     if (!row) continue;
     await act(async () => { row.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
     const liveContainer = findNestedField(nestedField);
@@ -270,6 +274,13 @@ async function main() {
   for (const { fieldName } of nestedFields) {
     if (!persistedFields.has(fieldName)) {
       flags.push({ label: fieldName, value: '', kind: 'persistence', widget: 'Save', why: 'Save + Pending Approve did not send this exact field path to the edit API' });
+    }
+  }
+  const groupedFieldNames = [...host.querySelectorAll('[data-edit-fields]')]
+    .flatMap(element => String(element.getAttribute('data-edit-fields') || '').split(',').map(field => field.trim()).filter(Boolean));
+  for (const fieldName of groupedFieldNames) {
+    if (!persistedFields.has(fieldName)) {
+      flags.push({ label: fieldName, value: '', kind: 'persistence', widget: 'Save', why: 'grouped subtitle Save + Pending Approve did not send this exact field path to the edit API' });
     }
   }
   await act(async () => { root.unmount(); });

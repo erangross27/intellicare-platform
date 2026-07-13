@@ -69,6 +69,21 @@ const formatDate = value => {
 const getValue = (record, path) => path.split('.').reduce((value, key) => value?.[key], record);
 const sameAsTitle = (label, title) => String(label || '').trim().toLowerCase() === String(title || '').trim().toLowerCase();
 const humanizeKey = key => String(key || '').replace(/[_-]+/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, char => char.toUpperCase());
+const groupRecommendationsByDate = items => {
+  const groups = [];
+  const byDate = new Map();
+  (Array.isArray(items) ? items : []).forEach(item => {
+    if (!item || typeof item !== 'object') return;
+    const dateKey = formatDate(item.date) || 'no-date';
+    if (!byDate.has(dateKey)) {
+      const group = { dateValue: item.date, items: [] };
+      byDate.set(dateKey, group);
+      groups.push(group);
+    }
+    byDate.get(dateKey).items.push(item);
+  });
+  return groups;
+};
 
 const parseLabel = text => {
   const match = String(text || '').match(/^([A-Za-z0-9][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
@@ -105,9 +120,13 @@ const fieldRows = (record, field, sectionTitle) => {
     return display ? [{ fieldLabel, text: display }] : [];
   }
   if (field.type === 'recommendations') {
-    return (Array.isArray(value) ? value : []).flatMap(item => {
-      if (!item || !hasVal(item.recommendation)) return [];
-      return [{ fieldLabel: '', subLabel: formatDate(item.date), text: safeString(item.recommendation) }];
+    return groupRecommendationsByDate(value).flatMap(group => {
+      const recommendations = group.items.filter(item => hasVal(item.recommendation));
+      return recommendations.map((item, index) => ({
+        fieldLabel: '',
+        subLabel: index === 0 ? formatDate(group.dateValue) : '',
+        text: safeString(item.recommendation),
+      }));
     });
   }
   if (field.type === 'metrics') {

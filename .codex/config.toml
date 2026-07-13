@@ -2,6 +2,18 @@
 command = "node"
 args = ["/Users/erangross/dev/IntelliCare/mcp-mongodb-server/index.js"]
 
+[mcp_servers.intellicare-mongodb.tools.search_patients]
+approval_mode = "approve"
+
+[mcp_servers.intellicare-mongodb.tools.find_documents]
+approval_mode = "approve"
+
+[mcp_servers.intellicare-mongodb.tools.count_documents]
+approval_mode = "approve"
+
+[mcp_servers.intellicare-mongodb.tools.find_by_id]
+approval_mode = "approve"
+
 [mcp_servers.mongodb-memory]
 command = "node"
 args = ["/Users/erangross/dev/IntelliCare/mcp-memory-server/index.js"]

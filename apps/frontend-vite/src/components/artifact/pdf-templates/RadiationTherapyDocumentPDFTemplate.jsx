@@ -7,25 +7,25 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
+  documentHeader: { marginBottom: 24 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8, paddingBottom: 6, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { paddingBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
+  recordDate: { fontSize: 14, color: '#000000', fontFamily: 'Helvetica' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8, paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  objSubLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#333333', marginTop: 4, marginBottom: 1 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 4, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  objSubLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
   objNested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', borderLeftStyle: 'solid', marginTop: 2 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  noDataText: { fontSize: 14, color: '#000000', textAlign: 'center', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
@@ -100,7 +100,11 @@ const countRows = (val) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  const protectedText = text
+    .replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)\./gi, '$1<prd>')
+    .replace(/\b([A-Z])\.(?=\s|[A-Z]\.)/g, '$1<prd>')
+    .replace(/\b(\d+)\.(?=\d)/g, '$1<prd>');
+  return protectedText.split(/[.;](?:\s+|$)/).map(s => s.replace(/<prd>/g, '.').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -117,7 +121,10 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0) {
+      if (/\d$/.test(current.trim()) && /^\s*\d{4}\b/.test(text.slice(i + 1))) { current += ch; continue; }
+      const t = current.trim(); if (t) result.push(t); current = '';
+    }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -147,7 +154,7 @@ const renderDateFieldPDF = (label, value) => {
 };
 
 /* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
+const renderSentenceSection = (label, text, splitUnlabeledCommas = false) => {
   if (!hasVal(text)) return null;
   const sentences = splitBySentence(fmtVal(text));
   if (sentences.length === 0) return null;
@@ -158,21 +165,16 @@ const renderSentenceSection = (label, text) => {
     const parsed = parseLabel(s);
     if (parsed.isLabeled) {
       const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
+      rows.push({ type: 'subtitle', text: safeString(parsed.label) });
+      commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
     } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
+      const items = splitUnlabeledCommas ? splitByComma(s) : [s];
+      items.forEach(item => { rows.push({ type: 'item', text: safeString(item), num: n++ }); });
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View style={styles.fieldBox} wrap={rows.length > 8 ? true : false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {rows.map((row, i) => {
         if (row.type === 'subtitle') {
@@ -191,7 +193,7 @@ const renderArrayFieldPDF = (label, items) => {
   if (safeItems.length === 0) return null;
 
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? true : false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {safeItems.map((item, i) => (
         <Text key={i} style={styles.listItem}>{i + 1}. {safeString(typeof item === 'object' ? (item.recommendation || item.text || JSON.stringify(item)) : item)}</Text>
@@ -200,16 +202,23 @@ const renderArrayFieldPDF = (label, items) => {
   );
 };
 
-/* renderObjectArrayFieldPDF: array of objects like {toxicity, expectedGrade|timing} */
+/* renderObjectArrayFieldPDF: every object-array leaf gets its own subtitle + value row. */
 const renderObjectArrayFieldPDF = (label, items) => {
   if (!Array.isArray(items)) return null;
   const safeItems = items.filter(Boolean);
   if (safeItems.length === 0) return null;
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={safeItems.length > 4 ? true : false}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(formatObjItem(item))}</Text>
+      {safeItems.map((item, itemIndex) => (
+        <View key={itemIndex} style={styles.objNested}>
+          {Object.entries(item).filter(([, value]) => !isEmptyDeep(value)).map(([key, value]) => (
+            <View key={key} wrap={false}>
+              <Text style={styles.objSubLabel}>{humanizeKey(key)}</Text>
+              <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
+            </View>
+          ))}
+        </View>
       ))}
     </View>
   );
@@ -245,7 +254,7 @@ const renderObjectFieldPDF = (label, val) => {
   return entries.map(([k, v], i) => {
     const rows = countRows(v);
     return (
-      <View key={`results-${k}`} style={styles.fieldBox} wrap={rows > 8 ? undefined : false}>
+      <View key={`results-${k}`} style={styles.fieldBox} wrap={rows > 8 ? true : false}>
         {i === 0 ? <Text style={styles.fieldLabel}>{label}</Text> : null}
         {renderObjectNodePDF(humanizeKey(k), v, `results-${k}`, 1)}
       </View>
@@ -258,8 +267,9 @@ const SECTION_CONFIGS = [
   {
     title: 'Treatment Overview',
     fields: [
+      { key: 'date', label: 'Consultation Date', isDate: true },
       { key: 'indication', label: 'Indication', isSentence: true },
-      { key: 'site', label: 'Site', isSentence: true },
+      { key: 'site', label: 'Site', isSentence: true, splitCommas: true },
       { key: 'intent', label: 'Intent', isSentence: true },
       { key: 'technique', label: 'Technique', isSentence: true },
       { key: 'provider', label: 'Provider', isSentence: true },
@@ -341,24 +351,28 @@ const getNestedVal = (obj, path) => {
 };
 
 /* ======= COMPONENT ======= */
-const RadiationTherapyDocumentPDFTemplate = ({ document: data }) => {
+const RadiationTherapyDocumentPDFTemplate = ({ document: docProp, data, templateData }) => {
   const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
+    const rawInput = docProp ?? data ?? templateData;
+    if (!rawInput) return [];
+    let arr = Array.isArray(rawInput) ? rawInput : [rawInput];
     arr = arr.flatMap(r => {
+      if (r?.radiation_oncology) return Array.isArray(r.radiation_oncology) ? r.radiation_oncology : [r.radiation_oncology];
       if (r?.radiation_therapy) return Array.isArray(r.radiation_therapy) ? r.radiation_therapy : [r.radiation_therapy];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.radiation_therapy) return Array.isArray(dd.radiation_therapy) ? dd.radiation_therapy : [dd.radiation_therapy]; return [dd]; }
+      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.radiation_oncology) return Array.isArray(dd.radiation_oncology) ? dd.radiation_oncology : [dd.radiation_oncology]; if (dd?.radiation_therapy) return Array.isArray(dd.radiation_therapy) ? dd.radiation_therapy : [dd.radiation_therapy]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [docProp, data, templateData]);
+  const isOncology = record => Boolean(record && ('acuteToxicities' in record || 'lateToxicities' in record || 'concurrentChemotherapy' in record || 'indication' in record));
+  const documentTitle = records.some(isOncology) ? 'Radiation Oncology' : 'Radiation Therapy';
 
   if (!records || records.length === 0) {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
           <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Radiation Therapy</Text>
+            <Text style={styles.documentTitle}>Radiation Treatment</Text>
           </View>
           <Text style={styles.noDataText}>No data available</Text>
         </Page>
@@ -371,7 +385,7 @@ const RadiationTherapyDocumentPDFTemplate = ({ document: data }) => {
       <Page size="LETTER" style={styles.page}>
         {/* Document Header */}
         <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Radiation Therapy</Text>
+          <Text style={styles.documentTitle}>{documentTitle}</Text>
         </View>
 
         {records.map((record, index) => (
@@ -380,13 +394,8 @@ const RadiationTherapyDocumentPDFTemplate = ({ document: data }) => {
 
             {/* Record Header */}
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.startDate && (
-                  <Text style={styles.recordDate}>{formatDate(record.startDate)}</Text>
-                )}
-              </View>
               <Text style={styles.recordTitle}>
-                {`Radiation Therapy ${index + 1}`}
+                {`${isOncology(record) ? 'Radiation Oncology' : 'Radiation Therapy'} ${index + 1}`}
               </Text>
             </View>
 
@@ -398,20 +407,26 @@ const RadiationTherapyDocumentPDFTemplate = ({ document: data }) => {
               });
               if (!hasAnyVal) return null;
 
-              return (
-                <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
+              const populatedFields = sectionConfig.fields.filter(field => {
+                const val = field.nested ? getNestedVal(record, field.key) : record[field.key];
+                return hasVal(val);
+              });
+              const renderConfiguredField = (field, fIdx) => {
                     const val = field.nested ? getNestedVal(record, field.key) : record[field.key];
-                    if (!hasVal(val)) return null;
-
                     if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
                     if (field.isObject) return <React.Fragment key={fIdx}>{renderObjectFieldPDF(field.label, val)}</React.Fragment>;
                     if (field.isObjectArray) return <View key={fIdx}>{renderObjectArrayFieldPDF(field.label, val)}</View>;
                     if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
+                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val, field.splitCommas)}</View>;
                     return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
-                  })}
+              };
+              return (
+                <View key={sIdx} style={styles.section}>
+                  <View wrap={false}>
+                    <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
+                    {renderConfiguredField(populatedFields[0], 0)}
+                  </View>
+                  {populatedFields.slice(1).map((field, fieldIndex) => renderConfiguredField(field, fieldIndex + 1))}
                 </View>
               );
             })}

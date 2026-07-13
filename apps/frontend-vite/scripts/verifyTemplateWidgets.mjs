@@ -11,8 +11,10 @@
  *   node scripts/verifyTemplateWidgets.mjs <TemplateName|path> <record.json>
  * e.g.
  *   node scripts/verifyTemplateWidgets.mjs DocumentMetadataDocument /tmp/rec.json
- * <record.json> is ONE real record object (or an array of records) — fetch it via the MongoDB MCP /
- * mongosh and write it to a file. Exits non-zero if any mismatch is flagged.
+ * <record.json> is ONE real record object (or an array of records) fetched through the approved MongoDB
+ * connection and written outside the repository. Exits non-zero if any mismatch is flagged. For generic
+ * renderer changes, run the full real record AND a non-PHI shape fixture for every changed branch that the
+ * real record does not populate; completeTemplateAudit.mjs enforces that evidence declaration.
  *
  * Widget classes it recognizes (canonical across all templates): .num-step (number stepper),
  * .blue-select-trigger (BlueSelect), .blue-date-picker / .blue-time-picker / .blue-month-picker /
@@ -154,6 +156,8 @@ function widgetOf(container) {
 }
 
 function editableTarget(container) {
+  // Deliberately searches descendants. data-edit-field belongs on a wrapper containing the clickable
+  // row, never on the row itself; auditTemplate.mjs reports that placement mistake explicitly.
   return container?.querySelector('.numbered-row.editable-row, .nested-subtitle.editable-row');
 }
 

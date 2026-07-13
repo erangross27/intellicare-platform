@@ -108,6 +108,7 @@ pip-delete-this-directory.txt
 *.tmp
 *.temp
 .tmp/
+apps/frontend-vite/tmp/
 
 # Coverage directory used by tools like istanbul
 coverage/

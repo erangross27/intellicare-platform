@@ -128,7 +128,7 @@ const stepFor = value => {
 const splitPeople = text => String(text || '').split(/(?<=\)),\s+/).map(item => item.trim()).filter(Boolean);
 
 /* ═══════ COMPONENT ═══════ */
-const QualityMetricsDocument = ({ document: docProp }) => {
+const QualityMetricsDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -148,8 +148,9 @@ const QualityMetricsDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const rawInput = docProp ?? data ?? templateData;
+    if (!rawInput) return [];
+    let arr = Array.isArray(rawInput) ? rawInput : [rawInput];
     arr = arr.flatMap(r => {
       if (r?.quality_metrics) return Array.isArray(r.quality_metrics) ? r.quality_metrics : [r.quality_metrics];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.quality_metrics) return Array.isArray(dd.quality_metrics) ? dd.quality_metrics : [dd.quality_metrics]; return [dd]; }
@@ -157,7 +158,7 @@ const QualityMetricsDocument = ({ document: docProp }) => {
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   /* safeId at module-usable form for rehydrate (records may not be objects with helpers yet). */
   const recordId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
@@ -551,7 +552,8 @@ const QualityMetricsDocument = ({ document: docProp }) => {
     return (
       <div key={fn} className="rec-mini-card" data-edit-field={fn}>
         {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
+        <div className="nested-mini-card">
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
               <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value); setSaveError(null); }} />
@@ -567,8 +569,9 @@ const QualityMetricsDocument = ({ document: docProp }) => {
               <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${COPY_LINE_DASH}\n1. ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
+          </div>
+          {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
         </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
   };
@@ -586,7 +589,8 @@ const QualityMetricsDocument = ({ document: docProp }) => {
     return (
       <div key={fn} className="rec-mini-card" data-edit-field={fn}>
         {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
+        <div className="nested-mini-card">
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
               <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
@@ -602,8 +606,9 @@ const QualityMetricsDocument = ({ document: docProp }) => {
               <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${COPY_LINE_DASH}\n1. ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
+          </div>
+          {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
         </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
   };
@@ -633,7 +638,8 @@ const QualityMetricsDocument = ({ document: docProp }) => {
           return (
             <div key={itemIdx} className="rec-mini-card" data-edit-field={`${fn}.${itemIdx}`}>
               {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
-              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(parsed.isLabeled ? parsed.value : itemStr); setSaveError(null); } }}>
+              <div className="nested-mini-card">
+                <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(parsed.isLabeled ? parsed.value : itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={handleEditorKeyDown} />
@@ -649,8 +655,9 @@ const QualityMetricsDocument = ({ document: docProp }) => {
                     <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(parsed.isLabeled ? `${parsed.label}\n${COPY_LINE_DASH}\n1. ${displayVal}` : `1. ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                   </>
                 )}
+                </div>
+                {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
               </div>
-              {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
             </div>
           );
         })}
@@ -679,7 +686,8 @@ const QualityMetricsDocument = ({ document: docProp }) => {
     return (
       <div key={fn} className="rec-mini-card" data-edit-field={fn}>
         {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(measurement.number); setSaveError(null); } }}>
+        <div className="nested-mini-card">
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(measurement.number); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
               <div className="num-stepper-row">
@@ -700,8 +708,9 @@ const QualityMetricsDocument = ({ document: docProp }) => {
               <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${COPY_LINE_DASH}\n1. ${raw}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
+          </div>
+          {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
         </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
   };
@@ -724,7 +733,8 @@ const QualityMetricsDocument = ({ document: docProp }) => {
           return (
             <div key={partIdx} className="rec-mini-card" data-edit-field={fn}>
               {partIdx === 0 && !sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
-              <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(part); setSaveError(null); } }}>
+              <div className="nested-mini-card">
+                <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(part); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={handleEditorKeyDown} />
@@ -740,8 +750,9 @@ const QualityMetricsDocument = ({ document: docProp }) => {
                     <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`1. ${part}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                   </>
                 )}
+                </div>
+                {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
               </div>
-              {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
             </div>
           );
         })}
@@ -788,7 +799,7 @@ const QualityMetricsDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} className="nested-mini-card">
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -819,7 +830,8 @@ const QualityMetricsDocument = ({ document: docProp }) => {
               return (
                 <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }} data-edit-field={fn}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
-                  <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
+                  <div className="nested-mini-card">
+                    <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
                       <div className="edit-field-container">
                         <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={handleEditorKeyDown} />
@@ -835,8 +847,9 @@ const QualityMetricsDocument = ({ document: docProp }) => {
                         <button className={`copy-btn ${copiedItems[sentenceKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(sentence, sentenceKey); }}>{copiedItems[sentenceKey] ? 'Copied!' : 'Copy'}</button>
                       </>
                     )}
+                    </div>
+                    {badge && <span className={`modified-badge ${badge === 'added' ? 'added' : ''}`}>{badge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
                   </div>
-                  {badge && <span className={`modified-badge ${badge === 'added' ? 'added' : ''}`}>{badge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
                 </div>
               );
             })}
@@ -853,7 +866,8 @@ const QualityMetricsDocument = ({ document: docProp }) => {
     return (
       <div key={fn} className="rec-mini-card" data-edit-field={fn}>
         {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
+        <div className="nested-mini-card">
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
               <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={handleEditorKeyDown} />
@@ -869,8 +883,9 @@ const QualityMetricsDocument = ({ document: docProp }) => {
               <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${COPY_LINE_DASH}\n1. ${strVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
+          </div>
+          {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
         </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
   };

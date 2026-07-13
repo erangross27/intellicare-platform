@@ -32,7 +32,7 @@ import OutcomesPredictionTemplate from './OutcomesPredictionTemplate';
 // Single source of truth: route to the same box-free template the Document's Export button imports
 // (the legacy ./GuidelineComplianceTemplate diverged — boxed, small fonts, side-by-side labels, no numbering).
 import GuidelineComplianceTemplate from './GuidelineComplianceDocumentPDFTemplate';
-import QualityMetricsTemplate from './QualityMetricsTemplate';
+import QualityMetricsTemplate from './QualityMetricsDocumentPDFTemplate';
 import ConsultationNotesTemplate from './ConsultationNotesTemplate';
 // Single source of truth: route to the same box-free template the Document's Export button imports
 // (the legacy ./ProgressNotesPDFTemplate was renamed to the standard ...DocumentPDFTemplate).

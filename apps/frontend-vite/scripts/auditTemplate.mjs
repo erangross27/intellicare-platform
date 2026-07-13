@@ -235,9 +235,18 @@ try {
     check('JSX every visible scalar row is editable', readOnlyRows.length === 0,
       readOnlyRows.slice(0, 4).map(row => JSON.stringify(row.textContent.trim().slice(0, 50))).join(' | '));
 
-    const orphanRows = scalarRows.filter(row => !row.closest('.rec-mini-card') && !row.closest('.nested-mini-card'));
-    check('JSX every visible scalar row is framed by a mini-card', orphanRows.length === 0,
-      orphanRows.slice(0, 4).map(row => JSON.stringify(row.textContent.trim().slice(0, 50))).join(' | '));
+    const valueRows = scalarRows.filter(row => row.classList.contains('numbered-row'));
+    const unframedValueRows = valueRows.filter(row => !row.closest('.nested-mini-card'));
+    check('JSX every visible value row is framed by a nested mini-card', unframedValueRows.length === 0,
+      unframedValueRows.slice(0, 4).map(row => JSON.stringify(row.textContent.trim().slice(0, 50))).join(' | '));
+
+    const regularRowGroups = [...host.querySelectorAll('.regular-row-group')];
+    const malformedRegularGroups = regularRowGroups.filter(group => {
+      const rows = [...group.querySelectorAll('.numbered-row')];
+      return group.querySelector('.nested-subtitle') || rows.length === 0 || rows.some(row => row.closest('.nested-mini-card') !== group);
+    });
+    check('JSX regular rows share subtitle-free nested mini-card groups', malformedRegularGroups.length === 0,
+      malformedRegularGroups.slice(0, 4).map(group => JSON.stringify(group.textContent.trim().slice(0, 50))).join(' | '));
 
     const recommendationArrays = records.map(record => record?.recommendations).filter(Array.isArray);
     const repeatedRecommendationDates = recommendationArrays.some(items => {
@@ -276,13 +285,29 @@ try {
     }
 
     const untracked = [];
+    const misplacedFieldMarkers = [];
     for (const card of host.querySelectorAll('.rec-mini-card')) {
       const rows = [...card.querySelectorAll('.numbered-row.editable-row')];
       if (rows.length <= 1) continue;
-      rows.forEach(row => { if (!row.closest('[data-edit-field]')) untracked.push(row); });
+      const owners = new Set();
+      rows.forEach(row => {
+        const owner = row.closest('[data-edit-field]');
+        if (!owner) {
+          untracked.push(row);
+          return;
+        }
+        const targets = owner.querySelectorAll('.numbered-row.editable-row, .nested-subtitle.editable-row');
+        // querySelector/querySelectorAll only search descendants. A marker on the row itself therefore
+        // cannot be found by verifyTemplateWidgets.editableTarget(container), and one wrapper shared by
+        // several leaves does not provide a stable per-occurrence identity.
+        if (owner === row || targets.length !== 1 || owners.has(owner)) misplacedFieldMarkers.push(row);
+        owners.add(owner);
+      });
     }
     check('JSX multi-row cards expose every leaf to the widget harness', untracked.length === 0,
       `${untracked.length} editable row(s) in multi-row cards lack data-edit-field`);
+    check('JSX data-edit-field is on a unique wrapper containing exactly one editable leaf', misplacedFieldMarkers.length === 0,
+      `${misplacedFieldMarkers.length} row(s) put data-edit-field on the row itself or share one marker wrapper`);
     check('widget harness probe count equals visible scalar row count', widgetProbeCount === scalarRows.length,
       `${widgetProbeCount} probed vs ${scalarRows.length} visible scalar rows`);
 

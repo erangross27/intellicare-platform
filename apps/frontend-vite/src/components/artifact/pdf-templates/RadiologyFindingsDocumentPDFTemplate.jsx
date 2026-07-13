@@ -1,455 +1,314 @@
 /**
  * RadiologyFindingsDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — radiology findings
- * Collection: radiology_findings
+ * Canonical LETTER export for radiology_findings.
+ * Mirrors the screen hierarchy: document -> record -> section -> labeled field/list.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.45, backgroundColor: '#ffffff', color: '#000000' },
+  documentHeader: { marginBottom: 22 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 22 },
+  recordHeader: { marginBottom: 14 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 9 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 2, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.45, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.45, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 5, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
-  findingGroup: { marginLeft: 10, marginBottom: 12, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#858585', borderLeftStyle: 'solid' },
-  findingHeader: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#858585', marginBottom: 6 },
+  noDataText: { fontSize: 14, color: '#4b5563', marginTop: 24 },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
+const formatDate = (dateValue) => {
+  if (!dateValue) return '';
   try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
+    const date = new Date(dateValue.$date || dateValue);
+    if (Number.isNaN(date.getTime())) return String(dateValue);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
+  } catch { return String(dateValue); }
 };
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
-};
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value).length > 0;
   return true;
 };
 
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
+const safeString = (value) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'object' && value.$date) return formatDate(value);
+  return String(value);
 };
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;]\s+/)
+    .map(sentence => sentence.trim())
+    .filter(sentence => sentence && !/^[;.,!?]+$/.test(sentence));
 };
 
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
+  const match = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  return match
+    ? { isLabeled: true, label: match[1].trim(), value: match[2].trim() }
+    : { isLabeled: false, label: '', value: text };
 };
 
 const splitByComma = (text) => {
   if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
-};
-
-/* humanizeKey: dynamic-key -> readable label */
-const humanizeKey = (key) => {
-  if (key === null || key === undefined) return '';
-  return String(key)
-    .replace(/[_\-.]+/g, ' ')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, c => c.toUpperCase());
-};
-
-/* leafToString: typed leaf -> display string (no [object Object]) */
-const leafToString = (v) => {
-  if (v === null || v === undefined) return '';
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  if (typeof v === 'object' && v.$date) return formatDate(v.$date);
-  return String(v);
-};
-
-/* flattenObject: recursively flatten a dynamic-key object into [{ label, value }] leaves (content-gated) */
-const flattenObject = (obj, parentLabel = '') => {
-  const rows = [];
-  if (!obj || typeof obj !== 'object') return rows;
-  Object.keys(obj).forEach(key => {
-    const val = obj[key];
-    const label = parentLabel ? `${parentLabel} — ${humanizeKey(key)}` : humanizeKey(key);
-    if (val === null || val === undefined || val === '') return;
-    if (typeof val === 'object' && !val.$date) {
-      if (Array.isArray(val)) {
-        const flat = val.filter(item => item !== null && item !== undefined && item !== '');
-        if (flat.length === 0) return;
-        const allPrimitive = flat.every(item => typeof item !== 'object' || item === null);
-        if (allPrimitive) {
-          rows.push({ label, value: flat.map(leafToString).join(', ') });
-        } else {
-          flat.forEach((item, i) => {
-            if (item && typeof item === 'object') rows.push(...flattenObject(item, `${label} ${i + 1}`));
-            else rows.push({ label: `${label} ${i + 1}`, value: leafToString(item) });
-          });
-        }
-      } else {
-        if (Object.keys(val).length === 0) return;
-        rows.push(...flattenObject(val, label));
-      }
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (const character of text) {
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    if (character === ',' && depth === 0) {
+      if (current.trim()) result.push(current.trim());
+      current = '';
     } else {
-      const sv = leafToString(val);
-      if (sv.trim() === '') return;
-      rows.push({ label, value: sv });
+      current += character;
     }
+  }
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [text];
+};
+
+const humanizeKey = (key) => String(key ?? '')
+  .replace(/[_\-.]+/g, ' ')
+  .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .replace(/\b\w/g, character => character.toUpperCase());
+
+const flattenObject = (object, parentLabel = '') => {
+  const rows = [];
+  if (!object || typeof object !== 'object') return rows;
+  Object.entries(object).forEach(([key, value]) => {
+    if (!hasVal(value)) return;
+    const label = parentLabel ? `${parentLabel} — ${humanizeKey(key)}` : humanizeKey(key);
+    if (Array.isArray(value)) {
+      value.filter(hasVal).forEach((item, index) => {
+        if (item && typeof item === 'object') rows.push(...flattenObject(item, `${label} ${index + 1}`));
+        else rows.push({ label: `${label} ${index + 1}`, value: safeString(item) });
+      });
+      return;
+    }
+    if (value && typeof value === 'object' && !value.$date) {
+      rows.push(...flattenObject(value, label));
+      return;
+    }
+    rows.push({ label, value: safeString(value) });
   });
   return rows;
 };
 
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value) => {
+const renderField = (label, value, { date = false } = {}) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
+    <View style={styles.fieldBox} wrap={false}>
+      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      <Text style={styles.fieldValue}>1. {date ? formatDate(value) : safeString(value)}</Text>
     </View>
   );
 };
 
-/* renderDateField */
-const renderDateFieldPDF = (label, value) => {
+const renderSentenceField = (label, value) => {
   if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
   const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
+  let number = 1;
+  splitBySentence(safeString(value)).forEach(sentence => {
+    const parsed = parseLabel(sentence);
     if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
+      rows.push({ kind: 'subtitle', value: parsed.label });
+      splitByComma(parsed.value).forEach(item => rows.push({ kind: 'item', value: item, number: number++ }));
     } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
+      rows.push({ kind: 'item', value: sentence, number: number++ });
     }
   });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
+  if (!rows.length) return null;
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
+    <View style={styles.fieldBox} wrap={rows.length > 8}>
+      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      {rows.map((row, index) => row.kind === 'subtitle'
+        ? <Text key={index} style={styles.nestedSubtitle}>{row.value}</Text>
+        : <Text key={index} style={styles.listItem}>{row.number}. {row.value}</Text>)}
     </View>
   );
 };
 
-/* SECTION CONFIGS */
+const renderSection = (title, renderedFields) => {
+  const fields = renderedFields.filter(Boolean);
+  if (!fields.length) return null;
+  return (
+    <View style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {React.cloneElement(fields[0], { key: 'first' })}
+      </View>
+      {fields.slice(1).map((field, index) => React.cloneElement(field, { key: `field-${index + 1}` }))}
+    </View>
+  );
+};
+
 const SECTION_CONFIGS = [
-  {
-    title: 'Study Information',
-    fields: [
-      { key: 'modalityUsed', label: 'Modality', isSentence: true },
-      { key: 'date', label: 'Date', isDate: true },
-      { key: 'facility', label: 'Facility', isSentence: true },
-      { key: 'provider', label: 'Provider', isSentence: true },
-    ],
-  },
-  {
-    title: 'Technique',
-    fields: [
-      { key: 'technique', label: 'Technique', isSentence: true },
-    ],
-  },
-  {
-    title: 'Contrast Information',
-    isNested: true,
-    nestedKey: 'contrast',
-    fields: [
-      { key: 'type', label: 'Contrast Type', isSentence: true },
-      { key: 'amount', label: 'Amount', isSentence: true },
-      { key: 'reaction', label: 'Reaction', isSentence: true },
-    ],
-  },
-  {
-    title: 'Comparison',
-    fields: [
-      { key: 'comparison', label: 'Comparison', isSentence: true },
-    ],
-  },
-  {
-    title: 'Impression',
-    fields: [
-      { key: 'impression', label: 'Impression', isSentence: true },
-    ],
-  },
-  {
-    title: 'RADS Scores',
-    fields: [
-      { key: 'biRads', label: 'BI-RADS' },
-      { key: 'tirads', label: 'TI-RADS' },
-      { key: 'pirads', label: 'PI-RADS' },
-    ],
-  },
-  {
-    title: 'Clinical Summary',
-    fields: [
-      { key: 'assessment', label: 'Assessment', isSentence: true },
-      { key: 'plan', label: 'Plan', isSentence: true },
-      { key: 'notes', label: 'Notes', isSentence: true },
-      { key: 'status', label: 'Status' },
-    ],
-  },
+  { title: 'Study Information', fields: [
+    { key: 'modalityUsed', label: 'Modality', sentence: true },
+    { key: 'date', label: 'Date', date: true },
+    { key: 'facility', label: 'Facility', sentence: true },
+    { key: 'provider', label: 'Provider', sentence: true },
+  ] },
+  { title: 'Technique', fields: [{ key: 'technique', label: 'Technique', sentence: true }] },
+  { title: 'Contrast Information', nested: 'contrast', fields: [
+    { key: 'type', label: 'Contrast Type', sentence: true },
+    { key: 'amount', label: 'Contrast Amount', sentence: true },
+    { key: 'reaction', label: 'Contrast Reaction', sentence: true },
+  ] },
+  { title: 'Comparison', fields: [{ key: 'comparison', label: '', sentence: true }] },
+  { title: 'Impression', fields: [{ key: 'impression', label: '', sentence: true }] },
+  { title: 'RADS Scores', fields: [
+    { key: 'biRads', label: 'BI-RADS' },
+    { key: 'tirads', label: 'TI-RADS' },
+    { key: 'pirads', label: 'PI-RADS' },
+  ] },
+  { title: 'Clinical Summary', fields: [
+    { key: 'assessment', label: 'Assessment', sentence: true },
+    { key: 'plan', label: 'Plan', sentence: true },
+    { key: 'notes', label: 'Notes', sentence: true },
+    { key: 'status', label: 'Status' },
+  ] },
 ];
 
-/* ======= COMPONENT ======= */
+const renderConfiguredSection = (record, config) => {
+  const source = config.nested ? record[config.nested] : record;
+  if (!source || typeof source !== 'object') return null;
+  const rendered = config.fields.map(field => field.sentence
+    ? renderSentenceField(field.label, source[field.key])
+    : renderField(field.label, source[field.key], { date: field.date }));
+  return renderSection(config.title, rendered);
+};
+
+const renderFindingsSection = (findings) => {
+  if (!Array.isArray(findings) || !findings.some(Boolean)) return null;
+  const groups = findings.filter(Boolean).map((finding, findingIndex) => {
+    const fields = [
+      ['Anatomic Location', finding.anatomicLocation],
+      ['Finding', finding.finding],
+      ['Size', finding.size],
+      ['Characteristics', finding.characteristics],
+      ['Significance', finding.significance],
+    ].filter(([, value]) => hasVal(value));
+    return fields.length ? { findingIndex, fields } : null;
+  }).filter(Boolean);
+  if (!groups.length) return null;
+  const renderFindingField = ([label, value], key) => (
+    <View key={key} style={styles.fieldBox} wrap={false}>
+      <Text style={styles.nestedSubtitle}>{label}</Text>
+      <Text style={styles.fieldValue}>1. {safeString(value)}</Text>
+    </View>
+  );
+  const firstGroup = groups[0];
+  return (
+    <View style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>Imaging Findings</Text>
+        <View style={styles.fieldBox}>
+          <Text style={styles.fieldLabel}>Finding {firstGroup.findingIndex + 1}</Text>
+          {renderFindingField(firstGroup.fields[0], 'first-finding-field')}
+        </View>
+      </View>
+      {firstGroup.fields.slice(1).map((field, index) => renderFindingField(field, `first-${index + 1}`))}
+      {groups.slice(1).map(group => (
+        <React.Fragment key={group.findingIndex}>
+          <View style={styles.fieldBox} wrap={false}>
+            <Text style={styles.fieldLabel}>Finding {group.findingIndex + 1}</Text>
+            {renderFindingField(group.fields[0], `group-${group.findingIndex}-first`)}
+          </View>
+          {group.fields.slice(1).map((field, index) => renderFindingField(field, `group-${group.findingIndex}-${index + 1}`))}
+        </React.Fragment>
+      ))}
+    </View>
+  );
+};
+
+const renderResultsSection = (results) => {
+  const rows = flattenObject(results);
+  return renderSection('Results', rows.map((row, index) => (
+    <View key={index} style={styles.fieldBox} wrap={false}>
+      <Text style={styles.fieldLabel}>{row.label}</Text>
+      <Text style={styles.fieldValue}>1. {row.value}</Text>
+    </View>
+  )));
+};
+
+const renderRecommendationsSection = (recommendations) => {
+  if (!Array.isArray(recommendations) || !recommendations.some(Boolean)) return null;
+  const groups = [];
+  recommendations.forEach((recommendation, originalIndex) => {
+    if (!recommendation) return;
+    const dateValue = typeof recommendation === 'object' ? recommendation.date : null;
+    const dateKey = dateValue ? String(dateValue.$date || dateValue).slice(0, 10) : '__undated__';
+    let group = groups.find(item => item.dateKey === dateKey);
+    if (!group) { group = { dateKey, dateValue, entries: [] }; groups.push(group); }
+    group.entries.push({ recommendation, originalIndex });
+  });
+  return renderSection('Recommendations', groups.map(group => (
+    <View key={group.dateKey} style={styles.fieldBox} wrap={group.entries.length <= 5}>
+      {group.dateValue ? <Text style={styles.fieldLabel}>{formatDate(group.dateValue)}</Text> : null}
+      {group.entries.map(({ recommendation, originalIndex }) => (
+        <Text key={originalIndex} style={styles.listItem}>
+          {originalIndex + 1}. {typeof recommendation === 'object' ? (recommendation.recommendation || 'N/A') : safeString(recommendation)}
+        </Text>
+      ))}
+    </View>
+  )));
+};
+
 const RadiologyFindingsDocumentPDFTemplate = ({ document: data }) => {
   const records = React.useMemo(() => {
     if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.radiology_findings) return Array.isArray(r.radiology_findings) ? r.radiology_findings : [r.radiology_findings];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.radiology_findings) return Array.isArray(dd.radiology_findings) ? dd.radiology_findings : [dd.radiology_findings]; return [dd]; }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
+    const input = Array.isArray(data) ? data : [data];
+    return input.flatMap(record => {
+      if (record?.radiology_findings) return Array.isArray(record.radiology_findings) ? record.radiology_findings : [record.radiology_findings];
+      if (record?.documentData) {
+        const nested = record.documentData;
+        if (Array.isArray(nested)) return nested;
+        if (nested?.radiology_findings) return Array.isArray(nested.radiology_findings) ? nested.radiology_findings : [nested.radiology_findings];
+        return [nested];
+      }
+      return [record];
+    }).filter(record => record && typeof record === 'object');
   }, [data]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Radiology Findings</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
-  }
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
+        <View style={styles.documentHeader} wrap={false}>
           <Text style={styles.documentTitle}>Radiology Findings</Text>
         </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
+        {!records.length ? <Text style={styles.noDataText}>No data available</Text> : null}
+        {records.map((record, recordIndex) => (
+          <View key={recordIndex} style={styles.recordContainer}>
+            {recordIndex > 0 ? <View style={styles.separator} /> : null}
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {record.modalityUsed || `Radiology Finding ${index + 1}`}
-              </Text>
+              <Text style={styles.recordTitle}>Radiology Finding {recordIndex + 1}</Text>
             </View>
-
-            {/* Standard Sections */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              if (sectionConfig.isNested) {
-                const nestedObj = record[sectionConfig.nestedKey];
-                if (!nestedObj || typeof nestedObj !== 'object') return null;
-                const hasAnyVal = sectionConfig.fields.some(f => hasVal(nestedObj[f.key]));
-                if (!hasAnyVal) return null;
-
-                return (
-                  <View key={sIdx} style={styles.section}>
-                    <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                    {sectionConfig.fields.map((field, fIdx) => {
-                      const val = nestedObj[field.key];
-                      if (!hasVal(val)) return null;
-                      if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
-                      if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
-                      return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
-                    })}
-                  </View>
-                );
-              }
-
-              const hasAnyVal = sectionConfig.fields.some(f => hasVal(record[f.key]));
-              if (!hasAnyVal) return null;
-
-              return (
-                <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = record[field.key];
-                    if (!hasVal(val)) return null;
-                    if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
-                  })}
-                </View>
-              );
-            })}
-
-            {/* Results (dynamic-key object, flattened with humanized keys + typed leaves) */}
-            {(() => {
-              const resultRows = flattenObject(record.results);
-              if (resultRows.length === 0) return null;
-              return (
-                <View style={styles.section} wrap={resultRows.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Results</Text>
-                  {resultRows.map((row, i) => (
-                    <View key={i} style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>{row.label}</Text>
-                      <Text style={styles.fieldValue}>{row.value}</Text>
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Imaging Findings */}
-            {record.findings && Array.isArray(record.findings) && record.findings.length > 0 && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Imaging Findings</Text>
-                </View>
-                {record.findings.filter(Boolean).map((finding, fIdx) => (
-                  <View key={fIdx} style={styles.findingGroup}>
-                    <Text style={styles.findingHeader}>{finding.finding || `Finding ${fIdx + 1}`}</Text>
-                    {finding.anatomicLocation && (
-                      <View style={{ marginBottom: 4 }}>
-                        <Text style={styles.fieldLabel}>ANATOMIC LOCATION</Text>
-                        <Text style={styles.fieldValue}>{finding.anatomicLocation}</Text>
-                      </View>
-                    )}
-                    {finding.size && (
-                      <View style={{ marginBottom: 4 }}>
-                        <Text style={styles.fieldLabel}>SIZE</Text>
-                        <Text style={styles.fieldValue}>{finding.size}</Text>
-                      </View>
-                    )}
-                    {finding.characteristics && (
-                      <View style={{ marginBottom: 4 }}>
-                        <Text style={styles.fieldLabel}>CHARACTERISTICS</Text>
-                        <Text style={styles.fieldValue}>{finding.characteristics}</Text>
-                      </View>
-                    )}
-                    {finding.significance && (
-                      <View style={{ marginBottom: 4 }}>
-                        <Text style={styles.fieldLabel}>SIGNIFICANCE</Text>
-                        <Text style={styles.fieldValue}>{finding.significance}</Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Recommendations */}
-            {record.recommendations && Array.isArray(record.recommendations) && record.recommendations.length > 0 && (() => {
-              const validRecs = record.recommendations.filter(Boolean);
-              if (validRecs.length === 0) return null;
-              const firstRec = validRecs[0];
-              const remainingRecs = validRecs.slice(1);
-
-              return (
-                <View style={styles.section}>
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Recommendations</Text>
-                    <View style={{ marginBottom: 4 }}>
-                      {typeof firstRec === 'object' ? (
-                        <>
-                          {firstRec.date && (
-                            <Text style={{ fontSize: 10, color: '#666666', marginBottom: 2, marginLeft: 10 }}>
-                              {formatDate(firstRec.date)}
-                            </Text>
-                          )}
-                          <Text style={styles.listItem}>1. {firstRec.recommendation || 'N/A'}</Text>
-                        </>
-                      ) : (
-                        <Text style={styles.listItem}>1. {firstRec}</Text>
-                      )}
-                    </View>
-                  </View>
-                  {remainingRecs.map((rec, rIdx) => (
-                    <View key={rIdx} style={{ marginBottom: 4 }}>
-                      {typeof rec === 'object' ? (
-                        <>
-                          {rec.date && (
-                            <Text style={{ fontSize: 10, color: '#666666', marginBottom: 2, marginLeft: 10 }}>
-                              {formatDate(rec.date)}
-                            </Text>
-                          )}
-                          <Text style={styles.listItem}>{rIdx + 2}. {rec.recommendation || 'N/A'}</Text>
-                        </>
-                      ) : (
-                        <Text style={styles.listItem}>{rIdx + 2}. {rec}</Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
+            {SECTION_CONFIGS.slice(0, 3).map(config => <React.Fragment key={config.title}>{renderConfiguredSection(record, config)}</React.Fragment>)}
+            {renderFindingsSection(record.findings)}
+            {SECTION_CONFIGS.slice(3, 6).map(config => <React.Fragment key={config.title}>{renderConfiguredSection(record, config)}</React.Fragment>)}
+            {renderResultsSection(record.results)}
+            {renderRecommendationsSection(record.recommendations)}
+            {renderConfiguredSection(record, SECTION_CONFIGS[6])}
           </View>
         ))}
       </Page>

@@ -1,5 +1,6 @@
 /* RadiologyFindingsDocument.css — March 2026 Blue glow editing theme */
-.radiology-findings-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.radiology-findings-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; text-align: left; }
+.radiology-findings-document * { direction: ltr; text-align: left; }
 .radiology-findings-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .radiology-findings-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .radiology-findings-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -16,6 +17,10 @@
 .radiology-findings-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
 .radiology-findings-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
 .radiology-findings-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.radiology-findings-document .rec-mini-card .rec-mini-card { margin: 2px 0 8px; background: rgba(15, 27, 51, 0.58); border-width: 1px; }
+.radiology-findings-document .finding-group-card > .nested-subtitle,
+.radiology-findings-document .recommendation-date-group > .nested-subtitle { font-size: 18px; }
+.radiology-findings-document .recommendation-rows { display: flex; flex-direction: column; gap: 8px; }
 .radiology-findings-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
 .radiology-findings-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
 .radiology-findings-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
@@ -44,8 +49,14 @@
 .radiology-findings-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .radiology-findings-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .radiology-findings-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
-.radiology-findings-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
-.radiology-findings-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.radiology-findings-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.radiology-findings-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.radiology-findings-document .approve-btn { text-transform: capitalize; }
+.radiology-findings-document .num-stepper-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.radiology-findings-document .num-step { min-width: 38px; min-height: 38px; border: 1px solid rgba(96, 165, 250, 0.55); border-radius: 6px; background: rgba(96, 165, 250, 0.14); color: #bfdbfe; cursor: pointer; font: 700 20px/1 'Comfortaa', sans-serif; text-align: center; }
+.radiology-findings-document .num-step:hover { background: rgba(96, 165, 250, 0.26); }
+.radiology-findings-document .num-stepper-row .edit-input { flex: 1; min-width: 0; }
+.radiology-findings-document .num-unit { color: #bfdbfe; font-size: 14px; white-space: nowrap; }
 .radiology-findings-document .search-container { margin-bottom: 20px; }
 .radiology-findings-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
 .radiology-findings-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }

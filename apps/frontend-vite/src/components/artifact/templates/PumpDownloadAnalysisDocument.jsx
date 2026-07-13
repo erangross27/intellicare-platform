@@ -15,6 +15,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PumpDownloadAnalysisDocumentPDFTemplate from '../pdf-templates/PumpDownloadAnalysisDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './PumpDownloadAnalysisDocument.css';
 
@@ -35,7 +37,7 @@ const writeDrafts = (store) => {
 
 /* ═══════ CONSTANTS ═══════ */
 const SECTION_TITLES = {
-  'provider-info': 'Provider Information',
+  'provider-info': 'Record Information',
   'pump-metrics': 'Pump Metrics',
   'findings': 'Findings',
   'assessment': 'Assessment',
@@ -64,7 +66,7 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
-  'provider-info': ['provider', 'facility'],
+  'provider-info': ['date', 'provider', 'facility', 'status', 'type'],
   'pump-metrics': ['bolusesPerDay', 'correctionBolusesPerDay', 'controlIQActivePercent', 'autoModeExits', 'missedBoluses', 'overrideBehavior'],
   'findings': ['findings'],
   'assessment': ['assessment'],
@@ -75,14 +77,20 @@ const SECTION_FIELDS = {
 
 const BOOLEAN_FIELDS = [];
 const DATE_FIELDS = ['date'];
-const NUMBER_FIELDS = ['bolusesPerDay', 'correctionBolusesPerDay'];
+const NUMBER_FIELDS = [];
 const ARRAY_FIELDS = ['recommendations'];
-const STRING_FIELDS = ['provider', 'facility', 'controlIQActivePercent', 'autoModeExits', 'missedBoluses', 'overrideBehavior', 'findings', 'assessment', 'plan', 'notes', 'status', 'type'];
+const STRING_FIELDS = ['provider', 'facility', 'status', 'type', 'bolusesPerDay', 'correctionBolusesPerDay', 'controlIQActivePercent', 'autoModeExits', 'missedBoluses', 'overrideBehavior', 'findings', 'assessment', 'plan', 'notes'];
+const COMMA_SPLIT_FIELDS = ['bolusesPerDay', 'notes'];
+const ENUM_FIELDS = { status: ['Active', 'Completed', 'Not Active'] };
+const COPY_LINE_EQ = '='.repeat(40);
+const COPY_LINE_DASH = '-'.repeat(40);
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+const enumCanonical = (options, value) => options.find(option => option.toLowerCase() === String(value || '').toLowerCase()) || String(value || '');
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  const m = text.match(/^([A-Za-z0-9][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
   if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
@@ -95,7 +103,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -104,7 +112,7 @@ const splitByComma = (text) => {
 
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
+  try { const d = new Date(dateValue.$date || dateValue); if (Number.isNaN(d.getTime()) || d.getUTCFullYear() <= 1970) return ''; return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); } catch { return ''; }
 };
 
 const toInputDate = (dateValue) => {
@@ -187,7 +195,7 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -223,7 +231,7 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
   }, [searchTerm]);
 
   /* ═══════ SEARCH — 4-LEVEL ═══════ */
-  const shouldShowSection = useCallback((record, sid) => {
+  const shouldShowSection = useCallback((record, sid, idx) => {
     if (!searchTerm.trim() || record._showAllSections) return true;
     const phrase = searchTerm.toLowerCase().trim();
     const title = (SECTION_TITLES[sid] || '').toLowerCase();
@@ -232,7 +240,7 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
     for (const f of fields) {
       const label = (FIELD_LABELS[f] || f).toLowerCase();
       if (label.includes(phrase) || phrase.includes(label)) return true;
-      const val = getFieldValue(record, f, 0);
+      const val = getFieldValue(record, f, idx);
       if (val !== null && val !== undefined) {
         if (Array.isArray(val)) { if (val.some(item => String(item).toLowerCase().includes(phrase))) return true; }
         else if (fmtVal(val).toLowerCase().includes(phrase)) return true;
@@ -404,7 +412,7 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatSentenceFieldLines = useCallback((text) => {
+  const formatSentenceFieldLines = useCallback((text, fn) => {
     const sentences = splitBySentence(text);
     const lines = []; let n = 1;
     sentences.forEach(s => {
@@ -415,6 +423,8 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
           lines.push(parsed.label + ':');
           parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
         } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
+      } else if (COMMA_SPLIT_FIELDS.includes(fn)) {
+        splitByComma(s).forEach(item => { lines.push(`${n++}. ${item}`); });
       } else { lines.push(`${n++}. ${s}`); }
     });
     return lines;
@@ -422,45 +432,40 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = `${title}\n${COPY_LINE_EQ}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n`;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        const formatted = formatDate(val);
+        if (!formatted) return;
+        text += `${labelLine}1. ${formatted}\n${COPY_LINE_DASH}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `${labelLine}1. ${val ? 'Yes' : 'No'}\n${COPY_LINE_DASH}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}\n${val}\n\n`;
+        text += `${labelLine}1. ${val}\n${COPY_LINE_DASH}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${typeof item === 'string' ? item : item.recommendation || item.text || String(item)}`).join('\n')}\n\n`;
+        text += `${labelLine}${items.map((item, i) => `${i + 1}. ${typeof item === 'string' ? item : item.recommendation || item.text || String(item)}`).join('\n')}\n${COPY_LINE_DASH}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
+        text += labelLine;
+        formatSentenceFieldLines(strVal, f).forEach(l => { text += `${l}\n`; });
+        text += `${COPY_LINE_DASH}\n\n`;
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}1. ${fmtVal(val)}\n${COPY_LINE_DASH}\n\n`;
       }
     });
-    return text;
+    return text === `${title}\n${COPY_LINE_EQ}\n\n` ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== PUMP DOWNLOAD ANALYSIS ===\n\n';
     pdfData.forEach((r, idx) => {
-      text += `Pump Download Analysis ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      if (r.date) text += `Date: ${formatDate(r.date)}\n`;
-      if (r.status) text += `Status: ${r.status}\n`;
-      text += '\n';
+      text += `Pump Download Analysis ${idx + 1}\n${COPY_LINE_EQ}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -481,12 +486,12 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card" data-edit-field={fn}>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -516,15 +521,12 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card" data-edit-field={fn}>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -554,8 +556,8 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card" data-edit-field={fn}>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -593,7 +595,7 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
@@ -607,7 +609,7 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} data-edit-field={`${fn}.${itemIdx}`}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
@@ -641,15 +643,51 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    const commaParts = COMMA_SPLIT_FIELDS.includes(fn) ? splitByComma(strVal) : [strVal];
+    if (commaParts.length > 1 && sentences.length === 1) {
+      return (
+        <div key={fn} className="rec-mini-card">
+          {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+          {commaParts.map((part, partIdx) => {
+            const partKey = `${fn}-${idx}-c${partIdx}`;
+            const isEditing = editingField === partKey;
+            const badge = editedSentences[partKey];
+            if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections && !part.toLowerCase().includes(searchTerm.toLowerCase().trim())) return null;
+            return (
+              <div key={partKey} data-edit-field={fn}>
+                <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(partKey); setEditValue(part); setSaveError(null); } }}>
+                  {isEditing ? (
+                    <div className="edit-field-container">
+                      <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      <div className="edit-actions">
+                        <button className="save-btn" onClick={e => { e.stopPropagation(); const liveParts = splitByComma(String(getFieldValue(record, fn, idx) || '')); liveParts[partIdx] = editValue.trim(); const joined = liveParts.filter(Boolean).join(', '); stageSentenceDraft(record, fn, idx, sid, joined, { [partKey]: 'edited' }); }}>Save</button>
+                        <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(part)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[partKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(part, partKey); }}>{copiedItems[partKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+                {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    /* Structured string: render sentence rows and labeled comma parts. */
+    if (sentences.length > 1 || parseLabel(strVal).isLabeled) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -672,7 +710,7 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -701,7 +739,7 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined} data-edit-field={fn}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -733,17 +771,20 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const isModified = editedFields[editKey];
+    const enumOptions = ENUM_FIELDS[fn];
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
+      <div key={fn} className="rec-mini-card" data-edit-field={fn}>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(enumOptions ? enumCanonical(enumOptions, strVal) : strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              {enumOptions
+                ? <BlueSelect value={editValue} options={enumOptions} onChange={setEditValue} />
+                : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, null, enumOptions ? editValue.toLowerCase() : undefined); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -762,7 +803,7 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    if (!shouldShowSection(record, sid)) return null;
+    if (!shouldShowSection(record, sid, idx)) return null;
     const fields = SECTION_FIELDS[sid] || [];
 
     const hasAnyVal = fields.some(f => {
@@ -810,7 +851,7 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
         <h2 className="document-title">Pump Download Analysis</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<PumpDownloadAnalysisDocumentPDFTemplate document={pdfData} />} fileName={`pump-download-analysis-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<PumpDownloadAnalysisDocumentPDFTemplate document={pdfData} />} fileName="Pump_Download_Analysis.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -823,17 +864,6 @@ const PumpDownloadAnalysisDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              <div className="record-meta-row">
-                {hasVal(record.date) && (
-                  <span className="record-date">{highlightText(formatDate(record.date))}</span>
-                )}
-                {hasVal(record.status) && (
-                  <span className="record-status">{highlightText(record.status)}</span>
-                )}
-                {hasVal(record.controlIQActivePercent) && (
-                  <span className="record-metric">Control-IQ: {highlightText(record.controlIQActivePercent)}</span>
-                )}
-              </div>
               <h3 className="record-name">{highlightText(`Pump Download Analysis ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'provider-info')}

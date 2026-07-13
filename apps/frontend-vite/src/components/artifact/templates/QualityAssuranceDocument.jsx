@@ -14,6 +14,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import QualityAssuranceDocumentPDFTemplate from '../pdf-templates/QualityAssuranceDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './QualityAssuranceDocument.css';
 
@@ -76,6 +78,10 @@ const BOOLEAN_FIELDS = ['outsideConsultationRecommendation.recommended'];
 const DATE_FIELDS = ['date'];
 const ARRAY_FIELDS = ['recommendations', 'qualityMetrics'];
 const OBJECT_FIELDS = ['results'];
+const ENUM_OPTIONS = { status: ['Complete', 'Pending', 'In Progress', 'Draft', 'Reviewed'] };
+const COPY_LINE_EQ = '='.repeat(40);
+const COPY_LINE_DASH = '-'.repeat(28);
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
 
 /* humanizeKey: dynamic object key -> Title Case label */
 const humanizeKey = (k) => {
@@ -88,11 +94,12 @@ const humanizeKey = (k) => {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 const STRING_FIELDS = ['type', 'provider', 'facility', 'status', 'outsideConsultationRecommendation.institution', 'outsideConsultationRecommendation.reason', 'outsideConsultationRecommendation.specialty', 'peerReview', 'findings', 'assessment', 'plan', 'notes'];
+const COMMA_SPLIT_FIELDS = ['findings', 'assessment', 'plan', 'notes'];
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  const m = text.match(/^([A-Za-z0-9][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
   if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
@@ -105,7 +112,7 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0 && /\s/.test(text[i + 1] || '')) { const t = current.trim(); if (t) result.push(t); current = ''; }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -123,7 +130,7 @@ const toInputDate = (dateValue) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const QualityAssuranceDocument = ({ document: docProp }) => {
+const QualityAssuranceDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -142,15 +149,16 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? data ?? templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
       if (r?.quality_assurance) return Array.isArray(r.quality_assurance) ? r.quality_assurance : [r.quality_assurance];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.quality_assurance) return Array.isArray(dd.quality_assurance) ? dd.quality_assurance : [dd.quality_assurance]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   const recId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -232,7 +240,14 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    const protectedText = text
+      .replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)\./gi, '$1<prd>')
+      .replace(/\b([A-Z])\.(?=\s*[A-Z]\.)/g, '$1<prd>')
+      .replace(/\b(\d+)\.(?=\d)/g, '$1<prd>');
+    return protectedText
+      .split(/[.;](?:\s+|$)/)
+      .map(s => s.replace(/<prd>/g, '.').trim())
+      .filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -275,7 +290,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
   }, [searchTerm]);
 
   /* ═══════ SEARCH — 4-LEVEL ═══════ */
-  const shouldShowSection = useCallback((record, sid) => {
+  const shouldShowSection = useCallback((record, sid, idx) => {
     if (!searchTerm.trim() || record._showAllSections) return true;
     const phrase = searchTerm.toLowerCase().trim();
     const title = (SECTION_TITLES[sid] || '').toLowerCase();
@@ -284,7 +299,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
     for (const f of fields) {
       const label = (FIELD_LABELS[f] || f).toLowerCase();
       if (label.includes(phrase) || phrase.includes(label)) return true;
-      const val = getFieldValue(record, f, 0);
+      const val = getFieldValue(record, f, idx);
       if (val !== null && val !== undefined) {
         if (Array.isArray(val)) { if (val.some(item => String(typeof item === 'object' ? JSON.stringify(item) : item).toLowerCase().includes(phrase))) return true; }
         else if (typeof val === 'object') { if (JSON.stringify(val).toLowerCase().includes(phrase)) return true; }
@@ -445,13 +460,13 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
             if (dot === -1) {
               const itemIdx = parseInt(mid, 10);
               if (Number.isNaN(itemIdx)) continue;
-              await secureApiClient.put(`/api/edit/quality_assurance/${id}/edit`, { field: f, value: arr[itemIdx], arrayIndex: itemIdx });
+              await secureApiClient.put(`/api/edit/quality_assurance/${id}/edit`, { field: `${f}.${itemIdx}`, value: arr[itemIdx] });
             } else {
               const itemIdx = parseInt(mid.slice(0, dot), 10);
               const subKey = mid.slice(dot + 1);
               if (Number.isNaN(itemIdx)) continue;
               const subVal = arr[itemIdx] && typeof arr[itemIdx] === 'object' ? arr[itemIdx][subKey] : undefined;
-              await secureApiClient.put(`/api/edit/quality_assurance/${id}/edit`, { field: f, value: subVal, arrayIndex: itemIdx, subField: subKey });
+              await secureApiClient.put(`/api/edit/quality_assurance/${id}/edit`, { field: `${f}.${itemIdx}.${subKey}`, value: subVal });
             }
           }
         } else if (OBJECT_FIELDS.includes(f)) {
@@ -517,52 +532,62 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
+    if (!fields.some(field => hasVal(getFieldValue(record, field, idx)))) return '';
+    let text = `${title}\n${COPY_LINE_EQ}\n\n`;
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
+      const labelLine = sameAsTitle(label, sid) ? '' : `${label}\n${COPY_LINE_DASH}\n`;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${labelLine}${formatDate(val)}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `${labelLine}${val ? 'Yes' : 'No'}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => {
-          if (typeof item === 'object') {
-            const parts = [];
-            if (item.recommendation) parts.push(item.recommendation);
-            if (item.date) parts.push(`(${item.date})`);
-            return `${i + 1}. ${parts.join(' ')}`;
-          }
-          return `${i + 1}. ${item}`;
-        }).join('\n')}\n\n`;
+        text += labelLine;
+        if (f === 'recommendations') {
+          items.forEach((item, i) => {
+            if (!item || typeof item !== 'object') return;
+            if (hasVal(item.date)) text += `${formatDate(item.date)}\n${COPY_LINE_DASH}\n`;
+            if (hasVal(item.recommendation)) text += `${i + 1}. ${item.recommendation}\n`;
+          });
+        } else {
+          items.forEach((item, i) => {
+            const parsed = parseLabel(String(item));
+            if (parsed.isLabeled) text += `${parsed.label}\n${COPY_LINE_DASH}\n${i + 1}. ${parsed.value}\n`;
+            else text += `${i + 1}. ${item}\n`;
+          });
+        }
+        text += '\n';
       } else if (OBJECT_FIELDS.includes(f) && val && typeof val === 'object' && !Array.isArray(val)) {
         const entries = Object.entries(val).filter(([, v]) => hasVal(v));
         if (entries.length === 0) return;
-        text += `${label}\n`;
+        text += labelLine;
         entries.forEach(([rawKey, leafVal]) => {
           if (leafVal && typeof leafVal === 'object' && !Array.isArray(leafVal)) {
             const inner = Object.entries(leafVal).filter(([, lv]) => hasVal(lv)).map(([lk, lv]) => `${humanizeKey(lk)}: ${fmtVal(lv)}`).join(', ');
-            text += `${humanizeKey(rawKey)}: ${inner}\n`;
+            text += `${humanizeKey(rawKey)}\n${COPY_LINE_DASH}\n${inner}\n`;
           } else {
-            text += `${humanizeKey(rawKey)}: ${fmtVal(leafVal)}\n`;
+            text += `${humanizeKey(rawKey)}\n${COPY_LINE_DASH}\n${fmtVal(leafVal)}\n`;
           }
         });
         text += '\n';
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
+        const parsed = parseLabel(strVal);
+        const parts = COMMA_SPLIT_FIELDS.includes(f)
+          ? splitByComma(parsed.isLabeled ? parsed.value : strVal)
+          : [parsed.isLabeled ? parsed.value : strVal];
+        text += labelLine;
+        if (parsed.isLabeled) text += `${parsed.label}\n${COPY_LINE_DASH}\n`;
+        if (parts.length > 1) parts.forEach((part, i) => { text += `${i + 1}. ${part}\n`; });
+        else if (splitBySentence(strVal).length > 1) formatSentenceFieldLines(strVal).forEach(line => { text += `${line}\n`; });
+        else text += `${parsed.isLabeled ? parsed.value : strVal}\n`;
+        text += '\n';
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${labelLine}${fmtVal(val)}\n\n`;
       }
     });
     return text;
@@ -571,7 +596,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
   const copyAllText = useCallback(async () => {
     let text = '=== QUALITY ASSURANCE ===\n\n';
     pdfData.forEach((r, idx) => {
-      text += `Quality Assurance ${idx + 1}\n${'='.repeat(40)}\n\n`;
+      text += `Quality Assurance ${idx + 1}\n${COPY_LINE_EQ}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -592,12 +617,12 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card" data-edit-field={fn}>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -627,15 +652,12 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card" data-edit-field={fn}>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -677,13 +699,13 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
     }
 
     return (
-      <div key={subKey} className="rec-mini-card" style={{ marginTop: 6 }}>
+      <div key={subKey} className="rec-mini-card" style={{ marginTop: 6 }} data-edit-field={`${fn}.${itemIdx}.${subKey}`}>
         <div className="nested-subtitle">{highlightText(humanizeKey(subKey))}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(isDateSub ? toInputDate(subVal) : fmtVal(subVal)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
               {isDateSub
-                ? <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                ? <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value); setSaveError(null); }} />
                 : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
@@ -712,6 +734,37 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
     );
   };
 
+  const renderRecommendationDateSubtitle = (record, idx, sid, itemIdx, dateValue) => {
+    const editKey = `recommendations.${itemIdx}.date-${idx}`;
+    const isEditing = editingField === editKey;
+    const isModified = editedFields[editKey];
+    const displayVal = formatDate(dateValue);
+    return (
+      <div className="editable-date-subtitle" data-edit-field={`recommendations.${itemIdx}.date`}>
+        {isEditing ? (
+          <div className="edit-field-container">
+            <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value); setSaveError(null); }} />
+            <div className="edit-actions">
+              <button className="save-btn" disabled={saving} onClick={e => {
+                e.stopPropagation();
+                const current = Array.isArray(getFieldValue(record, 'recommendations', idx))
+                  ? getFieldValue(record, 'recommendations', idx).map(item => ({ ...item })) : [];
+                if (current[itemIdx]) current[itemIdx].date = editValue;
+                stageDraft(record, 'recommendations', idx, sid, `recommendations-${idx}`, current, 'fields', editKey, 'edited');
+              }}>{saving ? 'Saving...' : 'Save'}</button>
+              <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div className={`nested-subtitle date-subtitle numbered-row editable-row ${isModified ? 'modified' : ''}`} onClick={() => { setEditingField(editKey); setEditValue(toInputDate(dateValue)); setSaveError(null); }}>
+            <span className="content-value">{highlightText(displayVal)}</span> <span className="edit-indicator">&#9998;</span>
+          </div>
+        )}
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: ARRAY FIELD — string items per-row; object items per-SUBFIELD (shape-preserving) ═══════ */
   const renderArrayField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
@@ -722,7 +775,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const isObjItem = item && typeof item === 'object' && !Array.isArray(item);
 
@@ -734,6 +787,14 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
               const phrase = searchTerm.toLowerCase().trim();
               const flat = flattenObjItem(item).toLowerCase();
               if (!label.toLowerCase().includes(phrase) && !flat.includes(phrase)) return null;
+            }
+            if (fn === 'recommendations') {
+              return (
+                <div key={itemIdx} className="rec-mini-card recommendation-group" style={{ marginTop: 8 }}>
+                  {hasVal(item.date) && renderRecommendationDateSubtitle(record, idx, sid, itemIdx, item.date)}
+                  {hasVal(item.recommendation) && renderArraySubfieldRow(record, fn, idx, sid, itemIdx, 'recommendation', item.recommendation, false)}
+                </div>
+              );
             }
             return (
               <div key={itemIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
@@ -748,6 +809,8 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
           const isEditing = editingField === editKey;
           const isModified = editedFields[editKey];
           const itemStr = String(item);
+          const parsedItem = fn === 'qualityMetrics' ? parseLabel(itemStr) : { isLabeled: false, label: '', value: itemStr };
+          const displayItem = parsedItem.isLabeled ? parsedItem.value : itemStr;
 
           if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
             const phrase = searchTerm.toLowerCase().trim();
@@ -756,21 +819,22 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
-              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
+            <div key={itemIdx} data-edit-field={`${fn}.${itemIdx}`} className={parsedItem.isLabeled ? 'rec-mini-card' : ''}>
+              {parsedItem.isLabeled && <div className="nested-subtitle">{highlightText(parsedItem.label)}</div>}
+              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayItem); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                     {saveError && <div className="save-error">{saveError}</div>}
                     <div className="edit-actions">
-                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; setSaveError(null); const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])]; currentArr[itemIdx] = editValue; stageDraft(record, fn, idx, sid, `${fn}-${idx}`, currentArr, 'fields', editKey, 'edited'); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; setSaveError(null); const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])]; currentArr[itemIdx] = parsedItem.isLabeled ? `${parsedItem.label}: ${editValue.trim()}` : editValue; stageDraft(record, fn, idx, sid, `${fn}-${idx}`, currentArr, 'fields', editKey, 'edited'); }}>{saving ? 'Saving...' : 'Save'}</button>
                       <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div className="row-content"><span className="content-value">{highlightText(itemStr)}</span><span className="edit-indicator">&#9998;</span></div>
-                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(itemStr, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                    <div className="row-content"><span className="content-value">{highlightText(displayItem)}</span><span className="edit-indicator">&#9998;</span></div>
+                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(displayItem, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                   </>
                 )}
               </div>
@@ -793,7 +857,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {entries.map(([rawKey, leafVal]) => {
           const subLabel = humanizeKey(rawKey);
           const isLeafObj = leafVal && typeof leafVal === 'object' && !Array.isArray(leafVal);
@@ -812,18 +876,15 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={rawKey} className="rec-mini-card" style={{ marginTop: 8 }}>
+              <div key={rawKey} className="rec-mini-card" style={{ marginTop: 8 }} data-edit-field={`${fn}.${rawKey}`}>
               <div className="nested-subtitle">{highlightText(subLabel)}</div>
               <div className={`numbered-row ${isModified ? 'modified' : ''} ${isLeafObj ? '' : 'editable-row'}`} onClick={() => { if (!isEditing && !isLeafObj) { setEditingField(editKey); setEditValue(isBool ? (leafVal ? 'Yes' : 'No') : fmtVal(leafVal)); setSaveError(null); } }}>
                 {isEditing && !isLeafObj ? (
                   <div className="edit-field-container">
                     {isBool ? (
-                      <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
+                      <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
                     ) : isNum ? (
-                      <input type="number" step="any" className="edit-input" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      <input type="text" inputMode="decimal" className="edit-input" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                     ) : (
                       <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                     )}
@@ -867,6 +928,56 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
+    /* Labeled and comma-delimited values are displayed as a subtitle plus one editable row per item. */
+    const parsedWhole = parseLabel(strVal);
+    const commaItems = COMMA_SPLIT_FIELDS.includes(fn)
+      ? splitByComma(parsedWhole.isLabeled ? parsedWhole.value : strVal)
+      : [parsedWhole.isLabeled ? parsedWhole.value : strVal];
+    if (parsedWhole.isLabeled || commaItems.length > 1) {
+      const visibleLabel = parsedWhole.isLabeled ? parsedWhole.label : label;
+      return (
+        <div key={fn} className="rec-mini-card">
+          {!sameAsTitle(visibleLabel, sid) && <div className="nested-subtitle">{highlightText(visibleLabel)}</div>}
+          {commaItems.map((item, itemIdx) => {
+            const editKey = `${fn}-${idx}-c${itemIdx}`;
+            const isEditing = editingField === editKey;
+            const isModified = editedSentences[editKey];
+            return (
+              <div key={itemIdx} data-edit-field={fn}>
+                <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(item); setSaveError(null); } }}>
+                  {isEditing ? (
+                    <div className="edit-field-container">
+                      <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      <div className="edit-actions">
+                        <button className="save-btn" disabled={saving} onClick={e => {
+                          e.stopPropagation();
+                          const current = String(getFieldValue(record, fn, idx) || '');
+                          const parsed = parseLabel(current);
+                          const parts = splitByComma(parsed.isLabeled ? parsed.value : current);
+                          const replacement = editValue.trim();
+                          if (replacement) parts[itemIdx] = replacement;
+                          else parts.splice(itemIdx, 1);
+                          const rebuilt = parsed.isLabeled ? `${parsed.label}: ${parts.join(', ')}` : parts.join(', ');
+                          stageDraftSentences(record, fn, idx, sid, rebuilt, { [editKey]: 'edited' });
+                        }}>{saving ? 'Saving...' : 'Save'}</button>
+                        <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(item)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(item, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+                {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     /* Multi-sentence: render with splitBySentence */
     if (sentences.length > 1) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
@@ -875,7 +986,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
       return (
         <div key={fn}>
           <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+            {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -889,7 +1000,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
                 if (commaItems.length >= 2) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }} data-edit-field={fn}>
                       <div className="nested-subtitle">{highlightText(parsed.label)}</div>
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
@@ -898,7 +1009,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -927,7 +1038,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined} data-edit-field={fn}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -961,12 +1072,14 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card" data-edit-field={fn}>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              {ENUM_OPTIONS[fn]
+                ? <BlueSelect value={editValue} options={ENUM_OPTIONS[fn]} onChange={setEditValue} />
+                : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -988,7 +1101,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    if (!shouldShowSection(record, sid)) return null;
+    if (!shouldShowSection(record, sid, idx)) return null;
     const fields = SECTION_FIELDS[sid] || [];
 
     const hasAnyVal = fields.some(f => {
@@ -1036,7 +1149,7 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
         <h2 className="document-title">Quality Assurance</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<QualityAssuranceDocumentPDFTemplate document={pdfData} />} fileName={`quality-assurance-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<QualityAssuranceDocumentPDFTemplate document={pdfData} />} fileName="Quality_Assurance.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1049,12 +1162,6 @@ const QualityAssuranceDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                  {record.status && <span className="record-status">{record.status}</span>}
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Quality Assurance ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'record-info')}

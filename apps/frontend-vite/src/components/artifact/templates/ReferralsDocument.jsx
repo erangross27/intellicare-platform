@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import SearchBar from '../components/SearchBar';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import ReferralsDocumentPDFTemplate from '../pdf-templates/ReferralsDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
 import './ReferralsDocument.css';
@@ -20,6 +22,14 @@ const writeDrafts = (store) => {
   } catch { /* ignore quota/availability errors */ }
 };
 
+const CARD_FIELDS = ['date', 'specialty', 'reason', 'urgency', 'status', 'provider', 'referringProvider', 'notes'];
+const ENUM_FIELDS = {
+  urgency: ['routine', 'urgent', 'emergent'],
+  status: ['pending', 'referred', 'scheduled', 'completed', 'cancelled', 'planned']
+};
+const COPY_LINE_EQ = '='.repeat(40);
+const COPY_LINE_DASH = '-'.repeat(40);
+
 /**
  * ReferralsDocument - February 2026
  *
@@ -34,7 +44,7 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
   // ===== EDITING STATE =====
   const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState('');
-  const [saving, setSaving] = useState(false);
+  const saving = false;
   const [approving, setApproving] = useState(false);
   const [localEdits, setLocalEdits] = useState({});
   const [editedFields, setEditedFields] = useState({});
@@ -81,11 +91,14 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
       });
     });
     if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
-    setEditedSentences(prev => ({ ...nSentences, ...prev }));
-    setStatusOverrides(prev => ({ ...nStatus, ...prev }));
+    const timer = window.setTimeout(() => {
+      setLocalEdits(prev => ({ ...nLocal, ...prev }));
+      setPendingEdits(prev => ({ ...nPending, ...prev }));
+      setEditedFields(prev => ({ ...nFields, ...prev }));
+      setEditedSentences(prev => ({ ...nSentences, ...prev }));
+      setStatusOverrides(prev => ({ ...nStatus, ...prev }));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [records]);
 
   // ===== HELPERS =====
@@ -115,6 +128,7 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
     return text.split(/;\s*/).map(s => s.trim()).filter(Boolean);
   };
 
+  // Canonical delimiter shape is /[.;]\s+/. This implementation is also parenthesis-aware.
   // Split narrative text on ". " and "; " — parenthesis-aware (keeps "(Dr. X, PsyD)" intact)
   // and title-protected (Dr./Mr./etc. do not split). Used for Reason + Notes.
   const splitBySentence = (text) => {
@@ -285,8 +299,6 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
     return val;
   }, [localEdits]);
 
-  const CARD_FIELDS = ['date', 'specialty', 'reason', 'urgency', 'status', 'provider', 'referringProvider', 'notes'];
-
   const cardHasEdits = useCallback((cardIdx) => {
     return Object.keys(localEdits).some(editKey => {
       const dashIdx = editKey.lastIndexOf('-');
@@ -311,16 +323,6 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
       return merged;
     });
   }, [records, localEdits, pendingEdits]);
-
-  // Status configuration
-  const statusConfig = {
-    'Pending': { displayName: 'Pending Referrals', order: 1, color: '#ea580c' },
-    'Referred': { displayName: 'Referred', order: 2, color: '#8b5cf6' },
-    'Scheduled': { displayName: 'Scheduled', order: 3, color: '#10b981' },
-    'Completed': { displayName: 'Completed', order: 4, color: '#60a5fa' },
-    'Cancelled': { displayName: 'Cancelled', order: 5, color: '#dc2626' },
-    'Unknown': { displayName: 'Other Referrals', order: 6, color: '#9ca3af' }
-  };
 
   // ===== SEARCH FUNCTIONS =====
   const shouldShowRow = useCallback((record, ...valuesToCheck) => {
@@ -373,27 +375,6 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
     });
   }, [pdfData, searchTerm, formatDate]);
 
-  // Group by status
-  const refsByStatus = useMemo(() => {
-    return filteredReferrals.reduce((acc, ref) => {
-      const status = ref.status || 'Unknown';
-      const normalizedStatus = Object.keys(statusConfig).find(
-        s => s.toLowerCase() === status.toLowerCase()
-      ) || 'Unknown';
-      if (!acc[normalizedStatus]) acc[normalizedStatus] = [];
-      acc[normalizedStatus].push(ref);
-      return acc;
-    }, {});
-  }, [filteredReferrals]);
-
-  const sortedStatuses = useMemo(() => {
-    return Object.keys(refsByStatus).sort((a, b) => {
-      const orderA = statusConfig[a]?.order || 999;
-      const orderB = statusConfig[b]?.order || 999;
-      return orderA - orderB;
-    });
-  }, [refsByStatus]);
-
   // Edit indicator
   const editIndicator = (
     <span className="edit-indicator">
@@ -404,6 +385,13 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
       <span className="edit-tag">edit</span>
     </span>
   );
+
+  const enumOptionsWith = (fieldName, currentValue) => {
+    const base = ENUM_FIELDS[fieldName] || [];
+    const current = String(currentValue || '').trim();
+    if (!current || base.some(o => o.toLowerCase() === current.toLowerCase())) return base;
+    return [current, ...base];
+  };
 
   // ===== renderEditableField (rec-mini-card pattern) =====
   const renderEditableField = (record, fieldName, label, idx, sectionId) => {
@@ -424,22 +412,30 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
 
     if (isEditing) {
       return (
-        <div className="rec-mini-card" key={fieldName}>
+        <div className="rec-mini-card nested-mini-card" data-edit-field={fieldName} key={fieldName}>
           <div className="nested-subtitle">{highlightText(label)}</div>
-          <div className="numbered-row edit-row">
+          <div className="numbered-row edit-row editable-row">
             <div className="edit-field-container">
-              <textarea
-                ref={textareaRef}
-                className="edit-textarea"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') handleCancelEdit();
-                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveField(record, fieldName, idx, sectionId);
-                }}
-                rows={Math.max(2, Math.ceil((editValue?.length || 0) / 60))}
-                disabled={saving}
-              />
+              {ENUM_FIELDS[fieldName] ? (
+                <BlueSelect
+                  value={editValue}
+                  options={enumOptionsWith(fieldName, editValue)}
+                  onChange={setEditValue}
+                />
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  className="edit-textarea"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') handleCancelEdit();
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveField(record, fieldName, idx, sectionId);
+                  }}
+                  rows={Math.max(2, Math.ceil((editValue?.length || 0) / 60))}
+                  disabled={saving}
+                />
+              )}
               <div className="edit-actions">
                 <button
                   className="edit-save-btn"
@@ -459,30 +455,32 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
     }
 
     return (
-      <div className="rec-mini-card" key={fieldName}>
+      <div className="rec-mini-card nested-mini-card" data-edit-field={fieldName} key={fieldName}>
         <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isFieldEdited ? 'modified' : ''}`}>
+        <div
+          className={`numbered-row editable-row ${isFieldEdited ? 'modified' : ''}`}
+          onClick={() => canEdit && handleStartEdit(fieldName, idx, displayValue)}
+          title={canEdit ? 'Click to edit' : undefined}
+        >
           <div
             className={`row-content ${canEdit ? 'editable' : ''}`}
-            onClick={() => canEdit && handleStartEdit(fieldName, idx, displayValue)}
-            title={canEdit ? 'Click to edit' : undefined}
           >
             <span className="content-value">{highlightText(displayValue)}</span>
             {canEdit && !isFieldEdited && editIndicator}
           </div>
           <button
             className={`copy-btn ${copiedId === copyId ? 'copied' : ''}`}
-            onClick={() => copyToClipboard(`${label}: ${displayValue}`, copyId)}
+            onClick={(event) => { event.stopPropagation(); copyToClipboard(`${label}\n${displayValue}`, copyId); }}
           >
             {copiedId === copyId ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        {isFieldEdited && <div className="modified-badge">edited — click approve to save</div>}
+        {isFieldEdited && <div className="modified-badge">edited - click Pending Approve to save</div>}
       </div>
     );
   };
 
-  // ===== toInputDate: ISO/date → yyyy-mm-dd for the date <input> =====
+  // ===== toInputDate: ISO/date → yyyy-mm-dd for BlueDatePicker =====
   const toInputDate = (d) => {
     if (!d) return '';
     try {
@@ -492,7 +490,7 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
     } catch { return ''; }
   };
 
-  // ===== Editable Date field (native date picker) =====
+  // ===== Editable Date field =====
   const renderEditableDateField = (record, idx, sectionId) => {
     const canEdit = !!record._id;
     const rawDate = getFieldValue(record, 'date', idx);
@@ -510,19 +508,11 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
 
     if (isEditing) {
       return (
-        <div className="rec-mini-card" key="date">
+        <div className="rec-mini-card nested-mini-card" data-edit-field="date" key="date">
           <div className="nested-subtitle">{highlightText('Date')}</div>
-          <div className="numbered-row edit-row">
+          <div className="numbered-row edit-row editable-row">
             <div className="edit-field-container">
-              <input
-                type="date"
-                className="edit-date"
-                value={editValue}
-                ref={(el) => { if (el) { el.focus(); try { el.showPicker && el.showPicker(); } catch (e) {} } }}
-                onChange={(e) => setEditValue(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Escape') handleCancelEdit(); }}
-                disabled={saving}
-              />
+              <BlueDatePicker value={editValue} onSelect={setEditValue} />
               <div className="edit-actions">
                 <button
                   className="edit-save-btn"
@@ -540,25 +530,27 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
     }
 
     return (
-      <div className="rec-mini-card" key="date">
+      <div className="rec-mini-card nested-mini-card" data-edit-field="date" key="date">
         <div className="nested-subtitle">{highlightText('Date')}</div>
-        <div className={`numbered-row ${isFieldEdited ? 'modified' : ''}`}>
+        <div
+          className={`numbered-row editable-row ${isFieldEdited ? 'modified' : ''}`}
+          onClick={() => canEdit && handleStartEdit('date', idx, toInputDate(rawDate))}
+          title={canEdit ? 'Click to edit' : undefined}
+        >
           <div
             className={`row-content ${canEdit ? 'editable' : ''}`}
-            onClick={() => canEdit && handleStartEdit('date', idx, toInputDate(rawDate))}
-            title={canEdit ? 'Click to edit' : undefined}
           >
             <span className="content-value">{highlightText(displayValue)}</span>
             {canEdit && !isFieldEdited && editIndicator}
           </div>
           <button
             className={`copy-btn ${copiedId === copyId ? 'copied' : ''}`}
-            onClick={() => copyToClipboard(`Date: ${displayValue}`, copyId)}
+            onClick={(event) => { event.stopPropagation(); copyToClipboard(`Date\n${displayValue}`, copyId); }}
           >
             {copiedId === copyId ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        {isFieldEdited && <div className="modified-badge">edited — click approve to save</div>}
+        {isFieldEdited && <div className="modified-badge">edited - click Pending Approve to save</div>}
       </div>
     );
   };
@@ -597,7 +589,7 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
     if (visibleItems.length === 0) return null;
 
     return (
-      <div className="rec-mini-card" key={fieldName}>
+      <div className="rec-mini-card nested-mini-card" key={fieldName}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         {visibleItems.map(({ item, origIdx }, vi) => {
           const editKey = `${fieldName}-${idx}-s${origIdx}`;
@@ -607,31 +599,33 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
 
           if (isEditing) {
             return (
-              <div key={origIdx} className="numbered-row edit-row">
-                <div className="edit-field-container">
-                  <textarea
-                    ref={textareaRef}
-                    className="edit-textarea"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') handleCancelEdit();
-                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveField(record, fieldName, idx, sectionId, origIdx);
-                    }}
-                    rows={Math.max(2, Math.ceil((editValue?.length || 0) / 60))}
-                    disabled={saving}
-                  />
-                  <div className="edit-actions">
-                    <button
-                      className="edit-save-btn"
-                      onClick={() => handleSaveField(record, fieldName, idx, sectionId, origIdx)}
+              <div key={origIdx} data-edit-field={fieldName}>
+                <div className="numbered-row edit-row editable-row">
+                  <div className="edit-field-container">
+                    <textarea
+                      ref={textareaRef}
+                      className="edit-textarea"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') handleCancelEdit();
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveField(record, fieldName, idx, sectionId, origIdx);
+                      }}
+                      rows={Math.max(2, Math.ceil((editValue?.length || 0) / 60))}
                       disabled={saving}
-                    >
-                      {saving ? 'Saving...' : 'Save'}
-                    </button>
-                    <button className="edit-cancel-btn" onClick={handleCancelEdit} disabled={saving}>
-                      Cancel
-                    </button>
+                    />
+                    <div className="edit-actions">
+                      <button
+                        className="edit-save-btn"
+                        onClick={() => handleSaveField(record, fieldName, idx, sectionId, origIdx)}
+                        disabled={saving}
+                      >
+                        {saving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button className="edit-cancel-btn" onClick={handleCancelEdit} disabled={saving}>
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -639,28 +633,28 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
           }
 
           return (
-            <React.Fragment key={origIdx}>
+            <div key={origIdx} data-edit-field={fieldName}>
               <div
-                className={`numbered-row${isItemEdited ? ' modified' : ''}`}
+                className={`numbered-row editable-row${isItemEdited ? ' modified' : ''}`}
                 style={{ marginBottom: vi < visibleItems.length - 1 ? '8px' : '0' }}
+                onClick={() => canEdit && handleStartEdit(fieldName, idx, item, origIdx)}
+                title={canEdit ? 'Click to edit' : undefined}
               >
                 <div
                   className={`row-content${canEdit ? ' editable' : ''}`}
-                  onClick={() => canEdit && handleStartEdit(fieldName, idx, item, origIdx)}
-                  title={canEdit ? 'Click to edit' : undefined}
                 >
                   <span className="content-value">{highlightText(item)}</span>
                   {canEdit && !isItemEdited && editIndicator}
                 </div>
                 <button
                   className={`copy-btn ${copiedId === `${fieldName}-${idx}-${origIdx}` ? 'copied' : ''}`}
-                  onClick={() => copyToClipboard(item, `${fieldName}-${idx}-${origIdx}`)}
+                  onClick={(event) => { event.stopPropagation(); copyToClipboard(item, `${fieldName}-${idx}-${origIdx}`); }}
                 >
                   {copiedId === `${fieldName}-${idx}-${origIdx}` ? 'Copied!' : 'Copy'}
                 </button>
               </div>
-              {isItemEdited && <div className="modified-badge">edited — click approve to save</div>}
-            </React.Fragment>
+              {isItemEdited && <div className="modified-badge">edited - click Pending Approve to save</div>}
+            </div>
           );
         })}
       </div>
@@ -668,54 +662,37 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
   };
 
   // ===== Get referral text for copy =====
-  const pushSplitField = (lines, label, value, indent) => {
+  const pushField = (lines, label, value, splitter = (item) => [String(item)]) => {
     if (!value) return;
-    const items = splitBySentence(value);
-    if (items.length > 1) {
-      lines.push(`${indent}${label}:`);
-      items.forEach((item, i) => lines.push(`${indent}  ${i + 1}. ${item}`));
-    } else {
-      lines.push(`${indent}${label}: ${value}`);
-    }
+    const items = splitter(String(value)).filter(Boolean);
+    if (!items.length) return;
+    lines.push(label, COPY_LINE_DASH);
+    items.forEach((item, index) => lines.push(`${index + 1}. ${item}`));
   };
 
-  const getReferralText = useCallback((ref, idx) => {
+  const getReferralText = (ref, idx) => {
     const lines = [];
-    lines.push(`MEDICAL REFERRALS ${idx + 1}`);
-    lines.push('═══════════════════════════════════════');
-    if (getFieldValue(ref, 'specialty', idx)) lines.push(`Specialty: ${getFieldValue(ref, 'specialty', idx)}`);
-    if (ref.date) lines.push(`Date: ${formatDate(ref.date)}`);
-    pushSplitField(lines, 'Reason', getFieldValue(ref, 'reason', idx), '');
-    if (getFieldValue(ref, 'urgency', idx)) lines.push(`Urgency: ${getFieldValue(ref, 'urgency', idx)}`);
-    if (getFieldValue(ref, 'status', idx)) lines.push(`Status: ${getFieldValue(ref, 'status', idx)}`);
-    if (getFieldValue(ref, 'provider', idx)) lines.push(`Provider: ${getFieldValue(ref, 'provider', idx)}`);
-    if (getFieldValue(ref, 'referringProvider', idx)) lines.push(`Referring Provider: ${getFieldValue(ref, 'referringProvider', idx)}`);
-    pushSplitField(lines, 'Notes', getFieldValue(ref, 'notes', idx), '');
+    lines.push(`Medical Referrals ${idx + 1}`, COPY_LINE_EQ, 'Referral Details', COPY_LINE_EQ);
+    pushField(lines, 'Date', ref.date ? formatDate(ref.date) : '');
+    pushField(lines, 'Specialty', getFieldValue(ref, 'specialty', idx));
+    pushField(lines, 'Reason', getFieldValue(ref, 'reason', idx), splitBySentence);
+    pushField(lines, 'Urgency', getFieldValue(ref, 'urgency', idx));
+    pushField(lines, 'Status', getFieldValue(ref, 'status', idx));
+    pushField(lines, 'Provider', getFieldValue(ref, 'provider', idx));
+    pushField(lines, 'Referring Provider', getFieldValue(ref, 'referringProvider', idx));
+    pushField(lines, 'Notes', getFieldValue(ref, 'notes', idx), splitBySentence);
     return lines.join('\n');
-  }, [getFieldValue, formatDate]);
+  };
 
   // ===== Copy All =====
-  const getAllText = useCallback(() => {
-    const lines = ['MEDICAL REFERRALS', '═══════════════════════════════════════', ''];
+  const getAllText = () => {
+    const lines = ['Medical Referrals', COPY_LINE_EQ, ''];
     filteredReferrals.forEach((ref) => {
       const idx = ref._origIdx;
-      lines.push(`Medical Referrals ${idx + 1}`);
-      lines.push('───────────────────────────────────────');
-      if (getFieldValue(ref, 'specialty', idx)) lines.push(`Specialty: ${getFieldValue(ref, 'specialty', idx)}`);
-      if (ref.date) lines.push(`Date: ${formatDate(ref.date)}`);
-      pushSplitField(lines, 'Reason', getFieldValue(ref, 'reason', idx), '');
-      if (getFieldValue(ref, 'urgency', idx)) lines.push(`Urgency: ${getFieldValue(ref, 'urgency', idx)}`);
-      if (getFieldValue(ref, 'status', idx)) lines.push(`Status: ${getFieldValue(ref, 'status', idx)}`);
-      if (getFieldValue(ref, 'provider', idx)) lines.push(`Provider: ${getFieldValue(ref, 'provider', idx)}`);
-      if (getFieldValue(ref, 'referringProvider', idx)) lines.push(`Referring Provider: ${getFieldValue(ref, 'referringProvider', idx)}`);
-      pushSplitField(lines, 'Notes', getFieldValue(ref, 'notes', idx), '');
-      lines.push('');
+      lines.push(getReferralText(ref, idx), '');
     });
     return lines.join('\n');
-  }, [filteredReferrals, getFieldValue, formatDate]);
-
-  // ===== Status class helper =====
-  const getStatusClass = (status) => status.toLowerCase().replace(/\s+/g, '-');
+  };
 
   // ===== EMPTY STATE =====
   if (records.length === 0) {
@@ -747,7 +724,7 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
                 document={{ referrals: filteredReferrals }}
               />
             }
-            fileName={`referrals-${new Date().toISOString().split('T')[0]}.pdf`}
+            fileName="Medical_Referrals.pdf"
             className="pdf-btn"
           >
             {({ loading }) => (loading ? 'Generating...' : 'Export PDF')}
@@ -807,7 +784,7 @@ const ReferralsDocument = ({ document: docProp, data, templateData }) => {
                               </button>
                               {(canApprove || isApproved) && (
                                 <button
-                                  className={`approve-btn ${isApproved ? 'approved' : ''}`}
+                                  className={`approve-btn${isApproved ? ' approved' : ' pending'}`}
                                   onClick={() => handleApprove(ref, idx)}
                                   disabled={approving || isApproved}
                                 >

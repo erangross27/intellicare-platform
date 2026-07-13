@@ -1,179 +1,209 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * ReferralsDocumentPDFTemplate
- *
- * Flat list of referrals, each titled "Medical Referrals N".
- * Reason + Notes split (paren-aware + title-protected, ". " and "; ") into numbered items.
- * Helvetica, readable font sizes, fieldBox + conditional wrap for anti-orphan/anti-overprint.
- */
-
 const styles = StyleSheet.create({
   page: {
+    fontFamily: 'Helvetica',
+    fontSize: 14,
+    lineHeight: 1.45,
+    color: '#000000',
+    backgroundColor: '#ffffff'
+  },
+  pageSurface: {
+    width: 612,
+    height: 792,
     padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 13,
-    lineHeight: 1.5,
-    color: '#000000',
-    backgroundColor: '#FFFFFF'
+    paddingBottom: 54,
+    backgroundColor: '#ffffff',
+    position: 'relative'
   },
-  title: {
-    fontSize: 22,
+  documentHeader: { marginBottom: 22 },
+  documentTitle: {
+    fontSize: 26,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 16,
-    textAlign: 'center',
     paddingBottom: 8,
-    borderBottom: '1 solid #000000'
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid'
   },
-  fieldBox: {
-    marginBottom: 16,
-    paddingBottom: 4
-  },
-  referralHeader: {
-    fontSize: 18,
+  recordContainer: { paddingBottom: 20 },
+  recordHeader: { marginBottom: 14 },
+  recordTitle: {
+    fontSize: 19,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 6
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid'
   },
-  subtitleLabel: {
-    fontSize: 12,
+  section: { marginBottom: 14 },
+  sectionTitle: {
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 2,
-    marginTop: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5
+    paddingBottom: 4,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid'
   },
-  fieldValue: {
+  fieldBlock: { marginBottom: 9 },
+  fieldLabel: {
     fontSize: 13,
-    fontFamily: 'Helvetica',
-    color: '#000000',
-    lineHeight: 1.4,
-    marginBottom: 2
+    fontFamily: 'Helvetica-Bold',
+    paddingBottom: 2,
+    marginBottom: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#999999',
+    borderBottomStyle: 'solid'
   },
-  listItem: {
-    fontSize: 13,
-    fontFamily: 'Helvetica',
-    color: '#000000',
-    lineHeight: 1.4,
-    marginBottom: 2,
-    marginLeft: 10
-  },
-  pageNumber: {
-    position: 'absolute',
-    bottom: 20,
-    right: 40,
-    fontSize: 9,
-    color: '#666666'
-  }
+  listItem: { fontSize: 14, lineHeight: 1.45, marginBottom: 2, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#4b5563', marginTop: 24 }
 });
 
-const formatDate = (date) => {
-  if (!date) return '';
+const FIELD_CONFIGS = [
+  { key: 'date', label: 'Date', kind: 'date' },
+  { key: 'specialty', label: 'Specialty' },
+  { key: 'reason', label: 'Reason', kind: 'sentence' },
+  { key: 'urgency', label: 'Urgency' },
+  { key: 'status', label: 'Status' },
+  { key: 'provider', label: 'Provider' },
+  { key: 'referringProvider', label: 'Referring Provider' },
+  { key: 'notes', label: 'Notes', kind: 'sentence' }
+];
+
+const safeString = (value) => String(value ?? '')
+  .replace(/\u00d7/g, 'x')
+  .replace(/[\u2018\u2019]/g, "'")
+  .replace(/[\u201c\u201d]/g, '"')
+  .replace(/[\u2013\u2014]/g, '-');
+
+const hasValue = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (Array.isArray(value)) return value.length > 0;
+  return typeof value === 'string' ? value.trim() !== '' : true;
+};
+
+const formatDate = (value) => {
+  if (!value) return '';
   try {
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return String(date);
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return String(date);
-  }
+    const date = new Date(value.$date || value);
+    if (Number.isNaN(date.getTime())) return safeString(value);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return safeString(value); }
 };
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (Array.isArray(val)) return val.join(', ');
-  return String(val);
-};
-
-// Split narrative text on ". " and "; " — parenthesis-aware + title-protected (matches the JSX).
+// Mirrors the JSX splitter: periods and semicolons delimit rows, while titles and parentheses stay intact.
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
   const result = [];
   let current = '';
-  let parenDepth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') parenDepth++;
-    else if (ch === ')') parenDepth = Math.max(0, parenDepth - 1);
-    if ((ch === '.' || ch === ';') && parenDepth === 0 && i + 1 < text.length && /\s/.test(text[i + 1])) {
-      if (ch === '.' && /\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|etc)$/.test(current)) {
-        current += ch;
+  let parenthesisDepth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '(') parenthesisDepth += 1;
+    else if (character === ')') parenthesisDepth = Math.max(0, parenthesisDepth - 1);
+    if ((character === '.' || character === ';') && parenthesisDepth === 0 && /\s/.test(text[index + 1] || '')) {
+      if (character === '.' && /\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|etc)$/.test(current)) {
+        current += character;
         continue;
       }
-      const trimmed = current.trim();
-      if (trimmed) result.push(trimmed);
+      if (current.trim()) result.push(current.trim());
       current = '';
-      while (i + 1 < text.length && /\s/.test(text[i + 1])) i++;
+      while (/\s/.test(text[index + 1] || '')) index += 1;
     } else {
-      current += ch;
+      current += character;
     }
   }
-  const trimmed = current.replace(/[.;]+$/, '').trim();
-  if (trimmed) result.push(trimmed);
+  const tail = current.replace(/[.;]+$/, '').trim();
+  if (tail) result.push(tail);
   return result;
 };
 
-const renderSplitField = (label, value) => {
-  const text = safeString(value);
-  if (!text) return null;
-  const items = splitBySentence(text);
+const fieldRows = (record, config) => {
+  const value = record[config.key];
+  if (!hasValue(value)) return [];
+  if (config.kind === 'date') return [formatDate(value)];
+  if (config.kind === 'sentence') return splitBySentence(safeString(value));
+  if (Array.isArray(value)) return value.map(safeString).filter(Boolean);
+  return [safeString(value)];
+};
+
+const renderField = (record, config) => {
+  const rows = fieldRows(record, config);
+  if (!rows.length) return null;
   return (
-    <View>
-      <Text style={styles.subtitleLabel}>{label}</Text>
-      {items.length > 1
-        ? items.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>)
-        : <Text style={styles.fieldValue}>{text}</Text>}
+    <View style={styles.fieldBlock} wrap={rows.length > 8 ? true : false}>
+      <Text style={styles.fieldLabel}>{config.label}</Text>
+      {rows.map((row, index) => (
+        <Text key={index} style={styles.listItem}>{index + 1}. {safeString(row)}</Text>
+      ))}
     </View>
   );
 };
 
-const renderSimpleField = (label, value) => {
-  const text = safeString(value);
-  if (!text) return null;
+const renderSection = (record, recordTitle) => {
+  const fields = FIELD_CONFIGS.map(config => renderField(record, config)).filter(Boolean);
+  if (!fields.length) return null;
   return (
-    <View>
-      <Text style={styles.subtitleLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{text}</Text>
+    <View style={styles.section}>
+      <View wrap={false}>
+        <View style={styles.recordHeader}>
+          <Text style={styles.recordTitle}>{recordTitle}</Text>
+        </View>
+        <Text style={styles.sectionTitle}>Referral Details</Text>
+        {React.cloneElement(fields[0], { key: 'first' })}
+      </View>
+      {fields.slice(1).map((field, index) => React.cloneElement(field, { key: `field-${index + 1}` }))}
     </View>
   );
 };
 
-const ReferralsDocumentPDFTemplate = ({ document: doc }) => {
-  const data = doc || {};
-  const referrals = Array.isArray(data.referrals) ? data.referrals : [];
+const unwrapRecords = (data) => {
+  if (!data) return [];
+  const input = Array.isArray(data) ? data : [data];
+  return input.flatMap(record => {
+    if (record?.referrals) return Array.isArray(record.referrals) ? record.referrals : [record.referrals];
+    if (record?.records) return Array.isArray(record.records) ? record.records : [record.records];
+    if (record?.documentData) {
+      const nested = record.documentData;
+      if (Array.isArray(nested)) return nested;
+      if (nested?.referrals) return Array.isArray(nested.referrals) ? nested.referrals : [nested.referrals];
+      return [nested];
+    }
+    return [record];
+  }).filter(record => record && typeof record === 'object');
+};
 
+const ReferralsDocumentPDFTemplate = ({ document: data }) => {
+  const records = unwrapRecords(data);
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        <Text style={styles.title}>Medical Referrals</Text>
-
-        {referrals.map((ref, idx) => {
-          const n = (ref._origIdx != null ? ref._origIdx : idx) + 1;
-          const reasonItems = splitBySentence(safeString(ref.reason));
-          const notesItems = splitBySentence(safeString(ref.notes));
-          // Anti-orphan/anti-overprint: keep a small referral together; let a long one flow.
-          const rowCount = 1 + reasonItems.length + notesItems.length + 5;
-          return (
-            <View key={idx} style={styles.fieldBox} wrap={rowCount > 14 ? undefined : false}>
-              <Text style={styles.referralHeader}>Medical Referrals {n}</Text>
-              {renderSimpleField('Specialty', ref.specialty)}
-              {ref.date ? renderSimpleField('Date', formatDate(ref.date)) : null}
-              {renderSplitField('Reason', ref.reason)}
-              {renderSimpleField('Urgency', ref.urgency)}
-              {renderSimpleField('Status', ref.status)}
-              {renderSimpleField('Provider', ref.provider)}
-              {renderSimpleField('Referring Provider', ref.referringProvider)}
-              {renderSplitField('Notes', ref.notes)}
+      {!records.length ? (
+        <Page size="LETTER" style={styles.page}>
+          <View style={styles.pageSurface}>
+            <View style={styles.documentHeader} wrap={false}>
+              <Text style={styles.documentTitle}>Medical Referrals</Text>
             </View>
-          );
-        })}
-
-        <Text
-          style={styles.pageNumber}
-          render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-          fixed
-        />
-      </Page>
+            <Text style={styles.noDataText}>No referrals available.</Text>
+          </View>
+        </Page>
+      ) : records.map((record, index) => {
+        const number = (record._origIdx ?? index) + 1;
+        return (
+          <Page key={record._id?.$oid || record._id || index} size="LETTER" style={styles.page}>
+            <View style={styles.pageSurface}>
+              {index === 0 ? (
+                <View style={styles.documentHeader} wrap={false}>
+                  <Text style={styles.documentTitle}>Medical Referrals</Text>
+                </View>
+              ) : null}
+              <View style={styles.recordContainer}>
+                {renderSection(record, `Medical Referrals ${number}`)}
+              </View>
+            </View>
+          </Page>
+        );
+      })}
     </Document>
   );
 };

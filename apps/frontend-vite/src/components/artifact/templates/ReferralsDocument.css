@@ -12,6 +12,15 @@
   color: #ececf1;
   padding: 24px;
   min-height: 100%;
+  direction: ltr;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.referrals-document * {
+  direction: ltr;
+  text-align: left;
+  box-sizing: border-box;
 }
 
 /* ========== DOCUMENT HEADER ========== */
@@ -26,7 +35,7 @@
 
 .referrals-document .document-title {
   margin: 0;
-  font-size: 31px;
+  font-size: 35px;
   font-weight: 700;
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
@@ -298,9 +307,13 @@
   gap: 8px;
 }
 
+.referrals-document .rec-mini-card.nested-mini-card {
+  width: 100%;
+}
+
 /* Nested Subtitle - LIGHT BRIGHT BLUE */
 .referrals-document .nested-subtitle {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: #93c5fd;
   text-transform: none !important;
@@ -320,6 +333,16 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+}
+
+.referrals-document .numbered-row.editable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.referrals-document .numbered-row.editable-row:hover {
+  background: #11233a;
+  border-color: rgba(96, 165, 250, 0.65);
 }
 
 .referrals-document .row-content {
@@ -385,7 +408,8 @@
 /* ========== HEADER RIGHT ACTIONS ========== */
 .referrals-document .header-right-actions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
 }
 
@@ -443,6 +467,7 @@
 }
 .referrals-document .edit-field-container {
   width: 100%;
+  flex: 1 1 100%;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -483,7 +508,7 @@
 .referrals-document .edit-actions {
   display: flex;
   gap: 6px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 .referrals-document .edit-save-btn {
   padding: 4px 14px;
@@ -517,20 +542,27 @@
 
 /* Approve button — yellow when pending edits */
 .referrals-document .approve-btn {
-  background: rgba(251, 191, 36, 0.1);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: transparent;
+  color: #ececf1;
+  border: 1px solid rgba(148, 163, 184, 0.5);
   border-radius: 6px;
   padding: 3px 12px;
   font-family: 'Comfortaa', sans-serif;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
   transition: all 0.2s ease;
 }
-.referrals-document .approve-btn:hover {
+
+.referrals-document .approve-btn.pending {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.referrals-document .approve-btn.pending:hover {
   background: rgba(251, 191, 36, 0.2);
   border-color: rgba(251, 191, 36, 0.6);
 }

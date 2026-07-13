@@ -606,8 +606,24 @@ const RadiationTherapyDocument = ({ document: docProp, data, templateData }) => 
         const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
         if (entries.length === 0) return;
         text += `${label}\n${COPY_LINE_DASH}\n`;
-        entries.forEach(([k, v], entryIndex) => {
-          text += `${humanizeKey(k)}\n${entryIndex + 1}. ${isScalar(v) ? fmtScalar(v) : flattenSearchable(v)}\n`;
+        entries.forEach(([k, v]) => {
+          const subLabel = humanizeKey(k);
+          text += `${subLabel}\n${COPY_LINE_DASH}\n`;
+          if (f === 'planning' && k === 'targetVolumes' && typeof v === 'string') {
+            const clauses = splitBySentence(v);
+            clauses.forEach(clause => {
+              const parsed = parseLabel(clause);
+              if (parsed.isLabeled) text += `${parsed.label}\n${COPY_LINE_DASH}\n1. ${parsed.value}\n`;
+              else text += `1. ${clause}\n`;
+            });
+          } else if (f === 'planning' && k === 'acquisition' && typeof v === 'string') {
+            splitByComma(v).forEach((item, itemIndex) => { text += `${itemIndex + 1}. ${item}\n`; });
+          } else {
+            const displayValue = f === 'planning' && k === 'simulationDate' && isStandaloneDateText(v)
+              ? formatDate(v)
+              : (isScalar(v) ? fmtScalar(v) : flattenSearchable(v));
+            text += `1. ${displayValue}\n`;
+          }
         });
         text += '\n';
         return;
@@ -1140,13 +1156,111 @@ const RadiationTherapyDocument = ({ document: docProp, data, templateData }) => 
             if (!subLabel.toLowerCase().includes(phrase) && !subStr.toLowerCase().includes(phrase)) return null;
           }
 
+          if (fn === 'planning' && k === 'targetVolumes' && editable) {
+            const clauses = splitBySentence(subStr);
+            return (
+              <div key={k} className="nested-group">
+                <div className="nested-subtitle sub-label">{highlightText(subLabel)}</div>
+                {clauses.map((clause, clauseIndex) => {
+                  const parsed = parseLabel(clause);
+                  const partKey = `${fn}.${k}.part${clauseIndex}-${idx}`;
+                  const partEditing = editingField === partKey;
+                  const partModified = editedFields[partKey] || editedFields[editKey];
+                  const displayValue = parsed.isLabeled ? parsed.value : clause;
+                  return (
+                    <div key={partKey} className={`nested-mini-card ${parsed.isLabeled ? 'labeled-row-group' : 'regular-row-group'}`}>
+                      {parsed.isLabeled && <div className="nested-subtitle sub-label">{highlightText(parsed.label)}</div>}
+                      <div className="grouped-row-item" data-edit-field={`${fn}.${k}`}>
+                        <div className={`numbered-row ${partModified ? 'modified' : ''} editable-row`} onClick={() => { if (!partEditing) { setEditingField(partKey); setEditValue(displayValue); setSaveError(null); } }}>
+                          {partEditing ? (
+                            <div className="edit-field-container">
+                              <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus onKeyDown={event => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                              {saveError && <div className="save-error">{saveError}</div>}
+                              <div className="edit-actions">
+                                <button className="save-btn" disabled={saving} onClick={event => {
+                                  event.stopPropagation();
+                                  const currentObject = getFieldValue(record, fn, idx) || {};
+                                  const currentText = String(currentObject[k] || '');
+                                  const currentClauses = splitBySentence(currentText);
+                                  currentClauses[clauseIndex] = parsed.isLabeled ? `${parsed.label}: ${editValue.trim()}` : editValue.trim();
+                                  const separator = currentText.includes(';') ? '; ' : '. ';
+                                  stageNestedDraft(record, `${fn}.${k}`, idx, sid, currentClauses.join(separator));
+                                  setEditedFields(previous => ({ ...previous, [partKey]: 'edited' }));
+                                }}>{saving ? 'Saving...' : 'Save'}</button>
+                                <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div>
+                              <button className={`copy-btn ${copiedItems[partKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${parsed.isLabeled ? `${parsed.label}\n${COPY_LINE_DASH}\n` : ''}1. ${displayValue}`, partKey); }}>{copiedItems[partKey] ? 'Copied!' : 'Copy'}</button>
+                            </>
+                          )}
+                        </div>
+                        {partModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          if (fn === 'planning' && k === 'acquisition' && editable && splitByComma(subStr).length > 1) {
+            const parts = splitByComma(subStr);
+            return (
+              <div key={k} className="nested-mini-card labeled-row-group">
+                <div className="nested-subtitle sub-label">{highlightText(subLabel)}</div>
+                {parts.map((part, partIndex) => {
+                  const partKey = `${fn}.${k}.part${partIndex}-${idx}`;
+                  const partEditing = editingField === partKey;
+                  const partModified = editedFields[partKey] || editedFields[editKey];
+                  return (
+                    <div key={partKey} className="grouped-row-item" data-edit-field={`${fn}.${k}`}>
+                      <div className={`numbered-row ${partModified ? 'modified' : ''} editable-row`} onClick={() => { if (!partEditing) { setEditingField(partKey); setEditValue(part); setSaveError(null); } }}>
+                        {partEditing ? (
+                          <div className="edit-field-container">
+                            <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus onKeyDown={event => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                            {saveError && <div className="save-error">{saveError}</div>}
+                            <div className="edit-actions">
+                              <button className="save-btn" disabled={saving} onClick={event => {
+                                event.stopPropagation();
+                                const currentObject = getFieldValue(record, fn, idx) || {};
+                                const currentParts = splitByComma(String(currentObject[k] || ''));
+                                currentParts[partIndex] = editValue.trim();
+                                stageNestedDraft(record, `${fn}.${k}`, idx, sid, currentParts.join(', '));
+                                setEditedFields(previous => ({ ...previous, [partKey]: 'edited' }));
+                              }}>{saving ? 'Saving...' : 'Save'}</button>
+                              <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="row-content"><span className="content-value">{highlightText(part)}</span><span className="edit-indicator">&#9998;</span></div>
+                            <button className={`copy-btn ${copiedItems[partKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`1. ${part}`, partKey); }}>{copiedItems[partKey] ? 'Copied!' : 'Copy'}</button>
+                          </>
+                        )}
+                      </div>
+                      {partModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          const isObjectDate = fn === 'planning' && k === 'simulationDate' && isStandaloneDateText(subStr);
+          const displayStr = isObjectDate ? formatDate(v) : subStr;
+
           return (
             <div key={k} className="nested-mini-card" data-edit-field={`${fn}.${k}`}>
               <div className="nested-subtitle sub-label">{highlightText(subLabel)}</div>
-              <div className={`numbered-row ${isModified ? 'modified' : ''} ${editable ? 'editable-row' : ''}`} onClick={() => { if (editable && !isEditing) { setEditingField(editKey); setEditValue(subStr); setSaveError(null); } }}>
+              <div className={`numbered-row ${isModified ? 'modified' : ''} ${editable ? 'editable-row' : ''}`} onClick={() => { if (editable && !isEditing) { setEditingField(editKey); setEditValue(isObjectDate ? toInputDate(v) : subStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
-                    <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    {isObjectDate
+                      ? <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value); setSaveError(null); }} />
+                      : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
                     {saveError && <div className="save-error">{saveError}</div>}
                     <div className="edit-actions">
                       <button className="save-btn" disabled={saving} onClick={e => {
@@ -1171,8 +1285,8 @@ const RadiationTherapyDocument = ({ document: docProp, data, templateData }) => 
                   </div>
                 ) : (
                   <>
-                    <div className="row-content"><span className="content-value">{highlightText(subStr)}</span>{editable && <span className="edit-indicator">&#9998;</span>}</div>
-                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${subLabel}\n${subStr}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                    <div className="row-content"><span className="content-value">{highlightText(displayStr)}</span>{editable && <span className="edit-indicator">&#9998;</span>}</div>
+                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${subLabel}\n${COPY_LINE_DASH}\n1. ${displayStr}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                   </>
                 )}
               </div>

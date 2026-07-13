@@ -135,7 +135,7 @@ const splitByComma = (text) => {
 const renderFieldRow = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
     </View>
@@ -146,7 +146,7 @@ const renderFieldRow = (label, value) => {
 const renderDateFieldPDF = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={styles.fieldValue}>{formatDate(value)}</Text>
     </View>
@@ -229,10 +229,37 @@ const renderObjectNodePDF = (label, value, keyPath, depth) => {
   if (isEmptyDeep(value)) return null;
   const LabelTag = depth > 0 ? styles.objSubLabel : styles.fieldLabel;
   if (isScalar(value)) {
+    const scalarText = fmtScalar(value);
+    if (label === 'Target Volumes' && typeof value === 'string') {
+      const clauses = splitBySentence(value);
+      return (
+        <View key={keyPath}>
+          <Text style={LabelTag}>{label}</Text>
+          {clauses.map((clause, clauseIndex) => {
+            const parsed = parseLabel(clause);
+            return (
+              <View key={`${keyPath}-${clauseIndex}`} wrap={false}>
+                {parsed.isLabeled ? <Text style={styles.objSubLabel}>{parsed.label}</Text> : null}
+                <Text style={styles.listItem}>1. {parsed.isLabeled ? parsed.value : clause}</Text>
+              </View>
+            );
+          })}
+        </View>
+      );
+    }
+    if (label === 'Acquisition' && typeof value === 'string' && splitByComma(value).length > 1) {
+      return (
+        <View key={keyPath}>
+          <Text style={LabelTag}>{label}</Text>
+          {splitByComma(value).map((item, itemIndex) => <Text key={`${keyPath}-${itemIndex}`} style={styles.listItem}>{itemIndex + 1}. {item}</Text>)}
+        </View>
+      );
+    }
+    const displayValue = label === 'Simulation Date' ? formatDate(value) : scalarText;
     return (
       <View key={keyPath}>
         {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
+        <Text style={styles.listItem}>1. {displayValue}</Text>
       </View>
     );
   }
@@ -253,8 +280,9 @@ const renderObjectFieldPDF = (label, val) => {
   if (entries.length === 0) return null;
   return entries.map(([k, v], i) => {
     const rows = countRows(v);
+    const shouldWrap = k === 'targetVolumes' && typeof v === 'string' ? true : rows > 8;
     return (
-      <View key={`results-${k}`} style={styles.fieldBox} wrap={rows > 8 ? true : false}>
+      <View key={`results-${k}`} style={styles.fieldBox} wrap={shouldWrap}>
         {i === 0 ? <Text style={styles.fieldLabel}>{label}</Text> : null}
         {renderObjectNodePDF(humanizeKey(k), v, `results-${k}`, 1)}
       </View>
@@ -412,20 +440,25 @@ const RadiationTherapyDocumentPDFTemplate = ({ document: docProp, data, template
                 return hasVal(val);
               });
               const renderConfiguredField = (field, fIdx) => {
-                    const val = field.nested ? getNestedVal(record, field.key) : record[field.key];
-                    if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
-                    if (field.isObject) return <React.Fragment key={fIdx}>{renderObjectFieldPDF(field.label, val)}</React.Fragment>;
-                    if (field.isObjectArray) return <View key={fIdx}>{renderObjectArrayFieldPDF(field.label, val)}</View>;
-                    if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val, field.splitCommas)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
+                const val = field.nested ? getNestedVal(record, field.key) : record[field.key];
+                if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
+                // Return object-entry Views as flat siblings. Wrapping the whole object in a Fragment
+                // inside the title glue makes every entry unbreakable and creates nearly blank pages.
+                if (field.isObject) return renderObjectFieldPDF(field.label, val);
+                if (field.isObjectArray) return <View key={fIdx}>{renderObjectArrayFieldPDF(field.label, val)}</View>;
+                if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val)}</View>;
+                if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val, field.splitCommas)}</View>;
+                return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
               };
+              const firstRendered = renderConfiguredField(populatedFields[0], 0);
+              const firstNodes = Array.isArray(firstRendered) ? firstRendered : [firstRendered];
               return (
                 <View key={sIdx} style={styles.section}>
                   <View wrap={false}>
                     <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                    {renderConfiguredField(populatedFields[0], 0)}
+                    {firstNodes[0]}
                   </View>
+                  {firstNodes.slice(1)}
                   {populatedFields.slice(1).map((field, fieldIndex) => renderConfiguredField(field, fieldIndex + 1))}
                 </View>
               );

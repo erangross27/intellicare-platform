@@ -5,3 +5,24 @@ args = ["/Users/erangross/dev/IntelliCare/mcp-mongodb-server/index.js"]
 [mcp_servers.mongodb-memory]
 command = "node"
 args = ["/Users/erangross/dev/IntelliCare/mcp-memory-server/index.js"]
+
+[mcp_servers.mongodb-memory.tools.get_current_session]
+approval_mode = "approve"
+
+[mcp_servers.mongodb-memory.tools.get_previous_session]
+approval_mode = "approve"
+
+[mcp_servers.mongodb-memory.tools.search_memories]
+approval_mode = "approve"
+
+[mcp_servers.mongodb-memory.tools.recall_memories]
+approval_mode = "approve"
+
+[mcp_servers.mongodb-memory.tools.list_sessions]
+approval_mode = "approve"
+
+[mcp_servers.mongodb-memory.tools.search_sessions]
+approval_mode = "approve"
+
+[mcp_servers.mongodb-memory.tools.restore_session]
+approval_mode = "approve"

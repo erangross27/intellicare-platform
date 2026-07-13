@@ -14,8 +14,9 @@
  */
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import RapidResponseSummariesPDFTemplate from '../pdf-templates/RapidResponseSummariesPDFTemplate';
+import RapidResponseSummariesDocumentPDFTemplate from '../pdf-templates/RapidResponseSummariesDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
+import BlueSelect from '../components/BlueSelect';
 import './RapidResponseSummariesDocument.css';
 
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
@@ -106,11 +107,14 @@ const BOOLEAN_FIELDS = ['icuTransferRequired', 'codeBlueProgression'];
 const NUMBER_FIELDS = ['responseTimeMinutes', 'glasgowComaScore', 'systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure', 'heartRate', 'respiratoryRate', 'oxygenSaturation', 'coreTemperature', 'fractionalInspiredOxygen', 'lactateLevel', 'bloodGlucose', 'mewsScore', 'newsScore', 'qsofaScore', 'fluidResuscitationVolume'];
 const ARRAY_FIELDS = ['primaryInterventions', 'vasoactiveAgents'];
 const STRING_FIELDS = ['triggerCriteria', 'cardiacRhythm', 'ventilationSupport', 'dispositionDecision'];
+const COMMA_SPLIT_FIELDS = ['triggerCriteria'];
+const COPY_LINE_EQ = '='.repeat(40);
+const COPY_LINE_DASH = '-'.repeat(40);
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  const m = text.match(/^([A-Za-z0-9][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
   if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
@@ -128,11 +132,6 @@ const splitByComma = (text) => {
   }
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
-};
-
-const formatDate = (dateValue) => {
-  if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
 };
 
 /* ═══════ COMPONENT ═══════ */
@@ -200,9 +199,12 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
       });
     });
     if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
+    const timer = window.setTimeout(() => {
+      setLocalEdits(prev => ({ ...nLocal, ...prev }));
+      setPendingEdits(prev => ({ ...nPending, ...prev }));
+      setEditedFields(prev => ({ ...nFields, ...prev }));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [records]);
 
   /* ═══════ UTILS ═══════ */
@@ -220,7 +222,7 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;]\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -415,7 +417,6 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
       // Only commit drafts whose base field belongs to this section AND are still pending.
       const committedLocalKeys = [];
       for (const [fieldPart, value] of Object.entries(recDrafts)) {
-        const dotIdx = fieldPart.indexOf('.');
         // arrayIndex ONLY when the segment after the LAST dot is purely numeric
         const lastDot = fieldPart.lastIndexOf('.');
         const tail = lastDot === -1 ? '' : fieldPart.slice(lastDot + 1);
@@ -479,41 +480,49 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${COPY_LINE_EQ}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasFieldVal(f, val)) return;
+      text += `${label}\n${COPY_LINE_DASH}\n`;
       if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        text += `${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
         const unit = FIELD_UNITS[f] || '';
-        text += `${label}\n${unit ? `${val} ${unit}` : val}\n\n`;
+        text += `1. ${unit ? `${val} ${unit}` : val}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
+        if (COMMA_SPLIT_FIELDS.includes(f) && splitByComma(strVal).length > 1) {
+          splitByComma(strVal).forEach((item, itemIndex) => { text += `${itemIndex + 1}. ${item}\n`; });
+          text += '\n';
+          return;
+        }
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
+        const singleParsed = sentences.length === 1 ? parseLabel(sentences[0]) : null;
+        const hasStructuredSingle = Boolean(singleParsed?.isLabeled && splitByComma(singleParsed.value).length > 1);
+        if (sentences.length > 1 || hasStructuredSingle) {
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `1. ${fmtVal(val)}\n\n`;
       }
     });
-    return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+    return text === header ? '' : text;
+  }, [getFieldValue, hasFieldVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== RAPID RESPONSE SUMMARIES ===\n\n';
+    let text = `Rapid Response Summaries\n${COPY_LINE_EQ}\n\n`;
     pdfData.forEach((r, idx) => {
-      text += `Rapid Response Summary ${idx + 1}\n${'='.repeat(40)}\n\n`;
+      text += `Rapid Response Summary ${idx + 1}\n${COPY_LINE_EQ}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -524,6 +533,13 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
   /* ═══════ RENDER: NUMBER FIELD ═══════ */
+  const stepFor = (fn) => ['coreTemperature', 'lactateLevel'].includes(fn) ? 0.1 : 1;
+  const adjustedNumber = (raw, delta, step) => {
+    const base = Number(raw);
+    const next = (Number.isFinite(base) ? base : 0) + (delta * step);
+    return step < 1 ? next.toFixed(1) : String(Math.round(next));
+  };
+
   const renderNumberField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
@@ -535,12 +551,19 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} style={{ minHeight: 'auto' }} />
+              <div className="number-edit-row">
+                <div className="num-stepper-row">
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(value => adjustedNumber(value, -1, stepFor(fn))); }} aria-label={`Decrease ${label}`}>&minus;</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(value => adjustedNumber(value, 1, stepFor(fn))); }} aria-label={`Increase ${label}`}>+</button>
+                  {unit ? <span className="number-edit-unit">{unit}</span> : null}
+                </div>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const num = Number(editValue); if (isNaN(num)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, num); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -570,15 +593,12 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={value => { setEditValue(value); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -588,7 +608,7 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -606,7 +626,7 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
@@ -621,7 +641,7 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} data-edit-field={fn}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
@@ -655,14 +675,53 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    const commaItems = COMMA_SPLIT_FIELDS.includes(fn) ? splitByComma(strVal) : [];
+    if (commaItems.length > 1) {
+      return (
+        <div key={fn} className="rec-mini-card nested-mini-card">
+          <div className="nested-subtitle">{highlightText(label)}</div>
+          {commaItems.map((item, itemIndex) => {
+            const commaKey = `${fn}-${idx}-c${itemIndex}`;
+            const isEditing = editingField === commaKey;
+            const isModified = editedFields[commaKey];
+            return (
+              <div key={commaKey} data-edit-field={fn}>
+                <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(commaKey); setEditValue(item); setSaveError(null); } }}>
+                  {isEditing ? (
+                    <div className="edit-field-container">
+                      <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      {saveError && <div className="save-error">{saveError}</div>}
+                      <div className="edit-actions">
+                        <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const currentItems = splitByComma(String(getFieldValue(record, fn, idx) || '')); currentItems[itemIndex] = editValue.trim(); const rebuilt = currentItems.filter(Boolean).join(', '); const localKey = `${fn}-${idx}`; setLocalEdits(prev => ({ ...prev, [localKey]: rebuilt })); setPendingEdits(prev => ({ ...prev, [localKey]: true })); setEditedFields(prev => ({ ...prev, [commaKey]: 'edited' })); clearApprovedFor(sid, idx); stageDraft(id, fn, rebuilt); setSaveError(null); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                        <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(item)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(item, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+                {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    const singleParsed = sentences.length === 1 ? parseLabel(sentences[0]) : null;
+    const hasStructuredSingle = Boolean(singleParsed?.isLabeled && splitByComma(singleParsed.value).length > 1);
+
+    /* Multi-sentence or labeled comma group: render every scalar row. */
+    if (sentences.length > 1 || hasStructuredSingle) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
+          <div className="rec-mini-card nested-mini-card">
             <div className="nested-subtitle">{highlightText(label)}</div>
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -677,7 +736,7 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
                 if (commaItems.length >= 2) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} className="rec-mini-card nested-mini-card" style={{ marginTop: 8 }}>
                       <div className="nested-subtitle">{highlightText(parsed.label)}</div>
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
@@ -686,7 +745,7 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -715,7 +774,7 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} data-edit-field={fn} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -749,7 +808,7 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
@@ -823,7 +882,7 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
         <h2 className="document-title">Rapid Response Summaries</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<RapidResponseSummariesPDFTemplate document={pdfData} />} fileName={`rapid-response-summaries-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<RapidResponseSummariesDocumentPDFTemplate document={pdfData} />} fileName="Rapid_Response_Summaries.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -836,11 +895,6 @@ const RapidResponseSummariesDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.createdAt)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Rapid Response Summary ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'response-details')}

@@ -36,6 +36,7 @@ import QualityMetricsTemplate from './QualityMetricsDocumentPDFTemplate';
 import RadiationTherapyRecordsDocumentPDFTemplate from './RadiationTherapyRecordsDocumentPDFTemplate';
 import RadiologyFindingsDocumentPDFTemplate from './RadiologyFindingsDocumentPDFTemplate';
 import RadiologyReportsDocumentPDFTemplate from './RadiologyReportsDocumentPDFTemplate';
+import RapidResponseSummariesDocumentPDFTemplate from './RapidResponseSummariesDocumentPDFTemplate';
 import ConsultationNotesTemplate from './ConsultationNotesTemplate';
 // Single source of truth: route to the same box-free template the Document's Export button imports
 // (the legacy ./ProgressNotesPDFTemplate was renamed to the standard ...DocumentPDFTemplate).
@@ -115,6 +116,7 @@ const templateRegistry = {
   'radiation_therapy_records': RadiationTherapyRecordsDocumentPDFTemplate,
   'radiology_findings': RadiologyFindingsDocumentPDFTemplate,
   'radiology_reports': RadiologyReportsDocumentPDFTemplate,
+  'rapid_response_summaries': RapidResponseSummariesDocumentPDFTemplate,
   'consultation_notes': ConsultationNotesTemplate,
   'progress_notes': ProgressNotesTemplate,
   'discharge_summaries': DischargeSummariesTemplate,

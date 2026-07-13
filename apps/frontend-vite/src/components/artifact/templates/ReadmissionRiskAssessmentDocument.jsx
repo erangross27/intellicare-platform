@@ -13,6 +13,8 @@ import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ReadmissionRiskAssessmentDocumentPDFTemplate from '../pdf-templates/ReadmissionRiskAssessmentDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import './ReadmissionRiskAssessmentDocument.css';
 
 /* ═══════ CONSTANTS ═══════ */
@@ -64,6 +66,15 @@ const NUMBER_FIELDS = ['laceIndexScore', 'hospitalScore', 'readmissionProbabilit
 const ARRAY_FIELDS = ['highRiskMedications', 'mitigationInterventions'];
 const BOOLEAN_FIELDS = ['polypharmacyIndicator', 'adequateSocialSupport', 'followUpAppointmentScheduled', 'pendingTestResultsAtDischarge', 'cognitiveImpairmentPresent', 'activeCancerDiagnosis', 'heartFailureExacerbation'];
 const STRING_FIELDS = ['riskStratificationLevel', 'indexAdmissionDiagnosis', 'dischargeDisposition', 'healthLiteracyScore', 'nutritionalRiskIndicator', 'chronicKidneyDiseaseStage', 'assessmentPerformedBy'];
+const ENUM_FIELDS = {
+  riskStratificationLevel: ['Low', 'Moderate', 'High'],
+  dischargeDisposition: ['Home', 'Home with Home Health', 'Skilled Nursing Facility', 'Inpatient Rehabilitation', 'Long-Term Acute Care', 'Hospice', 'Other'],
+  healthLiteracyScore: ['Adequate', 'Marginal', 'Inadequate'],
+  nutritionalRiskIndicator: ['Low Risk', 'At Risk', 'High Risk'],
+  chronicKidneyDiseaseStage: ['1', '2', '3a', '3b', '4', '5', 'End Stage'],
+};
+const COPY_LINE_EQ = '='.repeat(40);
+const COPY_LINE_DASH = '-'.repeat(40);
 /* MEANINGFUL_ZERO_FIELDS: numerics where 0 is a valid clinical finding (low-risk / "none"), NOT a "not recorded" sentinel.
    LACE/HOSPITAL/Charlson/probability score 0 = lowest risk; prior admissions/ED visits 0 = none; functional status 0 = total dependence.
    Excludes lengthOfStayDays & medicationCount where 0 reads as missing data. */
@@ -72,7 +83,7 @@ const MEANINGFUL_ZERO_FIELDS = ['laceIndexScore', 'hospitalScore', 'readmissionP
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  const m = text.match(/^([A-Za-z0-9][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
   if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
@@ -181,10 +192,13 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
       });
     });
     if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
-    setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    const timer = window.setTimeout(() => {
+      setLocalEdits(prev => ({ ...nLocal, ...prev }));
+      setPendingEdits(prev => ({ ...nPending, ...prev }));
+      setEditedFields(prev => ({ ...nFields, ...prev }));
+      setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [records]);
 
   /* ═══════ UTILS ═══════ */
@@ -193,7 +207,7 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;]\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -482,51 +496,56 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${COPY_LINE_EQ}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
+      let rows;
       if (DATE_FIELDS.includes(f)) {
         if (!hasVal(val)) return;
-        text += `${label}: ${formatDate(val)}\n\n`;
-        return;
-      }
-      if (NUMBER_FIELDS.includes(f)) {
+        rows = [formatDate(val)];
+      } else if (NUMBER_FIELDS.includes(f)) {
         if (!numberShows(record, f, idx)) return;
-        text += `${label}: ${val}\n\n`;
-        return;
-      }
-      if (BOOLEAN_FIELDS.includes(f)) {
+        rows = [String(val)];
+      } else if (BOOLEAN_FIELDS.includes(f)) {
         if (typeof val !== 'boolean') return;
-        text += `${label}: ${fmtVal(val)}\n\n`;
+        rows = [fmtVal(val)];
+      } else if (!hasVal(val)) {
         return;
-      }
-      if (!hasVal(val)) return;
-      if (ARRAY_FIELDS.includes(f)) {
+      } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        let number = 1;
+        rows = items.flatMap(item => {
+          const parsed = parseLabel(String(item));
+          if (!parsed.isLabeled) return [`${number++}. ${item}`];
+          return [`${parsed.label}:`, `  ${number++}. ${parsed.value}`];
+        });
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
+        const singleParsed = sentences.length === 1 ? parseLabel(sentences[0]) : null;
+        const hasStructuredSingle = Boolean(singleParsed?.isLabeled && splitByComma(singleParsed.value).length > 1);
+        if (sentences.length > 1 || hasStructuredSingle) rows = formatSentenceFieldLines(strVal);
+        else rows = [strVal];
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        rows = [fmtVal(val)];
       }
+      text += `${label}\n${COPY_LINE_DASH}\n`;
+      rows.forEach((row, rowIndex) => {
+        if (/^\s*\d+\.\s/.test(row) || /:$/.test(row)) text += `${row}\n`;
+        else text += `${rowIndex + 1}. ${row}\n`;
+      });
+      text += '\n';
     });
-    return text;
+    return text === header ? '' : text;
   }, [getFieldValue, hasVal, fmtVal, numberShows, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== READMISSION RISK ASSESSMENT ===\n\n';
+    let text = `Readmission Risk Assessment\n${COPY_LINE_EQ}\n\n`;
     pdfData.forEach((r, idx) => {
-      text += `Readmission Risk Assessment ${idx + 1}\n${'='.repeat(40)}\n\n`;
+      text += `Readmission Risk Assessment ${idx + 1}\n${COPY_LINE_EQ}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -547,12 +566,12 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -572,6 +591,12 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: NUMBER FIELD (hide-zero) ═══════ */
+  const stepFor = (fn) => fn === 'readmissionProbability' ? 1 : 1;
+  const adjustedNumber = (raw, delta, step) => {
+    const base = Number(raw);
+    return String((Number.isFinite(base) ? base : 0) + (delta * step));
+  };
+
   const renderNumberField = (record, fn, idx, sid) => {
     if (!numberShows(record, fn, idx)) return null;
     const val = getFieldValue(record, fn, idx);
@@ -583,12 +608,18 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="number-edit-row">
+                <div className="num-stepper-row">
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(value => adjustedNumber(value, -1, stepFor(fn))); }} aria-label={`Decrease ${label}`}>&minus;</button>
+                  <input type="text" inputMode="numeric" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(value => adjustedNumber(value, 1, stepFor(fn))); }} aria-label={`Increase ${label}`}>+</button>
+                </div>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -598,7 +629,7 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -619,25 +650,22 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'true' : 'false'); setSaveError(null); } }}>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={value => { setEditValue(value); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue === 'true'); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue === 'Yes'); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -655,7 +683,7 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
@@ -671,7 +699,7 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
 
           const parsed = parseLabel(itemStr);
           return (
-            <div key={itemIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 4 } : undefined}>
+            <div key={itemIdx} data-edit-field={fn} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 4 } : undefined}>
               {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(parsed.isLabeled ? parsed.value : itemStr); setSaveError(null); } }}>
                 {isEditing ? (
@@ -706,14 +734,47 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    if (ENUM_FIELDS[fn]) {
+      const editKey = `${fn}-${idx}`;
+      const isEditing = editingField === editKey;
+      const isModified = editedFields[editKey];
+      const options = ENUM_FIELDS[fn].includes(strVal) ? ENUM_FIELDS[fn] : [strVal, ...ENUM_FIELDS[fn]];
+      return (
+        <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+          <div className="nested-subtitle">{highlightText(label)}</div>
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
+            {isEditing ? (
+              <div className="edit-field-container">
+                <BlueSelect value={editValue} options={options} onChange={value => { setEditValue(value); setSaveError(null); }} />
+                {saveError && <div className="save-error">{saveError}</div>}
+                <div className="edit-actions">
+                  <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue); }}>{saving ? 'Saving...' : 'Save'}</button>
+                  <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="row-content"><span className="content-value">{highlightText(strVal)}</span><span className="edit-indicator">&#9998;</span></div>
+                <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${strVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              </>
+            )}
+          </div>
+          {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
+      );
+    }
+
+    const singleParsed = sentences.length === 1 ? parseLabel(sentences[0]) : null;
+    const hasStructuredSingle = Boolean(singleParsed?.isLabeled && splitByComma(singleParsed.value).length > 1);
+
+    /* Multi-sentence or labeled comma group: render every scalar row. */
+    if (sentences.length > 1 || hasStructuredSingle) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
+          <div className="rec-mini-card nested-mini-card">
             <div className="nested-subtitle">{highlightText(label)}</div>
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -728,7 +789,7 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
                 if (commaItems.length >= 2) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} className="rec-mini-card nested-mini-card" style={{ marginTop: 8 }}>
                       <div className="nested-subtitle">{highlightText(parsed.label)}</div>
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
@@ -737,7 +798,7 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -766,7 +827,7 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} data-edit-field={fn} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -800,7 +861,7 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
@@ -876,7 +937,7 @@ const ReadmissionRiskAssessmentDocument = ({ document: docProp }) => {
         <h2 className="document-title">Readmission Risk Assessment</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<ReadmissionRiskAssessmentDocumentPDFTemplate document={pdfData} />} fileName={`readmission-risk-assessment-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<ReadmissionRiskAssessmentDocumentPDFTemplate document={pdfData} />} fileName="Readmission_Risk_Assessment.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

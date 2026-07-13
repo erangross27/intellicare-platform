@@ -14,7 +14,9 @@
  */
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import RegionalAnesthesiaPDFTemplate from '../pdf-templates/RegionalAnesthesiaPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
+import RegionalAnesthesiaDocumentPDFTemplate from '../pdf-templates/RegionalAnesthesiaDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
 import './RegionalAnesthesiaDocument.css';
 
@@ -45,6 +47,7 @@ const SECTION_TITLES = {
 };
 
 const FIELD_LABELS = {
+  date: 'Date',
   blockType: 'Block Type',
   anatomicalLocation: 'Anatomical Location',
   approachTechnique: 'Approach / Technique',
@@ -73,7 +76,7 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
-  'block-location': ['blockType', 'anatomicalLocation', 'approachTechnique'],
+  'block-location': ['date', 'blockType', 'anatomicalLocation', 'approachTechnique'],
   'equipment': ['needleGaugeSize'],
   'local-anesthetic': ['localAnestheticAgent', 'localAnestheticConcentration', 'totalVolume', 'totalDoseMg'],
   'procedure-details': ['numberOfAttempts', 'aspirationResult', 'additiveAgents'],
@@ -83,15 +86,29 @@ const SECTION_FIELDS = {
 };
 
 const BOOLEAN_FIELDS = ['catheterPlaced', 'testDoseGiven'];
-const DATE_FIELDS = [];
+const DATE_FIELDS = ['date'];
 const NUMBER_FIELDS = ['numberOfAttempts', 'totalVolume', 'totalDoseMg', 'catheterDepth', 'onsetTime'];
 const ARRAY_FIELDS = ['additiveAgents', 'complicationsDuringProcedure'];
 const STRING_FIELDS = ['blockType', 'anatomicalLocation', 'approachTechnique', 'needleGaugeSize', 'localAnestheticAgent', 'localAnestheticConcentration', 'aspirationResult', 'sensoryBlockLevel', 'motorBlockLevel', 'blockAdequacy', 'supplementalAnesthesia', 'testDoseResponse', 'patientPosition', 'sedationLevel', 'performingAnesthesiologist', 'postBlockVitalSigns'];
+const CLINICAL_TEXT_DELIMITER = /[.;]\s/;
+const ENUM_FIELDS = {
+  blockAdequacy: ['Adequate', 'Partial', 'Inadequate'],
+  testDoseResponse: ['Negative', 'Positive', 'Not Given'],
+  patientPosition: ['Supine', 'Prone', 'Sitting', 'Lateral', 'Sitting/Lateral'],
+  sedationLevel: ['None', 'Minimal', 'Moderate', 'Deep', 'General Anesthesia', 'Moderate (Ramsay 3-4)'],
+};
+const COPY_LINE_EQ = '='.repeat(40);
+const COPY_LINE_DASH = '-'.repeat(40);
+const sameAsTitle = (label, title) => String(label || '').trim().toLowerCase() === String(title || '').trim().toLowerCase();
+const stepFor = (value) => {
+  const decimals = String(value ?? '').split('.')[1];
+  return decimals ? `0.${'0'.repeat(Math.max(0, decimals.length - 1))}1` : '1';
+};
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  const m = text.match(/^([A-Za-z0-9][A-Za-z0-9\s/&().#'"%<>~+=-]{1,120}?):\s+([\s\S]+)$/);
   if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
@@ -104,7 +121,18 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0) {
+      const before = current.trim();
+      const after = text.slice(i + 1);
+      const afterTrimmed = after.trimStart();
+      const nextWord = (afterTrimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+      const previousWord = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+      const numericThousands = /\d$/.test(before) && /^\d{3}\b/.test(afterTrimmed);
+      const noFollowingSpace = after.length === afterTrimmed.length;
+      const linkedByConjunction = ['and', 'or'].includes(nextWord) || ['and', 'or'].includes(previousWord);
+      if (numericThousands || noFollowingSpace || linkedByConjunction) current += ch;
+      else { if (before) result.push(before); current = ''; }
+    }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -113,7 +141,7 @@ const splitByComma = (text) => {
 
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
+  try { const d = new Date(dateValue.$date || dateValue); if (isNaN(d.getTime()) || d.getFullYear() < 1971) return ''; return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
 };
 
 const toInputDate = (dateValue) => {
@@ -164,11 +192,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
       const recDrafts = id ? store[id] : null;
       if (!recDrafts) return;
       Object.entries(recDrafts).forEach(([fieldPart, value]) => {
-        // fieldPart = "field" or "field.arrayIndex"; localEdits is keyed by base field only.
-        const lastDot = fieldPart.lastIndexOf('.');
-        const isArrayPart = lastDot !== -1 && /^\d+$/.test(fieldPart.slice(lastDot + 1));
-        const baseField = isArrayPart ? fieldPart.slice(0, lastDot) : fieldPart;
-        const editKey = `${baseField}-${idx}`;
+        const editKey = `${fieldPart}-${idx}`;
         nLocal[editKey] = value;
         nPending[editKey] = true;
         nFields[editKey] = 'edited';
@@ -184,24 +208,70 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
   const hasVal = useCallback((v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; }, []);
   const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
 
-  const splitBySentence = useCallback((text) => {
+  const splitTextSegments = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    const segments = [];
+    let current = '';
+    let depth = 0;
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === '(') depth += 1;
+      else if (ch === ')') depth = Math.max(0, depth - 1);
+      const isCandidate = depth === 0 && (ch === ';' || ch === '.');
+      const protectedTitle = ch === '.' && /\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc|approx|no|No|i\.e|e\.g)$/.test(current);
+      const decimal = ch === '.' && /\d$/.test(current) && /^\d/.test(text[i + 1] || '');
+      const boundary = isCandidate && !protectedTitle && !decimal && (!text[i + 1] || CLINICAL_TEXT_DELIMITER.test(`${ch}${text[i + 1]}`));
+      if (!boundary) { current += ch; continue; }
+      let separator = ch;
+      while (/\s/.test(text[i + 1] || '')) { separator += text[i + 1]; i += 1; }
+      const value = current.trim();
+      if (value) segments.push({ text: value, separator });
+      current = '';
+    }
+    const tail = current.trim();
+    if (tail) segments.push({ text: tail, separator: '' });
+    return segments;
   }, []);
 
+  const splitBySentence = useCallback((text) => splitTextSegments(text).map(segment => segment.text), [splitTextSegments]);
+
+  const replaceSegment = useCallback((originalText, segmentIndex, replacementText) => {
+    const original = splitTextSegments(String(originalText || ''));
+    if (!original[segmentIndex]) return String(originalText || '');
+    const replacement = splitTextSegments(String(replacementText || '').trim());
+    const originalSeparator = original[segmentIndex].separator;
+    if (!replacement.length) original.splice(segmentIndex, 1);
+    else {
+      replacement[replacement.length - 1].separator = originalSeparator;
+      original.splice(segmentIndex, 1, ...replacement);
+    }
+    return original.map(part => `${part.text}${part.separator}`).join('').trim();
+  }, [splitTextSegments]);
+
   function reconstructFullText(sentences) {
-    if (!sentences || sentences.length === 0) return '';
-    return sentences.map((s, i) => {
-      let c = s.replace(/[;.]+$/, '').trim();
-      if (i < sentences.length - 1) c += '.';
-      return c;
-    }).join(' ');
+    return (sentences || []).map(sentence => String(sentence || '').replace(/[;.]+$/, '').trim()).filter(Boolean).join('. ');
   }
+
+  const setAtPath = useCallback((source, path, value) => {
+    const parts = String(path).split('.');
+    const root = Array.isArray(source) ? [...source] : { ...source };
+    let cursor = root;
+    let originalCursor = source;
+    parts.forEach((part, partIndex) => {
+      const isLast = partIndex === parts.length - 1;
+      if (isLast) { cursor[part] = value; return; }
+      const originalNext = originalCursor?.[part];
+      const clone = Array.isArray(originalNext) ? [...originalNext] : { ...(originalNext || {}) };
+      cursor[part] = clone;
+      cursor = clone;
+      originalCursor = originalNext;
+    });
+    return root;
+  }, []);
 
   const getFieldValue = useCallback((record, fn, idx) => {
     const k = `${fn}-${idx}`;
     if (localEdits[k] !== undefined) return localEdits[k];
-    // Handle dot-path fields for postBlockVitalSigns
     if (fn.includes('.')) {
       const parts = fn.split('.');
       let val = record;
@@ -211,8 +281,27 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
       }
       return val;
     }
-    return record[fn];
+    let value = record[fn];
+    if (Array.isArray(value)) {
+      value = [...value];
+      Object.entries(localEdits).forEach(([editKey, editValue]) => {
+        const match = editKey.match(new RegExp(`^${fn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.(\\d+)-${idx}$`));
+        if (match) value[Number(match[1])] = editValue;
+      });
+    }
+    return value;
   }, [localEdits]);
+
+  const stepEditValue = (direction) => {
+    setEditValue(previous => {
+      const numeric = Number.parseFloat(previous);
+      const stepString = stepFor(previous);
+      const step = Number.parseFloat(stepString) || 1;
+      const decimals = (stepString.split('.')[1] || '').length;
+      const next = Math.max(0, (Number.isNaN(numeric) ? 0 : numeric) + direction * step);
+      return next.toFixed(decimals).replace(/\.0+$/, '');
+    });
+  };
 
   const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -232,7 +321,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
   }, [searchTerm]);
 
   /* ═══════ SEARCH — 4-LEVEL ═══════ */
-  const shouldShowSection = useCallback((record, sid) => {
+  const shouldShowSection = useCallback((record, idx, sid) => {
     if (!searchTerm.trim() || record._showAllSections) return true;
     const phrase = searchTerm.toLowerCase().trim();
     const title = (SECTION_TITLES[sid] || '').toLowerCase();
@@ -241,7 +330,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
     for (const f of fields) {
       const label = (FIELD_LABELS[f] || f).toLowerCase();
       if (label.includes(phrase) || phrase.includes(label)) return true;
-      const val = getFieldValue(record, f, 0);
+      const val = getFieldValue(record, f, idx);
       if (val !== null && val !== undefined) {
         if (Array.isArray(val)) { if (val.some(item => String(item).toLowerCase().includes(phrase))) return true; }
         else if (fmtVal(val).toLowerCase().includes(phrase)) return true;
@@ -285,24 +374,18 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
   /* ═══════ PDF DATA ═══════ */
   const pdfData = useMemo(() => {
     return filteredRecords.map((record, idx) => {
-      const merged = { ...record };
+      let merged = { ...record };
       Object.keys(localEdits).forEach(key => {
         if (pendingEdits[key]) return; // pending drafts stay OUT of the PDF until approved
         const m = key.match(/^(.+)-(\d+)$/);
         if (m && parseInt(m[2]) === idx) {
           const fieldName = m[1];
-          if (fieldName.includes('.')) {
-            const parts = fieldName.split('.');
-            if (!merged[parts[0]]) merged[parts[0]] = {};
-            merged[parts[0]] = { ...merged[parts[0]], [parts[1]]: localEdits[key] };
-          } else {
-            merged[fieldName] = localEdits[key];
-          }
+          merged = setAtPath(merged, fieldName, localEdits[key]);
         }
       });
       return merged;
     });
-  }, [filteredRecords, localEdits, pendingEdits]);
+  }, [filteredRecords, localEdits, pendingEdits, setAtPath]);
 
   /* ═══════ EDIT HANDLERS ═══════ */
   // Save = stage a DRAFT locally + write it to the pending-drafts localStorage store (survives refresh).
@@ -350,22 +433,11 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
   function saveSentence(record, fn, idx, sid, sentenceIdx) {
     const id = safeId(record); if (!id) return;
     const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const sentences = splitBySentence(currentVal);
     const editedVal = editValue.trim();
-    if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
-      const updated = [...sentences]; updated.splice(sentenceIdx, 1);
-      const fullText = reconstructFullText(updated);
-      stageDraft(record, fn, idx, sid, fullText, { [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' });
-      return;
-    }
-    const newSentences = splitBySentence(editedVal);
-    const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
-    const fullText = reconstructFullText(updated);
-    const orig = sentences[sentenceIdx] || '';
-    const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
-    const marks = {};
-    if (changed) marks[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
-    const extra = newSentences.length - 1;
+    const replacement = /^[;.,!?]+$/.test(editedVal) ? '' : editedVal;
+    const fullText = replaceSegment(currentVal, sentenceIdx, replacement);
+    const marks = { [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' };
+    const extra = Math.max(0, splitTextSegments(replacement).length - 1);
     for (let ei = 0; ei < extra; ei++) marks[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added';
     stageDraft(record, fn, idx, sid, fullText, marks);
   }
@@ -397,10 +469,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
       });
       for (const editKey of toCommit) {
         const fieldPart = editKey.slice(0, -suffix.length);
-        const lastDot = fieldPart.lastIndexOf('.');
-        const isArrayPart = lastDot !== -1 && /^\d+$/.test(fieldPart.slice(lastDot + 1));
-        const payload = { field: isArrayPart ? fieldPart.slice(0, lastDot) : fieldPart, value: localEdits[editKey] };
-        if (isArrayPart) payload.arrayIndex = parseInt(fieldPart.slice(lastDot + 1), 10);
+        const payload = { field: fieldPart, value: localEdits[editKey] };
         await secureApiClient.put(`/api/edit/regional_anesthesia/${id}/edit`, payload);
       }
       await secureApiClient.put(`/api/edit/regional_anesthesia/${id}/approve`, { sectionId: sid, approved: true });
@@ -409,7 +478,9 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
       // Drop this record's drafts from localStorage (now committed)
       const store = readDrafts();
       if (store[id]) {
-        fields.forEach(f => { if (store[id]) delete store[id][f]; });
+        Object.keys(store[id]).forEach(fieldPart => {
+          if (fields.some(field => fieldPart === field || fieldPart.startsWith(`${field}.`))) delete store[id][fieldPart];
+        });
         if (store[id] && Object.keys(store[id]).length === 0) delete store[id];
         writeDrafts(store);
       }
@@ -435,58 +506,42 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
   const formatSentenceFieldLines = useCallback((text) => {
     const sentences = splitBySentence(text);
-    const lines = []; let n = 1;
+    const lines = []; let unlabeledNumber = 1;
     sentences.forEach(s => {
       const parsed = parseLabel(s);
       if (parsed.isLabeled) {
         const parts = splitByComma(parsed.value);
-        if (parts.length >= 2) {
-          lines.push(parsed.label + ':');
-          parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
-        } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
-      } else { lines.push(`${n++}. ${s}`); }
+        const rows = parts.length >= 3 ? parts : [parsed.value];
+        lines.push(parsed.label, COPY_LINE_DASH);
+        rows.forEach((item, rowIndex) => lines.push(`${rowIndex + 1}. ${item}`));
+      } else { lines.push(`${unlabeledNumber++}. ${s}`); }
     });
     return lines;
   }, [splitBySentence]);
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const body = [];
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
-      if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
-      } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
-      } else if (ARRAY_FIELDS.includes(f)) {
-        const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
-      } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
-      } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
-      } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
-      }
+      if (!sameAsTitle(label, title)) body.push(label, COPY_LINE_DASH);
+      if (DATE_FIELDS.includes(f)) body.push(`1. ${formatDate(val)}`);
+      else if (ARRAY_FIELDS.includes(f)) (Array.isArray(val) ? val : [val]).forEach((item, itemIndex) => body.push(`${itemIndex + 1}. ${fmtVal(item)}`));
+      else if (STRING_FIELDS.includes(f)) body.push(...formatSentenceFieldLines(fmtVal(val)));
+      else body.push(`1. ${fmtVal(val)}`);
+      body.push('');
     });
-    return text;
+    if (!body.length) return '';
+    return `${title}\n${COPY_LINE_EQ}\n\n${body.join('\n').trim()}\n\n`;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== REGIONAL ANESTHESIA RECORDS ===\n\n';
+    let text = `Regional Anesthesia Records\n${COPY_LINE_EQ}\n\n`;
     pdfData.forEach((r, idx) => {
-      text += `Regional Anesthesia Record ${idx + 1}\n${'='.repeat(40)}\n\n`;
+      text += `Regional Anesthesia Record ${idx + 1}\n${COPY_LINE_EQ}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -507,12 +562,12 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -542,15 +597,12 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -560,7 +612,53 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  const enumOptionsWith = (fieldName, currentValue) => {
+    const base = ENUM_FIELDS[fieldName] || [];
+    const current = String(currentValue ?? '').trim();
+    if (!current || base.some(o => o.toLowerCase() === current.toLowerCase())) return base;
+    return [current, ...base];
+  };
+  const enumCanonical = (fieldName, currentValue) => {
+    const current = String(currentValue ?? '').trim();
+    return (ENUM_FIELDS[fieldName] || []).find(option => option.toLowerCase() === current.toLowerCase()) || current;
+  };
+
+  /* ═══════ RENDER: FIXED-CHOICE FIELD — themed LTR dropdown ═══════ */
+  const renderEnumField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = FIELD_LABELS[fn] || fn;
+    const displayVal = String(val);
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(enumCanonical(fn, displayVal)); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <BlueSelect value={editValue} options={enumOptionsWith(fn, editValue)} onChange={setEditValue} />
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -580,12 +678,16 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" className="edit-textarea" style={{ minHeight: 'auto' }} value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="num-stepper-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); stepEditValue(-1); }}>−</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); stepEditValue(1); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -595,7 +697,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -607,15 +709,15 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
   /* ═══════ RENDER: ARRAY FIELD (per-item editing with dot-path keys) ═══════ */
   const renderArrayField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
-    const items = Array.isArray(val) ? val.filter(Boolean) : [];
+    const items = Array.isArray(val) ? val.map((item, itemIdx) => ({ item, itemIdx })).filter(entry => hasVal(entry.item)) : [];
     if (items.length === 0) return null;
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
-        {items.map((item, itemIdx) => {
+        {items.map(({ item, itemIdx }) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
           const isModified = editedFields[editKey];
@@ -628,14 +730,14 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} data-edit-field={`${fn}.${itemIdx}`}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                     {saveError && <div className="save-error">{saveError}</div>}
                     <div className="edit-actions">
-                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])]; currentArr[itemIdx] = editValue; const lk = `${fn}-${idx}`; setLocalEdits(prev => ({ ...prev, [lk]: currentArr })); setPendingEdits(prev => ({ ...prev, [lk]: true })); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { const sk = `${sid}-${idx}`; if (!prev[sk]) return prev; const nx = { ...prev }; delete nx[sk]; return nx; }); const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fn] = currentArr; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(null); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const exactPath = `${fn}.${itemIdx}`; const exactKey = `${exactPath}-${idx}`; setLocalEdits(prev => ({ ...prev, [exactKey]: editValue })); setPendingEdits(prev => ({ ...prev, [exactKey]: true })); setEditedFields(prev => ({ ...prev, [exactKey]: 'edited' })); setApprovedSections(prev => { const sk = `${sid}-${idx}`; if (!prev[sk]) return prev; const nx = { ...prev }; delete nx[sk]; return nx; }); const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][exactPath] = editValue; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(null); }}>{saving ? 'Saving...' : 'Save'}</button>
                       <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                     </div>
                   </div>
@@ -662,15 +764,15 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* Rich strings: semicolon/sentence rows or an embedded Label: value group. */
+    if (sentences.length > 1 || (sentences[0] && parseLabel(sentences[0]).isLabeled)) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+          <div className="rec-mini-card nested-mini-card">
+            {!sameAsTitle(label, title) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -682,9 +784,9 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
               if (parsed.isLabeled) {
                 const commaItems = splitByComma(parsed.value);
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-                if (commaItems.length >= 2) {
+                if (commaItems.length >= 3) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} className="rec-mini-card nested-mini-card" style={{ marginTop: 8 }}>
                       <div className="nested-subtitle">{highlightText(parsed.label)}</div>
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
@@ -693,7 +795,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -722,7 +824,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} data-edit-field={fn} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -756,8 +858,8 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        {!sameAsTitle(label, title) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -783,7 +885,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    if (!shouldShowSection(record, sid)) return null;
+    if (!shouldShowSection(record, idx, sid)) return null;
     const fields = SECTION_FIELDS[sid] || [];
 
     const hasAnyVal = fields.some(f => {
@@ -806,6 +908,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
           {fields.map(f => {
             if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
+            if (ENUM_FIELDS[f]) return renderEnumField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid, title);
@@ -831,7 +934,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
         <h2 className="document-title">Regional Anesthesia Records</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<RegionalAnesthesiaPDFTemplate document={pdfData} />} fileName={`regional-anesthesia-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<RegionalAnesthesiaDocumentPDFTemplate document={pdfData} />} fileName="Regional_Anesthesia_Records.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -844,12 +947,7 @@ const RegionalAnesthesiaDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                </div>
-              )}
-              <h3 className="record-name">{highlightText(record.blockType || `Regional Anesthesia Record ${idx + 1}`)}</h3>
+              <h3 className="record-name">{highlightText(`Regional Anesthesia Record ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'block-location')}
             {renderSection(record, idx, 'equipment')}

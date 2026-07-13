@@ -24,6 +24,7 @@ function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
 const ALLOWED_FIELDS = [
+  'date',
   'blockType', 'anatomicalLocation', 'approachTechnique',
   'needleGaugeSize',
   'localAnestheticAgent', 'localAnestheticConcentration', 'totalVolume', 'totalDoseMg',

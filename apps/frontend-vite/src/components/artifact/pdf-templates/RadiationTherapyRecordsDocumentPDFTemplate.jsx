@@ -1,5 +1,5 @@
 /**
- * RadiationTherapyRecordsPDFTemplate.jsx
+ * RadiationTherapyRecordsDocumentPDFTemplate.jsx
  * March 2026 — Helvetica — LETTER size — radiation therapy records
  * Collection: radiation_therapy_records
  */
@@ -7,23 +7,21 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.45, backgroundColor: '#ffffff', color: '#000000' },
+  documentHeader: { marginBottom: 22 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 22 },
+  recordHeader: { marginBottom: 14 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 9 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 2, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.45, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.45, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 5, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 14, color: '#4b5563', marginTop: 24 },
 });
 
 /* ======= UTILS ======= */
@@ -63,7 +61,7 @@ const fmtVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;]\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -103,9 +101,9 @@ const getNestedValue = (record, key) => {
 const renderFieldRow = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
+    <View style={styles.fieldBox} wrap={false}>
+      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      <Text style={styles.fieldValue}>1. {safeString(fmtVal(value))}</Text>
     </View>
   );
 };
@@ -114,9 +112,9 @@ const renderFieldRow = (label, value) => {
 const renderDateFieldPDF = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
+    <View style={styles.fieldBox} wrap={false}>
+      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      <Text style={styles.fieldValue}>1. {formatDate(value)}</Text>
     </View>
   );
 };
@@ -133,22 +131,16 @@ const renderSentenceSection = (label, text) => {
     const parsed = parseLabel(s);
     if (parsed.isLabeled) {
       const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
+      rows.push({ type: 'subtitle', text: safeString(parsed.label) });
+      commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
     } else {
       rows.push({ type: 'item', text: safeString(s), num: n++ });
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+    <View style={styles.fieldBox} wrap={rows.length > 8}>
+      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
       {rows.map((row, i) => {
         if (row.type === 'subtitle') {
           return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
@@ -166,8 +158,8 @@ const renderArrayFieldPDF = (label, items) => {
   if (safeItems.length === 0) return null;
 
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+    <View style={styles.fieldBox} wrap={safeItems.length > 8}>
+      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
       {safeItems.map((item, i) => (
         <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
       ))}
@@ -216,7 +208,7 @@ const SECTION_CONFIGS = [
 ];
 
 /* ======= COMPONENT ======= */
-const RadiationTherapyRecordsPDFTemplate = ({ document: data }) => {
+const RadiationTherapyRecordsDocumentPDFTemplate = ({ document: data }) => {
   const records = React.useMemo(() => {
     if (!data) return [];
     let arr = Array.isArray(data) ? data : [data];
@@ -255,36 +247,33 @@ const RadiationTherapyRecordsPDFTemplate = ({ document: data }) => {
 
             {/* Record Header */}
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.startDate && (
-                  <Text style={styles.recordDate}>{formatDate(record.startDate)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {record.site || `Radiation Therapy Record ${index + 1}`}
-              </Text>
+              <Text style={styles.recordTitle}>Radiation Therapy Record {index + 1}</Text>
             </View>
 
             {/* Sections */}
             {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const hasAnyVal = sectionConfig.fields.some(f => {
+              const populatedFields = sectionConfig.fields.filter(f => {
                 const val = f.nested ? getNestedValue(record, f.key) : record[f.key];
                 return hasVal(val);
               });
-              if (!hasAnyVal) return null;
+              if (populatedFields.length === 0) return null;
+
+              const renderConfiguredField = (field, fIdx) => {
+                const val = field.nested ? getNestedValue(record, field.key) : record[field.key];
+                const visibleLabel = field.label.toLowerCase() === sectionConfig.title.toLowerCase() ? '' : field.label;
+                if (field.isDate) return <React.Fragment key={field.key}>{renderDateFieldPDF(visibleLabel, val)}</React.Fragment>;
+                if (field.isArray) return <React.Fragment key={field.key}>{renderArrayFieldPDF(visibleLabel, val)}</React.Fragment>;
+                if (field.isSentence) return <React.Fragment key={field.key}>{renderSentenceSection(visibleLabel, val)}</React.Fragment>;
+                return <React.Fragment key={field.key}>{renderFieldRow(visibleLabel, val)}</React.Fragment>;
+              };
 
               return (
                 <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = field.nested ? getNestedValue(record, field.key) : record[field.key];
-                    if (!hasVal(val)) return null;
-
-                    if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
-                    if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
-                  })}
+                  <View wrap={false}>
+                    <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
+                    {renderConfiguredField(populatedFields[0], 0)}
+                  </View>
+                  {populatedFields.slice(1).map((field, fIdx) => renderConfiguredField(field, fIdx + 1))}
                 </View>
               );
             })}
@@ -295,4 +284,4 @@ const RadiationTherapyRecordsPDFTemplate = ({ document: data }) => {
   );
 };
 
-export default RadiationTherapyRecordsPDFTemplate;
+export default RadiationTherapyRecordsDocumentPDFTemplate;

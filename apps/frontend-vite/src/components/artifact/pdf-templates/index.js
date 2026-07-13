@@ -33,6 +33,7 @@ import OutcomesPredictionTemplate from './OutcomesPredictionTemplate';
 // (the legacy ./GuidelineComplianceTemplate diverged — boxed, small fonts, side-by-side labels, no numbering).
 import GuidelineComplianceTemplate from './GuidelineComplianceDocumentPDFTemplate';
 import QualityMetricsTemplate from './QualityMetricsDocumentPDFTemplate';
+import RadiationTherapyRecordsDocumentPDFTemplate from './RadiationTherapyRecordsDocumentPDFTemplate';
 import ConsultationNotesTemplate from './ConsultationNotesTemplate';
 // Single source of truth: route to the same box-free template the Document's Export button imports
 // (the legacy ./ProgressNotesPDFTemplate was renamed to the standard ...DocumentPDFTemplate).
@@ -109,6 +110,7 @@ const templateRegistry = {
   'outcomes_prediction': OutcomesPredictionTemplate,
   'guideline_compliance': GuidelineComplianceTemplate,
   'quality_metrics': QualityMetricsTemplate,
+  'radiation_therapy_records': RadiationTherapyRecordsDocumentPDFTemplate,
   'consultation_notes': ConsultationNotesTemplate,
   'progress_notes': ProgressNotesTemplate,
   'discharge_summaries': DischargeSummariesTemplate,

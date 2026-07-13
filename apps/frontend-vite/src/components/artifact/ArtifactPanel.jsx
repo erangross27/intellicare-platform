@@ -1303,6 +1303,7 @@ const ArtifactPanel = ({
       'chemotherapy_regimen', // ← Chemotherapy regimen (regimen name, intent, drugs, cycle length, premedications, growth factor support)
       'chemotherapy_records', // ← Chemotherapy records (regimen, cycle, day, medications, toxicities, response)
       'radiation_therapy', // ← Radiation therapy (site, dose, fractions, technique, planning, side effects, concurrent chemo)
+      'radiation_therapy_records', // ← Radiation therapy treatment records
       'clinical_trials', // ← Clinical trials (eligibility, enrollment, trials offered, screening status)
       'clinical_trial_documents', // ← Clinical trial documents (trial details, protocols, visit schedules, adverse events, outcomes)
       'palliative_care_needs', // ← Palliative care needs (symptoms addressed, pain assessment, psychosocial support, spiritual care, hospice discussion, quality of life)

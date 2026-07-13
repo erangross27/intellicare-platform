@@ -1,5 +1,23 @@
 # IntelliCare agent instructions
 
+## GitHub automation: cloud CI and Pages are prohibited
+
+GitHub is source control only for this repository. Do not create, restore, edit,
+enable, dispatch, run, or rerun GitHub Actions workflows. Do not create or
+publish a GitHub Pages site. Ordinary local checks, commits, and pushes are
+allowed, but a push must not start a GitHub-hosted job.
+
+Before and after pushing, verify all of the following:
+
+1. `.github/workflows/` has no added or modified workflow files.
+2. Repository Actions permissions report `enabled: false`.
+3. The GitHub Pages API reports no published site.
+4. The pushed commit has zero GitHub Actions workflow runs.
+
+The hard guard in `claude-hooks/pre-tool-use.sh` enforces this policy. If a
+future request appears to require GitHub CI or Pages, stop and ask the user to
+explicitly reverse this standing policy before changing the guard.
+
 ## Artifact template work: completion is evidence, not a promise
 
 For every change under `apps/frontend-vite/src/components/artifact/templates/` or

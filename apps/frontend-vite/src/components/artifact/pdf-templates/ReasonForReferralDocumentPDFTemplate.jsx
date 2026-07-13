@@ -2,238 +2,197 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    size: 'LETTER',
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#000000',
-  },
-  recordContainer: {
-    marginBottom: 24,
-    borderBottom: '1px solid #cccccc',
-    paddingBottom: 16,
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#000000',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#000000',
-    borderBottom: '1px solid #eeeeee',
-    paddingBottom: 4,
-  },
-  row: {
-    marginBottom: 6,
-    paddingLeft: 8,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 2,
-  },
-  value: {
-    fontSize: 12,
-    color: '#000000',
-    lineHeight: 1.4,
-  },
-  listItem: {
-    fontSize: 12,
-    color: '#000000',
-    paddingLeft: 8,
-    marginBottom: 4,
-  },
-  noData: {
-    fontSize: 12,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 40,
-  },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.45, backgroundColor: '#ffffff', color: '#000000' },
+  documentHeader: { marginBottom: 22 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { paddingBottom: 22 },
+  recordHeader: { marginBottom: 14 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBlock: { marginBottom: 9 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 5, marginBottom: 3 },
+  listItem: { fontSize: 14, lineHeight: 1.45, marginBottom: 2, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#4b5563', marginTop: 24 },
 });
 
-const formatDate = (dateValue) => {
-  if (!dateValue) return '';
-  try {
-    const dateStr = dateValue.$date || dateValue;
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return String(dateValue || '');
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return String(dateValue || '');
-  }
-};
-
-const toSafeString = (value) => {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'string') return value;
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-};
-
-const SECTION_FIELDS = {
-  'diagnosis-urgency': ['primaryDiagnosis', 'secondaryDiagnoses', 'urgencyLevel', 'specialtyRequested', 'specificConsultationRequest'],
-  'symptom-info': ['symptomOnset', 'symptomDurationDays', 'symptomSeverity', 'painScore'],
-  'medications-allergies': ['currentMedications', 'allergiesContraindications', 'anticoagulationStatus'],
-  'clinical-findings': ['functionalStatus', 'vitalSigns', 'laboratoryConcerns', 'imagingAbnormalities'],
-  'risk-history': ['riskFactors', 'familyHistory', 'psychosocialFactors', 'priorTreatmentFailures'],
-  'hospitalizations': ['priorHospitalizations', 'emergencyDepartmentVisits'],
-  'status-flags': ['pregnancyStatus', 'immunocompromisedStatus', 'progressiveDeterioriation'],
-};
-
-const SECTION_TITLES = {
-  'diagnosis-urgency': 'Diagnosis & Urgency',
-  'symptom-info': 'Symptom Information',
-  'medications-allergies': 'Medications & Allergies',
-  'clinical-findings': 'Clinical Findings',
-  'risk-history': 'Risk & History',
-  'hospitalizations': 'Hospitalizations',
-  'status-flags': 'Status Flags',
-};
+const SECTION_CONFIGS = [
+  { title: 'Diagnosis & Urgency', fields: ['primaryDiagnosis', 'secondaryDiagnoses', 'urgencyLevel', 'specialtyRequested', 'specificConsultationRequest'] },
+  { title: 'Symptom Information', fields: ['symptomOnset', 'symptomDurationDays', 'symptomSeverity', 'painScore'] },
+  { title: 'Medications & Allergies', fields: ['currentMedications', 'allergiesContraindications', 'anticoagulationStatus'] },
+  { title: 'Clinical Findings', fields: ['functionalStatus', 'vitalSigns', 'laboratoryConcerns', 'imagingAbnormalities'] },
+  { title: 'Risk & History', fields: ['riskFactors', 'familyHistory', 'psychosocialFactors', 'priorTreatmentFailures'] },
+  { title: 'Hospitalizations', fields: ['priorHospitalizations', 'emergencyDepartmentVisits'] },
+  { title: 'Status Flags', fields: ['pregnancyStatus', 'immunocompromisedStatus', 'progressiveDeterioriation'] },
+];
 
 const FIELD_LABELS = {
-  primaryDiagnosis: 'Primary Diagnosis',
-  secondaryDiagnoses: 'Secondary Diagnoses',
-  urgencyLevel: 'Urgency Level',
-  specialtyRequested: 'Specialty Requested',
-  specificConsultationRequest: 'Specific Consultation Request',
-  symptomOnset: 'Symptom Onset',
-  symptomDurationDays: 'Symptom Duration (Days)',
-  symptomSeverity: 'Symptom Severity',
-  painScore: 'Pain Score',
-  currentMedications: 'Current Medications',
-  allergiesContraindications: 'Allergies / Contraindications',
-  anticoagulationStatus: 'Anticoagulation Status',
-  functionalStatus: 'Functional Status',
-  vitalSigns: 'Vital Signs',
-  laboratoryConcerns: 'Laboratory Concerns',
-  imagingAbnormalities: 'Imaging Abnormalities',
-  riskFactors: 'Risk Factors',
-  familyHistory: 'Family History',
-  psychosocialFactors: 'Psychosocial Factors',
-  priorTreatmentFailures: 'Prior Treatment Failures',
-  priorHospitalizations: 'Prior Hospitalizations',
-  emergencyDepartmentVisits: 'Emergency Department Visits',
-  pregnancyStatus: 'Pregnancy Status',
-  immunocompromisedStatus: 'Immunocompromised Status',
-  progressiveDeterioriation: 'Progressive Deterioration',
+  primaryDiagnosis: 'Primary Diagnosis', secondaryDiagnoses: 'Secondary Diagnoses', urgencyLevel: 'Urgency Level', specialtyRequested: 'Specialty Requested',
+  specificConsultationRequest: 'Specific Consultation Request', symptomOnset: 'Symptom Onset', symptomDurationDays: 'Symptom Duration (Days)',
+  symptomSeverity: 'Symptom Severity', painScore: 'Pain Score', currentMedications: 'Current Medications', allergiesContraindications: 'Allergies / Contraindications',
+  anticoagulationStatus: 'Anticoagulation Status', functionalStatus: 'Functional Status', vitalSigns: 'Vital Signs', laboratoryConcerns: 'Laboratory Concerns',
+  imagingAbnormalities: 'Imaging Abnormalities', riskFactors: 'Risk Factors', familyHistory: 'Family History', psychosocialFactors: 'Psychosocial Factors',
+  priorTreatmentFailures: 'Prior Treatment Failures', priorHospitalizations: 'Prior Hospitalizations', emergencyDepartmentVisits: 'Emergency Department Visits',
+  pregnancyStatus: 'Pregnancy Status', immunocompromisedStatus: 'Immunocompromised Status', progressiveDeterioriation: 'Progressive Deterioration',
 };
 
+const DATE_FIELDS = ['symptomOnset'];
+const NUMBER_FIELDS = ['symptomDurationDays', 'painScore', 'emergencyDepartmentVisits'];
 const ARRAY_FIELDS = ['secondaryDiagnoses', 'currentMedications', 'allergiesContraindications', 'laboratoryConcerns', 'imagingAbnormalities', 'riskFactors', 'psychosocialFactors', 'priorTreatmentFailures', 'priorHospitalizations'];
 const BOOLEAN_FIELDS = ['pregnancyStatus', 'immunocompromisedStatus', 'progressiveDeterioriation'];
+const COMMA_FIELDS = ['vitalSigns'];
 
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  return true;
+const safeString = (value) => String(value ?? '')
+  .replace(/\u00d7/g, 'x')
+  .replace(/[\u2018\u2019]/g, "'")
+  .replace(/[\u201c\u201d]/g, '"')
+  .replace(/[\u2013\u2014]/g, '-');
+
+const formatDate = (value) => {
+  if (!value) return '';
+  try {
+    const date = new Date(value.$date || value);
+    if (Number.isNaN(date.getTime())) return safeString(value);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return safeString(value); }
 };
 
-const ReasonForReferralDocumentPDFTemplate = ({ document }) => {
-  let records = [];
-  if (Array.isArray(document)) {
-    records = document;
-  } else if (document?.records) {
-    records = document.records;
-  } else if (document?._records) {
-    records = document._records;
-  } else if (document) {
-    records = [document];
+const hasValue = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  return typeof value === 'object' ? Object.keys(value).length > 0 : true;
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;]\s+/)
+    .map(item => item.trim()).filter(item => item && !/^[;.,!?]+$/.test(item));
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (const character of text) {
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    if (character === ',' && depth === 0) {
+      if (current.trim()) result.push(current.trim());
+      current = '';
+    } else current += character;
   }
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [text];
+};
 
-  const validRecords = Array.isArray(records) ? records : [];
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const match = text.match(/^([A-Za-z0-9][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  return match
+    ? { isLabeled: true, label: match[1].trim(), value: match[2].trim() }
+    : { isLabeled: false, label: '', value: text };
+};
 
-  if (!validRecords.length) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <Text style={styles.documentTitle}>Reason for Referral</Text>
-          <Text style={styles.noData}>No reason for referral data available</Text>
-        </Page>
-      </Document>
-    );
-  }
+const fieldRows = (record, field) => {
+  const value = record[field];
+  if (DATE_FIELDS.includes(field)) return [{ type: 'item', value: formatDate(value) }];
+  if (BOOLEAN_FIELDS.includes(field)) return [{ type: 'item', value: value ? 'Yes' : 'No' }];
+  if (NUMBER_FIELDS.includes(field)) return [{ type: 'item', value: String(value) }];
+  if (ARRAY_FIELDS.includes(field)) return value.flatMap(item => {
+    const parsed = parseLabel(safeString(item));
+    return parsed.isLabeled
+      ? [{ type: 'subtitle', value: parsed.label }, { type: 'item', value: parsed.value }]
+      : [{ type: 'item', value: safeString(item) }];
+  });
+  if (COMMA_FIELDS.includes(field)) return splitByComma(safeString(value)).map(item => ({ type: 'item', value: item }));
+  return splitBySentence(safeString(value)).flatMap(sentence => {
+    const parsed = parseLabel(sentence);
+    if (!parsed.isLabeled) return [{ type: 'item', value: sentence }];
+    return [{ type: 'subtitle', value: parsed.label }, ...splitByComma(parsed.value).map(item => ({ type: 'item', value: item }))];
+  });
+};
 
+const renderField = (record, field) => {
+  if (!hasValue(record[field])) return null;
+  const rows = fieldRows(record, field);
+  let number = 0;
+  return (
+    <View style={styles.fieldBlock} wrap={rows.length > 8 ? true : false}>
+      <Text style={styles.fieldLabel}>{FIELD_LABELS[field] || field}</Text>
+      {rows.map((row, index) => row.type === 'subtitle'
+        ? <Text key={index} style={styles.nestedSubtitle}>{safeString(row.value)}</Text>
+        : <Text key={index} style={styles.listItem}>{++number}. {safeString(row.value)}</Text>)}
+    </View>
+  );
+};
+
+const renderSection = (title, fields, recordTitle = '') => {
+  const populated = fields.filter(Boolean);
+  if (!populated.length) return null;
+  return (
+    <View style={styles.section}>
+      <View wrap={false}>
+        {recordTitle ? (
+          <View style={styles.recordHeader}>
+            <Text style={styles.recordTitle}>{recordTitle}</Text>
+          </View>
+        ) : null}
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {React.cloneElement(populated[0], { key: 'first' })}
+      </View>
+      {populated.slice(1).map((field, index) => React.cloneElement(field, { key: `field-${index + 1}` }))}
+    </View>
+  );
+};
+
+const unwrapRecords = (data) => {
+  if (!data) return [];
+  const input = Array.isArray(data) ? data : [data];
+  return input.flatMap(record => {
+    if (record?.reason_for_referral) return Array.isArray(record.reason_for_referral) ? record.reason_for_referral : [record.reason_for_referral];
+    if (record?.documentData) {
+      const nested = record.documentData;
+      if (Array.isArray(nested)) return nested;
+      if (nested?.reason_for_referral) return Array.isArray(nested.reason_for_referral) ? nested.reason_for_referral : [nested.reason_for_referral];
+      return [nested];
+    }
+    return [record];
+  }).filter(record => record && typeof record === 'object');
+};
+
+const ReasonForReferralDocumentPDFTemplate = ({ document: data }) => {
+  const records = unwrapRecords(data);
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <Text style={styles.documentTitle}>Reason for Referral</Text>
-
-        {validRecords.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer} wrap={false} minPresenceAhead={80}>
-            <Text style={styles.recordTitle}>
-              {record.primaryDiagnosis || `Reason for Referral ${idx + 1}`}
-            </Text>
-
-            {Object.keys(SECTION_FIELDS).map(sid => {
-              const fields = SECTION_FIELDS[sid];
-              const sectionHasData = fields.some(f => hasVal(record[f]));
-              if (!sectionHasData) return null;
-
-              return (
-                <View key={sid} style={styles.section} minPresenceAhead={80}>
-                  <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
-                  {fields.map(f => {
-                    const val = record[f];
-                    if (!hasVal(val)) return null;
-                    const label = FIELD_LABELS[f];
-
-                    if (ARRAY_FIELDS.includes(f)) {
-                      const items = Array.isArray(val) ? val.filter(Boolean) : [];
-                      if (items.length === 0) return null;
-                      return (
-                        <View key={f} style={styles.row}>
-                          <Text style={styles.label}>{label}</Text>
-                          {items.map((item, i) => (
-                            <Text key={i} style={styles.listItem}>
-                              {i + 1}. {toSafeString(item)}
-                            </Text>
-                          ))}
-                        </View>
-                      );
-                    }
-
-                    if (BOOLEAN_FIELDS.includes(f)) {
-                      return (
-                        <View key={f} style={styles.row}>
-                          <Text style={styles.label}>{label}</Text>
-                          <Text style={styles.value}>{val ? 'Yes' : 'No'}</Text>
-                        </View>
-                      );
-                    }
-
-                    return (
-                      <View key={f} style={styles.row}>
-                        <Text style={styles.label}>{label}</Text>
-                        <Text style={styles.value}>{toSafeString(val)}</Text>
-                      </View>
-                    );
-                  })}
+        <View style={styles.documentHeader} wrap={false}>
+          <Text style={styles.documentTitle}>Reason for Referral</Text>
+        </View>
+        {!records.length ? <Text style={styles.noDataText}>No data available</Text> : null}
+        {records.map((record, recordIndex) => {
+          const populatedSections = SECTION_CONFIGS.map(config => ({
+            title: config.title,
+            fields: config.fields.map(field => renderField(record, field)),
+          })).filter(config => config.fields.some(Boolean));
+          const recordTitle = `Reason for Referral ${recordIndex + 1}`;
+          return (
+            <View key={record._id || recordIndex} style={styles.recordContainer} break={recordIndex > 0}>
+              {populatedSections.length ? populatedSections.map((config, sectionIndex) => (
+                <React.Fragment key={config.title}>
+                  {renderSection(config.title, config.fields, sectionIndex === 0 ? recordTitle : '')}
+                </React.Fragment>
+              )) : (
+                <View style={styles.recordHeader} wrap={false}>
+                  <Text style={styles.recordTitle}>{recordTitle}</Text>
                 </View>
-              );
-            })}
-          </View>
-        ))}
+              )}
+            </View>
+          );
+        })}
       </Page>
     </Document>
   );

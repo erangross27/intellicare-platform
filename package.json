@@ -11,6 +11,8 @@
     "migrate:translations": "node scripts/migrate-translations-local.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "e2e:headless": "node run-headless-suite.js",
+    "security:secrets": "gitleaks git --redact --no-banner --no-color .",
+    "security:install-hooks": "bash scripts/install-git-hooks.sh",
     "update:check": "npm outdated",
     "update:anthropic": "npm install @anthropic-ai/sdk@latest",
     "update:all": "npm update --save"

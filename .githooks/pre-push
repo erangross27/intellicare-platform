@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "Push blocked: gitleaks is required. Install it with: brew install gitleaks" >&2
+  exit 1
+fi
+
+BLOCKED_PATHS=$(git ls-tree -r --name-only HEAD | grep -E '(^|/)(\.kms|kms-storage|certs|config/ca|scratchpad|backups|\.git-rewrite)(/|$)|(^|/)(practice-credentials\.json|kms-encrypted-keys\.json|master\.(key|salt))$|\.(pem|key|crt|pfx|p12|jks|keystore)$' || true)
+if [[ -n "$BLOCKED_PATHS" ]]; then
+  echo "Push blocked: security-sensitive paths are tracked:" >&2
+  printf '%s\n' "$BLOCKED_PATHS" >&2
+  exit 1
+fi
+
+gitleaks git --redact --no-banner --no-color --config .gitleaks.toml .

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "Commit blocked: gitleaks is required. Install it with: brew install gitleaks" >&2
+  exit 1
+fi
+
+BLOCKED_PATHS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)(\.kms|kms-storage|certs|config/ca|scratchpad|backups|\.git-rewrite)(/|$)|(^|/)(practice-credentials\.json|kms-encrypted-keys\.json|master\.(key|salt))$|\.(pem|key|crt|pfx|p12|jks|keystore)$' || true)
+if [[ -n "$BLOCKED_PATHS" ]]; then
+  echo "Commit blocked: security-sensitive paths are staged:" >&2
+  printf '%s\n' "$BLOCKED_PATHS" >&2
+  exit 1
+fi
+
+# Scan only newly added staged lines. This catches new credentials without
+# blocking a commit whose purpose is to remove an old secret.
+if ! git diff --cached --unified=0 --no-ext-diff --no-textconv --diff-filter=ACM \
+  | sed -n '/^+++ /d; /^+/s/^+//p' \
+  | gitleaks stdin --redact --no-banner --no-color --config .gitleaks.toml; then
+  echo "Commit blocked: gitleaks detected a secret in newly staged content." >&2
+  exit 1
+fi

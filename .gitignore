@@ -258,3 +258,6 @@ docs/updated_patients.csv
 # Tracker/dev scratchpad working artifacts
 **/scripts/scratchpad/
 **/scratchpad/
+
+# Local git-filter-repo rewrite metadata; never publish repository surgery artifacts
+.git-rewrite/

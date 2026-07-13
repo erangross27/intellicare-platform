@@ -1,0 +1,14 @@
+386eae1c26279f8eaf73a0b1655546f58d693e61:apps/frontend-vite/src/components/artifact/pdf-templates/PostpartumDiabetesRiskDocumentPDFTemplate.jsx:generic-api-key:154
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/BoneMarrowReportsDocumentPDFTemplate.jsx:generic-api-key:185
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/EndocrineLabResultsPDFTemplate.jsx:generic-api-key:201
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/ExcessiveGlucoseMonitoringDocumentPDFTemplate.jsx:generic-api-key:99
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/FootReconstructionDocumentPDFTemplate.jsx:generic-api-key:176
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/PancreasTransplantFollowUpDocumentPDFTemplate.jsx:generic-api-key:199
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/SecondOpinionReportsDocumentPDFTemplate.jsx:generic-api-key:175
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/StemCellTransplantAssessmentDocumentPDFTemplate.jsx:generic-api-key:188
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/SurrogacyEvaluationDocumentPDFTemplate.jsx:generic-api-key:211
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/TelemedicineEncountersDocumentPDFTemplate.jsx:generic-api-key:310
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/TelemedicineEncountersDocumentPDFTemplate.jsx:generic-api-key:311
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/SyphilisTreatmentFollowUpDocumentPDFTemplate.jsx:generic-api-key:193
+1ecb4936103b8452026edb084db5876e2524c0bf:apps/frontend-vite/src/components/artifact/pdf-templates/UrologyConsultationsDocumentPDFTemplate.jsx:generic-api-key:206
+1ecb4936103b8452026edb084db5876e2524c0bf:scripts/import-medicare-formulary.js:generic-api-key:168

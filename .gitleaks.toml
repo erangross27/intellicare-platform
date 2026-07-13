@@ -1,14 +1,5 @@
-# gitleaks configuration for IntelliCare
-# Extends the default ruleset; allowlists known false positives.
+# Gitleaks configuration for IntelliCare.
+# Historical false positives are fingerprinted in .gitleaksignore so this file
+# never exempts an entire source directory from future secret detection.
 [extend]
 useDefault = true
-
-[allowlist]
-description = "False positives: presentational field maps / clinical data, not secrets"
-# These files are declarative field-definition maps (`{ key: 'cd34PositiveCells', ... }`)
-# and static clinical reference data. gitleaks' generic-api-key heuristic matches the
-# camelCase medical identifiers; they contain no credentials.
-paths = [
-  '''apps/frontend-vite/src/components/artifact/pdf-templates/.*\.jsx$''',
-  '''scripts/import-medicare-formulary\.js$''',
-]

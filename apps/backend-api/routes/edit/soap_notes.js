@@ -35,6 +35,7 @@ function toObjectId(str) {
 }
 
 const ALLOWED_FIELDS = [
+  'additionalData',
   'chiefComplaint',
   'historyOfPresentIllness',
   'pastMedicalHistory',

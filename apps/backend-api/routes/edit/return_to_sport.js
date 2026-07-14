@@ -23,7 +23,7 @@ function buildContext(req, operation = 'read') {
 function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
-const ALLOWED_FIELDS = ['sport', 'level', 'timelineToRunning', 'timelineToPractice', 'timelineToCompetition', 'criteria', 'functionalTests', 'findings', 'assessment', 'results', 'recommendations', 'notes', 'plan', 'provider', 'facility', 'date', 'status'];
+const ALLOWED_FIELDS = ['sport', 'level', 'type', 'timelineToRunning', 'timelineToPractice', 'timelineToCompetition', 'criteria', 'functionalTests', 'findings', 'assessment', 'results', 'recommendations', 'notes', 'plan', 'provider', 'facility', 'date', 'status'];
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params;

@@ -46,6 +46,8 @@ function toObjectId(str) {
 // Allowed editable fields
 const ALLOWED_FIELDS = [
   'date',
+  'type',
+  'status',
   'constitutional',
   'heent',
   'eyes',
@@ -60,6 +62,7 @@ const ALLOWED_FIELDS = [
   'skin',
   'sleepSymptoms',
   'provider',
+  'facility',
   'findings',
   'assessment',
   'plan',

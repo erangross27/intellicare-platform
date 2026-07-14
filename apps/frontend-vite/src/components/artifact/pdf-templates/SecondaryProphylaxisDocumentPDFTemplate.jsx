@@ -1,235 +1,269 @@
-/**
- * SecondaryProphylaxisDocumentPDFTemplate.jsx
- * June 2026 — Helvetica — A4 — BLACK & WHITE only (#000000 titles/borders/values, NO blue).
- * Collection: secondary_prophylaxis.
- *
- * BOX-FREE (no backgroundColor/border on field/section views; recordHeader = black bottom-border only).
- * Rule #74: each field is ONE wrap-gated <View> (rows<=8 -> wrap={false}; rows>8 -> wrap=undefined),
- * with its sectionTitle as the FIRST child of the first present field's View (anti-orphan — never a sibling).
- * Single-name skip: hide a field label when it equals the section title.
- * OBJECT field `results` rendered recursively as humanized key/value lines.
- * recommendations (array of {recommendation, date}) date-grouped numbered list.
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 14, borderBottomWidth: 2, borderBottomColor: '#000000' },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1, color: '#000000' },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordMeta: { fontSize: 11, color: '#000000', marginTop: 3 },
-  section: { marginBottom: 16 },
-  fieldGroup: { marginBottom: 8 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 2, textTransform: 'uppercase' },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  value: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 1 },
-  nested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', marginTop: 2 },
-  recDate: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#000000' },
-  pageNumber: { position: 'absolute', bottom: 20, right: 40, fontSize: 10, color: '#000000' },
+  page: { padding: 36, paddingBottom: 48, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 18 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 12 },
+  block: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999', borderBottomStyle: 'solid', marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  itemLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14 },
+  listItem: { fontSize: 14, paddingLeft: 10 },
+  noDataText: { fontSize: 14, marginTop: 30 },
+  pageNumber: { position: 'absolute', bottom: 20, left: 36, right: 36, fontSize: 9, color: '#666', textAlign: 'center' },
 });
 
-/* ═══════ CONSTANTS ═══════ */
-const SECTION_TITLES = {
-  'prophylaxis-info': 'Prophylaxis Information',
-  'provider-info': 'Provider & Date',
-  'clinical': 'Clinical',
-  'results-section': 'Results',
-  'recommendations-section': 'Recommendations',
-  'notes-status': 'Notes & Status',
-};
+const SECTIONS = [
+  { id: 'prophylaxisInfo', title: 'Prophylaxis Information', fields: ['infection', 'medication', 'discontinuationCriteria', 'threshold', 'type'] },
+  { id: 'providerDate', title: 'Provider & Date', fields: ['date', 'provider', 'facility'] },
+  { id: 'clinical', title: 'Clinical', fields: ['findings', 'assessment', 'plan'] },
+  { id: 'resultsSection', title: 'Results', fields: ['results'] },
+  { id: 'recommendationsSection', title: 'Recommendations', fields: ['recommendations'] },
+  { id: 'notesStatus', title: 'Notes & Status', fields: ['notes', 'status'] },
+];
 const FIELD_LABELS = {
-  infection: 'Infection', medication: 'Medication', discontinuationCriteria: 'Discontinuation Criteria',
-  threshold: 'Threshold', type: 'Type', date: 'Date', provider: 'Provider', facility: 'Facility',
-  findings: 'Findings', assessment: 'Assessment', plan: 'Plan', results: 'Results',
-  recommendations: 'Recommendations', notes: 'Notes', status: 'Status',
+  infection: 'Infection', medication: 'Medication', discontinuationCriteria: 'Discontinuation Criteria', threshold: 'Threshold', type: 'Type', date: 'Date', provider: 'Provider', facility: 'Facility', findings: 'Findings', assessment: 'Assessment', plan: 'Plan', results: 'Results', recommendations: 'Recommendations', notes: 'Notes', status: 'Status',
 };
-const SECTION_FIELDS = {
-  'prophylaxis-info': ['infection', 'medication', 'discontinuationCriteria', 'threshold', 'type'],
-  'provider-info': ['date', 'provider', 'facility'],
-  'clinical': ['findings', 'assessment', 'plan'],
-  'results-section': ['results'],
-  'recommendations-section': ['recommendations'],
-  'notes-status': ['notes', 'status'],
-};
-const SECTION_ORDER = ['prophylaxis-info', 'provider-info', 'clinical', 'results-section', 'recommendations-section', 'notes-status'];
 const DATE_FIELDS = ['date'];
 const OBJECT_FIELDS = ['results'];
-const OBJECT_ARRAY_FIELDS = ['recommendations'];
+const OBJECT_ITEM_LABELS = {};
+const NARRATIVE_PATHS = [];
+const PARENTHETICAL_LABEL_FIELDS = [];
+const COMMA_FIELDS = [];
+const COMMA_ARRAY_FIELDS = [];
+const ARRAY_FIELDS = [];
+const SEMICOLON_FIELDS = ['discontinuationCriteria', 'findings', 'assessment', 'plan', 'notes'];
 
-const KEY_OVERRIDES = { cd4: 'CD4', pcp: 'PCP', mac: 'MAC', hiv: 'HIV', id: 'ID' };
-const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; if (KEY_OVERRIDES[String(key).toLowerCase()]) return KEY_OVERRIDES[String(key).toLowerCase()]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
-
-const formatDate = (d) => { if (!d) return ''; try { const dt = new Date(d.$date || d); if (isNaN(dt.getTime())) return String(d); return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
-  return false;
+const KEY_LABELS = { cd4Count: 'CD4 Count', viralLoad: 'Viral Load', eligibleForDiscontinuation: 'Eligible for Discontinuation', missedDoses: 'Missed Doses' };
+const humanizeKey = (key) => KEY_LABELS[key] || String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (char) => char.toUpperCase()).trim();
+const normalizeRulePath = (path) => String(path || '').replace(/\.\d+(?=\.|$)/g, '[]');
+const fieldIn = (fields, path) => fields.includes(normalizeRulePath(path));
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasVal);
+  return typeof value === 'object' && Object.values(value).some(hasVal);
 };
-const hasVal = (v) => !isEmptyDeep(v);
-const isScalar = (v) => v === null || typeof v !== 'object';
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
+const isScalar = (value) => value === null || typeof value !== 'object';
+const displayScalar = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const formatDate = (value) => {
+  try {
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(value || ''); }
+};
+const isDatePathValue = (path, value) => DATE_FIELDS.includes(path)
+  || (/(?:^|\.)(?:startDate|date)$/i.test(path) && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value));
+const splitGuardedComma = (text) => {
+  const source = String(text || '');
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    if (char !== ',' || depth > 0) { current += char; continue; }
+    const before = current.trim();
+    const after = source.slice(index + 1);
+    const trimmed = after.trimStart();
+    const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(trimmed))
+      || after.length === trimmed.length;
+    if (protectedComma) current += char;
+    else { if (before) result.push(before); current = ''; }
+  }
+  if (current.trim()) result.push(current.trim());
+  return (result.length ? result : [source]).map((item, index) => index > 0 ? item.replace(/^(?:and|or)\s+/i, '') : item);
+};
+const splitBySentence = (text) => String(text || '')
+  .split(/(?:;\s+|(?<=\d)\.(?=\s+[A-Z])\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/)
+  .map((part) => part.replace(/^[;.,\s]+|[;.,\s]+$/g, '').trim())
+  .filter(Boolean);
+const splitFieldValue = (field, value) => {
+  if (typeof value === 'boolean') return [value ? 'Yes' : 'No'];
+  if (fieldIn(PARENTHETICAL_LABEL_FIELDS, field)) {
+    const match = String(value || '').match(/^(.+?)\s*\(([A-Za-z][A-Za-z ]+):\s*([^)]+)\)\s*(.*)$/);
+    if (match) return [match[1].trim(), match[2].trim() + ': ' + match[3].trim(), match[4].trim()].filter(Boolean);
+  }
+  const firstPass = fieldIn(SEMICOLON_FIELDS, field) || String(value ?? '').includes('. ')
+    ? splitBySentence(value)
+    : [String(value ?? '').trim()].filter(Boolean);
+  return firstPass.flatMap((part) => fieldIn(COMMA_FIELDS, field) || fieldIn(COMMA_ARRAY_FIELDS, field) ? splitGuardedComma(part) : [part]);
+};
+const parseLabel = (text) => {
+  const match = String(text || '').match(/^([A-Za-z0-9][A-Za-z0-9 /&()+-]{1,50}):\s+(.+)$/);
+  return match ? { label: match[1].trim(), value: match[2].trim() } : null;
+};
+const normalizeDateKey = (value) => {
+  if (!value) return 'no-date';
+  try { return new Date(value.$date || value).toISOString().slice(0, 10); } catch { return String(value); }
+};
+const groupRecommendations = (items) => {
+  const groups = new Map();
+  items.forEach((item, index) => {
+    const date = typeof item === 'object' && item ? item.date : null;
+    const key = normalizeDateKey(date);
+    if (!groups.has(key)) groups.set(key, { key, date, items: [] });
+    groups.get(key).items.push({ item, index });
+  });
+  return [...groups.values()];
+};
 
-/* recursive object node: label = bold heading; value = plain line below (NO inline "Label: value") */
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
+const recursiveBlocks = (value, basePath, itemLabel = '') => {
+  if (!hasVal(value)) return [];
   if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.value}>{fmtScalar(value)}</Text>
-      </View>
-    );
-  }
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
-  );
-};
-
-/* count rows for the wrap heuristic */
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-/* Rule #74 (per-field gating): render a field as wrap-gated View(s) — EACH View is one wrap unit.
-   sectionTitle goes INSIDE the first View (isFirst) — never a sibling. Returns an ARRAY of Views. */
-const renderField = (record, field, sectionTitle, isFirst) => {
-  const val = record[field];
-  if (!hasVal(val)) return [];
-  const label = FIELD_LABELS[field] || field;
-  const showLabel = label.trim().toLowerCase() !== (sectionTitle || '').trim().toLowerCase();
-  const titleNode = isFirst ? <Text style={styles.sectionTitle}>{sectionTitle}</Text> : null;
-
-  if (DATE_FIELDS.includes(field)) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        <Text style={styles.value}>{formatDate(val)}</Text>
-      </View>
-    )];
-  }
-
-  if (OBJECT_ARRAY_FIELDS.includes(field)) {
-    const recs = Array.isArray(val) ? val : [];
-    if (recs.length === 0) return [];
-    const groups = [];
-    recs.forEach((r) => { const d = (r?.date || '').trim(); const last = groups[groups.length - 1]; if (last && last.date === d) last.items.push(r); else groups.push({ date: d, items: [r] }); });
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={recs.length > 8 ? undefined : false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        {groups.map((group, gIdx) => (
-          <View key={gIdx}>
-            {group.date ? <Text style={styles.recDate}>{group.date}</Text> : null}
-            {group.items.map((r, i) => (<Text key={i} style={styles.value}>{i + 1}. {(r?.recommendation || '').trim()}</Text>))}
-          </View>
-        ))}
-      </View>
-    )];
-  }
-
-  if (OBJECT_FIELDS.includes(field)) {
-    const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return [];
-    return entries.map(([k, v], i) => {
-      const rows = countRows(v);
-      return (
-        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
-          {i === 0 ? titleNode : null}
-          {i === 0 && showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
-          {renderObjectNode(humanizeKey(k), v, `${field}-${k}`, 1)}
-        </View>
-      );
+    const shown = isDatePathValue(basePath, value) ? formatDate(value) : displayScalar(value);
+    const rows = fieldIn(NARRATIVE_PATHS, basePath) ? splitFieldValue(basePath, shown) : [shown];
+    return rows.map((row, index) => {
+      const parsed = parseLabel(row);
+      return {
+        key: basePath + '-' + index,
+        groupKey: basePath,
+        subLabel: parsed ? humanizeKey(parsed.label) : (index === 0 ? humanizeKey(String(basePath).split('.').pop()) : ''),
+        itemLabel,
+        value: parsed?.value || row,
+        rowNumber: rows.length > 1 ? index + 1 : undefined,
+      };
     });
   }
-
-  /* string — split into sentences */
-  const strVal = fmtVal(val);
-  const sentences = splitBySentence(strVal);
-  if (sentences.length > 1) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={sentences.length > 8 ? undefined : false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.value}>{sIdx + 1}. {s}</Text>))}
-      </View>
-    )];
+  if (Array.isArray(value) && fieldIn(COMMA_ARRAY_FIELDS, basePath)) {
+    const rows = value.flatMap((item) => splitFieldValue(basePath, item));
+    return rows.map((row, index) => ({
+      key: basePath + '-' + index,
+      groupKey: basePath,
+      subLabel: index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '',
+      itemLabel,
+      value: row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    }));
   }
-  return [(
-    <View key={field} style={styles.fieldGroup} wrap={false}>
-      {titleNode}
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.value}>{strVal}</Text>
-    </View>
-  )];
+  if (Array.isArray(value)) return value.flatMap((item, index) => recursiveBlocks(item, basePath + '.' + index, itemLabel));
+  return Object.entries(value).flatMap(([key, child]) => recursiveBlocks(child, basePath + '.' + key, itemLabel));
 };
-
-const SecondaryProphylaxisDocumentPDFTemplate = ({ document: data }) => {
-  let records = [];
-  if (Array.isArray(data)) {
-    if (data.length === 1 && data[0]?.secondary_prophylaxis) records = Array.isArray(data[0].secondary_prophylaxis) ? data[0].secondary_prophylaxis : [data[0].secondary_prophylaxis];
-    else records = data;
-  } else if (data?.secondary_prophylaxis) records = Array.isArray(data.secondary_prophylaxis) ? data.secondary_prophylaxis : [data.secondary_prophylaxis];
-  else if (data?.documentData) { const dd = data.documentData; if (Array.isArray(dd)) records = dd; else if (dd?.secondary_prophylaxis) records = Array.isArray(dd.secondary_prophylaxis) ? dd.secondary_prophylaxis : [dd.secondary_prophylaxis]; else if (dd && typeof dd === 'object') records = [dd]; }
-  else if (data && typeof data === 'object') records = [data];
-  records = (records || []).filter(r => r && typeof r === 'object');
-
-  if (records.length === 0) {
-    return (<Document><Page size="A4" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Secondary Prophylaxis</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+const narrativeBlocks = (field, value, title) => {
+  if (!hasVal(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = DATE_FIELDS.includes(field) ? [formatDate(value)] : splitFieldValue(field, value);
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed?.label || '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
+};
+const arrayNarrativeBlocks = (field, value, title) => {
+  if (!Array.isArray(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = value.flatMap((item) => splitFieldValue(field, item));
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed?.label || '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
+};
+const measurableBlocks = (items) => (Array.isArray(items) ? items : []).flatMap((item, itemIndex) => {
+  const blocks = Object.entries(item || {}).flatMap(([key, value]) =>
+    recursiveBlocks(value, 'measurableDisease.' + itemIndex + '.' + key));
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    itemLabel: blockIndex === 0 ? 'Lesion ' + (itemIndex + 1) : '',
+  }));
+});
+const recommendationBlocks = (items) => groupRecommendations(Array.isArray(items) ? items : []).flatMap((group) => {
+  const blocks = [];
+  if (group.date) blocks.push({ key: 'date-' + group.key, subLabel: 'Recommendation Date', value: formatDate(group.date) });
+  group.items.forEach(({ item, index }, groupIndex) => {
+    const recommendation = typeof item === 'string' ? item : item?.recommendation;
+    if (hasVal(recommendation)) blocks.push({ key: 'recommendation-' + index, value: String(recommendation), rowNumber: group.items.length > 1 ? groupIndex + 1 : undefined });
+  });
+  return blocks;
+});
+const objectArrayBlocks = (field, value) => (Array.isArray(value) ? value : [value]).flatMap((item, itemIndex) => {
+  const blocks = recursiveBlocks(item, field + '.' + itemIndex);
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    groupKey: field + '.' + itemIndex,
+    itemLabel: blockIndex === 0 ? (OBJECT_ITEM_LABELS[field] || FIELD_LABELS[field] || humanizeKey(field)) + ' ' + (itemIndex + 1) : '',
+  }));
+});
+const sectionBlocks = (record, section) => section.fields.flatMap((field) => {
+  const value = record[field];
+  if (OBJECT_FIELDS.includes(field)) return (OBJECT_ITEM_LABELS[field] ? objectArrayBlocks(field, value) : recursiveBlocks(value, field)).map((block, index) => ({
+    ...block,
+    fieldLabel: index === 0 && FIELD_LABELS[field] !== section.title ? FIELD_LABELS[field] : '',
+  }));
+  if (fieldIn(ARRAY_FIELDS, field)) return arrayNarrativeBlocks(field, value, section.title);
+  if (field === 'recommendations') return recommendationBlocks(value);
+  return narrativeBlocks(field, value, section.title);
+});
+const groupShortFields = (blocks) => {
+  const groups = [];
+  blocks.forEach((block) => {
+    const groupKey = block.groupKey || block.key;
+    const previous = groups[groups.length - 1];
+    if (previous?.key === groupKey) previous.blocks.push(block);
+    else groups.push({ key: groupKey, blocks: [block] });
+  });
+  return groups;
+};
+const renderSection = (section, blocks) => {
+  if (!blocks.length) return null;
+  let blockIndex = 0;
+  const sectionProps = blocks.length <= 8 ? { wrap: false } : {};
+  return <View key={section.id} {...sectionProps}>{groupShortFields(blocks).map((group) => {
+    const keepTogether = group.blocks.length <= 8;
+    const groupProps = keepTogether ? { wrap: false } : {};
+    return <View key={group.key} {...groupProps}>{group.blocks.map((block) => {
+      const index = blockIndex++;
+      return <View key={block.key} style={styles.block} wrap={false}>
+        {index === 0 && <Text style={styles.sectionTitle}>{section.title}</Text>}
+        {block.fieldLabel && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+        {block.itemLabel && <Text style={styles.itemLabel}>{block.itemLabel}</Text>}
+        {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+        <Text style={block.rowNumber ? styles.listItem : styles.fieldValue}>{block.rowNumber ? block.rowNumber + '. ' + block.value : block.value}</Text>
+      </View>;
+    })}</View>;
+  })}</View>;
+};
+const unwrap = (data) => (Array.isArray(data) ? data : [data]).flatMap((record) => {
+  if (record?.secondary_prophylaxis) return Array.isArray(record.secondary_prophylaxis) ? record.secondary_prophylaxis : [record.secondary_prophylaxis];
+  if (record?.documentData) {
+    const nested = record.documentData;
+    if (Array.isArray(nested)) return nested;
+    if (nested?.secondary_prophylaxis) return Array.isArray(nested.secondary_prophylaxis) ? nested.secondary_prophylaxis : [nested.secondary_prophylaxis];
+    return [nested];
   }
+  return [record];
+}).filter((record) => record && typeof record === 'object');
 
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Secondary Prophylaxis</Text></View>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>{record.infection || `Secondary Prophylaxis ${idx + 1}`}</Text>
-              {hasVal(record.date) && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
-              {hasVal(record.status) && <Text style={styles.recordMeta}>Status: {fmtVal(record.status)}</Text>}
-            </View>
-
-            {/* Rule #74 (per-field gating): section View only provides spacing and always FLOWS.
-                Each field is its own wrap-gated unit (via renderField), with the sectionTitle embedded
-                INSIDE the first present field's View (anti-orphan). */}
-            {SECTION_ORDER.map((sid) => {
-              const fields = SECTION_FIELDS[sid];
-              const presentFields = fields.filter(f => hasVal(record[f]));
-              if (presentFields.length === 0) return null;
-              const title = SECTION_TITLES[sid];
-              return (
-                <View key={sid} style={styles.section}>
-                  {presentFields.flatMap((f, fi) => renderField(record, f, title, fi === 0))}
-                </View>
-              );
-            })}
-          </View>
-        ))}
-        <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} fixed />
-      </Page>
-    </Document>
-  );
-};
-
-export default SecondaryProphylaxisDocumentPDFTemplate;
+export default function SecondaryProphylaxisDocumentPDFTemplate({ document: data }) {
+  const records = React.useMemo(() => unwrap(data), [data]);
+  return <Document><Page size="LETTER" style={styles.page}>
+    <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Secondary Prophylaxis</Text></View>
+    {!records.length && <Text style={styles.noDataText}>No secondary prophylaxis data available</Text>}
+    {records.map((record, recordIndex) => <View key={recordIndex} style={styles.recordContainer} break={recordIndex > 0}>
+      <View wrap={false}><Text style={styles.recordTitle}>Secondary Prophylaxis {recordIndex + 1}</Text></View>
+      {SECTIONS.map((section) => renderSection(section, sectionBlocks(record, section)))}
+    </View>)}
+    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => pageNumber + ' / ' + totalPages} fixed />
+  </Page></Document>;
+}

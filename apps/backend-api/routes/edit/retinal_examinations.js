@@ -23,7 +23,7 @@ function buildContext(req, operation = 'read') {
 function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
-const ALLOWED_FIELDS = ['visualAcuityOD', 'visualAcuityOS', 'intraocularPressureOD', 'intraocularPressureOS', 'pupilResponseOD', 'pupilResponseOS', 'cupDiscRatioOD', 'cupDiscRatioOS', 'macularAppearanceOD', 'macularAppearanceOS', 'retinalVascularChangesOD', 'retinalVascularChangesOS', 'diabeticRetinopathyGradeOD', 'diabeticRetinopathyGradeOS', 'hypertensiveRetinopathyGradeOD', 'hypertensiveRetinopathyGradeOS', 'opticalCoherenceTomographyOD', 'opticalCoherenceTomographyOS', 'fundusPhotographyPerformed', 'fluoresceinAngiographyFindings', 'peripheralRetinalExaminationOD', 'peripheralRetinalExaminationOS', 'vitreousExaminationOD', 'vitreousExaminationOS', 'amslerGridTestOD', 'amslerGridTestOS', 'retinoschisisseverity'];
+const ALLOWED_FIELDS = ['createdAt', 'visualAcuityOD', 'visualAcuityOS', 'intraocularPressureOD', 'intraocularPressureOS', 'pupilResponseOD', 'pupilResponseOS', 'cupDiscRatioOD', 'cupDiscRatioOS', 'macularAppearanceOD', 'macularAppearanceOS', 'retinalVascularChangesOD', 'retinalVascularChangesOS', 'diabeticRetinopathyGradeOD', 'diabeticRetinopathyGradeOS', 'hypertensiveRetinopathyGradeOD', 'hypertensiveRetinopathyGradeOS', 'opticalCoherenceTomographyOD', 'opticalCoherenceTomographyOS', 'fundusPhotographyPerformed', 'fluoresceinAngiographyFindings', 'peripheralRetinalExaminationOD', 'peripheralRetinalExaminationOS', 'vitreousExaminationOD', 'vitreousExaminationOS', 'amslerGridTestOD', 'amslerGridTestOS', 'retinoschisisseverity'];
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params;

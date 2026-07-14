@@ -1,53 +1,52 @@
-/* RetinalExaminationsDocument.css — March 2026 Blue glow editing theme */
-.retinal-examinations-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+/* RetinalExaminationsDocument.css — July 2026 canonical blue-glow layout */
+.retinal-examinations-document { direction: ltr; font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: .5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0f1b33; box-sizing: border-box; }
+.retinal-examinations-document * { direction: ltr; box-sizing: border-box; }
 .retinal-examinations-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
-.retinal-examinations-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
+.retinal-examinations-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px; line-height: 1.2; text-transform: none !important; }
 .retinal-examinations-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
 .retinal-examinations-document .records-container { display: flex; flex-direction: column; gap: 24px; }
-.retinal-examinations-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
-.retinal-examinations-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
-.retinal-examinations-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
-.retinal-examinations-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.retinal-examinations-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
+.retinal-examinations-document .record-card { background: rgba(96,165,250,.12); border: 1px solid rgba(96,165,250,.2); border-radius: 8px; padding: 20px; }
+.retinal-examinations-document .record-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96,165,250,.3); }
 .retinal-examinations-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .retinal-examinations-document .section { margin-top: 16px; }
-.retinal-examinations-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
-.retinal-examinations-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
+.retinal-examinations-document .mini-cards-container { border: 2px solid rgba(96,165,250,.3); border-radius: 8px; padding: 16px; background: rgba(37,99,235,.05); }
+.retinal-examinations-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96,165,250,.4); padding-bottom: 10px; margin-bottom: 12px; }
 .retinal-examinations-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
 .retinal-examinations-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
-.retinal-examinations-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
-.retinal-examinations-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
-.retinal-examinations-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
-.retinal-examinations-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
-.retinal-examinations-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
-.retinal-examinations-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
-.retinal-examinations-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
-.retinal-examinations-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
-.retinal-examinations-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
-.retinal-examinations-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: white; }
+.retinal-examinations-document .nested-mini-card { background: rgba(96,165,250,.08); border: 2px solid rgba(96,165,250,.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.retinal-examinations-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96,165,250,.15); margin-bottom: 6px; }
+.retinal-examinations-document .narrative-subgroup { display: flex; flex-direction: column; gap: 8px; }
+.retinal-examinations-document .subgroup-title { font-size: 16px; margin-top: 4px; }
+.retinal-examinations-document .numbered-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96,165,250,.3); transition: all .2s ease; }
+.retinal-examinations-document .numbered-row:hover { background: rgba(96,165,250,.08); border-color: rgba(96,165,250,.5); }
 .retinal-examinations-document .editable-row { cursor: pointer; }
+.retinal-examinations-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; overflow-wrap: anywhere; }
+.retinal-examinations-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
+.retinal-examinations-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity .2s; flex-shrink: 0; }
 .retinal-examinations-document .editable-row:hover .edit-indicator { opacity: 1; }
-.retinal-examinations-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
-.retinal-examinations-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.retinal-examinations-document .numbered-row.modified { border-color: rgba(96,165,250,.6); box-shadow: 0 0 8px rgba(96,165,250,.15); }
 .retinal-examinations-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
-.retinal-examinations-document .modified-badge.added { color: #4ade80; }
+.retinal-examinations-document .copy-btn { background: rgba(96,165,250,.15); color: #93c5fd; border: 1px solid rgba(96,165,250,.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all .2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; text-decoration: none; }
+.retinal-examinations-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
+.retinal-examinations-document .copy-btn:hover { background: rgba(96,165,250,.25); border-color: rgba(96,165,250,.6); }
+.retinal-examinations-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: #fff; }
 .retinal-examinations-document .edit-field-container { width: 100%; }
-.retinal-examinations-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.retinal-examinations-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
-.retinal-examinations-document .edit-select option { background: #0F1B33; color: #ececf1; }
-.retinal-examinations-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.retinal-examinations-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-.retinal-examinations-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
-.retinal-examinations-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.retinal-examinations-document .edit-textarea, .retinal-examinations-document .edit-number { width: 100%; min-height: 50px; padding: 10px; background: #0f1b33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; }
+.retinal-examinations-document .edit-number { min-height: auto; text-align: center; }
+.retinal-examinations-document .datetime-pickers-row { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.retinal-examinations-document .num-stepper-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.retinal-examinations-document .num-step-btn { width: 36px; height: 36px; border-radius: 5px; border: 1px solid #60a5fa; background: rgba(96,165,250,.15); color: #ececf1; cursor: pointer; font-size: 20px; }
+.retinal-examinations-document .num-unit { color: #93c5fd; font-size: 14px; white-space: nowrap; }
+.retinal-examinations-document .edit-actions { display: flex; justify-content: flex-start; gap: 8px; margin-top: 8px; }
+.retinal-examinations-document .save-btn { padding: 6px 16px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .retinal-examinations-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .retinal-examinations-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
-.retinal-examinations-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
-.retinal-examinations-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.retinal-examinations-document .approve-btn { text-transform: capitalize; }
+.retinal-examinations-document .approve-btn.pending { background: rgba(234,179,8,.15); border: 1px solid rgba(234,179,8,.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.retinal-examinations-document .approve-btn.approved { background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .retinal-examinations-document .search-container { margin-bottom: 20px; }
-.retinal-examinations-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
-.retinal-examinations-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.retinal-examinations-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96,165,250,.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; }
+.retinal-examinations-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,.15); }
 .retinal-examinations-document .search-input::placeholder { color: #9ca3af; }
-.retinal-examinations-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
 .retinal-examinations-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
-.retinal-examinations-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
-@media (max-width: 768px) { .retinal-examinations-document .document-header { padding-bottom: 12px; } .retinal-examinations-document .document-title { font-size: 24px; } .retinal-examinations-document .header-actions { flex-direction: column; } }
+@media (max-width: 768px) { .retinal-examinations-document .document-title { font-size: 24px; } .retinal-examinations-document .header-actions { flex-direction: column; } }

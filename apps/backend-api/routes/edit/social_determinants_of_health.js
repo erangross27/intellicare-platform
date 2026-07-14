@@ -45,6 +45,16 @@ function toObjectId(str) {
 
 // Allowed editable fields
 const ALLOWED_FIELDS = [
+  'housingStatus',
+  'foodSecurity',
+  'financialBarriers',
+  'transportation',
+  'insurance',
+  'socialSupport',
+  'healthLiteracy',
+  'substanceUseBarriers',
+  'legalBarriers',
+  'referralsMade',
   'overallRiskAssessment',
   'educationLevel',
   'dischargeBarriers',

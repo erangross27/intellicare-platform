@@ -85,6 +85,7 @@ import RegionalAnesthesiaDocumentPDFTemplate from './RegionalAnesthesiaDocumentP
 import RehabilitationGoalsDocumentPDFTemplate from './RehabilitationGoalsDocumentPDFTemplate';
 import RehabilitationProgressNotesDocumentPDFTemplate from './RehabilitationProgressNotesDocumentPDFTemplate';
 import RehabilitationProtocolDocumentPDFTemplate from './RehabilitationProtocolDocumentPDFTemplate';
+import RenalAnemiaDocumentPDFTemplate from './RenalAnemiaDocumentPDFTemplate';
 import ChronicPainAssessmentPDFTemplate from './ChronicPainAssessmentPDFTemplate';
 import AsthmaAssessmentsPDFTemplate from './AsthmaAssessmentsPDFTemplate';
 import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTemplate';
@@ -167,6 +168,7 @@ const templateRegistry = {
   'rehabilitation_goals': RehabilitationGoalsDocumentPDFTemplate,
   'rehabilitation_progress_notes': RehabilitationProgressNotesDocumentPDFTemplate,
   'rehabilitation_protocol': RehabilitationProtocolDocumentPDFTemplate,
+  'renal_anemia': RenalAnemiaDocumentPDFTemplate,
   'chronic_pain_assessment': ChronicPainAssessmentPDFTemplate,
 };
 

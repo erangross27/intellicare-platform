@@ -9,7 +9,8 @@ import AllergyAssessmentTemplate from './AllergyAssessmentTemplate';
 import AllergyImmunologyAssessmentTemplate from './AllergyImmunologyAssessmentPDFTemplate';
 import BiopsyReportsTemplate from './BiopsyReportsTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
-import SecondOpinionReportsTemplate from './SecondOpinionReportsTemplate';
+// Single source of truth: route to the same audited template the Document export button imports.
+import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
 import PrognosisTemplate from './PrognosisDocumentPDFTemplate';
 import CareCoordinationNotesTemplate from './CareCoordinationNotesTemplate';
 import AssessmentPlansTemplate from './AssessmentPlansPDFTemplate';

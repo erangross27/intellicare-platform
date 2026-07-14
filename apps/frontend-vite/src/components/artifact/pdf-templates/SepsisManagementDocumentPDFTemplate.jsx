@@ -1,588 +1,285 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * Sepsis Management Document PDF Template - March 2026
- * Helvetica font, LETTER size, 20pt title / 12pt body
- * Professional black & white layout with bar chart for lab values
- */
-
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentHeader: {
-    marginBottom: 24,
-    borderBottomWidth: 3,
-    borderBottomColor: '#000000',
-    paddingBottom: 14,
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1f2937',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  documentSubtitle: {
-    fontSize: 10,
-    color: '#555555',
-    textAlign: 'center',
-    marginTop: 4,
-    fontFamily: 'Helvetica',
-  },
-  recordContainer: {
-    marginBottom: 28,
-    paddingBottom: 16,
-  },
-  recordHeader: {
-    marginBottom: 16,
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderLeftWidth: 5,
-    borderLeftColor: '#000000',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  recordMeta: {
-    fontSize: 10,
-    marginTop: 6,
-    color: '#333333',
-    fontFamily: 'Helvetica',
-  },
-  section: {
-    marginBottom: 18,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 4,
-    marginBottom: 10,
-  },
-  fieldBox: {
-    borderWidth: 1,
-    borderColor: '#cccccc',
-    marginBottom: 6,
-    padding: 8,
-    paddingBottom: 6,
-    backgroundColor: '#fafafa',
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#333333',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    marginBottom: 6,
-  },
-  subLabel: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: '#555555',
-    paddingLeft: 16,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  numberedItem: {
-    flexDirection: 'row',
-    paddingLeft: 10,
-    marginBottom: 3,
-  },
-  itemNumber: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    width: 22,
-  },
-  itemContent: {
-    fontSize: 12,
-    color: '#000000',
-    flex: 1,
-    lineHeight: 1.5,
-  },
-  noData: {
-    fontSize: 12,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 40,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: 'center',
-    fontSize: 8,
-    color: '#999999',
-    borderTopWidth: 1,
-    borderTopColor: '#cccccc',
-    paddingTop: 6,
-  },
-  /* Bar Chart Styles */
-  chartContainer: {
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-    borderRadius: 4,
-    padding: 10,
-    marginBottom: 6,
-  },
-  chartLegend: {
-    flexDirection: 'row',
-    gap: 14,
-    marginBottom: 10,
-    padding: 6,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 3,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  legendColor: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
-  },
-  legendText: {
-    fontSize: 8,
-    color: '#555555',
-    fontFamily: 'Helvetica',
-  },
-  barChartRow: {
-    marginBottom: 8,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eeeeee',
-  },
-  barLabel: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#333333',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    marginBottom: 4,
-  },
-  barContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  barBackground: {
-    flex: 1,
-    height: 14,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  barValue: {
-    fontSize: 10,
-    color: '#000000',
-    fontFamily: 'Helvetica',
-    minWidth: 80,
-    textAlign: 'right',
-  },
-  barInterpretation: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    marginTop: 2,
-  },
+  page: { padding: 36, paddingBottom: 48, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 18 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 12 },
+  block: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999', borderBottomStyle: 'solid', marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  itemLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14 },
+  listItem: { fontSize: 14, paddingLeft: 10 },
+  noDataText: { fontSize: 14, marginTop: 30 },
+  pageNumber: { position: 'absolute', bottom: 20, left: 36, right: 36, fontSize: 9, color: '#666', textAlign: 'center' },
 });
 
-const formatDate = (dateString) => {
-  if (!dateString) return '';
+const SECTIONS = [
+  { id: 'assessment', title: 'Sepsis Assessment', fields: ['date', 'sepsisSeverity', 'qsofaScore', 'sofaScore', 'sepsisOnsetDateTime'] },
+  { id: 'infection', title: 'Infection Source & Cultures', fields: ['suspectedInfectionSource', 'bloodCultureCollectionTime', 'bloodCultureResults'] },
+  { id: 'laboratory', title: 'Laboratory Values', fields: ['initialLactateLevel', 'repeatLactateLevel', 'procalcitoninLevel', 'whiteBloodCellCount'] },
+  { id: 'antibiotics', title: 'Antibiotic Therapy', fields: ['antibioticAdministrationTime', 'timeToAntibiotics', 'empiricAntibioticRegimen'] },
+  { id: 'hemodynamics', title: 'Fluid Resuscitation & Hemodynamics', fields: ['initialFluidBolus', 'fluidResuscitationCompleteTime', 'vasopressorRequired', 'vasopressorAgent', 'vasopressorStartTime', 'meanArterialPressure'] },
+  { id: 'organDysfunction', title: 'Organ Dysfunction', fields: ['organDysfunctionSites', 'mechanicalVentilationRequired', 'renalReplacementTherapy'] },
+  { id: 'bundleCompliance', title: 'Bundle Compliance', fields: ['sepsisBundle3HourCompliance', 'sepsisBundle6HourCompliance'] },
+];
+const FIELD_LABELS = {
+  date: 'Record Date', sepsisSeverity: 'Severity', qsofaScore: 'qSOFA Score', sofaScore: 'SOFA Score', sepsisOnsetDateTime: 'Onset Date/Time', suspectedInfectionSource: 'Suspected Infection Source', bloodCultureCollectionTime: 'Blood Culture Collection Time', bloodCultureResults: 'Blood Culture Results', initialLactateLevel: 'Initial Lactate Level', repeatLactateLevel: 'Repeat Lactate Level', procalcitoninLevel: 'Procalcitonin Level', whiteBloodCellCount: 'White Blood Cell Count', antibioticAdministrationTime: 'Antibiotic Administration Time', timeToAntibiotics: 'Time to Antibiotics', empiricAntibioticRegimen: 'Empiric Antibiotic Regimen', initialFluidBolus: 'Initial Fluid Bolus', fluidResuscitationCompleteTime: 'Fluid Resuscitation Complete Time', vasopressorRequired: 'Vasopressor Required', vasopressorAgent: 'Vasopressor Agent', vasopressorStartTime: 'Vasopressor Start Time', meanArterialPressure: 'Mean Arterial Pressure', organDysfunctionSites: 'Organ Dysfunction Sites', mechanicalVentilationRequired: 'Mechanical Ventilation Required', renalReplacementTherapy: 'Renal Replacement Therapy', sepsisBundle3HourCompliance: '3-Hour Bundle Compliance', sepsisBundle6HourCompliance: '6-Hour Bundle Compliance',
+};
+const DATE_FIELDS = ['date'];
+const DATETIME_FIELDS = ['sepsisOnsetDateTime', 'bloodCultureCollectionTime', 'antibioticAdministrationTime', 'fluidResuscitationCompleteTime', 'vasopressorStartTime'];
+const NUMBER_UNITS = { initialLactateLevel: 'mmol/L', repeatLactateLevel: 'mmol/L', procalcitoninLevel: 'ng/mL', whiteBloodCellCount: 'cells/uL', timeToAntibiotics: 'minutes', initialFluidBolus: 'mL', meanArterialPressure: 'mmHg' };
+const OBJECT_FIELDS = [];
+const OBJECT_ITEM_LABELS = {};
+const NARRATIVE_PATHS = [];
+const PARENTHETICAL_LABEL_FIELDS = [];
+const COMMA_FIELDS = [];
+const COMMA_ARRAY_FIELDS = [];
+const ARRAY_FIELDS = ['bloodCultureResults', 'empiricAntibioticRegimen', 'organDysfunctionSites'];
+const SEMICOLON_FIELDS = ['suspectedInfectionSource', 'vasopressorAgent'];
+
+const KEY_LABELS = {};
+const humanizeKey = (key) => KEY_LABELS[key] || String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (char) => char.toUpperCase()).trim();
+const normalizeRulePath = (path) => String(path || '').replace(/\.\d+(?=\.|$)/g, '[]');
+const fieldIn = (fields, path) => fields.includes(normalizeRulePath(path));
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasVal);
+  return typeof value === 'object' && Object.values(value).some(hasVal);
+};
+const isScalar = (value) => value === null || typeof value !== 'object';
+const displayScalar = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const formatDate = (value) => {
   try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
-  } catch { return String(dateString); }
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(value || ''); }
 };
-
-const formatDateTime = (dateString) => {
-  if (!dateString) return '';
+const formatDateTime = (value) => {
+  if (!value) return '';
   try {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric',
-      hour: '2-digit', minute: '2-digit'
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return String(value || ''); }
+};
+const isDatePathValue = (path, value) => DATE_FIELDS.includes(path)
+  || (/(?:^|\.)(?:startDate|date)$/i.test(path) && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value));
+const splitGuardedComma = (text) => {
+  const source = String(text || '');
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    if (char !== ',' || depth > 0) { current += char; continue; }
+    const before = current.trim();
+    const after = source.slice(index + 1);
+    const trimmed = after.trimStart();
+    const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(trimmed))
+      || after.length === trimmed.length;
+    if (protectedComma) current += char;
+    else { if (before) result.push(before); current = ''; }
+  }
+  if (current.trim()) result.push(current.trim());
+  return (result.length ? result : [source]).map((item, index) => index > 0 ? item.replace(/^(?:and|or)\s+/i, '') : item);
+};
+const splitBySentence = (text) => String(text || '')
+  .split(/(?:;\s+|(?<=\d)\.(?=\s+[A-Z])\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/)
+  .map((part) => part.replace(/^[;.,\s]+|[;.,\s]+$/g, '').trim())
+  .filter(Boolean);
+const splitFieldValue = (field, value) => {
+  if (typeof value === 'boolean') return [value ? 'Yes' : 'No'];
+  if (fieldIn(PARENTHETICAL_LABEL_FIELDS, field)) {
+    const match = String(value || '').match(/^(.+?)\s*\(([A-Za-z][A-Za-z ]+):\s*([^)]+)\)\s*(.*)$/);
+    if (match) return [match[1].trim(), match[2].trim() + ': ' + match[3].trim(), match[4].trim()].filter(Boolean);
+  }
+  const firstPass = fieldIn(SEMICOLON_FIELDS, field) || String(value ?? '').includes('. ')
+    ? splitBySentence(value)
+    : [String(value ?? '').trim()].filter(Boolean);
+  return firstPass.flatMap((part) => fieldIn(COMMA_FIELDS, field) || fieldIn(COMMA_ARRAY_FIELDS, field) ? splitGuardedComma(part) : [part]);
+};
+const parseLabel = (text) => {
+  const match = String(text || '').match(/^([A-Za-z0-9][A-Za-z0-9 /&()+-]{1,50}):\s+(.+)$/);
+  return match ? { label: match[1].trim(), value: match[2].trim() } : null;
+};
+const normalizeDateKey = (value) => {
+  if (!value) return 'no-date';
+  try { return new Date(value.$date || value).toISOString().slice(0, 10); } catch { return String(value); }
+};
+const groupRecommendations = (items) => {
+  const groups = new Map();
+  items.forEach((item, index) => {
+    const date = typeof item === 'object' && item ? item.date : null;
+    const key = normalizeDateKey(date);
+    if (!groups.has(key)) groups.set(key, { key, date, items: [] });
+    groups.get(key).items.push({ item, index });
+  });
+  return [...groups.values()];
+};
+
+const recursiveBlocks = (value, basePath, itemLabel = '') => {
+  if (!hasVal(value)) return [];
+  if (isScalar(value)) {
+    const shown = isDatePathValue(basePath, value) ? formatDate(value)
+      : DATETIME_FIELDS.includes(String(basePath).split('.')[0]) ? formatDateTime(value)
+        : NUMBER_UNITS[String(basePath).split('.')[0]] && typeof value === 'number' ? displayScalar(value) + ' ' + NUMBER_UNITS[String(basePath).split('.')[0]]
+          : displayScalar(value);
+    const rows = fieldIn(NARRATIVE_PATHS, basePath) ? splitFieldValue(basePath, shown) : [shown];
+    return rows.map((row, index) => {
+      const parsed = parseLabel(row);
+      return {
+        key: basePath + '-' + index,
+        groupKey: basePath,
+        subLabel: parsed ? humanizeKey(parsed.label) : (index === 0 ? humanizeKey(String(basePath).split('.').pop()) : ''),
+        itemLabel,
+        value: parsed?.value || row,
+        rowNumber: rows.length > 1 ? index + 1 : undefined,
+      };
     });
-  } catch { return String(dateString); }
+  }
+  if (Array.isArray(value) && fieldIn(COMMA_ARRAY_FIELDS, basePath)) {
+    const rows = value.flatMap((item) => splitFieldValue(basePath, item));
+    return rows.map((row, index) => ({
+      key: basePath + '-' + index,
+      groupKey: basePath,
+      subLabel: index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '',
+      itemLabel,
+      value: row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    }));
+  }
+  if (Array.isArray(value)) return value.flatMap((item, index) => recursiveBlocks(item, basePath + '.' + index, itemLabel));
+  return Object.entries(value).flatMap(([key, child]) => recursiveBlocks(child, basePath + '.' + key, itemLabel));
 };
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'object') return '';
-  return String(val);
-};
-
-const safeArray = (val) => {
-  if (!val) return [];
-  if (Array.isArray(val)) return val.filter(v => v !== null && v !== undefined && v !== '');
-  return [];
-};
-
-const hasValue = (val) => {
-  if (val === null || val === undefined || val === '') return false;
-  if (typeof val === 'number') return true;
-  if (typeof val === 'boolean') return true;
-  if (typeof val === 'string') return val.trim() !== '';
-  return true;
-};
-
-/* ========== BAR CHART HELPERS ========== */
-const LAB_RANGES = {
-  lactate: { low: 0.5, high: 2.0, scale: [0, 15] },
-  procalcitonin: { low: 0, high: 0.5, scale: [0, 50] },
-  wbc: { low: 4500, high: 11000, scale: [0, 40000] },
-};
-
-const getLabBarColorPDF = (value, testType) => {
-  if (value === null || value === undefined) return '#999999';
-  const range = LAB_RANGES[testType];
-  if (!range) return '#999999';
-  if (value < range.low) return '#606060';
-  if (value > range.high) return '#5c5c5c';
-  return '#6f6f6f';
-};
-
-const getLabInterpretation = (value, testType) => {
-  if (value === null || value === undefined) return '';
-  const range = LAB_RANGES[testType];
-  if (!range) return '';
-  if (value < range.low) return testType === 'wbc' ? 'Leukopenia' : 'Normal';
-  if (value > range.high) return testType === 'wbc' ? 'Leukocytosis' : 'Elevated';
-  return 'Normal';
-};
-
-const labToPercentage = (value, testType) => {
-  const range = LAB_RANGES[testType];
-  if (!range) return 50;
-  const [min, max] = range.scale;
-  return Math.max(5, Math.min(100, ((value - min) / (max - min)) * 100));
-};
-
-const stripNumber = (text) => {
-  if (!text || typeof text !== 'string') return text;
-  return text.replace(/^\d+[\.\)]\s*/, '');
-};
-
-const parseSubtitleItems = (text) => {
-  if (!text) return [];
-  const segments = text.split(/(?<!(?:Dr|Mr|Mrs|Ms|Jr|Sr|St|vs|etc)\.)(?<=\.)\s+(?=[A-Z])/).filter(s => s.trim());
-  if (segments.length === 0) return [];
-  return segments.map((segment) => {
-    const colonMatch = segment.match(/^([^:]+?):\s*(.+)$/s);
-    if (colonMatch && colonMatch[1].length < 80) {
-      return { label: colonMatch[1].trim(), value: colonMatch[2].trim().replace(/\.$/, ''), isGeneric: false };
-    }
-    return { label: '', value: segment.trim().replace(/\.$/, ''), isGeneric: true };
+const narrativeBlocks = (field, value, title) => {
+  if (!hasVal(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = DATE_FIELDS.includes(field) ? [formatDate(value)]
+    : DATETIME_FIELDS.includes(field) ? [formatDateTime(value)]
+      : NUMBER_UNITS[field] && typeof value === 'number' ? [displayScalar(value) + ' ' + NUMBER_UNITS[field]]
+        : splitFieldValue(field, value);
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed?.label || '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
   });
 };
-
-const SepsisManagementDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (Array.isArray(templateData)) return templateData;
-    if (templateData?.sepsis_management) return templateData.sepsis_management;
-    if (templateData?.documentData) {
-      const docData = templateData.documentData;
-      if (Array.isArray(docData)) return docData;
-      if (docData?.sepsis_management) return docData.sepsis_management;
-      return [docData];
-    }
-    if (templateData && typeof templateData === 'object') return [templateData];
-    return [];
-  }, [templateData]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Sepsis Management</Text>
-          </View>
-          <Text style={styles.noData}>No sepsis management data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  const renderFieldSection = (title, entries) => {
-    const valid = entries
-      .filter(([, val]) => typeof val === 'boolean' ? true : hasValue(val))
-      .map(([label, val]) => [label, typeof val === 'boolean' ? (val ? 'Yes' : 'No') : safeString(val)]);
-    if (valid.length === 0) return null;
-    return (
-      <View style={styles.section} wrap={valid.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {valid.map(([label, val], i) => {
-          const subItems = parseSubtitleItems(val);
-          if (subItems.length > 1) {
-            return (
-              <View key={i} style={styles.fieldBox}>
-                <Text style={styles.fieldLabel}>{label}</Text>
-                {subItems.map((item, j) => (
-                  <View key={j}>
-                    {!item.isGeneric && <Text style={styles.subLabel}>{item.label}</Text>}
-                    <View style={styles.numberedItem}>
-                      <Text style={styles.itemNumber}>{j + 1}.</Text>
-                      <Text style={styles.itemContent}>{item.value}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            );
-          }
-          return (
-            <View key={i} style={styles.fieldBox}>
-              <Text style={styles.fieldLabel}>{label}</Text>
-              <View style={styles.numberedItem}>
-                <Text style={styles.itemNumber}>1.</Text>
-                <Text style={styles.itemContent}>{val}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Sepsis Management</Text>
-          <Text style={styles.documentSubtitle}>Clinical Sepsis Management Report</Text>
-        </View>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer} minPresenceAhead={80}>
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>Record {idx + 1}</Text>
-              {(record.date || record.createdAt) && (
-                <Text style={styles.recordMeta}>Date: {formatDate(record.date || record.createdAt)}</Text>
-              )}
-              {record.sepsisSeverity && (
-                <Text style={styles.recordMeta}>Severity: {record.sepsisSeverity}</Text>
-              )}
-            </View>
-
-            {/* Section 1: Sepsis Assessment */}
-            {renderFieldSection('Sepsis Assessment', [
-              ['Severity', record.sepsisSeverity],
-              ['qSOFA Score', record.qsofaScore],
-              ['SOFA Score', record.sofaScore],
-              ['Onset Date/Time', record.sepsisOnsetDateTime ? formatDateTime(record.sepsisOnsetDateTime) : null],
-            ])}
-
-            {/* Section 2: Infection Source & Cultures */}
-            {(() => {
-              const fieldEntries = [
-                ['Suspected Infection Source', record.suspectedInfectionSource],
-                ['Blood Culture Collection Time', record.bloodCultureCollectionTime ? formatDateTime(record.bloodCultureCollectionTime) : null],
-              ].filter(([, v]) => hasValue(v));
-              const cultureResults = safeArray(record.bloodCultureResults);
-              const totalItems = fieldEntries.length + cultureResults.length;
-              if (totalItems === 0) return null;
-              return (
-                <View style={styles.section} wrap={totalItems > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Infection Source & Cultures</Text>
-                  {fieldEntries.map(([label, val], i) => (
-                    <View key={i} style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>{label}</Text>
-                      <View style={styles.numberedItem}>
-                        <Text style={styles.itemNumber}>1.</Text>
-                        <Text style={styles.itemContent}>{safeString(val)}</Text>
-                      </View>
-                    </View>
-                  ))}
-                  {cultureResults.length > 0 && (
-                    <View style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>Blood Culture Results</Text>
-                      {cultureResults.map((item, i) => (
-                        <View key={i} style={styles.numberedItem}>
-                          <Text style={styles.itemNumber}>{i + 1}.</Text>
-                          <Text style={styles.itemContent}>{stripNumber(safeString(item))}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              );
-            })()}
-
-            {/* Section 3: Laboratory Values (Bar Chart) */}
-            {(() => {
-              const labItems = [
-                { label: 'Initial Lactate Level', value: record.initialLactateLevel, unit: 'mmol/L', testType: 'lactate' },
-                { label: 'Repeat Lactate Level', value: record.repeatLactateLevel, unit: 'mmol/L', testType: 'lactate' },
-                { label: 'Procalcitonin Level', value: record.procalcitoninLevel, unit: 'ng/mL', testType: 'procalcitonin' },
-                { label: 'White Blood Cell Count', value: record.whiteBloodCellCount, unit: 'cells/uL', testType: 'wbc' },
-              ].filter(item => item.value != null);
-              if (labItems.length === 0) return null;
-              return (
-                <View style={styles.section} wrap={labItems.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Laboratory Values</Text>
-                  <View style={styles.chartContainer}>
-                    <View style={styles.chartLegend}>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendColor, { backgroundColor: '#6f6f6f' }]} />
-                        <Text style={styles.legendText}>Normal</Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendColor, { backgroundColor: '#606060' }]} />
-                        <Text style={styles.legendText}>Low</Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendColor, { backgroundColor: '#5c5c5c' }]} />
-                        <Text style={styles.legendText}>High</Text>
-                      </View>
-                    </View>
-                    {labItems.map((item, i) => {
-                      const numVal = Number(item.value);
-                      const color = getLabBarColorPDF(numVal, item.testType);
-                      const interpretation = getLabInterpretation(numVal, item.testType);
-                      const pct = labToPercentage(numVal, item.testType);
-                      const displayVal = item.testType === 'wbc'
-                        ? `${Number(numVal).toLocaleString()} ${item.unit}`
-                        : `${numVal} ${item.unit}`;
-                      return (
-                        <View key={i} style={styles.barChartRow}>
-                          <Text style={styles.barLabel}>{item.label}</Text>
-                          <View style={styles.barContainer}>
-                            <View style={styles.barBackground}>
-                              <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: color }]} />
-                            </View>
-                            <Text style={styles.barValue}>{displayVal}</Text>
-                          </View>
-                          {interpretation ? (
-                            <Text style={[styles.barInterpretation, { color }]}>{interpretation}</Text>
-                          ) : null}
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              );
-            })()}
-
-            {/* Section 4: Antibiotic Therapy */}
-            {(() => {
-              const fieldEntries = [
-                ['Antibiotic Administration Time', record.antibioticAdministrationTime ? formatDateTime(record.antibioticAdministrationTime) : null],
-                ['Time to Antibiotics', record.timeToAntibiotics != null ? `${record.timeToAntibiotics} minutes` : null],
-              ].filter(([, v]) => hasValue(v));
-              const regimen = safeArray(record.empiricAntibioticRegimen);
-              const totalItems = fieldEntries.length + regimen.length;
-              if (totalItems === 0) return null;
-              return (
-                <View style={styles.section} wrap={totalItems > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Antibiotic Therapy</Text>
-                  {fieldEntries.map(([label, val], i) => (
-                    <View key={i} style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>{label}</Text>
-                      <View style={styles.numberedItem}>
-                        <Text style={styles.itemNumber}>1.</Text>
-                        <Text style={styles.itemContent}>{safeString(val)}</Text>
-                      </View>
-                    </View>
-                  ))}
-                  {regimen.length > 0 && (
-                    <View style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>Empiric Antibiotic Regimen</Text>
-                      {regimen.map((item, i) => (
-                        <View key={i} style={styles.numberedItem}>
-                          <Text style={styles.itemNumber}>{i + 1}.</Text>
-                          <Text style={styles.itemContent}>{stripNumber(safeString(item))}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              );
-            })()}
-
-            {/* Section 5: Fluid Resuscitation & Hemodynamics */}
-            {renderFieldSection('Fluid Resuscitation & Hemodynamics', [
-              ['Initial Fluid Bolus', record.initialFluidBolus != null ? `${Number(record.initialFluidBolus).toLocaleString()} mL` : null],
-              ['Fluid Resuscitation Complete Time', record.fluidResuscitationCompleteTime ? formatDateTime(record.fluidResuscitationCompleteTime) : null],
-              ['Vasopressor Required', record.vasopressorRequired],
-              ['Vasopressor Agent', record.vasopressorAgent],
-              ['Vasopressor Start Time', record.vasopressorStartTime ? formatDateTime(record.vasopressorStartTime) : null],
-              ['Mean Arterial Pressure', (record.meanArterialPressure != null && Number(record.meanArterialPressure) !== 0) ? `${record.meanArterialPressure} mmHg` : null],
-            ])}
-
-            {/* Section 6: Organ Dysfunction */}
-            {(() => {
-              const organSites = safeArray(record.organDysfunctionSites);
-              const fieldEntries = [
-                ['Mechanical Ventilation Required', record.mechanicalVentilationRequired],
-                ['Renal Replacement Therapy', record.renalReplacementTherapy],
-              ].filter(([, v]) => typeof v === 'boolean');
-              const totalItems = organSites.length + fieldEntries.length;
-              if (totalItems === 0) return null;
-              return (
-                <View style={styles.section} wrap={totalItems > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Organ Dysfunction</Text>
-                  {organSites.length > 0 && (
-                    <View style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>Organ Dysfunction Sites</Text>
-                      {organSites.map((site, i) => (
-                        <View key={i} style={styles.numberedItem}>
-                          <Text style={styles.itemNumber}>{i + 1}.</Text>
-                          <Text style={styles.itemContent}>{stripNumber(safeString(site))}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                  {fieldEntries.map(([label, val], i) => (
-                    <View key={`f-${i}`} style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>{label}</Text>
-                      <View style={styles.numberedItem}>
-                        <Text style={styles.itemNumber}>1.</Text>
-                        <Text style={styles.itemContent}>{val ? 'Yes' : 'No'}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Section 7: Bundle Compliance */}
-            {renderFieldSection('Bundle Compliance', [
-              ['3-Hour Bundle Compliance', record.sepsisBundle3HourCompliance],
-              ['6-Hour Bundle Compliance', record.sepsisBundle6HourCompliance],
-            ])}
-          </View>
-        ))}
-
-        <Text style={styles.footer}>Confidential Medical Document</Text>
-      </Page>
-    </Document>
-  );
+const arrayNarrativeBlocks = (field, value, title) => {
+  if (!Array.isArray(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = value.flatMap((item) => splitFieldValue(field, item));
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed?.label || '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
 };
+const measurableBlocks = (items) => (Array.isArray(items) ? items : []).flatMap((item, itemIndex) => {
+  const blocks = Object.entries(item || {}).flatMap(([key, value]) =>
+    recursiveBlocks(value, 'measurableDisease.' + itemIndex + '.' + key));
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    itemLabel: blockIndex === 0 ? 'Lesion ' + (itemIndex + 1) : '',
+  }));
+});
+const recommendationBlocks = (items) => groupRecommendations(Array.isArray(items) ? items : []).flatMap((group) => {
+  const blocks = [];
+  if (group.date) blocks.push({ key: 'date-' + group.key, subLabel: 'Recommendation Date', value: formatDate(group.date) });
+  group.items.forEach(({ item, index }, groupIndex) => {
+    const recommendation = typeof item === 'string' ? item : item?.recommendation;
+    if (hasVal(recommendation)) blocks.push({ key: 'recommendation-' + index, value: String(recommendation), rowNumber: group.items.length > 1 ? groupIndex + 1 : undefined });
+  });
+  return blocks;
+});
+const objectArrayBlocks = (field, value) => (Array.isArray(value) ? value : [value]).flatMap((item, itemIndex) => {
+  const blocks = recursiveBlocks(item, field + '.' + itemIndex);
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    groupKey: field + '.' + itemIndex,
+    itemLabel: blockIndex === 0 ? (OBJECT_ITEM_LABELS[field] || FIELD_LABELS[field] || humanizeKey(field)) + ' ' + (itemIndex + 1) : '',
+  }));
+});
+const sectionBlocks = (record, section) => section.fields.flatMap((field) => {
+  const value = record[field];
+  if (OBJECT_FIELDS.includes(field)) return (OBJECT_ITEM_LABELS[field] ? objectArrayBlocks(field, value) : recursiveBlocks(value, field)).map((block, index) => ({
+    ...block,
+    fieldLabel: index === 0 && FIELD_LABELS[field] !== section.title ? FIELD_LABELS[field] : '',
+  }));
+  if (fieldIn(ARRAY_FIELDS, field)) return arrayNarrativeBlocks(field, value, section.title);
+  if (field === 'recommendations') return recommendationBlocks(value);
+  return narrativeBlocks(field, value, section.title);
+});
+const groupShortFields = (blocks) => {
+  const groups = [];
+  blocks.forEach((block) => {
+    const groupKey = block.groupKey || block.key;
+    const previous = groups[groups.length - 1];
+    if (previous?.key === groupKey) previous.blocks.push(block);
+    else groups.push({ key: groupKey, blocks: [block] });
+  });
+  return groups;
+};
+const renderSection = (section, blocks) => {
+  if (!blocks.length) return null;
+  let blockIndex = 0;
+  const sectionProps = blocks.length <= 8 ? { wrap: false } : {};
+  return <View key={section.id} {...sectionProps}>{groupShortFields(blocks).map((group) => {
+    const keepTogether = group.blocks.length <= 8;
+    const groupProps = keepTogether ? { wrap: false } : {};
+    return <View key={group.key} {...groupProps}>{group.blocks.map((block) => {
+      const index = blockIndex++;
+      return <View key={block.key} style={styles.block} wrap={false}>
+        {index === 0 && <Text style={styles.sectionTitle}>{section.title}</Text>}
+        {block.fieldLabel && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+        {block.itemLabel && <Text style={styles.itemLabel}>{block.itemLabel}</Text>}
+        {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+        <Text style={block.rowNumber ? styles.listItem : styles.fieldValue}>{block.rowNumber ? block.rowNumber + '. ' + block.value : block.value}</Text>
+      </View>;
+    })}</View>;
+  })}</View>;
+};
+const unwrap = (data) => (Array.isArray(data) ? data : [data]).flatMap((record) => {
+  if (record?.sepsis_management) return Array.isArray(record.sepsis_management) ? record.sepsis_management : [record.sepsis_management];
+  if (record?.documentData) {
+    const nested = record.documentData;
+    if (Array.isArray(nested)) return nested;
+    if (nested?.sepsis_management) return Array.isArray(nested.sepsis_management) ? nested.sepsis_management : [nested.sepsis_management];
+    return [nested];
+  }
+  return [record];
+}).filter((record) => record && typeof record === 'object');
 
-export default SepsisManagementDocumentPDFTemplate;
+export default function SepsisManagementDocumentPDFTemplate({ document: data }) {
+  const records = React.useMemo(() => unwrap(data), [data]);
+  return <Document><Page size="LETTER" style={styles.page}>
+    <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Sepsis Management</Text></View>
+    {!records.length && <Text style={styles.noDataText}>No sepsis management data available</Text>}
+    {records.map((record, recordIndex) => <View key={recordIndex} style={styles.recordContainer} break={recordIndex > 0}>
+      <View wrap={false}><Text style={styles.recordTitle}>Sepsis Management Record {recordIndex + 1}</Text></View>
+      {SECTIONS.map((section) => renderSection(section, sectionBlocks(record, section)))}
+    </View>)}
+    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => pageNumber + ' / ' + totalPages} fixed />
+  </Page></Document>;
+}

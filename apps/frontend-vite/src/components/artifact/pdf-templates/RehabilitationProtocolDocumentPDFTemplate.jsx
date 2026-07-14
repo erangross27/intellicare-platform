@@ -1,397 +1,233 @@
 /**
  * RehabilitationProtocolDocumentPDFTemplate.jsx
- * March 2026 -- Helvetica -- LETTER size -- rehabilitation protocol
- * Collection: rehabilitation_protocol
+ * Canonical black-and-white PDF for rehabilitation_protocol.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#000000', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  statusText: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#000000', marginTop: 2 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#000000', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  nested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', borderLeftStyle: 'solid', marginTop: 2 },
-  recDate: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4 },
-  phaseWrapper: { marginBottom: 12, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', borderLeftStyle: 'solid' },
-  phaseTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 4 },
-  phaseField: { marginBottom: 4 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#000000', textAlign: 'center', marginTop: 40 },
+  page: { paddingTop: 36, paddingHorizontal: 36, paddingBottom: 24, fontFamily: 'Helvetica', color: '#000000', backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 18 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', textAlign: 'center', paddingBottom: 7, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { paddingBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', marginBottom: 12, paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  block: { marginBottom: 7 },
+  compactBlock: { marginBottom: 4 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 8, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 5, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 2, marginBottom: 4, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.35, marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.35, marginBottom: 2, paddingLeft: 7 },
+  noDataText: { fontSize: 14, textAlign: 'center', marginTop: 36 },
 });
 
-/* ═══════ OBJECT HELPERS ═══════ */
 const KEY_OVERRIDES = { rom: 'ROM', cpm: 'CPM', ml: 'mL', bpm: 'BPM', hr: 'HR' };
-const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+const humanizeKey = (key) => {
+  if (key === null || key === undefined || key === '') return '';
+  if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key];
+  const text = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+const isScalar = (value) => value === null || typeof value !== 'object';
+const isEmptyDeep = (value) => {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'boolean') return false;
+  if (typeof value === 'number') return !Number.isFinite(value);
+  if (typeof value === 'string') return value.trim() === '';
+  if (Array.isArray(value)) return value.every(isEmptyDeep);
+  if (typeof value === 'object') return Object.values(value).every(isEmptyDeep);
   return false;
 };
-const isScalar = (v) => v === null || typeof v !== 'object';
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-
-/* recursive object node: label = bold heading; value = plain line below */
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
-  if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
-      </View>
-    );
-  }
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
-  );
-};
-
-/* count rows for the wrap heuristic */
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-/* renderObjectFieldPDF: OBJECT field as humanized key/value lines, Rule #74 wrap-gated */
-const renderObjectFieldPDF = (label, val) => {
-  if (!hasVal(val) || isScalar(val)) return null;
-  const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  const rows = countRows(val);
-  return (
-    <View style={styles.fieldBox} wrap={rows > 8 ? undefined : false}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${label}-${k}`, 1))}
-    </View>
-  );
-};
-
-/* renderRecommendationsPDF: array of {recommendation, date}, date-grouped numbered list */
-const renderRecommendationsPDF = (label, val) => {
-  const recs = Array.isArray(val) ? val.filter(r => (r?.recommendation || '').trim()) : [];
-  if (recs.length === 0) return null;
-  const groups = [];
-  recs.forEach((r) => { const d = (r?.date || '').trim(); const last = groups[groups.length - 1]; if (last && last.date === d) last.items.push(r); else groups.push({ date: d, items: [r] }); });
-  return (
-    <View style={styles.fieldBox} wrap={recs.length > 8 ? undefined : false}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {groups.map((group, gIdx) => (
-        <View key={gIdx}>
-          {group.date ? <Text style={styles.recDate}>{group.date}</Text> : null}
-          {group.items.map((r, i) => (<Text key={i} style={styles.listItem}>{i + 1}. {(r?.recommendation || '').trim()}</Text>))}
-        </View>
-      ))}
-    </View>
-  );
-};
-
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
+const fmtScalar = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const formatDate = (value) => {
+  if (!value) return '';
   try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
+    const date = new Date(value.$date || value);
+    if (Number.isNaN(date.getTime())) return String(value);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
+  } catch { return String(value); }
 };
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
-};
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
-};
-
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
-};
-
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+const toInputDate = (value) => {
+  if (!value) return '';
+  try { return new Date(value.$date || value).toISOString().slice(0, 10); } catch { return String(value); }
 };
 
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
+  const match = text.match(/^([A-Za-z0-9][A-Za-z0-9\s/&().#'"%<>~+=-]{1,120}?):\s+([\s\S]+)$/);
+  return match ? { isLabeled: true, label: match[1].trim(), value: match[2].trim() } : { isLabeled: false, label: '', value: text };
 };
-
 const splitByComma = (text) => {
   if (!text || typeof text !== 'string') return [text || ''];
   const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (char === '(') { depth++; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    if (char !== ',' || depth !== 0) { current += char; continue; }
+    const before = current.trim(); const after = text.slice(index + 1); const afterTrimmed = after.trimStart();
+    const nextWord = (afterTrimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+    const previousWord = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+    const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(afterTrimmed)) || after.length === afterTrimmed.length || ['and', 'or'].includes(nextWord) || ['and', 'or'].includes(previousWord);
+    if (protectedComma) current += char;
+    else { if (before) result.push(before); current = ''; }
   }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [text];
+};
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  const parts = []; let current = '';
+  const abbreviations = /(?:^|\s)(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc|approx|no|No|i\.e|e\.g)$/i;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index]; current += char;
+    if ((char !== '.' && char !== ';') || !/\s/.test(text[index + 1] || '')) continue;
+    const candidate = current.slice(0, -1).trim();
+    const decimal = char === '.' && /\d$/.test(candidate) && /^\d/.test(text.slice(index + 1).trimStart());
+    const genus = char === '.' && /(?:^|\s)[A-Z]$/.test(candidate);
+    if (decimal || genus || abbreviations.test(candidate)) continue;
+    parts.push(candidate); current = '';
+  }
+  const tail = current.trim().replace(/[.;]+$/, ''); if (tail) parts.push(tail);
+  return parts;
 };
 
-/* renderFieldRow */
-const renderFieldRow = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
-
-/* renderDateFieldPDF */
-const renderDateFieldPDF = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
-  const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
+const narrativeBlocks = (fieldLabel, text, keyPrefix) => {
+  const sentences = splitBySentence(String(text || ''));
+  const blocks = []; let unlabeledRows = [];
+  const flushUnlabeled = () => {
+    if (!unlabeledRows.length) return;
+    blocks.push({ key: `${keyPrefix}-plain-${blocks.length}`, fieldLabel: blocks.length === 0 ? fieldLabel : '', rows: unlabeledRows });
+    unlabeledRows = [];
+  };
+  sentences.forEach(sentence => {
+    const parsed = parseLabel(sentence);
+    const source = parsed.isLabeled ? parsed.value : sentence;
+    const commaParts = splitByComma(source);
+    const rows = (parsed.isLabeled && commaParts.length >= 2) || (!parsed.isLabeled && commaParts.length >= 3) ? commaParts : [source];
     if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
-    }
+      flushUnlabeled();
+      blocks.push({ key: `${keyPrefix}-labeled-${blocks.length}`, fieldLabel: blocks.length === 0 ? fieldLabel : '', subLabel: parsed.label, rows });
+    } else unlabeledRows.push(...rows);
   });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
+  flushUnlabeled();
+  if (blocks.length && !blocks.some(block => block.fieldLabel)) blocks[0].fieldLabel = fieldLabel;
+  return blocks;
 };
 
-/* renderArrayFieldPDF */
-const renderArrayFieldPDF = (label, items) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
+const scalarBlock = (fieldLabel, value, key) => isEmptyDeep(value) ? [] : [{ key, fieldLabel, rows: [fmtScalar(value)] }];
+const objectBlocks = (value, keyPrefix) => {
+  const blocks = [];
+  const visit = (label, child, path) => {
+    if (isEmptyDeep(child)) return;
+    if (isScalar(child)) { blocks.push({ key: path, fieldLabel: label, rows: [fmtScalar(child)] }); return; }
+    if (Array.isArray(child)) {
+      const scalarItems = child.filter(item => !isEmptyDeep(item));
+      if (scalarItems.every(isScalar)) blocks.push({ key: path, fieldLabel: label, rows: scalarItems.map(fmtScalar) });
+      else scalarItems.forEach((item, index) => visit(`${label} ${index + 1}`, item, `${path}-${index}`));
+      return;
+    }
+    Object.entries(child).filter(([, nested]) => !isEmptyDeep(nested)).forEach(([key, nested]) => visit(humanizeKey(key), nested, `${path}-${key}`));
+  };
+  Object.entries(value || {}).filter(([, child]) => !isEmptyDeep(child)).forEach(([key, child]) => visit(humanizeKey(key), child, `${keyPrefix}-${key}`));
+  return blocks;
+};
 
+const phaseBlocks = (phases) => (phases || []).flatMap((phase, phaseIndex) => {
+  const prefix = `phase-${phaseIndex}`; const blocks = [];
+  if (phase.phaseName) blocks.push({ key: `${prefix}-name`, subLabel: phase.phaseName, rows: [] });
+  [['Duration', phase.duration], ['Weight Bearing', phase.weightBearing], ['ROM Goals', phase.romGoals]].forEach(([label, value]) => blocks.push(...scalarBlock(label, value, `${prefix}-${label}`)));
+  [['Exercises', phase.exercises], ['Restrictions', phase.restrictions], ['Milestones', phase.milestones]].forEach(([label, items]) => {
+    if (Array.isArray(items) && items.some(item => !isEmptyDeep(item))) blocks.push({ key: `${prefix}-${label}`, fieldLabel: label, rows: items.filter(item => !isEmptyDeep(item)).map(fmtScalar) });
+  });
+  return blocks;
+});
+const recommendationBlocks = (recommendations) => {
+  const groups = [];
+  (recommendations || []).forEach((item) => {
+    if (!item?.recommendation) return;
+    const key = toInputDate(item.date) || String(item.date || '') || 'no-date';
+    const group = groups.find(entry => entry.key === key);
+    if (group) group.rows.push(item.recommendation);
+    else groups.push({ key, date: item.date, rows: [item.recommendation] });
+  });
+  return groups.map((group, index) => ({ key: `recommendations-${group.key}`, fieldLabel: index === 0 ? 'Recommendations' : '', subLabel: group.date ? formatDate(group.date) : '', rows: group.rows, compact: true }));
+};
+
+const renderSection = (title, blocks, key) => {
+  const usable = (blocks || []).filter(block => block && (block.fieldLabel || block.subLabel || block.rows?.length));
+  if (!usable.length) return null;
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
+    <React.Fragment key={key}>
+      {usable.map((block, index) => (
+        <View key={block.key || `${key}-${index}`} style={[styles.block, block.compact && styles.compactBlock]} wrap={false}>
+          {index === 0 && <Text style={styles.sectionTitle}>{title}</Text>}
+          {block.fieldLabel && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+          {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+          {(block.rows || []).map((row, rowIndex) => <Text key={rowIndex} style={block.rows.length > 1 ? styles.listItem : styles.fieldValue}>{block.rows.length > 1 ? `${rowIndex + 1}. ${row}` : row}</Text>)}
+        </View>
       ))}
-    </View>
+    </React.Fragment>
   );
 };
 
-/* ======= COMPONENT ======= */
+const unwrapRecords = (data) => {
+  if (!data) return [];
+  const input = Array.isArray(data) ? data : [data];
+  return input.flatMap(record => {
+    if (record?.rehabilitation_protocol) return Array.isArray(record.rehabilitation_protocol) ? record.rehabilitation_protocol : [record.rehabilitation_protocol];
+    if (record?.documentData) {
+      const nested = record.documentData;
+      if (Array.isArray(nested)) return nested;
+      if (nested?.rehabilitation_protocol) return Array.isArray(nested.rehabilitation_protocol) ? nested.rehabilitation_protocol : [nested.rehabilitation_protocol];
+      return [nested];
+    }
+    return [record];
+  }).filter(record => record && typeof record === 'object');
+};
+
 const RehabilitationProtocolDocumentPDFTemplate = ({ document: data }) => {
-  const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.rehabilitation_protocol) return Array.isArray(r.rehabilitation_protocol) ? r.rehabilitation_protocol : [r.rehabilitation_protocol];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.rehabilitation_protocol) return Array.isArray(dd.rehabilitation_protocol) ? dd.rehabilitation_protocol : [dd.rehabilitation_protocol]; return [dd]; }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Rehabilitation Protocol</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
+  const records = React.useMemo(() => unwrapRecords(data), [data]);
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Rehabilitation Protocol</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {record.provider || `Rehabilitation Protocol ${index + 1}`}
-              </Text>
-              {record.status && (
-                <Text style={styles.statusText}>Status: {record.status}</Text>
-              )}
+        <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Rehabilitation Protocol</Text></View>
+        {!records.length && <Text style={styles.noDataText}>No data available</Text>}
+        {records.map((record, recordIndex) => {
+          const general = [
+            ...scalarBlock('Date', formatDate(record.date), `general-date-${recordIndex}`),
+            ...narrativeBlocks('Type', record.type, `general-type-${recordIndex}`),
+            ...narrativeBlocks('Provider', record.provider, `general-provider-${recordIndex}`),
+            ...narrativeBlocks('Facility', record.facility, `general-facility-${recordIndex}`),
+            ...narrativeBlocks('Status', record.status, `general-status-${recordIndex}`),
+          ];
+          const brace = [
+            ...narrativeBlocks('Brace Type', record.braceProtocol?.type, `brace-type-${recordIndex}`),
+            ...narrativeBlocks('Brace Settings', record.braceProtocol?.settings, `brace-settings-${recordIndex}`),
+            ...narrativeBlocks('Brace Duration', record.braceProtocol?.duration, `brace-duration-${recordIndex}`),
+          ];
+          const clinical = [
+            ...narrativeBlocks('Findings', record.findings, `findings-${recordIndex}`),
+            ...narrativeBlocks('Assessment', record.assessment, `assessment-${recordIndex}`),
+            ...narrativeBlocks('Plan', record.plan, `plan-${recordIndex}`),
+          ];
+          const notes = [
+            ...narrativeBlocks('Notes', record.notes, `notes-${recordIndex}`),
+            ...recommendationBlocks(record.recommendations),
+          ];
+          return (
+            <View key={recordIndex} style={styles.recordContainer} break={recordIndex > 0}>
+              <View wrap={false}><Text style={styles.recordTitle}>{`Rehabilitation Protocol ${recordIndex + 1}`}</Text></View>
+              {renderSection('General Information', general, `general-${recordIndex}`)}
+              {renderSection('Rehabilitation Phases', phaseBlocks(record.phases), `phases-${recordIndex}`)}
+              {renderSection('Brace Protocol', brace, `brace-${recordIndex}`)}
+              {renderSection('CPM Protocol', objectBlocks(record.cpmProtocol, `cpm-${recordIndex}`), `cpm-${recordIndex}`)}
+              {renderSection('Clinical Details', clinical, `clinical-${recordIndex}`)}
+              {renderSection('Results', objectBlocks(record.results, `results-${recordIndex}`), `results-${recordIndex}`)}
+              {renderSection('Notes & Recommendations', notes, `notes-${recordIndex}`)}
             </View>
-
-            {/* General Information */}
-            {(record.type || record.provider || record.facility) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>General Information</Text>
-                {renderDateFieldPDF('Date', record.date)}
-                {renderSentenceSection('Type', record.type)}
-                {renderSentenceSection('Provider', record.provider)}
-                {renderSentenceSection('Facility', record.facility)}
-                {renderSentenceSection('Status', record.status)}
-              </View>
-            )}
-
-            {/* Phases */}
-            {record.phases && record.phases.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Rehabilitation Phases</Text>
-                {record.phases.map((phase, phaseIdx) => (
-                  <View key={phaseIdx} style={styles.phaseWrapper}>
-                    <Text style={styles.phaseTitle}>{phase.phaseName || `Phase ${phaseIdx + 1}`}</Text>
-                    {hasVal(phase.duration) && (
-                      <View style={styles.phaseField}>
-                        <Text style={styles.fieldLabel}>Duration</Text>
-                        <Text style={styles.fieldValue}>{safeString(phase.duration)}</Text>
-                      </View>
-                    )}
-                    {hasVal(phase.weightBearing) && (
-                      <View style={styles.phaseField}>
-                        <Text style={styles.fieldLabel}>Weight Bearing</Text>
-                        <Text style={styles.fieldValue}>{safeString(phase.weightBearing)}</Text>
-                      </View>
-                    )}
-                    {hasVal(phase.romGoals) && (
-                      <View style={styles.phaseField}>
-                        <Text style={styles.fieldLabel}>ROM Goals</Text>
-                        <Text style={styles.fieldValue}>{safeString(phase.romGoals)}</Text>
-                      </View>
-                    )}
-                    {phase.exercises && phase.exercises.length > 0 && renderArrayFieldPDF('Exercises', phase.exercises)}
-                    {phase.restrictions && phase.restrictions.length > 0 && renderArrayFieldPDF('Restrictions', phase.restrictions)}
-                    {phase.milestones && phase.milestones.length > 0 && renderArrayFieldPDF('Milestones', phase.milestones)}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Brace Protocol */}
-            {record.braceProtocol && (record.braceProtocol.type || record.braceProtocol.settings || record.braceProtocol.duration) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Brace Protocol</Text>
-                {renderSentenceSection('Brace Type', record.braceProtocol.type)}
-                {renderSentenceSection('Brace Settings', record.braceProtocol.settings)}
-                {renderSentenceSection('Brace Duration', record.braceProtocol.duration)}
-              </View>
-            )}
-
-            {/* CPM Protocol */}
-            {hasVal(record.cpmProtocol) && !isScalar(record.cpmProtocol) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>CPM Protocol</Text>
-                {renderObjectFieldPDF('CPM Protocol', record.cpmProtocol)}
-              </View>
-            )}
-
-            {/* Clinical Details */}
-            {(record.findings || record.assessment || record.plan) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Clinical Details</Text>
-                {renderSentenceSection('Findings', record.findings)}
-                {renderSentenceSection('Assessment', record.assessment)}
-                {renderSentenceSection('Plan', record.plan)}
-              </View>
-            )}
-
-            {/* Results */}
-            {hasVal(record.results) && !isScalar(record.results) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Results</Text>
-                {renderObjectFieldPDF('Results', record.results)}
-              </View>
-            )}
-
-            {/* Notes & Recommendations */}
-            {(record.notes || (record.recommendations && record.recommendations.length > 0)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Notes & Recommendations</Text>
-                {renderSentenceSection('Notes', record.notes)}
-                {renderRecommendationsPDF('Recommendations', record.recommendations)}
-              </View>
-            )}
-          </View>
-        ))}
+          );
+        })}
       </Page>
     </Document>
   );

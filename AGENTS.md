@@ -54,6 +54,10 @@ one-pass rules injected by `claude-hooks/user-prompt-search.sh` and
    values and styles (and an image when available). Use an offline workbook tool
    only when no live Excel session exists. Never blue a row before the completion
    gate succeeds.
+8. **Always include the testing identity in the final report.** Every completed
+   template report must state the template name, patient name, medical collection,
+   and the exact test line in the form `Show me <Patient Name> <Template Name>`.
+   Never omit the test line when handing a template back for user review.
 
 Browser control is discovered per agent surface and session. A Chrome extension
 or a browser connection in the ChatGPT app does not prove that terminal Codex has

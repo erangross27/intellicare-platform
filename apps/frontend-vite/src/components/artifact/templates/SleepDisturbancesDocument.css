@@ -1,5 +1,6 @@
 /* SleepDisturbancesDocument.css — March 2026 Blue glow editing theme */
-.sleep-disturbances-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.sleep-disturbances-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; }
+.sleep-disturbances-document * { direction: ltr; }
 .sleep-disturbances-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .sleep-disturbances-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .sleep-disturbances-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -7,8 +8,6 @@
 .sleep-disturbances-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
 .sleep-disturbances-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .sleep-disturbances-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
-.sleep-disturbances-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.sleep-disturbances-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
 .sleep-disturbances-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .sleep-disturbances-document .section { margin-top: 16px; }
 .sleep-disturbances-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
@@ -16,14 +15,15 @@
 .sleep-disturbances-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
 .sleep-disturbances-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
 .sleep-disturbances-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.sleep-disturbances-document .field-group { margin-bottom: 10px; }
+.sleep-disturbances-document .field-group-title { margin-bottom: 8px; }
+.sleep-disturbances-document .regular-row-group { gap: 8px; }
+.sleep-disturbances-document .object-array-group,
+.sleep-disturbances-document .recommendation-groups { display: flex; flex-direction: column; gap: 10px; }
+.sleep-disturbances-document .recommendation-group { display: flex; flex-direction: column; gap: 8px; }
+.sleep-disturbances-document .editable-date-subtitle { display: block; }
+.sleep-disturbances-document .date-subtitle { cursor: pointer; }
 .sleep-disturbances-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
-.sleep-disturbances-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
-.sleep-disturbances-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
-.sleep-disturbances-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
-.sleep-disturbances-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
-.sleep-disturbances-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
-.sleep-disturbances-document .edit-number { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
-.sleep-disturbances-document .edit-number::-webkit-inner-spin-button, .sleep-disturbances-document .edit-number::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .sleep-disturbances-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
 .sleep-disturbances-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
 .sleep-disturbances-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
@@ -40,14 +40,15 @@
 .sleep-disturbances-document .modified-badge.added { color: #4ade80; }
 .sleep-disturbances-document .edit-field-container { width: 100%; }
 .sleep-disturbances-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.sleep-disturbances-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
-.sleep-disturbances-document .edit-select option { background: #0F1B33; color: #ececf1; }
-.sleep-disturbances-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.sleep-disturbances-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-.sleep-disturbances-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.sleep-disturbances-document .num-stepper-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.sleep-disturbances-document .num-step { min-width: 38px; height: 38px; border: 1px solid rgba(96, 165, 250, 0.6); border-radius: 6px; color: #ececf1; background: rgba(96, 165, 250, 0.18); font-size: 20px; cursor: pointer; }
+.sleep-disturbances-document .edit-number { flex: 1; min-width: 0; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.sleep-disturbances-document .number-unit { color: #93c5fd; font-size: 14px; white-space: nowrap; }
+.sleep-disturbances-document .edit-actions { display: flex; justify-content: flex-start; gap: 8px; margin-top: 8px; }
 .sleep-disturbances-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .sleep-disturbances-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .sleep-disturbances-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.sleep-disturbances-document .approve-btn { text-transform: capitalize; }
 .sleep-disturbances-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .sleep-disturbances-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .sleep-disturbances-document .search-container { margin-bottom: 20px; }
@@ -58,3 +59,8 @@
 .sleep-disturbances-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
 .sleep-disturbances-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
 @media (max-width: 768px) { .sleep-disturbances-document .document-header { padding-bottom: 12px; } .sleep-disturbances-document .document-title { font-size: 24px; } .sleep-disturbances-document .header-actions { flex-direction: column; } }
+
+/* Dynamic-key object (results) rendering */
+.sleep-disturbances-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.sleep-disturbances-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.sleep-disturbances-document .nested-subtitle.sub-label { font-size: 17px; margin-bottom: 4px; }

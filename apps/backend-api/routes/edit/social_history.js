@@ -46,11 +46,11 @@ function toObjectId(str) {
 // Allowed editable fields for social_history
 // Array fields (drugTypes, occupationalExposures) support arrayIndex for element-level edits
 const ALLOWED_FIELDS = [
-  'provider', 'facility',
+  'date', 'type', 'provider', 'facility',
   'smokingStatus', 'smokingHistory', 'packYearsHistory', 'tobaccoType',
   'alcoholUse', 'alcoholFrequency', 'alcoholQuantity',
   'illicitDrugUse', 'substanceUse', 'drugTypes',
-  'housingStability', 'householdMembers', 'homeEnvironment', 'livingSituation',
+  'housingStability', 'householdMembers', 'homeEnvironment', 'livingSituation', 'livesAlone',
   'employmentStatus', 'occupation', 'occupationalExposures',
   'educationLevel', 'healthLiteracy',
   'maritalStatus', 'caregiverStatus', 'familySupport', 'supportSystem',

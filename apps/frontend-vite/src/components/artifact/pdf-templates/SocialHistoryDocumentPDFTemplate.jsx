@@ -1,795 +1,333 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * SocialHistoryDocumentPDFTemplate - December 2025
- * BLACK AND WHITE ONLY - No colors in PDF templates
- * Helvetica font, 14pt minimum body text, wrap={false} per section
- */
-
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 14,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 20,
-    color: '#000000',
-    textAlign: 'center',
-  },
-  recordContainer: {
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-  },
-  recordTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-    color: '#000000',
-  },
-  recordMeta: {
-    fontSize: 12,
-    color: '#666666',
-    marginBottom: 12,
-  },
-  section: {
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
-    color: '#000000',
-  },
-  fieldRow: {
-    marginBottom: 6,
-    paddingLeft: 8,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 2,
-  },
-  fieldValue: {
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 1.4,
-  },
-  listItem: {
-    fontSize: 14,
-    color: '#000000',
-    marginBottom: 4,
-    paddingLeft: 12,
-  },
-  noData: {
-    fontSize: 14,
-    color: '#666666',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 40,
-  },
-  subLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 2,
-    marginTop: 4,
-  },
-  nested: {
-    marginLeft: 10,
-    paddingLeft: 8,
-  },
+  page: { padding: 36, paddingBottom: 48, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 18 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 12 },
+  block: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999', borderBottomStyle: 'solid', marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  itemLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14 },
+  listItem: { fontSize: 14, paddingLeft: 10 },
+  noDataText: { fontSize: 14, marginTop: 30 },
+  pageNumber: { position: 'absolute', bottom: 20, left: 36, right: 36, fontSize: 9, color: '#666', textAlign: 'center' },
 });
 
-// Safe string helper for Unicode
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  let str = typeof val === 'string' ? val : String(val);
-  str = str.replace(/μm/g, 'um');
-  str = str.replace(/µm/g, 'um');
-  str = str.replace(/°/g, ' deg');
-  str = str.replace(/±/g, '+/-');
-  str = str.replace(/≥/g, '>=');
-  str = str.replace(/≤/g, '<=');
-  str = str.replace(/→/g, '->');
-  return str;
+const SECTIONS = [
+  { id: 'record', title: 'Record Details', fields: ['date', 'type', 'provider', 'facility', 'status'] },
+  { id: 'tobacco', title: 'Tobacco Use', fields: ['smokingStatus', 'smokingHistory', 'packYearsHistory', 'tobaccoQuitDate', 'tobaccoType'] },
+  { id: 'alcohol', title: 'Alcohol Use', fields: ['alcoholUse', 'alcoholFrequency', 'alcoholQuantity'] },
+  { id: 'substanceUse', title: 'Substance Use', fields: ['illicitDrugUse', 'substanceUse', 'drugTypes'] },
+  { id: 'home', title: 'Home and Housing', fields: ['housingStability', 'homeEnvironment', 'livesAlone', 'householdMembers', 'livingSituation'] },
+  { id: 'employment', title: 'Employment and Education', fields: ['employmentStatus', 'occupation', 'occupationalExposures', 'educationLevel'] },
+  { id: 'support', title: 'Relationships and Support', fields: ['maritalStatus', 'caregiverStatus', 'familySupport', 'supportSystem'] },
+  { id: 'lifestyle', title: 'Lifestyle', fields: ['physicalActivityLevel', 'exercise', 'diet', 'sleepPatterns', 'stressLevel'] },
+  { id: 'socialDeterminants', title: 'Social Determinants', fields: ['healthLiteracy', 'transportation', 'foodSecurity', 'insurance', 'financialConcerns', 'domesticViolence'] },
+  { id: 'sexualHealth', title: 'Sexual Health', fields: ['sexualActivity', 'sexualOrientation', 'contraceptionMethod'] },
+  { id: 'culturalContext', title: 'Cultural and Service Context', fields: ['religiousBeliefs', 'culturalFactors', 'recentTravel', 'militaryService'] },
+  { id: 'clinical', title: 'Clinical Notes', fields: ['findings', 'assessment', 'plan', 'notes'] },
+  { id: 'recommendations', title: 'Recommendations', fields: ['recommendations'] },
+  { id: 'results', title: 'Results', fields: ['results'] },
+];
+const FIELD_LABELS = {
+  date: 'Date', type: 'Type', provider: 'Provider', facility: 'Facility', status: 'Status', smokingStatus: 'Smoking Status', smokingHistory: 'Smoking History', packYearsHistory: 'Pack-Years History', tobaccoQuitDate: 'Tobacco Quit Date', tobaccoType: 'Tobacco Type', alcoholUse: 'Alcohol Use', alcoholFrequency: 'Alcohol Frequency', alcoholQuantity: 'Alcohol Quantity', illicitDrugUse: 'Illicit Drug Use', substanceUse: 'Substance Use', drugTypes: 'Drug Types', housingStability: 'Housing Stability', homeEnvironment: 'Home Environment', livesAlone: 'Lives Alone', householdMembers: 'Household Members', livingSituation: 'Living Situation', employmentStatus: 'Employment Status', occupation: 'Occupation', occupationalExposures: 'Occupational Exposures', educationLevel: 'Education Level', maritalStatus: 'Marital Status', caregiverStatus: 'Caregiver Status', familySupport: 'Family Support', supportSystem: 'Support System', physicalActivityLevel: 'Physical Activity Level', exercise: 'Exercise', diet: 'Diet', sleepPatterns: 'Sleep Patterns', stressLevel: 'Stress Level', healthLiteracy: 'Health Literacy', transportation: 'Transportation', foodSecurity: 'Food Security', insurance: 'Insurance', financialConcerns: 'Financial Concerns', domesticViolence: 'Domestic Violence', sexualActivity: 'Sexual Activity', sexualOrientation: 'Sexual Orientation', contraceptionMethod: 'Contraception Method', religiousBeliefs: 'Religious Beliefs', culturalFactors: 'Cultural Factors', recentTravel: 'Recent Travel', militaryService: 'Military Service', findings: 'Findings', assessment: 'Assessment', plan: 'Plan', notes: 'Notes', recommendations: 'Recommendations', results: 'Results',
 };
+const DATE_FIELDS = ['date', 'tobaccoQuitDate'];
+const DATETIME_FIELDS = [];
+const NUMBER_UNITS = {};
+const OBJECT_FIELDS = ['results'];
+const MIXED_OBJECT_ARRAY_FIELDS = [];
+const OBJECT_ITEM_LABELS = {};
+const NARRATIVE_PATHS = [];
+const PARENTHETICAL_LABEL_FIELDS = [];
+const PARENTHETICAL_SEMICOLON_FIELDS = [];
+const COMMA_FIELDS = ['plan', 'householdMembers', 'supportSystem', 'exercise'];
+const COMMA_ARRAY_SPLIT_FIELDS = ['drugTypes'];
+const ARRAY_FIELDS = ['drugTypes', 'occupationalExposures'];
+const SEMICOLON_FIELDS = ['assessment', 'smokingHistory', 'alcoholUse', 'livingSituation', 'healthLiteracy', 'familySupport', 'sleepPatterns'];
 
-// Format date helper
-const formatDate = (dateValue) => {
-  if (!dateValue) return '';
+const KEY_LABELS = { riskLevel: 'Risk Level', screened: 'Screened', score: 'Score' };
+const humanizeKey = (key) => KEY_LABELS[key] || String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (char) => char.toUpperCase()).trim();
+const normalizeRulePath = (path) => String(path || '').replace(/\.\d+(?=\.|$)/g, '[]');
+const fieldIn = (fields, path) => fields.includes(normalizeRulePath(path));
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'string' && ['null', 'n/a', 'none', 'undefined'].includes(value.trim().toLowerCase())) return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasVal);
+  return typeof value === 'object' && Object.values(value).some(hasVal);
+};
+const isScalar = (value) => value === null || typeof value !== 'object';
+const normalizeDisplayText = (value) => String(value ?? '').replace(/≥/g, '>=').replace(/≤/g, '<=');
+const displayScalar = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : normalizeDisplayText(value);
+const formatDate = (value) => {
   try {
-    const date = new Date(dateValue.$date || dateValue);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    const raw = String(value?.$date || value || '');
+    if (/^\d{4}-\d{2}$/.test(raw)) {
+      const [year, month] = raw.split('-').map(Number);
+      return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' });
+    }
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(value || ''); }
+};
+const formatDateTime = (value) => {
+  if (!value) return '';
+  try {
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return String(value || ''); }
+};
+const isDatePathValue = (path, value) => DATE_FIELDS.includes(path)
+  || (/(?:^|\.)(?:startDate|date)$/i.test(path) && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value));
+const splitGuardedComma = (text) => {
+  const source = String(text || '');
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    if (char !== ',' || depth > 0) { current += char; continue; }
+    const before = current.trim();
+    const after = source.slice(index + 1);
+    const trimmed = after.trimStart();
+    const next = (trimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+    const previous = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+    const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(trimmed))
+      || after.length === trimmed.length
+      || ['and', 'or', 'then'].includes(next)
+      || ['and', 'or'].includes(previous);
+    if (protectedComma) current += char;
+    else { if (before) result.push(before); current = ''; }
+  }
+  if (current.trim()) result.push(current.trim());
+  return (result.length ? result : [source]).map((item, index) => index > 0 ? item.replace(/^(?:and|or)\s+/i, '') : item);
+};
+const splitBySentence = (text) => String(text || '')
+  .split(/(?:;\s+|(?<=\d)\.(?=\s+[A-Z])\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/)
+  .map((part) => part.replace(/^[;.,\s]+|[;.,\s]+$/g, '').trim())
+  .filter(Boolean);
+const splitFieldValue = (field, value) => {
+  if (typeof value === 'boolean') return [value ? 'Yes' : 'No'];
+  if (fieldIn(PARENTHETICAL_SEMICOLON_FIELDS, field)) {
+    const match = String(value || '').match(/^(.+?)\s*\(([^;]+);\s*([^)]+)\)$/);
+    if (match) return [match[1].trim(), match[2].trim(), match[3].trim()];
+  }
+  if (fieldIn(PARENTHETICAL_LABEL_FIELDS, field)) {
+    const match = String(value || '').match(/^(.+?)\s*\(([A-Za-z][A-Za-z ]+):\s*([^)]+)\)\s*(.*)$/);
+    if (match) return [match[1].trim(), match[2].trim() + ': ' + match[3].trim(), match[4].trim()].filter(Boolean);
+  }
+  const normalizedValue = typeof value === 'string' ? normalizeDisplayText(value) : value;
+  const firstPass = fieldIn(SEMICOLON_FIELDS, field) || String(normalizedValue ?? '').includes('. ')
+    ? splitBySentence(normalizedValue)
+    : [String(normalizedValue ?? '').trim()].filter(Boolean);
+  return firstPass.flatMap((part) => fieldIn(COMMA_FIELDS, field) || fieldIn(COMMA_ARRAY_SPLIT_FIELDS, field) ? splitGuardedComma(part) : [part]);
+};
+const parseLabel = (text) => {
+  const match = String(text || '').match(/^([A-Za-z0-9][A-Za-z0-9 /&()+-]{1,50}):\s+(.+)$/);
+  return match ? { label: match[1].trim(), value: match[2].trim() } : null;
+};
+const normalizeDateKey = (value) => {
+  if (!value) return 'no-date';
+  try { return new Date(value.$date || value).toISOString().slice(0, 10); } catch { return String(value); }
+};
+const groupRecommendations = (items) => {
+  const groups = new Map();
+  items.forEach((item, index) => {
+    const date = typeof item === 'object' && item ? item.date : null;
+    const key = normalizeDateKey(date);
+    if (!groups.has(key)) groups.set(key, { key, date, items: [] });
+    groups.get(key).items.push({ item, index });
+  });
+  return [...groups.values()];
+};
+
+const recursiveBlocks = (value, basePath, itemLabel = '') => {
+  if (!hasVal(value)) return [];
+  if (isScalar(value)) {
+    const shown = isDatePathValue(basePath, value) ? formatDate(value)
+      : DATETIME_FIELDS.includes(String(basePath).split('.')[0]) ? formatDateTime(value)
+        : NUMBER_UNITS[String(basePath).split('.')[0]] && typeof value === 'number' ? displayScalar(value) + ' ' + NUMBER_UNITS[String(basePath).split('.')[0]]
+          : displayScalar(value);
+    const isNarrative = fieldIn(NARRATIVE_PATHS, basePath);
+    const rows = isNarrative ? splitFieldValue(basePath, shown) : [shown];
+    return rows.map((row, index) => {
+      const parsed = parseLabel(row);
+      return {
+        key: basePath + '-' + index,
+        groupKey: basePath,
+        fieldLabel: isNarrative && index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '',
+        subLabel: parsed ? humanizeKey(parsed.label) : (!isNarrative && index === 0 ? humanizeKey(String(basePath).split('.').pop()) : ''),
+        itemLabel,
+        value: parsed?.value || row,
+        rowNumber: rows.length > 1 ? index + 1 : undefined,
+      };
     });
-  } catch {
-    return String(dateValue);
   }
+  if (Array.isArray(value) && fieldIn(COMMA_ARRAY_SPLIT_FIELDS, basePath)) {
+    const rows = value.flatMap((item) => splitFieldValue(basePath, item));
+    return rows.map((row, index) => ({
+      key: basePath + '-' + index,
+      groupKey: basePath,
+      subLabel: index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '',
+      itemLabel,
+      value: row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    }));
+  }
+  if (Array.isArray(value) && value.every(isScalar)) {
+    const label = humanizeKey(String(basePath).split('.').pop());
+    return value.map((item, index) => ({
+      key: basePath + '-' + index,
+      groupKey: basePath,
+      subLabel: index === 0 ? label : '',
+      itemLabel,
+      value: isDatePathValue(basePath + '.' + index, item) ? formatDate(item) : displayScalar(item),
+      rowNumber: value.length > 1 ? index + 1 : undefined,
+    }));
+  }
+  if (Array.isArray(value)) return value.flatMap((item, index) => recursiveBlocks(item, basePath + '.' + index, itemLabel));
+  return Object.entries(value).flatMap(([key, child]) => recursiveBlocks(child, basePath + '.' + key, itemLabel));
 };
-
-// Split by semicolon
-const splitBySemicolon = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/;\s*/).map(s => s.trim()).filter(s => s.length > 0);
-};
-
-// Split text by sentences
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text
-    .split(/(?<=[.!?])\s+/)
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
-};
-
-// Parse family support with labels
-const parseFamilySupport = (text) => {
-  if (!text || typeof text !== 'string') return [];
-
-  const labelPatterns = [
-    'Mother', 'Father', 'Sister', 'Brother', 'Children',
-    'Ex-wife', 'Ex-husband', 'Spouse', 'Partner', 'Wife', 'Husband',
-    'Son', 'Daughter', 'Grandchildren', 'Grandparents'
-  ];
-
-  const labelPositions = [];
-  labelPatterns.forEach((label) => {
-    const regex = new RegExp(`${label}\\s*:`, 'gi');
-    let match;
-    while ((match = regex.exec(text)) !== null) {
-      labelPositions.push({
-        label,
-        startIndex: match.index,
-        colonEndIndex: match.index + match[0].length,
-      });
-    }
+const narrativeBlocks = (field, value, title) => {
+  if (!hasVal(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = DATE_FIELDS.includes(field) ? [formatDate(value)]
+    : DATETIME_FIELDS.includes(field) ? [formatDateTime(value)]
+      : NUMBER_UNITS[field] && typeof value === 'number' ? [displayScalar(value) + ' ' + NUMBER_UNITS[field]]
+        : splitFieldValue(field, value);
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed ? humanizeKey(parsed.label) : '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
   });
-
-  labelPositions.sort((a, b) => a.startIndex - b.startIndex);
+};
+const arrayNarrativeBlocks = (field, value, title) => {
+  if (!Array.isArray(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = value.flatMap((item) => splitFieldValue(field, item));
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed ? humanizeKey(parsed.label) : '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
+};
+const measurableBlocks = (items) => (Array.isArray(items) ? items : []).flatMap((item, itemIndex) => {
+  const blocks = Object.entries(item || {}).flatMap(([key, value]) =>
+    recursiveBlocks(value, 'measurableDisease.' + itemIndex + '.' + key));
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    itemLabel: blockIndex === 0 ? 'Lesion ' + (itemIndex + 1) : '',
+  }));
+});
+const recommendationBlocks = (items) => groupRecommendations(Array.isArray(items) ? items : []).flatMap((group) => {
+  const blocks = [];
+  if (group.date) blocks.push({ key: 'date-' + group.key, subLabel: 'Recommendation Date', value: formatDate(group.date) });
+  group.items.forEach(({ item, index }, groupIndex) => {
+    const recommendation = typeof item === 'string' ? item : item?.recommendation;
+    if (hasVal(recommendation)) blocks.push({ key: 'recommendation-' + index, value: String(recommendation), rowNumber: group.items.length > 1 ? groupIndex + 1 : undefined });
+  });
+  return blocks;
+});
+const objectArrayBlocks = (field, value) => (Array.isArray(value) ? value : [value]).flatMap((item, itemIndex) => {
+  const blocks = recursiveBlocks(item, field + '.' + itemIndex);
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    groupKey: field + '.' + itemIndex,
+    itemLabel: blockIndex === 0 ? (OBJECT_ITEM_LABELS[field] || FIELD_LABELS[field] || humanizeKey(field)) + ' ' + (itemIndex + 1) : '',
+  }));
+});
+const sectionBlocks = (record, section) => section.fields.flatMap((field) => {
+  const value = record[field];
+  if (MIXED_OBJECT_ARRAY_FIELDS.includes(field) && Array.isArray(value) && value.some((item) => !isScalar(item))) return objectArrayBlocks(field, value).map((block, index) => ({
+    ...block,
+    fieldLabel: block.fieldLabel || (index === 0 && FIELD_LABELS[field] !== section.title ? FIELD_LABELS[field] : ''),
+  }));
+  if (OBJECT_FIELDS.includes(field)) return (OBJECT_ITEM_LABELS[field] ? objectArrayBlocks(field, value) : recursiveBlocks(value, field)).map((block, index) => ({
+    ...block,
+    fieldLabel: block.fieldLabel || (index === 0 && FIELD_LABELS[field] !== section.title ? FIELD_LABELS[field] : ''),
+  }));
+  if (fieldIn(ARRAY_FIELDS, field)) return arrayNarrativeBlocks(field, value, section.title);
+  if (field === 'recommendations') return recommendationBlocks(value);
+  return narrativeBlocks(field, value, section.title);
+});
+const groupShortFields = (blocks) => {
   const groups = [];
-
-  labelPositions.forEach((pos, idx) => {
-    const contentStart = pos.colonEndIndex;
-    const contentEnd = idx + 1 < labelPositions.length
-      ? labelPositions[idx + 1].startIndex
-      : text.length;
-
-    let content = text.substring(contentStart, contentEnd).trim();
-    if (content.endsWith('.')) content = content.slice(0, -1).trim();
-
-    if (content) {
-      groups.push({ label: pos.label, content });
-    }
+  blocks.forEach((block) => {
+    const groupKey = block.groupKey || block.key;
+    const previous = groups[groups.length - 1];
+    if (previous?.key === groupKey) previous.blocks.push(block);
+    else groups.push({ key: groupKey, blocks: [block] });
   });
-
-  if (groups.length === 0 && text.trim()) {
-    groups.push({ label: null, content: text.trim() });
-  }
-
   return groups;
 };
-
-// Check if value exists
-const hasValue = (val) => val !== null && val !== undefined && val !== '';
-
-// Check if array has items
-const hasItems = (arr) => Array.isArray(arr) && arr.length > 0;
-
-// --- OBJECT (results) helpers ---
-const KEY_OVERRIDES = { id: 'ID', bmi: 'BMI', icd: 'ICD' };
-const humanizeKey = (key) => {
-  if (key === null || key === undefined || key === '') return '';
-  if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key];
-  const s = String(key).replace(/_/g, ' ')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  return s.charAt(0).toUpperCase() + s.slice(1);
-};
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
-  return false;
-};
-const isScalar = (v) => v === null || typeof v !== 'object';
-const fmtScalar = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return safeString(v ?? '');
-};
-
-// Count rows for the wrap heuristic
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-// Recursive object node: label = bold heading; value = plain line below
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
-  if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
-      </View>
-    );
+const chunkLongGroups = (groups, chunkSize = 6) => groups.flatMap((group) => {
+  if (group.blocks.length <= 8) return [group];
+  const chunks = [];
+  for (let index = 0; index < group.blocks.length; index += chunkSize) {
+    chunks.push({ key: group.key + '-chunk-' + index, blocks: group.blocks.slice(index, index + chunkSize) });
   }
-  const entries = Array.isArray(value)
-    ? value.map((v, i) => [String(i + 1), v]).filter(([, v]) => !isEmptyDeep(v))
-    : Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
-  );
+  return chunks;
+});
+const renderSection = (section, blocks) => {
+  if (!blocks.length) return null;
+  let blockIndex = 0;
+  const sectionProps = blocks.length <= 8 ? { wrap: false } : {};
+  return <View key={section.id} {...sectionProps}>{chunkLongGroups(groupShortFields(blocks)).map((group) => {
+    return <View key={group.key} wrap={false}>{group.blocks.map((block) => {
+      const index = blockIndex++;
+      return <View key={block.key} style={styles.block} wrap={false}>
+        {index === 0 && <Text style={styles.sectionTitle}>{section.title}</Text>}
+        {block.fieldLabel && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+        {block.itemLabel && <Text style={styles.itemLabel}>{block.itemLabel}</Text>}
+        {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+        <Text style={block.rowNumber ? styles.listItem : styles.fieldValue}>{block.rowNumber ? block.rowNumber + '. ' + block.value : block.value}</Text>
+      </View>;
+    })}</View>;
+  })}</View>;
 };
-
-const SocialHistoryDocumentPDFTemplate = ({ document: data }) => {
-  // Data unwrapping
-  let rawRecords = [];
-  if (Array.isArray(data)) {
-    if (data.length > 0 && data[0]?.social_history) {
-      rawRecords = data.flatMap(item =>
-        Array.isArray(item.social_history) ? item.social_history : [item.social_history]
-      );
-    } else {
-      rawRecords = data;
-    }
-  } else if (data?.social_history) {
-    rawRecords = Array.isArray(data.social_history)
-      ? data.social_history
-      : [data.social_history];
-  } else if (data) {
-    rawRecords = [data];
+const unwrap = (data) => (Array.isArray(data) ? data : [data]).flatMap((record) => {
+  if (record?.social_history) return Array.isArray(record.social_history) ? record.social_history : [record.social_history];
+  if (record?.documentData) {
+    const nested = record.documentData;
+    if (Array.isArray(nested)) return nested;
+    if (nested?.social_history) return Array.isArray(nested.social_history) ? nested.social_history : [nested.social_history];
+    return [nested];
   }
+  return [record];
+}).filter((record) => record && typeof record === 'object');
 
-  // Clean records - remove injected underscore-prefixed fields
-  const records = rawRecords.map(record => {
-    if (!record || typeof record !== 'object') return record;
-    const cleanRecord = {};
-    for (const key of Object.keys(record)) {
-      if (!key.startsWith('_')) {
-        cleanRecord[key] = record[key];
-      }
-    }
-    return cleanRecord;
-  });
-
-  if (!Array.isArray(records) || records.length === 0) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <Text style={styles.noData}>No social history records available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Social History</Text>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            {/* Record Header */}
-            <Text style={styles.recordTitle}>
-              {safeString(`Social History Record ${idx + 1}`)}
-            </Text>
-            {record.date && (
-              <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>
-            )}
-
-            {/* Provider Information Section */}
-            {(hasValue(record.provider) || hasValue(record.facility)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Provider Information</Text>
-                {hasValue(record.provider) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Provider</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.provider)}</Text>
-                  </View>
-                )}
-                {hasValue(record.facility) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Facility</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.facility)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Tobacco Use Section */}
-            {(hasValue(record.smokingStatus) || hasValue(record.smokingHistory) ||
-              hasValue(record.packYearsHistory) || hasValue(record.tobaccoType) ||
-              hasValue(record.tobaccoQuitDate)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Tobacco Use</Text>
-                {hasValue(record.smokingStatus) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Smoking Status</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.smokingStatus)}</Text>
-                  </View>
-                )}
-                {hasValue(record.smokingHistory) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Smoking History</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.smokingHistory)}</Text>
-                  </View>
-                )}
-                {hasValue(record.packYearsHistory) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Pack Years</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.packYearsHistory)}</Text>
-                  </View>
-                )}
-                {hasValue(record.tobaccoType) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Tobacco Type</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.tobaccoType)}</Text>
-                  </View>
-                )}
-                {hasValue(record.tobaccoQuitDate) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Quit Date</Text>
-                    <Text style={styles.fieldValue}>{formatDate(record.tobaccoQuitDate)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Alcohol Use Section */}
-            {(hasValue(record.alcoholUse) || hasValue(record.alcoholFrequency) ||
-              hasValue(record.alcoholQuantity)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Alcohol Use</Text>
-                {hasValue(record.alcoholUse) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Alcohol Use</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.alcoholUse)}</Text>
-                  </View>
-                )}
-                {hasValue(record.alcoholFrequency) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Frequency</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.alcoholFrequency)}</Text>
-                  </View>
-                )}
-                {hasValue(record.alcoholQuantity) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Quantity</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.alcoholQuantity)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Substance Use Section */}
-            {(hasValue(record.substanceUse) || hasValue(record.illicitDrugUse) ||
-              hasItems(record.drugTypes)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Substance Use</Text>
-                {hasValue(record.illicitDrugUse) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Illicit Drug Use</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.illicitDrugUse)}</Text>
-                  </View>
-                )}
-                {hasValue(record.substanceUse) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Substances</Text>
-                    {splitBySemicolon(record.substanceUse).map((substance, sIdx) => (
-                      <Text key={sIdx} style={styles.listItem}>
-                        {sIdx + 1}. {safeString(substance)}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-                {hasItems(record.drugTypes) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Drug Types</Text>
-                    {record.drugTypes.map((drug, dIdx) => (
-                      <Text key={dIdx} style={styles.listItem}>
-                        {dIdx + 1}. {safeString(drug)}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Living Situation Section */}
-            {(hasValue(record.livingSituation) || record.livesAlone !== undefined ||
-              hasValue(record.householdMembers) || hasValue(record.housingStability) ||
-              hasValue(record.homeEnvironment)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Living Situation</Text>
-                {hasValue(record.housingStability) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Housing Stability</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.housingStability)}</Text>
-                  </View>
-                )}
-                {record.livesAlone !== undefined && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Lives Alone</Text>
-                    <Text style={styles.fieldValue}>{record.livesAlone ? 'Yes' : 'No'}</Text>
-                  </View>
-                )}
-                {hasValue(record.householdMembers) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Household Members</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.householdMembers)}</Text>
-                  </View>
-                )}
-                {hasValue(record.homeEnvironment) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Home Environment</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.homeEnvironment)}</Text>
-                  </View>
-                )}
-                {hasValue(record.livingSituation) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Details</Text>
-                    {(record._livingSituationSentences || splitBySentence(record.livingSituation)).map((sentence, sIdx) => (
-                      <Text key={sIdx} style={styles.listItem}>
-                        {sIdx + 1}. {safeString(sentence)}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Employment & Occupation Section */}
-            {(hasValue(record.employmentStatus) || hasValue(record.occupation) ||
-              hasItems(record.occupationalExposures)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Employment & Occupation</Text>
-                {hasValue(record.employmentStatus) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Employment Status</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.employmentStatus)}</Text>
-                  </View>
-                )}
-                {hasValue(record.occupation) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Occupation</Text>
-                    {(record._occupationSentences || splitBySentence(record.occupation)).map((sentence, sIdx) => (
-                      <Text key={sIdx} style={styles.listItem}>
-                        {sIdx + 1}. {safeString(sentence)}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-                {hasItems(record.occupationalExposures) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Occupational Exposures</Text>
-                    {record.occupationalExposures.map((exposure, eIdx) => (
-                      <Text key={eIdx} style={styles.listItem}>
-                        {eIdx + 1}. {safeString(exposure)}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Education Section */}
-            {(hasValue(record.educationLevel) || hasValue(record.healthLiteracy)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Education</Text>
-                {hasValue(record.educationLevel) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Education Level</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.educationLevel)}</Text>
-                  </View>
-                )}
-                {hasValue(record.healthLiteracy) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Health Literacy</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.healthLiteracy)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Family & Support Section */}
-            {(hasValue(record.maritalStatus) || hasValue(record.familySupport) ||
-              hasValue(record.supportSystem) || hasValue(record.caregiverStatus)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Family & Support</Text>
-                {hasValue(record.maritalStatus) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Marital Status</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.maritalStatus)}</Text>
-                  </View>
-                )}
-                {hasValue(record.caregiverStatus) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Caregiver Status</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.caregiverStatus)}</Text>
-                  </View>
-                )}
-                {hasValue(record.familySupport) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Family Support</Text>
-                    {parseFamilySupport(record.familySupport).map((parsed, pIdx) => (
-                      <Text key={pIdx} style={styles.listItem}>
-                        {parsed.label ? `${parsed.label}: ${safeString(parsed.content)}` : safeString(parsed.content)}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-                {hasValue(record.supportSystem) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Support System</Text>
-                    {(record._supportSystemSentences || splitBySentence(record.supportSystem)).map((sentence, sIdx) => (
-                      <Text key={sIdx} style={styles.listItem}>
-                        {sIdx + 1}. {safeString(sentence)}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Lifestyle Section */}
-            {(hasValue(record.exercise) || hasValue(record.diet) ||
-              hasValue(record.physicalActivityLevel) || hasValue(record.sleepPatterns) ||
-              hasValue(record.stressLevel)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Lifestyle</Text>
-                {hasValue(record.physicalActivityLevel) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Physical Activity Level</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.physicalActivityLevel)}</Text>
-                  </View>
-                )}
-                {hasValue(record.exercise) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Exercise</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.exercise)}</Text>
-                  </View>
-                )}
-                {hasValue(record.diet) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Diet</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.diet)}</Text>
-                  </View>
-                )}
-                {hasValue(record.sleepPatterns) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Sleep Patterns</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.sleepPatterns)}</Text>
-                  </View>
-                )}
-                {hasValue(record.stressLevel) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Stress Level</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.stressLevel)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Personal & Cultural Section */}
-            {(hasValue(record.religiousBeliefs) || hasValue(record.culturalFactors) ||
-              hasValue(record.sexualActivity) || hasValue(record.sexualOrientation) ||
-              hasValue(record.contraceptionMethod)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Personal & Cultural</Text>
-                {hasValue(record.religiousBeliefs) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Religious Beliefs</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.religiousBeliefs)}</Text>
-                  </View>
-                )}
-                {hasValue(record.culturalFactors) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Cultural Factors</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.culturalFactors)}</Text>
-                  </View>
-                )}
-                {hasValue(record.sexualOrientation) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Sexual Orientation</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.sexualOrientation)}</Text>
-                  </View>
-                )}
-                {hasValue(record.sexualActivity) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Sexual Activity</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.sexualActivity)}</Text>
-                  </View>
-                )}
-                {hasValue(record.contraceptionMethod) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Contraception Method</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.contraceptionMethod)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Additional Information Section */}
-            {(hasValue(record.insurance) || hasValue(record.financialConcerns) ||
-              hasValue(record.transportation) || hasValue(record.foodSecurity) ||
-              hasValue(record.domesticViolence) || hasValue(record.recentTravel) ||
-              hasValue(record.militaryService) || hasValue(record.notes)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Additional Information</Text>
-                {hasValue(record.insurance) && (
-                  <View style={styles.fieldRow} wrap={false}>
-                    <Text style={styles.fieldLabel}>Insurance</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.insurance)}</Text>
-                  </View>
-                )}
-                {hasValue(record.financialConcerns) && (
-                  <View style={styles.fieldRow} wrap={false}>
-                    <Text style={styles.fieldLabel}>Financial Concerns</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.financialConcerns)}</Text>
-                  </View>
-                )}
-                {hasValue(record.transportation) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Transportation</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.transportation)}</Text>
-                  </View>
-                )}
-                {hasValue(record.foodSecurity) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Food Security</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.foodSecurity)}</Text>
-                  </View>
-                )}
-                {hasValue(record.domesticViolence) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Domestic Violence</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.domesticViolence)}</Text>
-                  </View>
-                )}
-                {hasValue(record.recentTravel) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Recent Travel</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.recentTravel)}</Text>
-                  </View>
-                )}
-                {hasValue(record.militaryService) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Military Service</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.militaryService)}</Text>
-                  </View>
-                )}
-                {hasValue(record.notes) && (
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Notes</Text>
-                    {(record._notesSentences || splitBySentence(record.notes)).map((sentence, sIdx) => (
-                      <Text key={sIdx} style={styles.listItem}>
-                        {sIdx + 1}. {safeString(sentence)}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Clinical Summary Section (findings, assessment, plan, status) */}
-            {(hasValue(record.findings) || hasValue(record.assessment) ||
-              hasValue(record.plan) || hasValue(record.status)) && (() => {
-              const findingsSentences = record._findingsSentences || splitBySentence(record.findings);
-              const assessmentSentences = record._assessmentSentences || splitBySentence(record.assessment);
-              const planSentences = record._planSentences || splitBySentence(record.plan);
-              const totalRows = findingsSentences.length + assessmentSentences.length +
-                planSentences.length + (hasValue(record.status) ? 1 : 0);
-              return (
-                <View style={styles.section} wrap={totalRows > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Clinical Summary</Text>
-                  {hasValue(record.findings) && (
-                    <View style={styles.fieldRow}>
-                      <Text style={styles.fieldLabel}>Findings</Text>
-                      {findingsSentences.map((sentence, sIdx) => (
-                        <Text key={sIdx} style={styles.listItem}>
-                          {sIdx + 1}. {safeString(sentence)}
-                        </Text>
-                      ))}
-                    </View>
-                  )}
-                  {hasValue(record.assessment) && (
-                    <View style={styles.fieldRow}>
-                      <Text style={styles.fieldLabel}>Assessment</Text>
-                      {assessmentSentences.map((sentence, sIdx) => (
-                        <Text key={sIdx} style={styles.listItem}>
-                          {sIdx + 1}. {safeString(sentence)}
-                        </Text>
-                      ))}
-                    </View>
-                  )}
-                  {hasValue(record.plan) && (
-                    <View style={styles.fieldRow}>
-                      <Text style={styles.fieldLabel}>Plan</Text>
-                      {planSentences.map((sentence, sIdx) => (
-                        <Text key={sIdx} style={styles.listItem}>
-                          {sIdx + 1}. {safeString(sentence)}
-                        </Text>
-                      ))}
-                    </View>
-                  )}
-                  {hasValue(record.status) && (
-                    <View style={styles.fieldRow}>
-                      <Text style={styles.fieldLabel}>Status</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.status)}</Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })()}
-
-            {/* Recommendations Section */}
-            {hasItems(record.recommendations) && (() => {
-              const recs = record.recommendations;
-              return (
-                <View style={styles.section} wrap={recs.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Recommendations</Text>
-                  <View style={styles.fieldRow}>
-                    {recs.map((r, rIdx) => {
-                      const text = (typeof r === 'object' && r !== null ? r.recommendation : r) || '';
-                      const d = (typeof r === 'object' && r !== null ? r.date : '') || '';
-                      return (
-                        <Text key={rIdx} style={styles.listItem}>
-                          {rIdx + 1}. {safeString(text)}{d ? ` (${safeString(d)})` : ''}
-                        </Text>
-                      );
-                    })}
-                  </View>
-                </View>
-              );
-            })()}
-
-            {/* Results Section (OBJECT) */}
-            {record.results && !isScalar(record.results) && !isEmptyDeep(record.results) && (() => {
-              const entries = Object.entries(record.results).filter(([, v]) => !isEmptyDeep(v));
-              if (entries.length === 0) return null;
-              const rows = countRows(record.results);
-              return (
-                <View style={styles.section} wrap={rows > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Results</Text>
-                  <View style={styles.fieldRow}>
-                    {entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `results-${k}`, 1))}
-                  </View>
-                </View>
-              );
-            })()}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
-};
-
-export default SocialHistoryDocumentPDFTemplate;
+export default function SocialHistoryDocumentPDFTemplate({ document: data }) {
+  const records = React.useMemo(() => unwrap(data), [data]);
+  return <Document><Page size="LETTER" style={styles.page}>
+    <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Social History</Text></View>
+    {!records.length && <Text style={styles.noDataText}>No social history data available</Text>}
+    {records.map((record, recordIndex) => <View key={recordIndex} style={styles.recordContainer} break={recordIndex > 0}>
+      <View wrap={false}><Text style={styles.recordTitle}>Social History Record {recordIndex + 1}</Text></View>
+      {SECTIONS.map((section) => renderSection(section, sectionBlocks(record, section)))}
+    </View>)}
+    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => pageNumber + ' / ' + totalPages} fixed />
+  </Page></Document>;
+}

@@ -23,7 +23,7 @@ function buildContext(req, operation = 'read') {
 function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
-const ALLOWED_FIELDS = ['psychosocialAssessmentScore', 'adlFunctionalCapacity', 'iadlAssessmentResults', 'cognitiveCapacityAssessment', 'socialSupportNetwork', 'caregiverBurdenAssessment', 'financialResourceAssessment', 'insuranceCoverageStatus', 'housingStabilityStatus', 'transportationBarriers', 'mentalHealthDiagnoses', 'substanceUseHistory', 'medicationAdherence', 'advanceDirectiveStatus', 'elderAbuseScreening', 'fallRiskFactors', 'culturalConsiderations', 'dischargeDisposition', 'communityResourceReferrals', 'readmissionRiskFactors'];
+const ALLOWED_FIELDS = ['psychosocialAssessmentScore', 'adlFunctionalCapacity', 'iadlAssessmentResults', 'cognitiveCapacityAssessment', 'socialSupportNetwork', 'caregiverBurdenAssessment', 'financialResourceAssessment', 'insuranceCoverageStatus', 'housingStabilityStatus', 'transportationBarriers', 'mentalHealthDiagnoses', 'substanceUseHistory', 'medicationAdherence', 'advanceDirectiveStatus', 'elderAbuseScreening', 'fallRiskFactors', 'culturalConsiderations', 'dischargeDisposition', 'communityResourceReferrals', 'readmissionRiskFactors', 'additionalData'];
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params;

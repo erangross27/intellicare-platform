@@ -1,5 +1,6 @@
 /* SocialWorkNotesDocument.css — March 2026 Blue glow editing theme */
-.social-work-notes-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.social-work-notes-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; }
+.social-work-notes-document * { direction: ltr; }
 .social-work-notes-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .social-work-notes-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .social-work-notes-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -7,8 +8,6 @@
 .social-work-notes-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
 .social-work-notes-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .social-work-notes-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
-.social-work-notes-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.social-work-notes-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
 .social-work-notes-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .social-work-notes-document .section { margin-top: 16px; }
 .social-work-notes-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
@@ -16,6 +15,14 @@
 .social-work-notes-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
 .social-work-notes-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
 .social-work-notes-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.social-work-notes-document .field-group { margin-bottom: 10px; }
+.social-work-notes-document .field-group-title { margin-bottom: 8px; }
+.social-work-notes-document .regular-row-group { gap: 8px; }
+.social-work-notes-document .object-array-group,
+.social-work-notes-document .recommendation-groups { display: flex; flex-direction: column; gap: 10px; }
+.social-work-notes-document .recommendation-group { display: flex; flex-direction: column; gap: 8px; }
+.social-work-notes-document .editable-date-subtitle { display: block; }
+.social-work-notes-document .date-subtitle { cursor: pointer; }
 .social-work-notes-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
 .social-work-notes-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
 .social-work-notes-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
@@ -33,10 +40,15 @@
 .social-work-notes-document .modified-badge.added { color: #4ade80; }
 .social-work-notes-document .edit-field-container { width: 100%; }
 .social-work-notes-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.social-work-notes-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.social-work-notes-document .num-stepper-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.social-work-notes-document .num-step { min-width: 38px; height: 38px; border: 1px solid rgba(96, 165, 250, 0.6); border-radius: 6px; color: #ececf1; background: rgba(96, 165, 250, 0.18); font-size: 20px; cursor: pointer; }
+.social-work-notes-document .edit-number { flex: 1; min-width: 0; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.social-work-notes-document .number-unit { color: #93c5fd; font-size: 14px; white-space: nowrap; }
+.social-work-notes-document .edit-actions { display: flex; justify-content: flex-start; gap: 8px; margin-top: 8px; }
 .social-work-notes-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .social-work-notes-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .social-work-notes-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.social-work-notes-document .approve-btn { text-transform: capitalize; }
 .social-work-notes-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .social-work-notes-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .social-work-notes-document .search-container { margin-bottom: 20px; }
@@ -47,3 +59,8 @@
 .social-work-notes-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
 .social-work-notes-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
 @media (max-width: 768px) { .social-work-notes-document .document-header { padding-bottom: 12px; } .social-work-notes-document .document-title { font-size: 24px; } .social-work-notes-document .header-actions { flex-direction: column; } }
+
+/* Dynamic-key object (results) rendering */
+.social-work-notes-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.social-work-notes-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.social-work-notes-document .nested-subtitle.sub-label { font-size: 17px; margin-bottom: 4px; }

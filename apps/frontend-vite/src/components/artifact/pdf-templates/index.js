@@ -83,6 +83,7 @@ import ImagingReportsPDFTemplate from './ImagingReportsPDFTemplate';
 import AirwayManagementPDFTemplate from './AirwayManagementPDFTemplate';
 import RegionalAnesthesiaDocumentPDFTemplate from './RegionalAnesthesiaDocumentPDFTemplate';
 import RehabilitationGoalsDocumentPDFTemplate from './RehabilitationGoalsDocumentPDFTemplate';
+import RehabilitationProgressNotesDocumentPDFTemplate from './RehabilitationProgressNotesDocumentPDFTemplate';
 import ChronicPainAssessmentPDFTemplate from './ChronicPainAssessmentPDFTemplate';
 import AsthmaAssessmentsPDFTemplate from './AsthmaAssessmentsPDFTemplate';
 import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTemplate';
@@ -163,6 +164,7 @@ const templateRegistry = {
   'airway_management_records': AirwayManagementPDFTemplate,
   'regional_anesthesia_records': RegionalAnesthesiaDocumentPDFTemplate,
   'rehabilitation_goals': RehabilitationGoalsDocumentPDFTemplate,
+  'rehabilitation_progress_notes': RehabilitationProgressNotesDocumentPDFTemplate,
   'chronic_pain_assessment': ChronicPainAssessmentPDFTemplate,
 };
 

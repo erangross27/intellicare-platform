@@ -1,5 +1,6 @@
-/* RenalProtectionPlanDocument.css — March 2026 Blue glow editing theme */
-.renal-protection-plan-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+/* RenalAnemiaDocument.css — March 2026 Blue glow editing theme */
+.renal-protection-plan-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr !important; text-align: left !important; }
+.renal-protection-plan-document * { direction: ltr !important; text-align: left !important; }
 .renal-protection-plan-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .renal-protection-plan-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .renal-protection-plan-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -7,8 +8,6 @@
 .renal-protection-plan-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
 .renal-protection-plan-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .renal-protection-plan-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
-.renal-protection-plan-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.renal-protection-plan-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
 .renal-protection-plan-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .renal-protection-plan-document .section { margin-top: 16px; }
 .renal-protection-plan-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
@@ -18,9 +17,11 @@
 .renal-protection-plan-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
 .renal-protection-plan-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
 .renal-protection-plan-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
-.renal-protection-plan-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.renal-protection-plan-document .nested-subtitle.sub-label { font-size: 17px; margin-bottom: 4px; }
 .renal-protection-plan-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
 .renal-protection-plan-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.renal-protection-plan-document .num-stepper-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.renal-protection-plan-document .num-step { min-width: 36px; height: 36px; border-radius: 6px; border: 1px solid #60a5fa; background: rgba(96, 165, 250, 0.15); color: #ececf1; cursor: pointer; font-size: 20px; line-height: 1; text-align: center !important; }
 .renal-protection-plan-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
 .renal-protection-plan-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
 .renal-protection-plan-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
@@ -39,15 +40,12 @@
 .renal-protection-plan-document .modified-badge.added { color: #4ade80; }
 .renal-protection-plan-document .edit-field-container { width: 100%; }
 .renal-protection-plan-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.renal-protection-plan-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
-.renal-protection-plan-document .edit-select option { background: #0F1B33; color: #ececf1; }
-.renal-protection-plan-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.renal-protection-plan-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-.renal-protection-plan-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.renal-protection-plan-document .edit-actions { display: flex; justify-content: flex-start; gap: 8px; margin-top: 8px; }
 .renal-protection-plan-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .renal-protection-plan-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .renal-protection-plan-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
-.renal-protection-plan-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.renal-protection-plan-document .approve-btn { padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; text-transform: capitalize; }
+.renal-protection-plan-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; cursor: pointer; }
 .renal-protection-plan-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .renal-protection-plan-document .search-container { margin-bottom: 20px; }
 .renal-protection-plan-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }

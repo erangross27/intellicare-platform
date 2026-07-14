@@ -39,6 +39,24 @@ const JSX = readFileSync(jsxPath, 'utf8');
 const CSS = existsSync(cssPath) ? readFileSync(cssPath, 'utf8') : '';
 const PDFSRC = existsSync(pdfPath) ? readFileSync(pdfPath, 'utf8') : '';
 const records = STATIC_ONLY ? [] : (() => { const p = JSON.parse(readFileSync(path.resolve(recordArg), 'utf8')); return Array.isArray(p) ? p : (p.documents || [p]); })();
+const splitGuardedCommaForAudit = (text) => {
+  const source = String(text || ''); const out = []; let current = ''; let depth = 0;
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i];
+    if (ch === '(') { depth++; current += ch; continue; }
+    if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; continue; }
+    if (ch !== ',' || depth > 0) { current += ch; continue; }
+    const before = current.trim(); const after = source.slice(i + 1); const trimmed = after.trimStart();
+    const next = (trimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+    const previous = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+    const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(trimmed)) || after.length === trimmed.length
+      || ['and', 'or', 'then'].includes(next) || ['and', 'or'].includes(previous);
+    if (protectedComma) current += ch;
+    else { if (before) out.push(before); current = ''; }
+  }
+  if (current.trim()) out.push(current.trim());
+  return out.length ? out : [source];
+};
 
 let fails = 0, passes = 0, skips = 0;
 const ok = (n) => { passes++; console.log(`  ✅ ${n}`); };
@@ -310,6 +328,18 @@ try {
       `${misplacedFieldMarkers.length} row(s) put data-edit-field on the row itself or share one marker wrapper`);
     check('widget harness probe count equals visible scalar row count', widgetProbeCount === scalarRows.length,
       `${widgetProbeCount} probed vs ${scalarRows.length} visible scalar rows`);
+
+    const commaArrayFields = new Set([...((JSX.match(/const COMMA_ARRAY_FIELDS\s*=\s*\[([^\]]*)\]/) || [])[1] || '').matchAll(/'([^']+)'/g)].map(match => match[1]));
+    if (commaArrayFields.size) {
+      const expectedCommaRows = records.flatMap(record => [...commaArrayFields].flatMap(field =>
+        (Array.isArray(record?.[field]) ? record[field] : []).flatMap(item => {
+          const parts = splitGuardedCommaForAudit(item);
+          return parts.length >= 2 ? parts : [];
+        })));
+      const missingCommaRows = expectedCommaRows.filter(value => !jsxScalarValues.includes(value));
+      check('declared comma-array fields render every real-record clause as its own row', missingCommaRows.length === 0,
+        missingCommaRows.slice(0, 4).map(value => JSON.stringify(value.slice(0, 60))).join(' | '));
+    }
 
     const copyValueLines = new Set(clip.split('\n').map(line => line.trim().replace(/^\d+\.\s+/, '')).filter(Boolean));
     const missingCopyRows = jsxScalarValues.filter(value => !copyValueLines.has(value));

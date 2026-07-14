@@ -87,6 +87,7 @@ import RehabilitationProgressNotesDocumentPDFTemplate from './RehabilitationProg
 import RehabilitationProtocolDocumentPDFTemplate from './RehabilitationProtocolDocumentPDFTemplate';
 import RenalAnemiaDocumentPDFTemplate from './RenalAnemiaDocumentPDFTemplate';
 import RenalNutritionDocumentPDFTemplate from './RenalNutritionDocumentPDFTemplate';
+import RenalProtectionPlanDocumentPDFTemplate from './RenalProtectionPlanDocumentPDFTemplate';
 import ChronicPainAssessmentPDFTemplate from './ChronicPainAssessmentPDFTemplate';
 import AsthmaAssessmentsPDFTemplate from './AsthmaAssessmentsPDFTemplate';
 import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTemplate';
@@ -171,6 +172,7 @@ const templateRegistry = {
   'rehabilitation_protocol': RehabilitationProtocolDocumentPDFTemplate,
   'renal_anemia': RenalAnemiaDocumentPDFTemplate,
   'renal_nutrition': RenalNutritionDocumentPDFTemplate,
+  'renal_protection_plan': RenalProtectionPlanDocumentPDFTemplate,
   'chronic_pain_assessment': ChronicPainAssessmentPDFTemplate,
 };
 

@@ -1,297 +1,267 @@
-/**
- * RheumatologyConsultationsDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — rheumatology consultations
- * Collection: rheumatology_consultations
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: { padding: 36, paddingBottom: 48, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 18 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 12 },
+  block: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999', borderBottomStyle: 'solid', marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  itemLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14 },
+  listItem: { fontSize: 14, paddingLeft: 10 },
+  noDataText: { fontSize: 14, marginTop: 30 },
+  pageNumber: { position: 'absolute', bottom: 20, left: 36, right: 36, fontSize: 9, color: '#666', textAlign: 'center' },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
-};
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
-};
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
-};
-
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
-};
-
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
-};
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
-};
-
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
-};
-
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
-
-/* renderDateField */
-const renderDateFieldPDF = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
-  const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
-    }
-  });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
-};
-
-/* renderArrayField */
-const renderArrayFieldPDF = (label, items) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* SECTION CONFIGS */
-const SECTION_CONFIGS = [
-  {
-    title: 'Chief Complaint & Joint Assessment',
-    fields: [
-      { key: 'chiefComplaint', label: 'Chief Complaint', isSentence: true },
-      { key: 'jointPainDuration', label: 'Joint Pain Duration', isSentence: true },
-      { key: 'morningStiffnessDuration', label: 'Morning Stiffness Duration (min)' },
-      { key: 'affectedJoints', label: 'Affected Joints', isArray: true },
-      { key: 'swollenJointCount', label: 'Swollen Joint Count' },
-      { key: 'tenderJointCount', label: 'Tender Joint Count' },
-    ],
-  },
-  {
-    title: 'Disease Activity Scores',
-    fields: [
-      { key: 'das28Score', label: 'DAS28 Score' },
-      { key: 'cdaiScore', label: 'CDAI Score' },
-      { key: 'patientGlobalAssessment', label: 'Patient Global Assessment' },
-      { key: 'functionalStatus', label: 'Functional Status', isSentence: true },
-    ],
-  },
-  {
-    title: 'Laboratory Results',
-    fields: [
-      { key: 'rheumatoidFactor', label: 'Rheumatoid Factor', isSentence: true },
-      { key: 'antiCcpAntibodies', label: 'Anti-CCP Antibodies', isSentence: true },
-      { key: 'anaPattern', label: 'ANA Pattern', isSentence: true },
-      { key: 'anaTiter', label: 'ANA Titer', isSentence: true },
-      { key: 'crpLevel', label: 'CRP Level (mg/L)' },
-      { key: 'esrValue', label: 'ESR Value (mm/hr)' },
-      { key: 'uricAcidLevel', label: 'Uric Acid Level' },
-      { key: 'hlaB27Status', label: 'HLA-B27 Status', isSentence: true },
-      { key: 'complementC3Level', label: 'Complement C3 Level' },
-      { key: 'complementC4Level', label: 'Complement C4 Level' },
-    ],
-  },
-  {
-    title: 'Joint / Synovial Analysis',
-    fields: [
-      { key: 'synovialFluidAnalysis', label: 'Synovial Fluid Analysis', isSentence: true },
-      { key: 'crystalType', label: 'Crystal Type', isSentence: true },
-    ],
-  },
-  {
-    title: 'Treatment & Medications',
-    fields: [
-      { key: 'currentDmards', label: 'Current DMARDs', isArray: true },
-      { key: 'biologicTherapy', label: 'Biologic Therapy', isSentence: true },
-      { key: 'corticosteroidUse', label: 'Corticosteroid Use', isSentence: true },
-    ],
-  },
+const SECTIONS = [
+  { id: 'presentingConcern', title: 'Presenting Concern', fields: ['chiefComplaint', 'jointPainDuration', 'morningStiffnessDuration', 'functionalStatus'] },
+  { id: 'jointExamination', title: 'Joint Examination', fields: ['affectedJoints', 'swollenJointCount', 'tenderJointCount'] },
+  { id: 'diseaseActivity', title: 'Disease Activity', fields: ['das28Score', 'cdaiScore', 'patientGlobalAssessment'] },
+  { id: 'autoimmuneTesting', title: 'Autoimmune Testing', fields: ['rheumatoidFactor', 'antiCcpAntibodies', 'anaPattern', 'anaTiter', 'hlaB27Status', 'complementC3Level', 'complementC4Level'] },
+  { id: 'inflammatoryMarkers', title: 'Inflammatory Markers', fields: ['crpLevel', 'esrValue', 'uricAcidLevel'] },
+  { id: 'synovialAssessment', title: 'Synovial Assessment', fields: ['synovialFluidAnalysis', 'crystalType'] },
+  { id: 'currentTreatment', title: 'Current Treatment', fields: ['currentDmards', 'biologicTherapy', 'corticosteroidUse'] },
 ];
+const FIELD_LABELS = {
+  chiefComplaint: 'Chief Complaint', jointPainDuration: 'Joint Pain Duration', morningStiffnessDuration: 'Morning Stiffness Duration', functionalStatus: 'Functional Status',
+  affectedJoints: 'Affected Joints', swollenJointCount: 'Swollen Joint Count', tenderJointCount: 'Tender Joint Count',
+  das28Score: 'DAS28 Score', cdaiScore: 'CDAI Score', patientGlobalAssessment: 'Patient Global Assessment',
+  rheumatoidFactor: 'Rheumatoid Factor', antiCcpAntibodies: 'Anti-CCP Antibodies', anaPattern: 'ANA Pattern', anaTiter: 'ANA Titer', hlaB27Status: 'HLA-B27 Status', complementC3Level: 'Complement C3 Level', complementC4Level: 'Complement C4 Level',
+  crpLevel: 'CRP Level', esrValue: 'ESR Value', uricAcidLevel: 'Uric Acid Level', synovialFluidAnalysis: 'Synovial Fluid Analysis', crystalType: 'Crystal Type',
+  currentDmards: 'Current DMARDs', biologicTherapy: 'Biologic Therapy', corticosteroidUse: 'Corticosteroid Use',
+};
+const DATE_FIELDS = ['date'];
+const OBJECT_FIELDS = [];
+const NARRATIVE_PATHS = [];
+const PARENTHETICAL_LABEL_FIELDS = [];
+const COMMA_FIELDS = ['chiefComplaint', 'functionalStatus', 'affectedJoints', 'currentDmards', 'synovialFluidAnalysis'];
+const COMMA_ARRAY_FIELDS = ['affectedJoints', 'currentDmards'];
+const ARRAY_FIELDS = ['affectedJoints', 'currentDmards'];
+const SEMICOLON_FIELDS = ['chiefComplaint', 'functionalStatus', 'synovialFluidAnalysis'];
 
-/* ======= COMPONENT ======= */
-const RheumatologyConsultationsDocumentPDFTemplate = ({ document: data }) => {
-  const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.rheumatology_consultations) return Array.isArray(r.rheumatology_consultations) ? r.rheumatology_consultations : [r.rheumatology_consultations];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.rheumatology_consultations) return Array.isArray(dd.rheumatology_consultations) ? dd.rheumatology_consultations : [dd.rheumatology_consultations]; return [dd]; }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Rheumatology Consultations</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
+const KEY_LABELS = {
+  crpLevel: 'CRP Level', esrValue: 'ESR Value', antiCcpAntibodies: 'Anti-CCP Antibodies', hlaB27Status: 'HLA-B27 Status',
+};
+const humanizeKey = (key) => KEY_LABELS[key] || String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (char) => char.toUpperCase()).trim();
+const normalizeRulePath = (path) => String(path || '').replace(/\.\d+(?=\.|$)/g, '[]');
+const fieldIn = (fields, path) => fields.includes(normalizeRulePath(path));
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasVal);
+  return typeof value === 'object' && Object.values(value).some(hasVal);
+};
+const isScalar = (value) => value === null || typeof value !== 'object';
+const displayScalar = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const formatDate = (value) => {
+  try {
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(value || ''); }
+};
+const isDatePathValue = (path, value) => DATE_FIELDS.includes(path)
+  || (/(?:^|\.)(?:startDate|date)$/i.test(path) && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value));
+const splitGuardedComma = (text) => {
+  const source = String(text || '');
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    if (char !== ',' || depth > 0) { current += char; continue; }
+    const before = current.trim();
+    const after = source.slice(index + 1);
+    const trimmed = after.trimStart();
+    const nextWord = (trimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+    const previousWord = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+    const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(trimmed))
+      || after.length === trimmed.length
+      || ['and', 'or', 'then'].includes(nextWord)
+      || ['and', 'or'].includes(previousWord);
+    if (protectedComma) current += char;
+    else { if (before) result.push(before); current = ''; }
   }
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Rheumatology Consultations</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.createdAt && (
-                  <Text style={styles.recordDate}>{formatDate(record.createdAt)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {`Rheumatology Consultation ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const hasAnyVal = sectionConfig.fields.some(f => hasVal(record[f.key]));
-              if (!hasAnyVal) return null;
-
-              return (
-                <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = record[field.key];
-                    if (!hasVal(val)) return null;
-
-                    if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
-                    if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
-                  })}
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [source];
+};
+const splitBySentence = (text) => String(text || '')
+  .split(/(?:;\s+|(?<=\d)\.(?=\s+[A-Z])\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/)
+  .map((part) => part.replace(/^[;.,\s]+|[;.,\s]+$/g, '').trim())
+  .filter(Boolean);
+const splitFieldValue = (field, value) => {
+  if (fieldIn(PARENTHETICAL_LABEL_FIELDS, field)) {
+    const match = String(value || '').match(/^(.+?)\s*\(([A-Za-z][A-Za-z ]+):\s*([^)]+)\)\s*(.*)$/);
+    if (match) return [match[1].trim(), match[2].trim() + ': ' + match[3].trim(), match[4].trim()].filter(Boolean);
+  }
+  const firstPass = fieldIn(SEMICOLON_FIELDS, field) || String(value ?? '').includes('. ')
+    ? splitBySentence(value)
+    : [String(value ?? '').trim()].filter(Boolean);
+  return firstPass.flatMap((part) => fieldIn(COMMA_FIELDS, field) ? splitGuardedComma(part) : [part]);
+};
+const parseLabel = (text) => {
+  const match = String(text || '').match(/^([A-Za-z0-9][A-Za-z0-9 /&()+-]{1,50}):\s+(.+)$/);
+  return match ? { label: match[1].trim(), value: match[2].trim() } : null;
+};
+const normalizeDateKey = (value) => {
+  if (!value) return 'no-date';
+  try { return new Date(value.$date || value).toISOString().slice(0, 10); } catch { return String(value); }
+};
+const groupRecommendations = (items) => {
+  const groups = new Map();
+  items.forEach((item, index) => {
+    const date = typeof item === 'object' && item ? item.date : null;
+    const key = normalizeDateKey(date);
+    if (!groups.has(key)) groups.set(key, { key, date, items: [] });
+    groups.get(key).items.push({ item, index });
+  });
+  return [...groups.values()];
 };
 
-export default RheumatologyConsultationsDocumentPDFTemplate;
+const recursiveBlocks = (value, basePath, itemLabel = '') => {
+  if (!hasVal(value)) return [];
+  if (isScalar(value)) {
+    const shown = isDatePathValue(basePath, value) ? formatDate(value) : displayScalar(value);
+    const rows = fieldIn(NARRATIVE_PATHS, basePath) ? splitFieldValue(basePath, shown) : [shown];
+    return rows.map((row, index) => {
+      const parsed = parseLabel(row);
+      return {
+        key: basePath + '-' + index,
+        groupKey: basePath,
+        subLabel: parsed ? humanizeKey(parsed.label) : (index === 0 ? humanizeKey(String(basePath).split('.').pop()) : ''),
+        itemLabel,
+        value: parsed?.value || row,
+        rowNumber: rows.length > 1 ? index + 1 : undefined,
+      };
+    });
+  }
+  if (Array.isArray(value) && fieldIn(COMMA_ARRAY_FIELDS, basePath)) {
+    const rows = value.flatMap((item) => splitFieldValue(basePath, item));
+    return rows.map((row, index) => ({
+      key: basePath + '-' + index,
+      groupKey: basePath,
+      subLabel: index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '',
+      itemLabel,
+      value: row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    }));
+  }
+  if (Array.isArray(value)) return value.flatMap((item, index) => recursiveBlocks(item, basePath + '.' + index, itemLabel));
+  return Object.entries(value).flatMap(([key, child]) => recursiveBlocks(child, basePath + '.' + key, itemLabel));
+};
+const narrativeBlocks = (field, value, title) => {
+  if (!hasVal(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = DATE_FIELDS.includes(field) ? [formatDate(value)] : splitFieldValue(field, value);
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed?.label || '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
+};
+const arrayNarrativeBlocks = (field, value, title) => {
+  if (!Array.isArray(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = value.flatMap((item) => splitFieldValue(field, item));
+  return rows.map((row, index) => ({
+    key: field + '-' + index,
+    groupKey: field,
+    fieldLabel: index === 0 && showFieldLabel ? label : '',
+    value: row,
+    rowNumber: rows.length > 1 ? index + 1 : undefined,
+  }));
+};
+const measurableBlocks = (items) => (Array.isArray(items) ? items : []).flatMap((item, itemIndex) => {
+  const blocks = Object.entries(item || {}).flatMap(([key, value]) =>
+    recursiveBlocks(value, 'measurableDisease.' + itemIndex + '.' + key));
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    itemLabel: blockIndex === 0 ? 'Lesion ' + (itemIndex + 1) : '',
+  }));
+});
+const recommendationBlocks = (items) => groupRecommendations(Array.isArray(items) ? items : []).flatMap((group) => {
+  const blocks = [];
+  if (group.date) blocks.push({ key: 'date-' + group.key, subLabel: 'Recommendation Date', value: formatDate(group.date) });
+  group.items.forEach(({ item, index }, groupIndex) => {
+    const recommendation = typeof item === 'string' ? item : item?.recommendation;
+    if (hasVal(recommendation)) blocks.push({ key: 'recommendation-' + index, value: String(recommendation), rowNumber: group.items.length > 1 ? groupIndex + 1 : undefined });
+  });
+  return blocks;
+});
+const sectionBlocks = (record, section) => section.fields.flatMap((field) => {
+  const value = record[field];
+  if (OBJECT_FIELDS.includes(field)) return recursiveBlocks(value, field).map((block, index) => ({
+    ...block,
+    fieldLabel: index === 0 && FIELD_LABELS[field] !== section.title ? FIELD_LABELS[field] : '',
+  }));
+  if (fieldIn(ARRAY_FIELDS, field)) return arrayNarrativeBlocks(field, value, section.title);
+  if (field === 'recommendations') return recommendationBlocks(value);
+  return narrativeBlocks(field, value, section.title);
+});
+const groupShortFields = (blocks) => {
+  const groups = [];
+  blocks.forEach((block) => {
+    const groupKey = block.groupKey || block.key;
+    const previous = groups[groups.length - 1];
+    if (previous?.key === groupKey) previous.blocks.push(block);
+    else groups.push({ key: groupKey, blocks: [block] });
+  });
+  return groups;
+};
+const renderSection = (section, blocks) => {
+  if (!blocks.length) return null;
+  let blockIndex = 0;
+  const sectionProps = blocks.length <= 8 ? { wrap: false } : {};
+  return <View key={section.id} {...sectionProps}>{groupShortFields(blocks).map((group) => {
+    const keepTogether = group.blocks.length <= 8;
+    const groupProps = keepTogether ? { wrap: false } : {};
+    return <View key={group.key} {...groupProps}>{group.blocks.map((block) => {
+      const index = blockIndex++;
+      return <View key={block.key} style={styles.block} wrap={false}>
+        {index === 0 && <Text style={styles.sectionTitle}>{section.title}</Text>}
+        {block.fieldLabel && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+        {block.itemLabel && <Text style={styles.itemLabel}>{block.itemLabel}</Text>}
+        {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+        <Text style={block.rowNumber ? styles.listItem : styles.fieldValue}>{block.rowNumber ? block.rowNumber + '. ' + block.value : block.value}</Text>
+      </View>;
+    })}</View>;
+  })}</View>;
+};
+const unwrap = (data) => (Array.isArray(data) ? data : [data]).flatMap((record) => {
+  if (record?.rheumatology_consultations) return Array.isArray(record.rheumatology_consultations) ? record.rheumatology_consultations : [record.rheumatology_consultations];
+  if (record?.documentData) {
+    const nested = record.documentData;
+    if (Array.isArray(nested)) return nested;
+    if (nested?.rheumatology_consultations) return Array.isArray(nested.rheumatology_consultations) ? nested.rheumatology_consultations : [nested.rheumatology_consultations];
+    return [nested];
+  }
+  return [record];
+}).filter((record) => record && typeof record === 'object');
+
+export default function RheumatologyConsultationsDocumentPDFTemplate({ document: data }) {
+  const records = React.useMemo(() => unwrap(data), [data]);
+  return <Document><Page size="LETTER" style={styles.page}>
+    <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Rheumatology Consultations</Text></View>
+    {!records.length && <Text style={styles.noDataText}>No rheumatology consultations data available</Text>}
+    {records.map((record, recordIndex) => <View key={recordIndex} style={styles.recordContainer} break={recordIndex > 0}>
+      <View wrap={false}><Text style={styles.recordTitle}>Rheumatology Consultations {recordIndex + 1}</Text></View>
+      {SECTIONS.map((section) => renderSection(section, sectionBlocks(record, section)))}
+    </View>)}
+    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => pageNumber + ' / ' + totalPages} fixed />
+  </Page></Document>;
+}

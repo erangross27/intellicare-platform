@@ -23,7 +23,7 @@ function buildContext(req, operation = 'read') {
 function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
-const ALLOWED_FIELDS = ['allergenTested', 'allergenCategory', 'allergenSource', 'allergenCode', 'testMethodology', 'igeLevel', 'allergenClass', 'totalIgeLevel', 'referenceRange', 'componentTesting', 'clinicalRelevance', 'anaphylaxisRisk', 'crossReactivity', 'immunotherapyCandidate', 'avoidanceRecommendations', 'medicationInteractions', 'ageAtFirstExposure', 'seasonalVariation', 'geographicRelevance', 'retestRecommendation'];
+const ALLOWED_FIELDS = ['allergenTested', 'allergenCategory', 'allergenSource', 'allergenCode', 'testMethodology', 'igeLevel', 'allergenClass', 'totalIgeLevel', 'referenceRange', 'componentTesting', 'clinicalRelevance', 'anaphylaxisRisk', 'crossReactivity', 'immunotherapyCandidate', 'avoidanceRecommendations', 'medicationInteractions', 'ageAtFirstExposure', 'seasonalVariation', 'geographicRelevance', 'retestRecommendation', 'additionalData'];
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params;

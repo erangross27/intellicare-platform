@@ -1,181 +1,315 @@
-/**
- * SkinGraftingEvaluationDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt -- LETTER size -- US medical platform
- * Collection: skin_grafting_evaluation
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, backgroundColor: '#f5f5f5', padding: 12, borderWidth: 2, borderColor: '#000000', borderLeftWidth: 5, borderLeftColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 11, color: '#333333', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, marginBottom: 2 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  page: { padding: 36, paddingBottom: 48, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 18 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 12 },
+  block: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999', borderBottomStyle: 'solid', marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  itemLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14 },
+  listItem: { fontSize: 14, paddingLeft: 10 },
+  noDataText: { fontSize: 14, marginTop: 30 },
+  pageNumber: { position: 'absolute', bottom: 20, left: 36, right: 36, fontSize: 9, color: '#666', textAlign: 'center' },
 });
 
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; return true; };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\bvs)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
-const parseLabel = (s) => { const m = s.replace(/[;.]+$/, '').trim().match(/^([A-Za-z][A-Za-z0-9 /()-]{1,40}):\s*(.+)$/s); return m ? { label: m[1].trim(), value: m[2].trim() } : { label: null, value: s }; };
-const renderFieldRow = (label, value) => { if (!hasVal(value)) return null; return (<View style={{ marginBottom: 4 }}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{String(value)}</Text></View>); };
-
-const renderSentenceField = (label, text, sectionTitle) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(String(text));
-  if (sentences.length === 0) return null;
-  let totalItems = sentences.length;
-  sentences.forEach(s => { const p = parseLabel(s); const rv = p.label ? p.value : s; const ci = rv.split(/,\s+/).filter(x => x.trim()); if (ci.length > 1) totalItems += ci.length - 1; });
-  return (<View style={styles.fieldBox} wrap={totalItems > 8 ? undefined : false}>
-    {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-    <Text style={styles.fieldLabel}>{label}</Text>
-    {sentences.map((s, i) => {
-      const p = parseLabel(s);
-      const rawVal = p.label ? p.value : s.replace(/[;.]+$/, '').trim();
-      const cItems = rawVal.split(/,\s+/).filter(x => x.trim());
-      return (<View key={i} style={{ marginBottom: 3, marginLeft: 8 }}>
-        {p.label && <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 1 }}>{p.label}</Text>}
-        {cItems.length > 1 ? cItems.map((item, ci) => <Text key={ci} style={styles.listItem}>{ci + 1}. {item.trim()}</Text>) : <Text style={styles.listItem}>1. {rawVal}</Text>}
-      </View>);
-    })}
-  </View>);
+const SECTIONS = [
+  { id: 'graftSpecifications', title: 'Graft Specifications', fields: ['graftDonorSiteLocation', 'graftThicknessType', 'splitThicknessGraftDepth', 'graftExpansionRatio'] },
+  { id: 'recipientBed', title: 'Recipient Bed Assessment', fields: ['recipientBedVascularityScore', 'woundBedPreparationMethod', 'woundBedBacterialBioburden', 'recipientSiteArea'] },
+  { id: 'graftOutcomes', title: 'Graft Outcomes', fields: ['graftTakePercentage', 'graftFixationTechnique', 'plasmaticImbibitionStatus', 'inosculationOnsetDay'] },
+  { id: 'donorSite', title: 'Donor Site', fields: ['donorSiteHealingDays', 'seromaPrevention', 'totalBurnSurfaceArea'] },
+  { id: 'graftComplications', title: 'Graft Complications', fields: ['graftFailureMechanism', 'graftContracturePercentage', 'dermalSubstitutePriorUse'] },
+  { id: 'perfusionLabs', title: 'Perfusion & Labs', fields: ['recipientSiteTranscutaneousOxygenTension', 'laserDopplerPerfusionIndex', 'preoperativeAlbuminLevel', 'hemoglobinA1cLevel'] },
+  { id: 'scarTherapy', title: 'Scar & Therapy', fields: ['vancouverScarScaleScore', 'cutometerElasticityMeasurement', 'negativePresureWoundTherapySettings'] },
+];
+const FIELD_LABELS = {
+  graftDonorSiteLocation: 'Graft Donor Site Location', graftThicknessType: 'Graft Thickness Type', splitThicknessGraftDepth: 'Split Thickness Graft Depth', graftExpansionRatio: 'Graft Expansion Ratio', recipientBedVascularityScore: 'Recipient Bed Vascularity Score', woundBedPreparationMethod: 'Wound Bed Preparation Method', woundBedBacterialBioburden: 'Wound Bed Bacterial Bioburden', recipientSiteArea: 'Recipient Site Area', graftTakePercentage: 'Graft Take Percentage', graftFixationTechnique: 'Graft Fixation Technique', plasmaticImbibitionStatus: 'Plasmatic Imbibition Status', inosculationOnsetDay: 'Inosculation Onset Day', donorSiteHealingDays: 'Donor Site Healing Days', seromaPrevention: 'Seroma Prevention', totalBurnSurfaceArea: 'Total Burn Surface Area', graftFailureMechanism: 'Graft Failure Mechanism', graftContracturePercentage: 'Graft Contracture Percentage', dermalSubstitutePriorUse: 'Dermal Substitute Prior Use', recipientSiteTranscutaneousOxygenTension: 'Recipient Site Transcutaneous Oxygen Tension', laserDopplerPerfusionIndex: 'Laser Doppler Perfusion Index', preoperativeAlbuminLevel: 'Preoperative Albumin Level', hemoglobinA1cLevel: 'Hemoglobin A1c Level', vancouverScarScaleScore: 'Vancouver Scar Scale Score', cutometerElasticityMeasurement: 'Cutometer Elasticity Measurement', negativePresureWoundTherapySettings: 'Negative Pressure Wound Therapy Settings',
 };
+const DATE_FIELDS = [];
+const DATETIME_FIELDS = [];
+const NUMBER_UNITS = { splitThicknessGraftDepth: 'in', recipientSiteArea: 'cm²', graftTakePercentage: '%', inosculationOnsetDay: 'days', donorSiteHealingDays: 'days', totalBurnSurfaceArea: '%', graftContracturePercentage: '%', recipientSiteTranscutaneousOxygenTension: 'mmHg', laserDopplerPerfusionIndex: 'PU', preoperativeAlbuminLevel: 'g/dL', hemoglobinA1cLevel: '%' };
+const OBJECT_FIELDS = [];
+const MIXED_OBJECT_ARRAY_FIELDS = [];
+const OBJECT_ITEM_LABELS = {};
+const NARRATIVE_PATHS = [];
+const PARENTHETICAL_LABEL_FIELDS = [];
+const PARENTHETICAL_SEMICOLON_FIELDS = [];
+const COMMA_FIELDS = ['woundBedPreparationMethod', 'graftFixationTechnique'];
+const COMMA_ARRAY_SPLIT_FIELDS = ['graftFailureMechanism'];
+const ARRAY_FIELDS = ['graftFailureMechanism'];
+const SEMICOLON_FIELDS = ['woundBedBacterialBioburden', 'negativePresureWoundTherapySettings'];
 
-const SkinGraftingEvaluationDocumentPDFTemplate = ({ document: data }) => {
-  // Handle data unwrapping
-  let records = [];
-  if (Array.isArray(data)) {
-    records = data;
-  } else if (data?.skin_grafting_evaluation && Array.isArray(data.skin_grafting_evaluation)) {
-    records = data.skin_grafting_evaluation;
-  } else if (data?.documentData) {
-    const docData = data.documentData;
-    if (Array.isArray(docData)) {
-      records = docData;
-    } else if (docData?.skin_grafting_evaluation) {
-      records = docData.skin_grafting_evaluation;
-    } else if (docData && typeof docData === 'object') {
-      records = [docData];
+const KEY_LABELS = {};
+const humanizeKey = (key) => KEY_LABELS[key] || String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (char) => char.toUpperCase()).trim();
+const normalizeRulePath = (path) => String(path || '').replace(/\.\d+(?=\.|$)/g, '[]');
+const fieldIn = (fields, path) => fields.includes(normalizeRulePath(path));
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'string' && ['null', 'n/a', 'none', 'undefined'].includes(value.trim().toLowerCase())) return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasVal);
+  return typeof value === 'object' && Object.values(value).some(hasVal);
+};
+const isScalar = (value) => value === null || typeof value !== 'object';
+const normalizeDisplayText = (value) => String(value ?? '').replace(/≥/g, '>=').replace(/≤/g, '<=');
+const displayScalar = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : normalizeDisplayText(value);
+const formatDate = (value) => {
+  try {
+    const raw = String(value?.$date || value || '');
+    if (/^\d{4}-\d{2}$/.test(raw)) {
+      const [year, month] = raw.split('-').map(Number);
+      return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' });
     }
-  } else if (data && typeof data === 'object') {
-    records = [data];
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(value || ''); }
+};
+const formatDateTime = (value) => {
+  if (!value) return '';
+  try {
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return String(value || ''); }
+};
+const isDatePathValue = (path, value) => DATE_FIELDS.includes(path)
+  || (/(?:^|\.)(?:startDate|date)$/i.test(path) && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value));
+const splitGuardedComma = (text) => {
+  const source = String(text || '');
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    if (char !== ',' || depth > 0) { current += char; continue; }
+    const before = current.trim();
+    const after = source.slice(index + 1);
+    const trimmed = after.trimStart();
+    const next = (trimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+    const previous = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+    const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(trimmed))
+      || after.length === trimmed.length
+      || ['and', 'or', 'then'].includes(next)
+      || ['and', 'or'].includes(previous);
+    if (protectedComma) current += char;
+    else { if (before) result.push(before); current = ''; }
   }
-
-  if (!records || records.length === 0) {
-    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Skin Grafting Evaluation</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+  if (current.trim()) result.push(current.trim());
+  return (result.length ? result : [source]).map((item, index) => index > 0 ? item.replace(/^(?:and|or)\s+/i, '') : item);
+};
+const splitBySentence = (text) => String(text || '')
+  .split(/(?:;\s+|(?<=\d)\.(?=\s+[A-Z])\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/)
+  .map((part) => part.replace(/^[;.,\s]+|[;.,\s]+$/g, '').trim())
+  .filter(Boolean);
+const splitFieldValue = (field, value) => {
+  if (typeof value === 'boolean') return [value ? 'Yes' : 'No'];
+  if (fieldIn(PARENTHETICAL_SEMICOLON_FIELDS, field)) {
+    const match = String(value || '').match(/^(.+?)\s*\(([^;]+);\s*([^)]+)\)$/);
+    if (match) return [match[1].trim(), match[2].trim(), match[3].trim()];
   }
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Skin Grafting Evaluation</Text></View>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>{`Skin Grafting Evaluation ${idx + 1}`}</Text>
-              {record.createdAt && <Text style={styles.recordMeta}>{formatDate(record.createdAt)}</Text>}
-            </View>
-
-            {/* 1. Graft Specifications */}
-            {(hasVal(record.graftDonorSiteLocation) || hasVal(record.graftThicknessType) || hasVal(record.splitThicknessGraftDepth) || hasVal(record.graftExpansionRatio)) && (
-              <View style={styles.section}>
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Graft Specifications</Text>
-                  {renderFieldRow('Graft Donor Site Location', record.graftDonorSiteLocation)}
-                  {renderFieldRow('Graft Thickness Type', record.graftThicknessType)}
-                  {renderFieldRow('Split Thickness Graft Depth', record.splitThicknessGraftDepth)}
-                  {renderFieldRow('Graft Expansion Ratio', record.graftExpansionRatio)}
-                </View>
-              </View>
-            )}
-
-            {/* 2. Recipient Bed Assessment */}
-            {(hasVal(record.recipientBedVascularityScore) || hasVal(record.woundBedPreparationMethod) || hasVal(record.woundBedBacterialBioburden) || hasVal(record.recipientSiteArea)) && (
-              <View style={styles.section}>
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Recipient Bed Assessment</Text>
-                  {renderFieldRow('Recipient Bed Vascularity Score', record.recipientBedVascularityScore)}
-                  {renderFieldRow('Recipient Site Area', record.recipientSiteArea)}
-                </View>
-                {hasVal(record.woundBedPreparationMethod) && renderSentenceField('Wound Bed Preparation Method', record.woundBedPreparationMethod)}
-                {hasVal(record.woundBedBacterialBioburden) && renderSentenceField('Wound Bed Bacterial Bioburden', record.woundBedBacterialBioburden)}
-              </View>
-            )}
-
-            {/* 3. Graft Outcomes */}
-            {(hasVal(record.graftTakePercentage) || hasVal(record.graftFixationTechnique) || hasVal(record.plasmaticImbibitionStatus) || hasVal(record.inosculationOnsetDay)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Graft Outcomes</Text>
-                {renderFieldRow('Graft Take Percentage', record.graftTakePercentage)}
-                {renderFieldRow('Graft Fixation Technique', record.graftFixationTechnique)}
-                {renderFieldRow('Plasmatic Imbibition Status', typeof record.plasmaticImbibitionStatus === 'boolean' ? (record.plasmaticImbibitionStatus ? 'Yes' : 'No') : record.plasmaticImbibitionStatus)}
-                {renderFieldRow('Inosculation Onset Day', record.inosculationOnsetDay)}
-              </View>
-            )}
-
-            {/* 4. Donor Site */}
-            {(hasVal(record.donorSiteHealingDays) || hasVal(record.seromaPrevention) || hasVal(record.totalBurnSurfaceArea)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Donor Site</Text>
-                {renderFieldRow('Donor Site Healing Days', record.donorSiteHealingDays)}
-                {renderFieldRow('Seroma Prevention', typeof record.seromaPrevention === 'boolean' ? (record.seromaPrevention ? 'Yes' : 'No') : record.seromaPrevention)}
-                {renderFieldRow('Total Burn Surface Area', record.totalBurnSurfaceArea)}
-              </View>
-            )}
-
-            {/* 5. Graft Complications */}
-            {(hasVal(record.graftFailureMechanism) || hasVal(record.graftContracturePercentage) || hasVal(record.dermalSubstitutePriorUse)) && (
-              <View style={styles.section}>
-                {Array.isArray(record.graftFailureMechanism) && record.graftFailureMechanism.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.graftFailureMechanism.length > 8 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>Graft Complications</Text>
-                    <Text style={styles.fieldLabel}>Graft Failure Mechanism</Text>
-                    {record.graftFailureMechanism.map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {renderFieldRow('Graft Contracture Percentage', record.graftContracturePercentage)}
-                {hasVal(record.dermalSubstitutePriorUse) && renderSentenceField('Dermal Substitute Prior Use', record.dermalSubstitutePriorUse, (!Array.isArray(record.graftFailureMechanism) || record.graftFailureMechanism.length === 0) ? 'Graft Complications' : null)}
-              </View>
-            )}
-
-            {/* 6. Perfusion & Labs */}
-            {(hasVal(record.recipientSiteTranscutaneousOxygenTension) || hasVal(record.laserDopplerPerfusionIndex) || hasVal(record.preoperativeAlbuminLevel) || hasVal(record.hemoglobinA1cLevel)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Perfusion & Labs</Text>
-                {renderFieldRow('Recipient Site Transcutaneous Oxygen Tension', record.recipientSiteTranscutaneousOxygenTension)}
-                {renderFieldRow('Laser Doppler Perfusion Index', record.laserDopplerPerfusionIndex)}
-                {renderFieldRow('Preoperative Albumin Level', record.preoperativeAlbuminLevel)}
-                {renderFieldRow('Hemoglobin A1c Level', record.hemoglobinA1cLevel)}
-              </View>
-            )}
-
-            {/* 7. Scar & Therapy */}
-            {(hasVal(record.vancouverScarScaleScore) || hasVal(record.cutometerElasticityMeasurement) || hasVal(record.negativePresureWoundTherapySettings)) && (
-              <View style={styles.section}>
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Scar & Therapy</Text>
-                  {renderFieldRow('Vancouver Scar Scale Score', record.vancouverScarScaleScore)}
-                  {renderFieldRow('Cutometer Elasticity Measurement', record.cutometerElasticityMeasurement)}
-                </View>
-                {hasVal(record.negativePresureWoundTherapySettings) && renderSentenceField('Negative Pressure Wound Therapy Settings', record.negativePresureWoundTherapySettings)}
-              </View>
-            )}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+  if (fieldIn(PARENTHETICAL_LABEL_FIELDS, field)) {
+    const match = String(value || '').match(/^(.+?)\s*\(([A-Za-z][A-Za-z ]+):\s*([^)]+)\)\s*(.*)$/);
+    if (match) return [match[1].trim(), match[2].trim() + ': ' + match[3].trim(), match[4].trim()].filter(Boolean);
+  }
+  const normalizedValue = typeof value === 'string' ? normalizeDisplayText(value) : value;
+  const firstPass = fieldIn(SEMICOLON_FIELDS, field) || String(normalizedValue ?? '').includes('. ')
+    ? splitBySentence(normalizedValue)
+    : [String(normalizedValue ?? '').trim()].filter(Boolean);
+  return firstPass.flatMap((part) => fieldIn(COMMA_FIELDS, field) || fieldIn(COMMA_ARRAY_SPLIT_FIELDS, field) ? splitGuardedComma(part) : [part]);
+};
+const parseLabel = (text) => {
+  const match = String(text || '').match(/^([A-Za-z0-9][A-Za-z0-9 /&()+-]{1,50}):\s+(.+)$/);
+  return match ? { label: match[1].trim(), value: match[2].trim() } : null;
+};
+const normalizeDateKey = (value) => {
+  if (!value) return 'no-date';
+  try { return new Date(value.$date || value).toISOString().slice(0, 10); } catch { return String(value); }
+};
+const groupRecommendations = (items) => {
+  const groups = new Map();
+  items.forEach((item, index) => {
+    const date = typeof item === 'object' && item ? item.date : null;
+    const key = normalizeDateKey(date);
+    if (!groups.has(key)) groups.set(key, { key, date, items: [] });
+    groups.get(key).items.push({ item, index });
+  });
+  return [...groups.values()];
 };
 
-export default SkinGraftingEvaluationDocumentPDFTemplate;
+const recursiveBlocks = (value, basePath, itemLabel = '') => {
+  if (!hasVal(value)) return [];
+  if (isScalar(value)) {
+    const shown = isDatePathValue(basePath, value) ? formatDate(value)
+      : DATETIME_FIELDS.includes(String(basePath).split('.')[0]) ? formatDateTime(value)
+        : NUMBER_UNITS[String(basePath).split('.')[0]] && typeof value === 'number' ? displayScalar(value) + ' ' + NUMBER_UNITS[String(basePath).split('.')[0]]
+          : displayScalar(value);
+    const isNarrative = fieldIn(NARRATIVE_PATHS, basePath);
+    const rows = isNarrative ? splitFieldValue(basePath, shown) : [shown];
+    return rows.map((row, index) => {
+      const parsed = parseLabel(row);
+      return {
+        key: basePath + '-' + index,
+        groupKey: basePath,
+        fieldLabel: isNarrative && index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '',
+        subLabel: parsed ? humanizeKey(parsed.label) : (!isNarrative && index === 0 ? humanizeKey(String(basePath).split('.').pop()) : ''),
+        itemLabel,
+        value: parsed?.value || row,
+        rowNumber: rows.length > 1 ? index + 1 : undefined,
+      };
+    });
+  }
+  if (Array.isArray(value) && fieldIn(COMMA_ARRAY_SPLIT_FIELDS, basePath)) {
+    const rows = value.flatMap((item) => splitFieldValue(basePath, item));
+    return rows.map((row, index) => ({
+      key: basePath + '-' + index,
+      groupKey: basePath,
+      subLabel: index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '',
+      itemLabel,
+      value: row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    }));
+  }
+  if (Array.isArray(value)) return value.flatMap((item, index) => recursiveBlocks(item, basePath + '.' + index, itemLabel));
+  return Object.entries(value).flatMap(([key, child]) => recursiveBlocks(child, basePath + '.' + key, itemLabel));
+};
+const narrativeBlocks = (field, value, title) => {
+  if (!hasVal(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = DATE_FIELDS.includes(field) ? [formatDate(value)]
+    : DATETIME_FIELDS.includes(field) ? [formatDateTime(value)]
+      : NUMBER_UNITS[field] && typeof value === 'number' ? [displayScalar(value) + ' ' + NUMBER_UNITS[field]]
+        : splitFieldValue(field, value);
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed ? humanizeKey(parsed.label) : '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
+};
+const arrayNarrativeBlocks = (field, value, title) => {
+  if (!Array.isArray(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = value.flatMap((item) => splitFieldValue(field, item));
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed ? humanizeKey(parsed.label) : '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
+};
+const measurableBlocks = (items) => (Array.isArray(items) ? items : []).flatMap((item, itemIndex) => {
+  const blocks = Object.entries(item || {}).flatMap(([key, value]) =>
+    recursiveBlocks(value, 'measurableDisease.' + itemIndex + '.' + key));
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    itemLabel: blockIndex === 0 ? 'Lesion ' + (itemIndex + 1) : '',
+  }));
+});
+const recommendationBlocks = (items) => groupRecommendations(Array.isArray(items) ? items : []).flatMap((group) => {
+  const blocks = [];
+  if (group.date) blocks.push({ key: 'date-' + group.key, subLabel: 'Recommendation Date', value: formatDate(group.date) });
+  group.items.forEach(({ item, index }, groupIndex) => {
+    const recommendation = typeof item === 'string' ? item : item?.recommendation;
+    if (hasVal(recommendation)) blocks.push({ key: 'recommendation-' + index, value: String(recommendation), rowNumber: group.items.length > 1 ? groupIndex + 1 : undefined });
+  });
+  return blocks;
+});
+const objectArrayBlocks = (field, value) => (Array.isArray(value) ? value : [value]).flatMap((item, itemIndex) => {
+  const blocks = recursiveBlocks(item, field + '.' + itemIndex);
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    groupKey: field + '.' + itemIndex,
+    itemLabel: blockIndex === 0 ? (OBJECT_ITEM_LABELS[field] || FIELD_LABELS[field] || humanizeKey(field)) + ' ' + (itemIndex + 1) : '',
+  }));
+});
+const sectionBlocks = (record, section) => section.fields.flatMap((field) => {
+  const value = record[field];
+  if (MIXED_OBJECT_ARRAY_FIELDS.includes(field) && Array.isArray(value) && value.some((item) => !isScalar(item))) return objectArrayBlocks(field, value).map((block, index) => ({
+    ...block,
+    fieldLabel: block.fieldLabel || (index === 0 && FIELD_LABELS[field] !== section.title ? FIELD_LABELS[field] : ''),
+  }));
+  if (OBJECT_FIELDS.includes(field)) return (OBJECT_ITEM_LABELS[field] ? objectArrayBlocks(field, value) : recursiveBlocks(value, field)).map((block, index) => ({
+    ...block,
+    fieldLabel: block.fieldLabel || (index === 0 && FIELD_LABELS[field] !== section.title ? FIELD_LABELS[field] : ''),
+  }));
+  if (fieldIn(ARRAY_FIELDS, field)) return arrayNarrativeBlocks(field, value, section.title);
+  if (field === 'recommendations') return recommendationBlocks(value);
+  return narrativeBlocks(field, value, section.title);
+});
+const groupShortFields = (blocks) => {
+  const groups = [];
+  blocks.forEach((block) => {
+    const groupKey = block.groupKey || block.key;
+    const previous = groups[groups.length - 1];
+    if (previous?.key === groupKey) previous.blocks.push(block);
+    else groups.push({ key: groupKey, blocks: [block] });
+  });
+  return groups;
+};
+const chunkLongGroups = (groups, chunkSize = 6) => groups.flatMap((group) => {
+  if (group.blocks.length <= 8) return [group];
+  const chunks = [];
+  for (let index = 0; index < group.blocks.length; index += chunkSize) {
+    chunks.push({ key: group.key + '-chunk-' + index, blocks: group.blocks.slice(index, index + chunkSize) });
+  }
+  return chunks;
+});
+const renderSection = (section, blocks) => {
+  if (!blocks.length) return null;
+  let blockIndex = 0;
+  const sectionProps = blocks.length <= 8 ? { wrap: false } : {};
+  return <View key={section.id} {...sectionProps}>{chunkLongGroups(groupShortFields(blocks)).map((group) => {
+    return <View key={group.key} wrap={false}>{group.blocks.map((block) => {
+      const index = blockIndex++;
+      return <View key={block.key} style={styles.block} wrap={false}>
+        {index === 0 && <Text style={styles.sectionTitle}>{section.title}</Text>}
+        {block.fieldLabel && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+        {block.itemLabel && <Text style={styles.itemLabel}>{block.itemLabel}</Text>}
+        {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+        <Text style={block.rowNumber ? styles.listItem : styles.fieldValue}>{block.rowNumber ? block.rowNumber + '. ' + block.value : block.value}</Text>
+      </View>;
+    })}</View>;
+  })}</View>;
+};
+const unwrap = (data) => (Array.isArray(data) ? data : [data]).flatMap((record) => {
+  if (record?.skin_grafting_evaluation) return Array.isArray(record.skin_grafting_evaluation) ? record.skin_grafting_evaluation : [record.skin_grafting_evaluation];
+  if (record?.documentData) {
+    const nested = record.documentData;
+    if (Array.isArray(nested)) return nested;
+    if (nested?.skin_grafting_evaluation) return Array.isArray(nested.skin_grafting_evaluation) ? nested.skin_grafting_evaluation : [nested.skin_grafting_evaluation];
+    return [nested];
+  }
+  return [record];
+}).filter((record) => record && typeof record === 'object');
+
+export default function SkinGraftingEvaluationDocumentPDFTemplate({ document: data }) {
+  const records = React.useMemo(() => unwrap(data), [data]);
+  return <Document><Page size="LETTER" style={styles.page}>
+    <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Skin Grafting Evaluation</Text></View>
+    {!records.length && <Text style={styles.noDataText}>No skin grafting evaluation data available</Text>}
+    {records.map((record, recordIndex) => <View key={recordIndex} style={styles.recordContainer} break={recordIndex > 0}>
+      <View wrap={false}><Text style={styles.recordTitle}>Skin Grafting Evaluation Record {recordIndex + 1}</Text></View>
+      {SECTIONS.map((section) => renderSection(section, sectionBlocks(record, section)))}
+    </View>)}
+    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => pageNumber + ' / ' + totalPages} fixed />
+  </Page></Document>;
+}

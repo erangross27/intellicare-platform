@@ -23,7 +23,7 @@ function buildContext(req, operation = 'read') {
 function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
-const ALLOWED_FIELDS = ['primaryCaregiverType', 'caregiverAvailabilityHours', 'caregiverBurdenScale', 'livingArrangementStatus', 'socialIsolationRiskScore', 'familySupportSystemStrength', 'medicationManagementSupport', 'emergencyContactAvailability', 'socialWorkerAssignment', 'homeHealthAideHours', 'supportGroupParticipation', 'advanceDirectiveDiscussion', 'transportationAccessibility', 'financialSupportAdequacy', 'dischargeReadinessScore', 'careCoordinationComplexity', 'palliativeCareReferralStatus', 'communityResourceUtilization', 'psychosocialRiskFactors', 'provider', 'facility'];
+const ALLOWED_FIELDS = ['primaryCaregiverType', 'caregiverAvailabilityHours', 'caregiverBurdenScale', 'livingArrangementStatus', 'socialIsolationRiskScore', 'familySupportSystemStrength', 'medicationManagementSupport', 'emergencyContactAvailability', 'socialWorkerAssignment', 'homeHealthAideHours', 'supportGroupParticipation', 'advanceDirectiveDiscussion', 'transportationAccessibility', 'financialSupportAdequacy', 'dischargeReadinessScore', 'careCoordinationComplexity', 'palliativeCareReferralStatus', 'communityResourceUtilization', 'psychosocialRiskFactors', 'provider', 'facility', 'additionalData'];
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params;

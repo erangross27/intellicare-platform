@@ -28,7 +28,10 @@ one-pass rules injected by `claude-hooks/user-prompt-search.sh` and
 
 1. **Lock the target before editing.** Record the tracker row and prompt, Mongo
    collection, JSX component, PDF component, and exact real-record reference.
-   If the user changes the target, discard the old lock and resolve all six again.
+   Before resolving that lock, verify the immediately prior completed tracker row
+   has A:D solid `#00B0F0` by values/styles readback. If that evidence is missing,
+   stop on the prior row and do not inspect, lock, or edit the next template. If
+   the user changes the target, discard the old lock and resolve all six again.
 2. **Use two kinds of evidence.** Audit the full real Mongo record. For every
    modified generic-renderer branch that record does not populate, also audit a
    minimal non-PHI shape fixture. When the user reports an exact visible value,
@@ -54,7 +57,7 @@ one-pass rules injected by `claude-hooks/user-prompt-search.sh` and
    is available: read the exact row, format A:D solid `#00B0F0`, then read back
    values and styles (and an image when available). Use an offline workbook tool
    only when no live Excel session exists. Never blue a row before the completion
-   gate succeeds.
+   gate succeeds, and never begin the next tracker row until this readback succeeds.
 8. **Always include the testing identity in the final report.** Every completed
    template report must state the template name, patient name, medical collection,
    and the exact test line in the form `Show me <Patient Name> <Template Name>`.

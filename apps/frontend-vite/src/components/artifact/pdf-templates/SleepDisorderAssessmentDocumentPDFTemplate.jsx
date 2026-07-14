@@ -1,709 +1,318 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * SleepDisorderAssessmentDocumentPDFTemplate - Professional Table Layout
- * December 2025 Standard - Clean, readable tables with clear structure
- * Helvetica font, large fonts, professional medical report format
- */
-
-// Styles for professional table layout
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    lineHeight: 1.5,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  // Document Header
-  documentHeader: {
-    marginBottom: 20,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 12,
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1f2937',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  // Record Container
-  recordContainer: {
-    marginBottom: 24,
-  },
-  recordHeader: {
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#000000',
-    marginBottom: 16,
-  },
-  recordTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-  },
-  recordDate: {
-    fontSize: 10,
-    color: '#333333',
-    marginTop: 4,
-  },
-  // Section styling
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    backgroundColor: '#e8e8e8',
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#000000',
-    marginBottom: 0,
-  },
-  // Table styling
-  table: {
-    borderWidth: 1,
-    borderColor: '#000000',
-    borderTopWidth: 0,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#cccccc',
-  },
-  tableRowLast: {
-    flexDirection: 'row',
-  },
-  tableCellLabel: {
-    width: '40%',
-    padding: 8,
-    backgroundColor: '#f8f8f8',
-    borderRightWidth: 1,
-    borderRightColor: '#cccccc',
-  },
-  tableCellValue: {
-    width: '60%',
-    padding: 8,
-  },
-  cellLabel: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#333333',
-  },
-  cellValue: {
-    fontSize: 10,
-    color: '#000000',
-  },
-  // Score Overview Table
-  scoreTable: {
-    borderWidth: 1,
-    borderColor: '#000000',
-    borderTopWidth: 0,
-  },
-  scoreHeaderRow: {
-    flexDirection: 'row',
-    backgroundColor: '#e8e8e8',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-  },
-  scoreHeaderCell: {
-    padding: 8,
-    borderRightWidth: 1,
-    borderRightColor: '#cccccc',
-  },
-  scoreHeaderCellLast: {
-    padding: 8,
-  },
-  scoreHeaderText: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textAlign: 'center',
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#cccccc',
-  },
-  scoreRowLast: {
-    flexDirection: 'row',
-  },
-  scoreCell: {
-    padding: 8,
-    borderRightWidth: 1,
-    borderRightColor: '#cccccc',
-  },
-  scoreCellLast: {
-    padding: 8,
-  },
-  scoreCellText: {
-    fontSize: 10,
-    color: '#000000',
-  },
-  scoreCellTextBold: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-  },
-  // Risk indicator cell with color
-  riskCell: {
-    padding: 8,
-    borderRightWidth: 1,
-    borderRightColor: '#cccccc',
-    alignItems: 'center',
-  },
-  riskIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  // Legend
-  legendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
-    marginBottom: 16,
-    gap: 16,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  legendText: {
-    fontSize: 8,
-    color: '#666666',
-  },
-  // Bar Chart Styles
-  barChartContainer: {
-    marginTop: 8,
-  },
-  barChartRow: {
-    marginBottom: 12,
-  },
-  barChartLabel: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#333333',
-    marginBottom: 4,
-  },
-  barChartWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  barBackground: {
-    flex: 1,
-    height: 16,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 4,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  barFill: {
-    height: 16,
-    borderRadius: 4,
-  },
-  barValueContainer: {
-    width: 50,
-    marginLeft: 8,
-  },
-  barValue: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-  },
-  barInterpretation: {
-    fontSize: 9,
-    marginTop: 2,
-    fontFamily: 'Helvetica-Bold',
-  },
-  // List items in table
-  listContainer: {
-    paddingLeft: 0,
-  },
-  listItem: {
-    fontSize: 10,
-    color: '#000000',
-    marginBottom: 4,
-  },
-  // Boolean indicator
-  booleanYes: {
-    fontSize: 10,
-    color: '#898989',
-    fontFamily: 'Helvetica-Bold',
-  },
-  booleanNo: {
-    fontSize: 10,
-    color: '#666666',
-  },
-  noData: {
-    fontSize: 12,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginTop: 40,
-  },
+  page: { padding: 36, paddingBottom: 48, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 18 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 12 },
+  block: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999', borderBottomStyle: 'solid', marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  itemLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14 },
+  listItem: { fontSize: 14, paddingLeft: 10 },
+  noDataText: { fontSize: 14, marginTop: 30 },
+  pageNumber: { position: 'absolute', bottom: 20, left: 36, right: 36, fontSize: 9, color: '#666', textAlign: 'center' },
 });
 
-// Clinical score interpretation using actual score ranges (not percentages)
-// Each assessment has its own clinically validated thresholds
-
-// Epworth Sleepiness Scale (ESS): 0-24
-// 0-5: Normal, 6-10: Mild, 11-12: Moderate, 13-24: Severe
-const getESSInterpretation = (score) => {
-  if (score <= 5) return { color: '#898989', text: 'Normal', range: '0-5' };
-  if (score <= 10) return { color: '#7a7a7a', text: 'Mild Sleepiness', range: '6-10' };
-  if (score <= 12) return { color: '#a7a7a7', text: 'Moderate Sleepiness', range: '11-12' };
-  return { color: '#777777', text: 'Severe Sleepiness', range: '13-24' };
+const SECTIONS = [
+  { id: 'assessmentInfo', title: 'Assessment Information', fields: ['date', 'status'] },
+  { id: 'screeningScores', title: 'Screening Scores', fields: ['epworthSleepinessScore', 'pittsburghSleepQualityIndex', 'stopBangScore'] },
+  { id: 'sleepMetrics', title: 'Sleep Metrics', fields: ['averageSleepDuration', 'sleepLatency', 'nighttimeAwakenings'] },
+  { id: 'symptoms', title: 'Symptoms', fields: ['snoringFrequency', 'witnessedApneas', 'restlessLegSymptoms', 'periodicLimbMovements'] },
+  { id: 'disorderClassifications', title: 'Disorder Classifications', fields: ['parasomniaType', 'insomniaSubtype', 'circadianRhythmDisorder'] },
+  { id: 'physicalExam', title: 'Physical Examination', fields: ['neckCircumference', 'mallampatiScore'] },
+  { id: 'narcolepsySymptoms', title: 'Narcolepsy Symptoms', fields: ['cataplexyPresent', 'sleepParalysisFrequency', 'hypnagogicHallucinations'] },
+  { id: 'sleepEnvironment', title: 'Sleep Environment', fields: ['bedtimeRoutine', 'caffeineIntakeDaily', 'sleepEnvironmentIssues'] },
+  { id: 'priorTesting', title: 'Prior Testing', fields: ['priorPolysomnographyDate', 'apneaHypopneaIndex', 'oxygenDesaturationIndex'] },
+  { id: 'cpapCompliance', title: 'CPAP Compliance', fields: ['currentCpapCompliance'] },
+];
+const FIELD_LABELS = {
+  date: 'Date', status: 'Status', epworthSleepinessScore: 'Epworth Sleepiness Scale', pittsburghSleepQualityIndex: 'Pittsburgh Sleep Quality Index', stopBangScore: 'STOP-BANG Score', averageSleepDuration: 'Average Sleep Duration', sleepLatency: 'Sleep Latency', nighttimeAwakenings: 'Nighttime Awakenings', snoringFrequency: 'Snoring Frequency', witnessedApneas: 'Witnessed Apneas', restlessLegSymptoms: 'Restless Leg Symptoms', periodicLimbMovements: 'Periodic Limb Movements', parasomniaType: 'Parasomnia Type', insomniaSubtype: 'Insomnia Subtype', circadianRhythmDisorder: 'Circadian Rhythm Disorder', neckCircumference: 'Neck Circumference', mallampatiScore: 'Mallampati Score', cataplexyPresent: 'Cataplexy Present', sleepParalysisFrequency: 'Sleep Paralysis Frequency', hypnagogicHallucinations: 'Hypnagogic Hallucinations', bedtimeRoutine: 'Bedtime Routine', caffeineIntakeDaily: 'Caffeine Intake', sleepEnvironmentIssues: 'Environment Issues', priorPolysomnographyDate: 'Prior Polysomnography Date', apneaHypopneaIndex: 'Apnea-Hypopnea Index', oxygenDesaturationIndex: 'Oxygen Desaturation Index', currentCpapCompliance: 'Current CPAP Compliance',
 };
+const DATE_FIELDS = ['date', 'priorPolysomnographyDate'];
+const DATETIME_FIELDS = [];
+const NUMBER_UNITS = { averageSleepDuration: 'hrs/night', sleepLatency: 'min', nighttimeAwakenings: 'per night', neckCircumference: 'cm', caffeineIntakeDaily: 'mg/day', apneaHypopneaIndex: 'events/hr', oxygenDesaturationIndex: 'events/hr' };
+const OBJECT_FIELDS = [];
+const MIXED_OBJECT_ARRAY_FIELDS = [];
+const OBJECT_ITEM_LABELS = {};
+const NARRATIVE_PATHS = [];
+const PARENTHETICAL_LABEL_FIELDS = [];
+const PARENTHETICAL_SEMICOLON_FIELDS = [];
+const COMMA_FIELDS = ['bedtimeRoutine'];
+const COMMA_ARRAY_SPLIT_FIELDS = ['parasomniaType', 'sleepEnvironmentIssues'];
+const ARRAY_FIELDS = ['parasomniaType', 'sleepEnvironmentIssues'];
+const SEMICOLON_FIELDS = [];
 
-// Pittsburgh Sleep Quality Index (PSQI): 0-21
-// 0-4: Good, 5-10: Poor, 11-21: Very Poor
-const getPSQIInterpretation = (score) => {
-  if (score <= 4) return { color: '#898989', text: 'Good Sleep Quality', range: '0-4' };
-  if (score <= 10) return { color: '#a7a7a7', text: 'Poor Sleep Quality', range: '5-10' };
-  return { color: '#777777', text: 'Very Poor Sleep', range: '11-21' };
+const KEY_LABELS = {};
+const humanizeKey = (key) => KEY_LABELS[key] || String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (char) => char.toUpperCase()).trim();
+const normalizeRulePath = (path) => String(path || '').replace(/\.\d+(?=\.|$)/g, '[]');
+const fieldIn = (fields, path) => fields.includes(normalizeRulePath(path));
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'string' && ['null', 'n/a', 'none', 'undefined'].includes(value.trim().toLowerCase())) return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasVal);
+  return typeof value === 'object' && Object.values(value).some(hasVal);
 };
-
-// STOP-BANG Score: 0-8
-// 0-2: Low Risk, 3-4: Intermediate, 5-8: High Risk
-const getSTOPBANGInterpretation = (score) => {
-  if (score <= 2) return { color: '#898989', text: 'Low OSA Risk', range: '0-2' };
-  if (score <= 4) return { color: '#a7a7a7', text: 'Intermediate OSA Risk', range: '3-4' };
-  return { color: '#777777', text: 'High OSA Risk', range: '5-8' };
-};
-
-// Mallampati Score: 1-4
-// Class I: Low Risk, Class II: Low-Moderate, Class III: Moderate, Class IV: High Risk
-const getMallampatiInterpretation = (score) => {
-  if (score === 1) return { color: '#898989', text: 'Class I - Easy Airway', range: '1' };
-  if (score === 2) return { color: '#7a7a7a', text: 'Class II - Moderate', range: '2' };
-  if (score === 3) return { color: '#a7a7a7', text: 'Class III - Difficult', range: '3' };
-  return { color: '#777777', text: 'Class IV - Very Difficult', range: '4' };
-};
-
-// Prepare chart data for a record
-const prepareChartData = (record) => {
-  const charts = [];
-
-  // Epworth Sleepiness Scale (0-24)
-  if (record.epworthSleepinessScore != null) {
-    const value = parseFloat(record.epworthSleepinessScore);
-    if (!isNaN(value) && value >= 0) {
-      const interp = getESSInterpretation(value);
-      const percentage = (value / 24) * 100;
-      charts.push({
-        label: 'Epworth Sleepiness Scale (ESS)',
-        percentage,
-        rawValue: `${value}/24`,
-        color: interp.color,
-        interpretation: interp.text
-      });
-    }
-  }
-
-  // Pittsburgh Sleep Quality Index (0-21)
-  if (record.pittsburghSleepQualityIndex != null) {
-    const value = parseFloat(record.pittsburghSleepQualityIndex);
-    if (!isNaN(value) && value >= 0) {
-      const interp = getPSQIInterpretation(value);
-      const percentage = (value / 21) * 100;
-      charts.push({
-        label: 'Pittsburgh Sleep Quality Index (PSQI)',
-        percentage,
-        rawValue: `${value}/21`,
-        color: interp.color,
-        interpretation: interp.text
-      });
-    }
-  }
-
-  // STOP-BANG Score (0-8)
-  if (record.stopBangScore != null) {
-    const value = parseFloat(record.stopBangScore);
-    if (!isNaN(value) && value >= 0) {
-      const interp = getSTOPBANGInterpretation(value);
-      const percentage = (value / 8) * 100;
-      charts.push({
-        label: 'STOP-BANG Score (OSA Risk)',
-        percentage,
-        rawValue: `${value}/8`,
-        color: interp.color,
-        interpretation: interp.text
-      });
-    }
-  }
-
-  // Mallampati Score (1-4)
-  if (record.mallampatiScore != null) {
-    const value = parseFloat(record.mallampatiScore);
-    if (!isNaN(value) && value >= 1 && value <= 4) {
-      const interp = getMallampatiInterpretation(value);
-      const percentage = ((value - 1) / 3) * 100;
-      charts.push({
-        label: 'Mallampati Score (Airway)',
-        percentage,
-        rawValue: `${value}/4`,
-        color: interp.color,
-        interpretation: interp.text
-      });
-    }
-  }
-
-  return charts;
-};
-
-// Format date
-const formatDate = (dateString) => {
-  if (!dateString) return '';
+const isScalar = (value) => value === null || typeof value !== 'object';
+const normalizeDisplayText = (value) => String(value ?? '').replace(/≥/g, '>=').replace(/≤/g, '<=');
+const displayScalar = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : normalizeDisplayText(value);
+const formatDate = (value) => {
   try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  } catch {
-    return dateString;
-  }
-};
-
-// Format boolean with styling
-const formatBoolean = (value) => {
-  if (value === true) return 'Yes';
-  if (value === false) return 'No';
-  return '';
-};
-
-// Table Row Component
-const TableRow = ({ label, value, isLast = false }) => (
-  <View style={isLast ? styles.tableRowLast : styles.tableRow}>
-    <View style={styles.tableCellLabel}>
-      <Text style={styles.cellLabel}>{String(label)}</Text>
-    </View>
-    <View style={styles.tableCellValue}>
-      <Text style={styles.cellValue}>{String(value)}</Text>
-    </View>
-  </View>
-);
-
-// Boolean Row Component with colored indicator
-const BooleanRow = ({ label, value, isLast = false }) => (
-  <View style={isLast ? styles.tableRowLast : styles.tableRow}>
-    <View style={styles.tableCellLabel}>
-      <Text style={styles.cellLabel}>{String(label)}</Text>
-    </View>
-    <View style={styles.tableCellValue}>
-      <Text style={value === true ? styles.booleanYes : styles.booleanNo}>
-        {formatBoolean(value)}
-      </Text>
-    </View>
-  </View>
-);
-
-// List Row Component
-const ListRow = ({ label, items, isLast = false }) => (
-  <View style={isLast ? styles.tableRowLast : styles.tableRow}>
-    <View style={styles.tableCellLabel}>
-      <Text style={styles.cellLabel}>{String(label)}</Text>
-    </View>
-    <View style={styles.tableCellValue}>
-      <View style={styles.listContainer}>
-        {items.map((item, idx) => (
-          <Text key={idx} style={styles.listItem}>
-            {idx + 1}. {String(item)}
-          </Text>
-        ))}
-      </View>
-    </View>
-  </View>
-);
-
-// Score Legend - Shows risk levels (score ranges shown in interpretation column)
-const ScoreLegend = () => (
-  <View style={styles.legendContainer}>
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: '#898989' }]} />
-      <Text style={styles.legendText}>Normal/Low</Text>
-    </View>
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: '#7a7a7a' }]} />
-      <Text style={styles.legendText}>Mild</Text>
-    </View>
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: '#a7a7a7' }]} />
-      <Text style={styles.legendText}>Moderate</Text>
-    </View>
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: '#777777' }]} />
-      <Text style={styles.legendText}>High/Severe</Text>
-    </View>
-  </View>
-);
-
-// Bar Chart Component for PDF
-const BarChart = ({ label, percentage, rawValue, color, interpretation }) => (
-  <View style={styles.barChartRow}>
-    <Text style={styles.barChartLabel}>{String(label)}</Text>
-    <View style={styles.barChartWrapper}>
-      <View style={styles.barBackground}>
-        <View
-          style={[
-            styles.barFill,
-            {
-              width: `${Math.min(100, Math.max(0, percentage))}%`,
-              backgroundColor: color
-            }
-          ]}
-        />
-      </View>
-      <View style={styles.barValueContainer}>
-        <Text style={styles.barValue}>{String(rawValue)}</Text>
-      </View>
-    </View>
-    <Text style={[styles.barInterpretation, { color }]}>{String(interpretation)}</Text>
-  </View>
-);
-
-const SleepDisorderAssessmentDocumentPDFTemplate = ({ document: data }) => {
-  // Handle data unwrapping
-  let records = [];
-  if (Array.isArray(data)) {
-    records = data;
-  } else if (data?.sleep_disorder_assessment && Array.isArray(data.sleep_disorder_assessment)) {
-    records = data.sleep_disorder_assessment;
-  } else if (data?.documentData) {
-    const docData = data.documentData;
-    if (Array.isArray(docData)) {
-      records = docData;
-    } else if (docData?.sleep_disorder_assessment) {
-      records = docData.sleep_disorder_assessment;
-    } else if (docData && typeof docData === 'object') {
-      records = [docData];
+    const raw = String(value?.$date || value || '');
+    if (/^\d{4}-\d{2}$/.test(raw)) {
+      const [year, month] = raw.split('-').map(Number);
+      return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' });
     }
-  } else if (data && typeof data === 'object') {
-    records = [data];
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(value || ''); }
+};
+const formatDateTime = (value) => {
+  if (!value) return '';
+  try {
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return String(value || ''); }
+};
+const isDatePathValue = (path, value) => DATE_FIELDS.includes(path)
+  || (/(?:^|\.)(?:startDate|date)$/i.test(path) && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value));
+const splitGuardedComma = (text) => {
+  const source = String(text || '');
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    if (char !== ',' || depth > 0) { current += char; continue; }
+    const before = current.trim();
+    const after = source.slice(index + 1);
+    const trimmed = after.trimStart();
+    const next = (trimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+    const previous = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+    const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(trimmed))
+      || after.length === trimmed.length
+      || ['and', 'or', 'then'].includes(next)
+      || ['and', 'or'].includes(previous);
+    if (protectedComma) current += char;
+    else { if (before) result.push(before); current = ''; }
   }
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Sleep Disorder Assessment</Text>
-          </View>
-          <Text style={styles.noData}>No assessment data available</Text>
-        </Page>
-      </Document>
-    );
+  if (current.trim()) result.push(current.trim());
+  return (result.length ? result : [source]).map((item, index) => index > 0 ? item.replace(/^(?:and|or)\s+/i, '') : item);
+};
+const splitBySentence = (text) => String(text || '')
+  .split(/(?:;\s+|(?<=\d)\.(?=\s+[A-Z])\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/)
+  .map((part) => part.replace(/^[;.,\s]+|[;.,\s]+$/g, '').trim())
+  .filter(Boolean);
+const splitFieldValue = (field, value) => {
+  if (typeof value === 'boolean') return [value ? 'Yes' : 'No'];
+  if (fieldIn(PARENTHETICAL_SEMICOLON_FIELDS, field)) {
+    const match = String(value || '').match(/^(.+?)\s*\(([^;]+);\s*([^)]+)\)$/);
+    if (match) return [match[1].trim(), match[2].trim(), match[3].trim()];
   }
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Sleep Disorder Assessment Report</Text>
-        </View>
-
-        {records.map((record, idx) => {
-          const chartData = prepareChartData(record);
-
-          return (
-            <View key={idx} style={styles.recordContainer} minPresenceAhead={80}>
-              {/* Record Header */}
-              <View style={styles.recordHeader}>
-                <Text style={styles.recordTitle}>Assessment {idx + 1}</Text>
-                {record.date && (
-                  <Text style={styles.recordDate}>Date: {formatDate(record.date)}</Text>
-                )}
-                {record.status && (
-                  <Text style={styles.recordDate}>Status: {String(record.status)}</Text>
-                )}
-              </View>
-
-              {/* Score Overview with Bar Charts */}
-              {chartData.length > 0 && (
-                <View style={styles.section} minPresenceAhead={80}>
-                  <Text style={styles.sectionTitle}>Score Overview</Text>
-                  <ScoreLegend />
-                  <View style={styles.barChartContainer}>
-                    {chartData.map((chart, cIdx) => (
-                      <BarChart
-                        key={cIdx}
-                        label={chart.label}
-                        percentage={chart.percentage}
-                        rawValue={chart.rawValue}
-                        color={chart.color}
-                        interpretation={chart.interpretation}
-                      />
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Sleep Metrics Table */}
-              {(record.averageSleepDuration != null || record.sleepLatency != null || record.nighttimeAwakenings != null) && (
-                <View style={styles.section} minPresenceAhead={80}>
-                  <Text style={styles.sectionTitle}>Sleep Metrics</Text>
-                  <View style={styles.table}>
-                    {record.averageSleepDuration != null && (
-                      <TableRow label="Average Sleep Duration" value={`${record.averageSleepDuration} hours`} />
-                    )}
-                    {record.sleepLatency != null && (
-                      <TableRow label="Sleep Latency" value={`${record.sleepLatency} minutes`} />
-                    )}
-                    {record.nighttimeAwakenings != null && (
-                      <TableRow
-                        label="Nighttime Awakenings"
-                        value={`${record.nighttimeAwakenings} per night`}
-                        isLast={true}
-                      />
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* Symptoms Table */}
-              {(record.snoringFrequency || record.witnessedApneas !== undefined ||
-                record.restlessLegSymptoms !== undefined || record.periodicLimbMovements !== undefined) && (
-                <View style={styles.section} minPresenceAhead={80}>
-                  <Text style={styles.sectionTitle}>Symptoms</Text>
-                  <View style={styles.table}>
-                    {record.snoringFrequency && (
-                      <TableRow label="Snoring Frequency" value={record.snoringFrequency} />
-                    )}
-                    {record.witnessedApneas !== undefined && (
-                      <BooleanRow label="Witnessed Apneas" value={record.witnessedApneas} />
-                    )}
-                    {record.restlessLegSymptoms !== undefined && (
-                      <BooleanRow label="Restless Leg Symptoms" value={record.restlessLegSymptoms} />
-                    )}
-                    {record.periodicLimbMovements !== undefined && (
-                      <BooleanRow label="Periodic Limb Movements" value={record.periodicLimbMovements} isLast={true} />
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* Disorder Classifications Table */}
-              {((record.parasomniaType && record.parasomniaType.length > 0) ||
-                record.insomniaSubtype || record.circadianRhythmDisorder) && (
-                <View style={styles.section} minPresenceAhead={80}>
-                  <Text style={styles.sectionTitle}>Disorder Classifications</Text>
-                  <View style={styles.table}>
-                    {record.parasomniaType && record.parasomniaType.length > 0 && (
-                      <ListRow label="Parasomnia Type" items={record.parasomniaType} />
-                    )}
-                    {record.insomniaSubtype && (
-                      <TableRow label="Insomnia Subtype" value={record.insomniaSubtype} />
-                    )}
-                    {record.circadianRhythmDisorder && (
-                      <TableRow label="Circadian Rhythm Disorder" value={record.circadianRhythmDisorder} isLast={true} />
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* Physical Exam Table */}
-              {(record.neckCircumference != null || record.mallampatiScore != null) && (
-                <View style={styles.section} minPresenceAhead={80}>
-                  <Text style={styles.sectionTitle}>Physical Examination</Text>
-                  <View style={styles.table}>
-                    {record.neckCircumference != null && (
-                      <TableRow label="Neck Circumference" value={`${record.neckCircumference} cm`} />
-                    )}
-                    {record.mallampatiScore != null && (
-                      <TableRow label="Mallampati Score" value={`${record.mallampatiScore}/4`} isLast={true} />
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* Narcolepsy Symptoms Table */}
-              {(record.cataplexyPresent !== undefined || record.sleepParalysisFrequency ||
-                record.hypnagogicHallucinations !== undefined) && (
-                <View style={styles.section} minPresenceAhead={80}>
-                  <Text style={styles.sectionTitle}>Narcolepsy Symptoms</Text>
-                  <View style={styles.table}>
-                    {record.cataplexyPresent !== undefined && (
-                      <BooleanRow label="Cataplexy Present" value={record.cataplexyPresent} />
-                    )}
-                    {record.sleepParalysisFrequency && (
-                      <TableRow label="Sleep Paralysis Frequency" value={record.sleepParalysisFrequency} />
-                    )}
-                    {record.hypnagogicHallucinations !== undefined && (
-                      <BooleanRow label="Hypnagogic Hallucinations" value={record.hypnagogicHallucinations} isLast={true} />
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* Sleep Environment Table */}
-              {(record.bedtimeRoutine || record.caffeineIntakeDaily != null ||
-                (record.sleepEnvironmentIssues && record.sleepEnvironmentIssues.length > 0)) && (
-                <View style={styles.section} minPresenceAhead={80}>
-                  <Text style={styles.sectionTitle}>Sleep Environment</Text>
-                  <View style={styles.table}>
-                    {record.bedtimeRoutine && (
-                      <TableRow label="Bedtime Routine" value={record.bedtimeRoutine} />
-                    )}
-                    {record.caffeineIntakeDaily != null && (
-                      <TableRow label="Caffeine Intake" value={`${record.caffeineIntakeDaily} mg/day`} />
-                    )}
-                    {record.sleepEnvironmentIssues && record.sleepEnvironmentIssues.length > 0 && (
-                      <ListRow label="Environment Issues" items={record.sleepEnvironmentIssues} isLast={true} />
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* Prior Testing Table */}
-              {(record.priorPolysomnographyDate || record.apneaHypopneaIndex != null || record.oxygenDesaturationIndex != null) && (
-                <View style={styles.section} minPresenceAhead={80}>
-                  <Text style={styles.sectionTitle}>Prior Testing</Text>
-                  <View style={styles.table}>
-                    {record.priorPolysomnographyDate && (
-                      <TableRow label="Prior Polysomnography Date" value={formatDate(record.priorPolysomnographyDate)} />
-                    )}
-                    {record.apneaHypopneaIndex != null && (
-                      <TableRow label="Apnea-Hypopnea Index (AHI)" value={`${record.apneaHypopneaIndex} events/hour`} />
-                    )}
-                    {record.oxygenDesaturationIndex != null && (
-                      <TableRow label="Oxygen Desaturation Index (ODI)" value={`${record.oxygenDesaturationIndex} events/hour`} isLast={true} />
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* CPAP Compliance Table */}
-              {record.currentCpapCompliance !== undefined && (
-                <View style={styles.section} minPresenceAhead={80}>
-                  <Text style={styles.sectionTitle}>CPAP Compliance</Text>
-                  <View style={styles.table}>
-                    <BooleanRow label="Current CPAP Compliance" value={record.currentCpapCompliance} isLast={true} />
-                  </View>
-                </View>
-              )}
-            </View>
-          );
-        })}
-      </Page>
-    </Document>
-  );
+  if (fieldIn(PARENTHETICAL_LABEL_FIELDS, field)) {
+    const match = String(value || '').match(/^(.+?)\s*\(([A-Za-z][A-Za-z ]+):\s*([^)]+)\)\s*(.*)$/);
+    if (match) return [match[1].trim(), match[2].trim() + ': ' + match[3].trim(), match[4].trim()].filter(Boolean);
+  }
+  const normalizedValue = typeof value === 'string' ? normalizeDisplayText(value) : value;
+  const firstPass = fieldIn(SEMICOLON_FIELDS, field) || String(normalizedValue ?? '').includes('. ')
+    ? splitBySentence(normalizedValue)
+    : [String(normalizedValue ?? '').trim()].filter(Boolean);
+  return firstPass.flatMap((part) => fieldIn(COMMA_FIELDS, field) || fieldIn(COMMA_ARRAY_SPLIT_FIELDS, field) ? splitGuardedComma(part) : [part]);
+};
+const parseLabel = (text) => {
+  const match = String(text || '').match(/^([A-Za-z0-9][A-Za-z0-9 /&()+-]{1,50}):\s+(.+)$/);
+  return match ? { label: match[1].trim(), value: match[2].trim() } : null;
+};
+const normalizeDateKey = (value) => {
+  if (!value) return 'no-date';
+  try { return new Date(value.$date || value).toISOString().slice(0, 10); } catch { return String(value); }
+};
+const groupRecommendations = (items) => {
+  const groups = new Map();
+  items.forEach((item, index) => {
+    const date = typeof item === 'object' && item ? item.date : null;
+    const key = normalizeDateKey(date);
+    if (!groups.has(key)) groups.set(key, { key, date, items: [] });
+    groups.get(key).items.push({ item, index });
+  });
+  return [...groups.values()];
 };
 
-export default SleepDisorderAssessmentDocumentPDFTemplate;
+const recursiveBlocks = (value, basePath, itemLabel = '') => {
+  if (!hasVal(value)) return [];
+  if (isScalar(value)) {
+    const shown = isDatePathValue(basePath, value) ? formatDate(value)
+      : DATETIME_FIELDS.includes(String(basePath).split('.')[0]) ? formatDateTime(value)
+        : NUMBER_UNITS[String(basePath).split('.')[0]] && typeof value === 'number' ? displayScalar(value) + ' ' + NUMBER_UNITS[String(basePath).split('.')[0]]
+          : displayScalar(value);
+    const isNarrative = fieldIn(NARRATIVE_PATHS, basePath);
+    const rows = isNarrative ? splitFieldValue(basePath, shown) : [shown];
+    return rows.map((row, index) => {
+      const parsed = parseLabel(row);
+      return {
+        key: basePath + '-' + index,
+        groupKey: basePath,
+        fieldLabel: isNarrative && index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '',
+        subLabel: parsed ? humanizeKey(parsed.label) : (!isNarrative && index === 0 ? humanizeKey(String(basePath).split('.').pop()) : ''),
+        itemLabel,
+        value: parsed?.value || row,
+        rowNumber: rows.length > 1 ? index + 1 : undefined,
+      };
+    });
+  }
+  if (Array.isArray(value) && fieldIn(COMMA_ARRAY_SPLIT_FIELDS, basePath)) {
+    const rows = value.flatMap((item) => splitFieldValue(basePath, item));
+    return rows.map((row, index) => ({
+      key: basePath + '-' + index,
+      groupKey: basePath,
+      subLabel: index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '',
+      itemLabel,
+      value: row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    }));
+  }
+  if (Array.isArray(value)) return value.flatMap((item, index) => recursiveBlocks(item, basePath + '.' + index, itemLabel));
+  return Object.entries(value).flatMap(([key, child]) => recursiveBlocks(child, basePath + '.' + key, itemLabel));
+};
+const narrativeBlocks = (field, value, title) => {
+  if (!hasVal(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = DATE_FIELDS.includes(field) ? [formatDate(value)]
+    : DATETIME_FIELDS.includes(field) ? [formatDateTime(value)]
+      : NUMBER_UNITS[field] && typeof value === 'number' ? [displayScalar(value) + ' ' + NUMBER_UNITS[field]]
+        : splitFieldValue(field, value);
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed ? humanizeKey(parsed.label) : '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
+};
+const arrayNarrativeBlocks = (field, value, title) => {
+  if (!Array.isArray(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = value.flatMap((item) => splitFieldValue(field, item));
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed ? humanizeKey(parsed.label) : '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
+};
+const measurableBlocks = (items) => (Array.isArray(items) ? items : []).flatMap((item, itemIndex) => {
+  const blocks = Object.entries(item || {}).flatMap(([key, value]) =>
+    recursiveBlocks(value, 'measurableDisease.' + itemIndex + '.' + key));
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    itemLabel: blockIndex === 0 ? 'Lesion ' + (itemIndex + 1) : '',
+  }));
+});
+const recommendationBlocks = (items) => groupRecommendations(Array.isArray(items) ? items : []).flatMap((group) => {
+  const blocks = [];
+  if (group.date) blocks.push({ key: 'date-' + group.key, subLabel: 'Recommendation Date', value: formatDate(group.date) });
+  group.items.forEach(({ item, index }, groupIndex) => {
+    const recommendation = typeof item === 'string' ? item : item?.recommendation;
+    if (hasVal(recommendation)) blocks.push({ key: 'recommendation-' + index, value: String(recommendation), rowNumber: group.items.length > 1 ? groupIndex + 1 : undefined });
+  });
+  return blocks;
+});
+const objectArrayBlocks = (field, value) => (Array.isArray(value) ? value : [value]).flatMap((item, itemIndex) => {
+  const blocks = recursiveBlocks(item, field + '.' + itemIndex);
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    groupKey: field + '.' + itemIndex,
+    itemLabel: blockIndex === 0 ? (OBJECT_ITEM_LABELS[field] || FIELD_LABELS[field] || humanizeKey(field)) + ' ' + (itemIndex + 1) : '',
+  }));
+});
+const sectionBlocks = (record, section) => section.fields.flatMap((field) => {
+  const value = record[field];
+  if (MIXED_OBJECT_ARRAY_FIELDS.includes(field) && Array.isArray(value) && value.some((item) => !isScalar(item))) return objectArrayBlocks(field, value).map((block, index) => ({
+    ...block,
+    fieldLabel: block.fieldLabel || (index === 0 && FIELD_LABELS[field] !== section.title ? FIELD_LABELS[field] : ''),
+  }));
+  if (OBJECT_FIELDS.includes(field)) return (OBJECT_ITEM_LABELS[field] ? objectArrayBlocks(field, value) : recursiveBlocks(value, field)).map((block, index) => ({
+    ...block,
+    fieldLabel: block.fieldLabel || (index === 0 && FIELD_LABELS[field] !== section.title ? FIELD_LABELS[field] : ''),
+  }));
+  if (fieldIn(ARRAY_FIELDS, field)) return arrayNarrativeBlocks(field, value, section.title);
+  if (field === 'recommendations') return recommendationBlocks(value);
+  return narrativeBlocks(field, value, section.title);
+});
+const groupShortFields = (blocks) => {
+  const groups = [];
+  blocks.forEach((block) => {
+    const groupKey = block.groupKey || block.key;
+    const previous = groups[groups.length - 1];
+    if (previous?.key === groupKey) previous.blocks.push(block);
+    else groups.push({ key: groupKey, blocks: [block] });
+  });
+  return groups;
+};
+const chunkLongGroups = (groups, chunkSize = 6) => groups.flatMap((group) => {
+  if (group.blocks.length <= 8) return [group];
+  const chunks = [];
+  for (let index = 0; index < group.blocks.length; index += chunkSize) {
+    chunks.push({ key: group.key + '-chunk-' + index, blocks: group.blocks.slice(index, index + chunkSize) });
+  }
+  return chunks;
+});
+const renderSection = (section, blocks) => {
+  if (!blocks.length) return null;
+  let blockIndex = 0;
+  const sectionProps = blocks.length <= 8 ? { wrap: false } : {};
+  return <View key={section.id} {...sectionProps}>{chunkLongGroups(groupShortFields(blocks)).map((group) => {
+    return <View key={group.key} wrap={false}>{group.blocks.map((block) => {
+      const index = blockIndex++;
+      return <View key={block.key} style={styles.block} wrap={false}>
+        {index === 0 && <Text style={styles.sectionTitle}>{section.title}</Text>}
+        {block.fieldLabel && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+        {block.itemLabel && <Text style={styles.itemLabel}>{block.itemLabel}</Text>}
+        {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+        <Text style={block.rowNumber ? styles.listItem : styles.fieldValue}>{block.rowNumber ? block.rowNumber + '. ' + block.value : block.value}</Text>
+      </View>;
+    })}</View>;
+  })}</View>;
+};
+const unwrap = (data) => (Array.isArray(data) ? data : [data]).flatMap((record) => {
+  if (record?.sleep_disorder_assessment) return Array.isArray(record.sleep_disorder_assessment) ? record.sleep_disorder_assessment : [record.sleep_disorder_assessment];
+  if (record?.documentData) {
+    const nested = record.documentData;
+    if (Array.isArray(nested)) return nested;
+    if (nested?.sleep_disorder_assessment) return Array.isArray(nested.sleep_disorder_assessment) ? nested.sleep_disorder_assessment : [nested.sleep_disorder_assessment];
+    return [nested];
+  }
+  return [record];
+}).filter((record) => record && typeof record === 'object');
+
+export default function SleepDisorderAssessmentDocumentPDFTemplate({ document: data }) {
+  const records = React.useMemo(() => unwrap(data), [data]);
+  return <Document><Page size="LETTER" style={styles.page}>
+    <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Sleep Disorder Assessment</Text></View>
+    {!records.length && <Text style={styles.noDataText}>No sleep disorder assessment data available</Text>}
+    {records.map((record, recordIndex) => <View key={recordIndex} style={styles.recordContainer} break={recordIndex > 0}>
+      <View wrap={false}><Text style={styles.recordTitle}>Sleep Disorder Assessment Record {recordIndex + 1}</Text></View>
+      {SECTIONS.map((section) => renderSection(section, sectionBlocks(record, section)))}
+    </View>)}
+    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => pageNumber + ' / ' + totalPages} fixed />
+  </Page></Document>;
+}

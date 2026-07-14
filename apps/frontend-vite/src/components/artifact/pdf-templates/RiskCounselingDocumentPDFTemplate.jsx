@@ -2,365 +2,264 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentHeader: {
-    marginBottom: 16,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 10,
-  },
-  title: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  recordContainer: {
-    marginBottom: 20,
-  },
-  recordHeader: {
-    marginBottom: 8,
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#000000',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-  },
-  recordMeta: {
-    fontSize: 10,
-    color: '#333333',
-    marginTop: 4,
-  },
-  section: {
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-    paddingBottom: 2,
-    marginBottom: 6,
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    marginBottom: 4,
-    paddingLeft: 8,
-  },
-  fieldLabel: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    width: 180,
-  },
-  fieldContent: {
-    fontSize: 12,
-    color: '#000000',
-    flex: 1,
-  },
-  contentText: {
-    fontSize: 12,
-    color: '#000000',
-    lineHeight: 1.4,
-    paddingLeft: 8,
-  },
-  listItem: {
-    fontSize: 12,
-    color: '#000000',
-    paddingLeft: 12,
-    marginBottom: 3,
-  },
-  nestedHeader: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginTop: 6,
-    marginBottom: 4,
-    paddingLeft: 4,
-    textTransform: 'uppercase',
-  },
+  page: { padding: 36, paddingBottom: 48, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 18 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 12 },
+  block: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999', borderBottomStyle: 'solid', marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  itemLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14 },
+  listItem: { fontSize: 14, paddingLeft: 10 },
+  noDataText: { fontSize: 14, marginTop: 30 },
+  pageNumber: { position: 'absolute', bottom: 20, left: 36, right: 36, fontSize: 9, color: '#666', textAlign: 'center' },
 });
 
-const SECTION_TITLES = {
-  'cardiovascular-metabolic': 'Cardiovascular & Metabolic Risk',
-  'organ-systems': 'Organ Systems Risk',
-  'screening-susceptibility': 'Screening & Susceptibility',
-  'lifestyle-genetics': 'Lifestyle & Genetic Factors',
-};
-
+const SECTIONS = [
+  { id: 'cardiovascularMetabolic', title: 'Cardiovascular & Metabolic Risk', fields: ['cardiovascularRiskScore', 'bleedingRiskScore', 'osteoporosisFractureRisk', 'hypertensionTargetOrganDamage', 'diabeticRetinopathyRisk', 'diabeticNephropathyRisk'] },
+  { id: 'organSystems', title: 'Organ Systems Risk', fields: ['fallRiskAssessment', 'thromboembolismRisk', 'perioperativeRiskIndex', 'renalDiseaseProgression', 'obesityComplicationRisk'] },
+  { id: 'screeningSusceptibility', title: 'Screening & Susceptibility', fields: ['cancerScreeningRisk', 'strokeRiskFactors', 'infectiousDiseaseSusceptibility', 'polypharmacyRisk', 'cognitiveDeclineRisk', 'pregnancyComplicationRisk'] },
+  { id: 'lifestyleGenetics', title: 'Lifestyle & Genetic Factors', fields: ['lifestyleModificationTargets', 'geneticPredispositionFactors', 'anticoagulationRiskBenefit'] },
+];
 const FIELD_LABELS = {
-  cardiovascularRiskScore: 'Cardiovascular Risk Score',
-  bleedingRiskScore: 'Bleeding Risk Score',
-  osteoporosisFractureRisk: 'Osteoporosis Fracture Risk',
-  hypertensionTargetOrganDamage: 'Hypertension Target Organ Damage',
-  diabeticRetinopathyRisk: 'Diabetic Retinopathy Risk',
-  diabeticNephropathyRisk: 'Diabetic Nephropathy Risk',
-  fallRiskAssessment: 'Fall Risk Assessment',
-  thromboembolismRisk: 'Thromboembolism Risk',
-  perioperativeRiskIndex: 'Perioperative Risk Index',
-  renalDiseaseProgression: 'Renal Disease Progression',
-  obesityComplicationRisk: 'Obesity Complication Risk',
-  cancerScreeningRisk: 'Cancer Screening Risk',
-  strokeRiskFactors: 'Stroke Risk Factors',
-  infectiousDiseaseSusceptibility: 'Infectious Disease Susceptibility',
-  polypharmacyRisk: 'Polypharmacy Risk',
-  cognitiveDeclineRisk: 'Cognitive Decline Risk',
-  pregnancyComplicationRisk: 'Pregnancy Complication Risk',
-  lifestyleModificationTargets: 'Lifestyle Modification Targets',
-  geneticPredispositionFactors: 'Genetic Predisposition Factors',
-  anticoagulationRiskBenefit: 'Anticoagulation Risk-Benefit',
+  cardiovascularRiskScore: 'Cardiovascular Risk Score', bleedingRiskScore: 'Bleeding Risk Score', osteoporosisFractureRisk: 'Osteoporosis Fracture Risk',
+  hypertensionTargetOrganDamage: 'Hypertension Target Organ Damage', diabeticRetinopathyRisk: 'Diabetic Retinopathy Risk', diabeticNephropathyRisk: 'Diabetic Nephropathy Risk',
+  fallRiskAssessment: 'Fall Risk Assessment', thromboembolismRisk: 'Thromboembolism Risk', perioperativeRiskIndex: 'Perioperative Risk Index', renalDiseaseProgression: 'Renal Disease Progression', obesityComplicationRisk: 'Obesity Complication Risk',
+  cancerScreeningRisk: 'Cancer Screening Risk', strokeRiskFactors: 'Stroke Risk Factors', infectiousDiseaseSusceptibility: 'Infectious Disease Susceptibility', polypharmacyRisk: 'Polypharmacy Risk', cognitiveDeclineRisk: 'Cognitive Decline Risk', pregnancyComplicationRisk: 'Pregnancy Complication Risk',
+  lifestyleModificationTargets: 'Lifestyle Modification Targets', geneticPredispositionFactors: 'Genetic Predisposition Factors', anticoagulationRiskBenefit: 'Anticoagulation Risk-Benefit',
 };
-
-const SECTION_FIELDS = {
-  'cardiovascular-metabolic': ['cardiovascularRiskScore', 'bleedingRiskScore', 'osteoporosisFractureRisk', 'hypertensionTargetOrganDamage', 'diabeticRetinopathyRisk', 'diabeticNephropathyRisk'],
-  'organ-systems': ['fallRiskAssessment', 'thromboembolismRisk', 'perioperativeRiskIndex', 'renalDiseaseProgression', 'obesityComplicationRisk'],
-  'screening-susceptibility': ['cancerScreeningRisk', 'strokeRiskFactors', 'infectiousDiseaseSusceptibility', 'polypharmacyRisk', 'cognitiveDeclineRisk', 'pregnancyComplicationRisk'],
-  'lifestyle-genetics': ['lifestyleModificationTargets', 'geneticPredispositionFactors', 'anticoagulationRiskBenefit'],
-};
-
-const NUMBER_FIELDS = ['cardiovascularRiskScore', 'bleedingRiskScore', 'osteoporosisFractureRisk'];
+const DATE_FIELDS = [];
+const OBJECT_FIELDS = [];
+const NARRATIVE_PATHS = [];
+const PARENTHETICAL_LABEL_FIELDS = [];
+const COMMA_FIELDS = ['cancerScreeningRisk', 'strokeRiskFactors', 'infectiousDiseaseSusceptibility', 'lifestyleModificationTargets', 'geneticPredispositionFactors'];
+const COMMA_ARRAY_FIELDS = ['cancerScreeningRisk', 'strokeRiskFactors', 'infectiousDiseaseSusceptibility', 'lifestyleModificationTargets', 'geneticPredispositionFactors'];
 const ARRAY_FIELDS = ['cancerScreeningRisk', 'strokeRiskFactors', 'infectiousDiseaseSusceptibility', 'lifestyleModificationTargets', 'geneticPredispositionFactors'];
+const SEMICOLON_FIELDS = ['hypertensionTargetOrganDamage', 'diabeticRetinopathyRisk', 'diabeticNephropathyRisk', 'fallRiskAssessment', 'thromboembolismRisk', 'perioperativeRiskIndex', 'renalDiseaseProgression', 'obesityComplicationRisk', 'polypharmacyRisk', 'cognitiveDeclineRisk', 'pregnancyComplicationRisk', 'anticoagulationRiskBenefit', 'cancerScreeningRisk', 'strokeRiskFactors', 'infectiousDiseaseSusceptibility', 'lifestyleModificationTargets', 'geneticPredispositionFactors'];
 
-const formatDate = (dateValue) => {
-  if (!dateValue) return '';
+const KEY_LABELS = {};
+const humanizeKey = (key) => KEY_LABELS[key] || String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, (char) => char.toUpperCase()).trim();
+const normalizeRulePath = (path) => String(path || '').replace(/\.\d+(?=\.|$)/g, '[]');
+const fieldIn = (fields, path) => fields.includes(normalizeRulePath(path));
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasVal);
+  return typeof value === 'object' && Object.values(value).some(hasVal);
+};
+const isScalar = (value) => value === null || typeof value !== 'object';
+const displayScalar = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const formatDate = (value) => {
   try {
-    const dateStr = dateValue.$date || dateValue;
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return String(dateValue);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return String(dateValue);
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(value || ''); }
+};
+const isDatePathValue = (path, value) => DATE_FIELDS.includes(path)
+  || (/(?:^|\.)(?:startDate|date)$/i.test(path) && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value));
+const splitGuardedComma = (text) => {
+  const source = String(text || '');
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    if (char !== ',' || depth > 0) { current += char; continue; }
+    const before = current.trim();
+    const after = source.slice(index + 1);
+    const trimmed = after.trimStart();
+    const nextWord = (trimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+    const previousWord = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+    const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(trimmed))
+      || after.length === trimmed.length
+      || ['and', 'or', 'then'].includes(nextWord)
+      || ['and', 'or'].includes(previousWord);
+    if (protectedComma) current += char;
+    else { if (before) result.push(before); current = ''; }
   }
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [source];
 };
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  return true;
+const splitBySentence = (text) => String(text || '')
+  .split(/(?:;\s+|(?<=\d)\.(?=\s+[A-Z])\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/)
+  .map((part) => part.replace(/^[;.,\s]+|[;.,\s]+$/g, '').trim())
+  .filter(Boolean);
+const splitFieldValue = (field, value) => {
+  if (fieldIn(PARENTHETICAL_LABEL_FIELDS, field)) {
+    const match = String(value || '').match(/^(.+?)\s*\(([A-Za-z][A-Za-z ]+):\s*([^)]+)\)\s*(.*)$/);
+    if (match) return [match[1].trim(), match[2].trim() + ': ' + match[3].trim(), match[4].trim()].filter(Boolean);
+  }
+  const firstPass = fieldIn(SEMICOLON_FIELDS, field) || String(value ?? '').includes('. ')
+    ? splitBySentence(value)
+    : [String(value ?? '').trim()].filter(Boolean);
+  return firstPass.flatMap((part) => fieldIn(COMMA_FIELDS, field) ? splitGuardedComma(part) : [part]);
 };
-
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
+const parseLabel = (text) => {
+  const match = String(text || '').match(/^([A-Za-z0-9][A-Za-z0-9 /&()+-]{1,50}):\s+(.+)$/);
+  return match ? { label: match[1].trim(), value: match[2].trim() } : null;
 };
-
-// Split into sentences helper
-const splitIntoSentences = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  const abbrevs = ['Dr', 'Mr', 'Mrs', 'Ms', 'Prof', 'St', 'Jr', 'Sr', 'vs', 'etc', 'e.g', 'i.e'];
-  let processed = text;
-  abbrevs.forEach(abbr => {
-    const regex = new RegExp(`\\b${abbr}\\.\\s`, 'g');
-    processed = processed.replace(regex, `${abbr}<<DOT>> `);
+const normalizeDateKey = (value) => {
+  if (!value) return 'no-date';
+  try { return new Date(value.$date || value).toISOString().slice(0, 10); } catch { return String(value); }
+};
+const groupRecommendations = (items) => {
+  const groups = new Map();
+  items.forEach((item, index) => {
+    const date = typeof item === 'object' && item ? item.date : null;
+    const key = normalizeDateKey(date);
+    if (!groups.has(key)) groups.set(key, { key, date, items: [] });
+    groups.get(key).items.push({ item, index });
   });
-  const sentences = processed.split(/\.\s+/).filter(s => s.trim());
-  return sentences.map(s => s.replace(/<<DOT>>/g, '.').trim()).filter(s => s);
+  return [...groups.values()];
 };
 
-// Parse findings with labels
-const parseFindingsWithLabels = (text) => {
-  if (!text || typeof text !== 'string') return [];
+const recursiveBlocks = (value, basePath, itemLabel = '') => {
+  if (!hasVal(value)) return [];
+  if (isScalar(value)) {
+    const shown = isDatePathValue(basePath, value) ? formatDate(value) : displayScalar(value);
+    const rows = fieldIn(NARRATIVE_PATHS, basePath) ? splitFieldValue(basePath, shown) : [shown];
+    return rows.map((row, index) => {
+      const parsed = parseLabel(row);
+      return {
+        key: basePath + '-' + index,
+        groupKey: basePath,
+        subLabel: parsed ? humanizeKey(parsed.label) : (index === 0 ? humanizeKey(String(basePath).split('.').pop()) : ''),
+        itemLabel,
+        value: parsed?.value || row,
+        rowNumber: rows.length > 1 ? index + 1 : undefined,
+      };
+    });
+  }
+  if (Array.isArray(value) && fieldIn(COMMA_ARRAY_FIELDS, basePath)) {
+    const rows = value.flatMap((item) => splitFieldValue(basePath, item));
+    return rows.map((row, index) => ({
+      key: basePath + '-' + index,
+      groupKey: basePath,
+      subLabel: index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '',
+      itemLabel,
+      value: row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    }));
+  }
+  if (Array.isArray(value)) return value.flatMap((item, index) => recursiveBlocks(item, basePath + '.' + index, itemLabel));
+  return Object.entries(value).flatMap(([key, child]) => recursiveBlocks(child, basePath + '.' + key, itemLabel));
+};
+const narrativeBlocks = (field, value, title) => {
+  if (!hasVal(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = DATE_FIELDS.includes(field) ? [formatDate(value)] : splitFieldValue(field, value);
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed?.label || '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
+};
+const arrayNarrativeBlocks = (field, value, title) => {
+  if (!Array.isArray(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
+  const rows = value.flatMap((item) => splitFieldValue(field, item));
+  return rows.map((row, index) => {
+    const parsed = parseLabel(row);
+    return {
+      key: field + '-' + index,
+      groupKey: field,
+      fieldLabel: index === 0 && showFieldLabel ? label : '',
+      subLabel: parsed?.label || '',
+      value: parsed?.value || row,
+      rowNumber: rows.length > 1 ? index + 1 : undefined,
+    };
+  });
+};
+const measurableBlocks = (items) => (Array.isArray(items) ? items : []).flatMap((item, itemIndex) => {
+  const blocks = Object.entries(item || {}).flatMap(([key, value]) =>
+    recursiveBlocks(value, 'measurableDisease.' + itemIndex + '.' + key));
+  return blocks.map((block, blockIndex) => ({
+    ...block,
+    itemLabel: blockIndex === 0 ? 'Lesion ' + (itemIndex + 1) : '',
+  }));
+});
+const recommendationBlocks = (items) => groupRecommendations(Array.isArray(items) ? items : []).flatMap((group) => {
+  const blocks = [];
+  if (group.date) blocks.push({ key: 'date-' + group.key, subLabel: 'Recommendation Date', value: formatDate(group.date) });
+  group.items.forEach(({ item, index }, groupIndex) => {
+    const recommendation = typeof item === 'string' ? item : item?.recommendation;
+    if (hasVal(recommendation)) blocks.push({ key: 'recommendation-' + index, value: String(recommendation), rowNumber: group.items.length > 1 ? groupIndex + 1 : undefined });
+  });
+  return blocks;
+});
+const sectionBlocks = (record, section) => section.fields.flatMap((field) => {
+  const value = record[field];
+  if (OBJECT_FIELDS.includes(field)) return recursiveBlocks(value, field).map((block, index) => ({
+    ...block,
+    fieldLabel: index === 0 && FIELD_LABELS[field] !== section.title ? FIELD_LABELS[field] : '',
+  }));
+  if (fieldIn(ARRAY_FIELDS, field)) return arrayNarrativeBlocks(field, value, section.title);
+  if (field === 'recommendations') return recommendationBlocks(value);
+  return narrativeBlocks(field, value, section.title);
+});
+const groupShortFields = (blocks) => {
   const groups = [];
-  const sentences = text.split(/\.\s+/).filter(s => s.trim());
-  let currentGroup = null;
-
-  sentences.forEach(sentence => {
-    const colonIdx = sentence.indexOf(':');
-    if (colonIdx > 0 && colonIdx < 80) {
-      if (currentGroup) groups.push(currentGroup);
-      const label = sentence.substring(0, colonIdx).trim();
-      const content = sentence.substring(colonIdx + 1).trim();
-      const items = [];
-      let current = '';
-      let parenDepth = 0;
-      for (let i = 0; i < content.length; i++) {
-        const char = content[i];
-        if (char === '(') parenDepth++;
-        else if (char === ')') parenDepth--;
-        else if (char === ',' && parenDepth === 0) {
-          if (current.trim()) items.push(current.trim());
-          current = '';
-          continue;
-        }
-        current += char;
-      }
-      if (current.trim()) items.push(current.trim());
-      currentGroup = { label, items: items.length > 0 ? items : [content] };
-    } else {
-      if (currentGroup) {
-        currentGroup.items.push(sentence.trim());
-      } else {
-        currentGroup = { label: null, items: [sentence.trim()] };
-      }
-    }
+  blocks.forEach((block) => {
+    const groupKey = block.groupKey || block.key;
+    const previous = groups[groups.length - 1];
+    if (previous?.key === groupKey) previous.blocks.push(block);
+    else groups.push({ key: groupKey, blocks: [block] });
   });
-  if (currentGroup) groups.push(currentGroup);
   return groups;
 };
-
-const RiskCounselingDocumentPDFTemplate = ({ document: data }) => {
-  // Data unwrapping
-  let rawRecords = [];
-  if (Array.isArray(data)) {
-    if (data.length > 0 && data[0].records) {
-      rawRecords = data[0].records;
-    } else {
-      rawRecords = data;
-    }
-  } else if (data?.records) {
-    rawRecords = data.records;
-  } else if (data) {
-    rawRecords = [data];
-  }
-
-  // Clean records - remove injected underscore-prefixed fields from JSX filtering
-  const records = rawRecords.map(record => {
-    if (!record || typeof record !== 'object') return record;
-    const cleanRecord = {};
-    for (const key of Object.keys(record)) {
-      if (!key.startsWith('_')) {
-        cleanRecord[key] = record[key];
-      }
-    }
-    return cleanRecord;
-  });
-
-  // Safety check for empty records
-  if (!Array.isArray(records) || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.title}>Risk Counseling</Text>
-          </View>
-          <Text style={styles.contentText}>No data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  const renderField = (record, fn) => {
-    const val = record[fn];
-    if (!hasVal(val)) return null;
-    const label = FIELD_LABELS[fn] || fn;
-
-    if (NUMBER_FIELDS.includes(fn)) {
-      return (
-        <View key={fn} style={styles.fieldRow}>
-          <Text style={styles.fieldLabel}>{label}:</Text>
-          <Text style={styles.fieldContent}>{String(val)}</Text>
-        </View>
-      );
-    }
-
-    if (ARRAY_FIELDS.includes(fn)) {
-      const items = Array.isArray(val) ? val.filter(Boolean) : [val];
-      if (items.length === 0) return null;
-      return (
-        <View key={fn} wrap={false}>
-          <Text style={styles.nestedHeader}>{label}</Text>
-          {items.map((item, itemIdx) => (
-            <Text key={itemIdx} style={styles.listItem}>
-              {itemIdx + 1}. {String(item)}
-            </Text>
-          ))}
-        </View>
-      );
-    }
-
-    // String field - check for label:value patterns
-    const strVal = fmtVal(val);
-    const parsedGroups = parseFindingsWithLabels(strVal);
-    if (parsedGroups.length > 1 || (parsedGroups.length === 1 && parsedGroups[0].label)) {
-      return (
-        <View key={fn} wrap={false}>
-          <Text style={styles.nestedHeader}>{label}</Text>
-          {parsedGroups.map((group, gIdx) => (
-            <View key={gIdx}>
-              {group.label && <Text style={{ ...styles.nestedHeader, fontSize: 11, marginTop: 2 }}>{group.label}</Text>}
-              {group.items.map((item, iIdx) => (
-                <Text key={iIdx} style={styles.listItem}>{iIdx + 1}. {item}</Text>
-              ))}
-            </View>
-          ))}
-        </View>
-      );
-    }
-
-    // Simple string
-    const sentences = splitIntoSentences(strVal);
-    if (sentences.length > 1) {
-      return (
-        <View key={fn} wrap={false}>
-          <Text style={styles.nestedHeader}>{label}</Text>
-          {sentences.map((s, sIdx) => (
-            <Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {s}</Text>
-          ))}
-        </View>
-      );
-    }
-
-    return (
-      <View key={fn} style={styles.fieldRow}>
-        <Text style={styles.fieldLabel}>{label}:</Text>
-        <Text style={styles.fieldContent}>{strVal}</Text>
-      </View>
-    );
-  };
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.title}>Risk Counseling</Text>
-        </View>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer} minPresenceAhead={150}>
-            <View style={styles.recordHeader}>
-              <Text style={styles.recordTitle}>Risk Counseling {idx + 1}</Text>
-              {record.createdAt && (
-                <Text style={styles.recordMeta}>{formatDate(record.createdAt)}</Text>
-              )}
-            </View>
-
-            {Object.keys(SECTION_FIELDS).map(sid => {
-              const fields = SECTION_FIELDS[sid];
-              const hasAny = fields.some(f => hasVal(record[f]));
-              if (!hasAny) return null;
-
-              return (
-                <View key={sid} style={styles.section} minPresenceAhead={80} wrap={false}>
-                  <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
-                  {fields.map(f => renderField(record, f))}
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const renderSection = (section, blocks) => {
+  if (!blocks.length) return null;
+  let blockIndex = 0;
+  const sectionProps = blocks.length <= 8 ? { wrap: false } : {};
+  return <View key={section.id} {...sectionProps}>{groupShortFields(blocks).map((group) => {
+    const keepTogether = group.blocks.length <= 8;
+    const groupProps = keepTogether ? { wrap: false } : {};
+    return <View key={group.key} {...groupProps}>{group.blocks.map((block) => {
+      const index = blockIndex++;
+      return <View key={block.key} style={styles.block} wrap={false}>
+        {index === 0 && <Text style={styles.sectionTitle}>{section.title}</Text>}
+        {block.fieldLabel && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+        {block.itemLabel && <Text style={styles.itemLabel}>{block.itemLabel}</Text>}
+        {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+        <Text style={block.rowNumber ? styles.listItem : styles.fieldValue}>{block.rowNumber ? block.rowNumber + '. ' + block.value : block.value}</Text>
+      </View>;
+    })}</View>;
+  })}</View>;
 };
+const unwrap = (data) => (Array.isArray(data) ? data : [data]).flatMap((record) => {
+  if (record?.risk_counseling) return Array.isArray(record.risk_counseling) ? record.risk_counseling : [record.risk_counseling];
+  if (record?.documentData) {
+    const nested = record.documentData;
+    if (Array.isArray(nested)) return nested;
+    if (nested?.risk_counseling) return Array.isArray(nested.risk_counseling) ? nested.risk_counseling : [nested.risk_counseling];
+    return [nested];
+  }
+  return [record];
+}).filter((record) => record && typeof record === 'object');
 
-export default RiskCounselingDocumentPDFTemplate;
+export default function RiskCounselingDocumentPDFTemplate({ document: data }) {
+  const records = React.useMemo(() => unwrap(data), [data]);
+  return <Document><Page size="LETTER" style={styles.page}>
+    <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Risk Counseling</Text></View>
+    {!records.length && <Text style={styles.noDataText}>No risk counseling data available</Text>}
+    {records.map((record, recordIndex) => <View key={recordIndex} style={styles.recordContainer} break={recordIndex > 0}>
+      <View wrap={false}><Text style={styles.recordTitle}>Risk Counseling {recordIndex + 1}</Text></View>
+      {SECTIONS.map((section) => renderSection(section, sectionBlocks(record, section)))}
+    </View>)}
+    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => pageNumber + ' / ' + totalPages} fixed />
+  </Page></Document>;
+}

@@ -115,6 +115,7 @@ import SymptomProgressionDocumentPDFTemplate from './SymptomProgressionDocumentP
 import SymptomProgressionTimelineDocumentPDFTemplate from './SymptomProgressionTimelineDocumentPDFTemplate';
 import SyphilisTreatmentFollowUpDocumentPDFTemplate from './SyphilisTreatmentFollowUpDocumentPDFTemplate';
 import TelemedicineEncountersDocumentPDFTemplate from './TelemedicineEncountersDocumentPDFTemplate';
+import TherapyProgressNotesDocumentPDFTemplate from './TherapyProgressNotesDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -219,6 +220,7 @@ const templateRegistry = {
   'symptom_progression_timeline': SymptomProgressionTimelineDocumentPDFTemplate,
   'syphilis_treatment_follow_up': SyphilisTreatmentFollowUpDocumentPDFTemplate,
   'telemedicine_encounters': TelemedicineEncountersDocumentPDFTemplate,
+  'therapy_progress_notes': TherapyProgressNotesDocumentPDFTemplate,
 };
 
 /**

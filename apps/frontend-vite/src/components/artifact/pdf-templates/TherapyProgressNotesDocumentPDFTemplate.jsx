@@ -1,519 +1,367 @@
 /**
  * TherapyProgressNotesDocumentPDFTemplate.jsx
- * February 2026 Standard - Professional Boxed Layout
- * Black & White Only, Helvetica, fieldBox pattern
+ * Box-free canonical PDF - Helvetica - LETTER - therapy progress notes
+ * Collection: therapy_progress_notes
+ *
+ * Array-object fields render stacked, one leaf per numbered row. Anti-orphan renderSection glues
+ * the section title to its first field while the remaining field groups flow normally.
  */
-
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-// ========== UTILITY FUNCTIONS ==========
+const styles = StyleSheet.create({
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 8, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  noDataText: { fontSize: 14, color: '#000000', textAlign: 'center', marginTop: 40 },
+});
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  let str = typeof val === 'string' ? val : String(val);
-  str = str.replace(/μm/g, 'um');
-  str = str.replace(/µm/g, 'um');
-  str = str.replace(/°/g, ' deg');
-  str = str.replace(/±/g, '+/-');
-  str = str.replace(/≥/g, '>=');
-  str = str.replace(/≤/g, '<=');
-  str = str.replace(/→/g, '->');
-  str = str.replace(/–/g, '-');
-  str = str.replace(/—/g, '-');
-  str = str.replace(/\u2018/g, "'");
-  str = str.replace(/\u2019/g, "'");
-  str = str.replace(/\u201C/g, '"');
-  str = str.replace(/\u201D/g, '"');
-  return str;
+/* ======= UTILS ======= */
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr.$date || dateStr);
+    if (isNaN(date.getTime())) return String(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(dateStr); }
 };
 
-const hasValue = (val) => {
-  if (val === null || val === undefined) return false;
-  if (typeof val === 'string') return val.trim().length > 0;
-  if (Array.isArray(val)) return val.length > 0;
-  if (typeof val === 'object') return Object.keys(val).length > 0;
+/* safeString: \u-escapes only (no literal smart-quotes / invisible chars) */
+const safeString = (val) => {
+  if (val === null || val === undefined) return '';
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s
+    .replace(/\u00d7/g, 'x')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/[\u00b5\u03bc]/g, 'u')
+    .replace(/\u00b1/g, '+/-')
+    .replace(/\u2265/g, '>=').replace(/\u2264/g, '<=').replace(/\u2192/g, '->');
+};
+
+const isEpochDate = (v) => {
+  if (v === null || v === undefined || v === '') return true;
+  try { const d = new Date(v.$date || v); return isNaN(d.getTime()) || d.getUTCFullYear() <= 1970; } catch { return false; }
+};
+
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length > 0;
+  if (typeof v === 'object') return !isEmptyDeep(v);
   return true;
 };
 
-const formatDate = (dateVal) => {
-  if (!dateVal) return '';
-  try {
-    const d = new Date(dateVal);
-    if (isNaN(d.getTime())) return safeString(dateVal);
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return safeString(dateVal);
-  }
+const fmtVal = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return String(v);
+  return String(v || '');
 };
 
-// Quote-aware sentence splitter (matches JSX splitBySentence)
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  const str = safeString(text);
-  const sentences = [];
-  let current = '';
-  let quoteDepth = 0;
-
-  for (let i = 0; i < str.length; i++) {
-    const ch = str[i];
-    const prev = i > 0 ? str[i - 1] : '';
-    const next = i < str.length - 1 ? str[i + 1] : '';
-
-    if (ch === "'") {
-      const prevIsLetter = /[a-zA-Z]/.test(prev);
-      const nextIsLetter = /[a-zA-Z]/.test(next);
-      if (prevIsLetter && nextIsLetter) {
-        // Apostrophe (I've, it's) — no change to quote depth
-      } else if (quoteDepth > 0) {
-        quoteDepth--;
-      } else {
-        quoteDepth++;
-      }
-      current += ch;
-      if (quoteDepth === 0 && prev === '.' && i + 1 < str.length && /\s/.test(next)) {
-        const sentence = current.trim();
-        if (sentence) sentences.push(sentence);
-        current = '';
-        while (i + 1 < str.length && /\s/.test(str[i + 1])) i++;
-      }
-      continue;
-    }
-
-    if (ch === '"') {
-      quoteDepth = quoteDepth > 0 ? quoteDepth - 1 : quoteDepth + 1;
-    }
-
-    current += ch;
-
-    if (ch === '.' && quoteDepth === 0 && i + 1 < str.length && /\s/.test(next)) {
-      if (!/\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|etc)\.$/i.test(current.trimEnd())) {
-        const sentence = current.replace(/\.\s*$/, '').trim();
-        if (sentence) sentences.push(sentence);
-        current = '';
-        while (i + 1 < str.length && /\s/.test(str[i + 1])) i++;
-      }
-    }
+  const normalizedText = text.replace(/;\s+/g, '; ');
+  const parts = [];
+  let start = 0;
+  for (let index = 0; index < normalizedText.length; index += 1) {
+    const character = normalizedText[index];
+    if (character !== '.' && character !== ';') continue;
+    const previous = normalizedText[index - 1] || '';
+    const next = normalizedText[index + 1] || '';
+    const decimalPoint = character === '.' && /\d/.test(previous) && /\d/.test(next);
+    const wordBefore = normalizedText.slice(start, index).match(/([A-Za-z]+)$/)?.[1] || '';
+    const abbreviation = character === '.' && /^(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)$/i.test(wordBefore);
+    if (decimalPoint || abbreviation) continue;
+    let boundaryEnd = index + 1;
+    const closingQuote = character === '.' && /['"]/.test(normalizedText[boundaryEnd] || '') ? normalizedText[boundaryEnd] : '';
+    if (closingQuote) boundaryEnd += 1;
+    if (!/\s/.test(normalizedText[boundaryEnd] || '')) continue;
+    const part = `${normalizedText.slice(start, index).trim()}${closingQuote}`;
+    if (part && !/^[;.,!?]+$/.test(part)) parts.push(part);
+    start = boundaryEnd;
   }
-
-  const remaining = current.replace(/\.$/, '').trim();
-  if (remaining) sentences.push(remaining);
-  return sentences;
+  const tail = normalizedText.slice(start).trim();
+  if (tail && !/^[;.,!?]+$/.test(tail)) parts.push(tail);
+  return parts;
 };
 
-// Semicolon splitter for score/metric fields
-const splitBySemicolon = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/;\s*/).map(s => s.trim()).filter(Boolean);
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
 };
 
-// Parse array "Label: detail" patterns
-const parseArraySubtitleItems = (items) => {
-  if (!items || !Array.isArray(items)) return [];
-  return items.map(item => {
-    if (typeof item !== 'string') return { label: null, content: String(item) };
-    const colonIdx = item.indexOf(':');
-    if (colonIdx > 0 && colonIdx < 60) {
-      return {
-        label: item.substring(0, colonIdx).trim(),
-        content: item.substring(colonIdx + 1).trim()
-      };
+/* splitByComma: parenthesis-aware with Oxford ("and"/"or") + numeric-thousands guards */
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) {
+      const rest = text.slice(i + 1).replace(/^\s+/, '');
+      if (/^(and|or)\b/i.test(rest) || /^\d/.test(text[i + 1] || '')) { current += ch; }
+      else { const t = current.trim(); if (t) result.push(t); current = ''; }
     }
-    return { label: null, content: item };
+    else { current += ch; }
+  }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
+
+/* ======= OBJECT (recursive) HELPERS ======= */
+const KEY_OVERRIDES = {
+  type: 'Type', value: 'Value', unit: 'Unit', method: 'Method', name: 'Name', dosage: 'Dosage', frequency: 'Frequency', route: 'Route',
+  allergen: 'Allergen', reaction: 'Reaction', medication: 'Medication', directions: 'Directions', test: 'Test', indication: 'Indication', modality: 'Modality', region: 'Region',
+};
+const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+function isEmptyDeep(v) {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'boolean') return false;
+  if (typeof v === 'number') return !Number.isFinite(v);
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
+  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+  return false;
+}
+const isScalar = (v) => v === null || typeof v !== 'object';
+const isDateStr = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v.trim());
+const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
+
+const flattenItem = (item) => {
+  if (item === null || item === undefined) return '';
+  if (typeof item === 'string') return item;
+  if (typeof item === 'object') {
+    const primary = item.recommendation || item.text || item.name || item.__simpleType;
+    if (primary) return String(primary) + (item.date ? ` (${formatDate(item.date)})` : '');
+    return Object.entries(item).filter(([, v]) => !isEmptyDeep(v)).map(([k, v]) => `${humanizeKey(k)}: ${fmtScalar(v)}`).join(', ');
+  }
+  return String(item);
+};
+
+/* ======= CONFIG (mirrors JSX) ======= */
+const SECTION_TITLES = {
+  subjective: 'Subjective Report',
+  outcomes: 'Outcome Measures & Assessments',
+  interventions: 'Therapeutic Interventions',
+  participation: 'Participation & Home Program',
+  discharge: 'Discharge, Safety & Education',
+};
+const SECTION_ORDER = ['subjective', 'outcomes', 'interventions', 'participation', 'discharge'];
+const SECTION_FIELDS = {
+  subjective: ['patientSubjectiveReport'],
+  outcomes: ['functionalOutcomeMeasures', 'painScaleAssessment', 'rangeOfMotionMeasurements', 'muscleStrengthGrading', 'balanceAssessmentScores', 'gaitAnalysisFindings', 'activitiesOfDailyLivingStatus', 'cognitiveFunctionAssessment', 'speechLanguageEvaluation', 'respiratoryFunctionMetrics', 'cardiovascularResponse'],
+  interventions: ['therapeuticInterventionsProvided', 'sessionDurationMinutes'],
+  participation: ['patientComplianceLevel', 'homeExerciseProgramStatus', 'assistiveDeviceRecommendations'],
+  discharge: ['dischargeReadinessIndicators', 'adverseEventsDocumentation', 'familyCaregiverEducation'],
+};
+const FIELD_LABELS = {
+  patientSubjectiveReport: 'Patient Subjective Report', functionalOutcomeMeasures: 'Functional Outcome Measures', painScaleAssessment: 'Pain Scale Assessment',
+  rangeOfMotionMeasurements: 'Range of Motion Measurements', muscleStrengthGrading: 'Muscle Strength Grading', balanceAssessmentScores: 'Balance Assessment Scores', gaitAnalysisFindings: 'Gait Analysis Findings', activitiesOfDailyLivingStatus: 'Activities of Daily Living Status', cognitiveFunctionAssessment: 'Cognitive Function Assessment', speechLanguageEvaluation: 'Speech-Language Evaluation', respiratoryFunctionMetrics: 'Respiratory Function Metrics', cardiovascularResponse: 'Cardiovascular Response',
+  therapeuticInterventionsProvided: 'Therapeutic Interventions Provided', sessionDurationMinutes: 'Session Duration (Minutes)', patientComplianceLevel: 'Patient Compliance Level', homeExerciseProgramStatus: 'Home Exercise Program Status', assistiveDeviceRecommendations: 'Assistive Device Recommendations', dischargeReadinessIndicators: 'Discharge Readiness Indicators', adverseEventsDocumentation: 'Adverse Events Documentation', familyCaregiverEducation: 'Family / Caregiver Education',
+};
+const DATE_FIELDS = [];
+const OBJECT_FIELDS = [];
+const ARRAY_FIELDS = ['therapeuticInterventionsProvided'];
+const BOOLEAN_FIELDS = [];
+const NUMBER_FIELDS = ['sessionDurationMinutes'];
+const COMMA_FIELDS = new Set(['functionalOutcomeMeasures']);
+const OBJECT_ITEM_LABELS = {};
+
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* ======= FLAT ELEMENT BUILDERS (each returns an array of small <Text> elements) ======= */
+const labelEl = (f, key) => <Text key={key} style={styles.fieldLabel}>{FIELD_LABELS[f] || f}</Text>;
+const glueFieldLabel = (f, rows, key) => {
+  if (!rows.length) return [];
+  return [
+    <View key={`${key}-glue`} wrap={false}>
+      <Text style={styles.fieldLabel}>{FIELD_LABELS[f] || f}</Text>
+      {rows[0]}
+    </View>,
+    ...rows.slice(1),
+  ];
+};
+const glueSubLabel = (label, rows, key) => {
+  if (!rows.length) return [];
+  return [
+    <View key={`${key}-glue`} wrap={false}>
+      <Text style={styles.subLabel}>{safeString(label)}</Text>
+      {rows[0]}
+    </View>,
+    ...rows.slice(1),
+  ];
+};
+
+const splitTopLevelComma = (text) => {
+  const parts = []; let current = ''; let depth = 0;
+  for (const character of String(text || '')) {
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    if (character === ',' && depth === 0) { if (current.trim()) parts.push(current.trim()); current = ''; }
+    else current += character;
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts.length ? parts : [String(text || '')];
+};
+
+/* string field -> bare label + sentence/comma value lines (mirrors JSX renderStringField display) */
+const stringFieldEls = (f, val, showLabel) => {
+  const strVal = fmtVal(val);
+  const sentences = splitBySentence(strVal);
+  const els = [];
+  let n = 1;
+  sentences.forEach((s, si) => {
+    const commaParts = COMMA_FIELDS.has(f) ? splitTopLevelComma(s) : [s];
+    commaParts.forEach((part, pi) => {
+      const parsed = parseLabel(part);
+      if (parsed.isLabeled) {
+        const row = <Text key={`${f}-s${si}c${pi}`} style={styles.listItem}>{`1. ${safeString(parsed.value)}`}</Text>;
+        els.push(...glueSubLabel(parsed.label, [row], `${f}-s${si}c${pi}`));
+      } else els.push(<Text key={`${f}-s${si}c${pi}`} style={styles.listItem}>{`${n++}. ${safeString(part)}`}</Text>);
+    });
   });
+  return showLabel ? glueFieldLabel(f, els, f) : els;
 };
 
-// ========== STYLES ==========
+/* recursive object node -> flat STACKED elements. ARRAY branch numbers each item under the sub-label;
+   scalar date leaves format; numeric-index sub-labels suppressed. */
+const objectNodeEls = (label, value, keyPath, depth) => {
+  if (isEmptyDeep(value)) return [];
+  if (isScalar(value)) {
+    const disp = isDateStr(value) ? formatDate(value) : fmtScalar(value);
+    const row = <Text key={`${keyPath}-v`} style={styles.listItem}>{`1. ${safeString(disp)}`}</Text>;
+    if (!label) return [row];
+    return [<View key={`${keyPath}-glue`} wrap={false}><Text style={depth <= 1 ? styles.fieldLabel : styles.subLabel}>{safeString(label)}</Text>{row}</View>];
+  }
+  if (Array.isArray(value)) {
+    const items = value.filter(v => !isEmptyDeep(v));
+    if (items.length === 0) return [];
+    const els = [];
+    items.forEach((v, i) => {
+      if (isScalar(v)) els.push(<Text key={`${keyPath}-${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(isDateStr(v) ? formatDate(v) : fmtScalar(v))}`}</Text>);
+      else objectNodeEls('', v, `${keyPath}-${i}`, depth + 1).forEach(e => els.push(e));
+    });
+    if (!label) return els;
+    const labelStyle = depth <= 1 ? styles.fieldLabel : styles.subLabel;
+    return [<View key={`${keyPath}-glue`} wrap={false}><Text style={labelStyle}>{safeString(label)}</Text>{els[0]}</View>, ...els.slice(1)];
+  }
+  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
+  if (entries.length === 0) return [];
+  const els = [];
+  entries.forEach(([k, v]) => els.push(...objectNodeEls(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1)));
+  if (!label) return els;
+  const labelStyle = depth <= 1 ? styles.fieldLabel : styles.subLabel;
+  return [<View key={`${keyPath}-glue`} wrap={false}><Text style={labelStyle}>{safeString(label)}</Text>{els[0]}</View>, ...els.slice(1)];
+};
 
-const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentHeader: {
-    marginBottom: 24,
-    borderBottomWidth: 3,
-    borderBottomColor: '#000000',
-    paddingBottom: 14,
-  },
-  documentTitle: {
-    fontSize: 22,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  documentSubtitle: {
-    fontSize: 10,
-    color: '#555555',
-    textAlign: 'center',
-    marginTop: 4,
-    fontFamily: 'Helvetica',
-  },
-  recordContainer: {
-    marginBottom: 28,
-    paddingBottom: 16,
-  },
-  recordHeader: {
-    marginBottom: 16,
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderLeftWidth: 5,
-    borderLeftColor: '#000000',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  recordMeta: {
-    fontSize: 10,
-    marginTop: 6,
-    color: '#333333',
-    fontFamily: 'Helvetica',
-  },
-  section: {
-    marginBottom: 18,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 4,
-    marginBottom: 10,
-  },
-  fieldBox: {
-    borderWidth: 1,
-    borderColor: '#cccccc',
-    marginBottom: 6,
-    padding: 8,
-    paddingBottom: 6,
-    backgroundColor: '#fafafa',
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#333333',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    marginBottom: 6,
-  },
-  subLabel: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: '#555555',
-    paddingLeft: 16,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  numberedItem: {
-    flexDirection: 'row',
-    paddingLeft: 10,
-    marginBottom: 3,
-  },
-  itemNumber: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    width: 22,
-  },
-  itemContent: {
-    fontSize: 11,
-    color: '#000000',
-    flex: 1,
-    lineHeight: 1.5,
-  },
-  fieldValue: {
-    fontSize: 11,
-    color: '#000000',
-    lineHeight: 1.5,
-    paddingLeft: 10,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: 'center',
-    fontSize: 8,
-    color: '#999999',
-    fontFamily: 'Helvetica',
-  },
-});
+/* top-level OBJECT field -> flat stacked elements. showLabel emits the object label (single-name gated) */
+const objectFieldEls = (f, val, showLabel) => {
+  if (isEmptyDeep(val) || isScalar(val)) return [];
+  const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
+  if (entries.length === 0) return [];
+  const els = [];
+  if (Array.isArray(val)) {
+    entries.forEach(([k, item]) => {
+      const itemRows = isScalar(item) ? objectNodeEls('', item, `${f}-${k}`, 2) : Object.entries(item).filter(([, child]) => !isEmptyDeep(child)).flatMap(([childKey, child]) => objectNodeEls(humanizeKey(childKey), child, `${f}-${k}-${childKey}`, 2));
+      els.push(...glueSubLabel(`${OBJECT_ITEM_LABELS[f] || 'Item'} ${Number(k) + 1}`, itemRows, `${f}-${k}-item`));
+    });
+  } else entries.forEach(([k, v]) => els.push(...objectNodeEls(humanizeKey(k), v, `${f}-${k}`, 1)));
+  return showLabel ? glueFieldLabel(f, els, f) : els;
+};
 
-// ========== COMPONENT ==========
+/* array field -> bare label + numbered items */
+const arrayFieldEls = (f, val, showLabel) => {
+  const items = Array.isArray(val) ? val.filter(hasVal) : [];
+  if (items.length === 0) return [];
+  const rows = items.map((it, i) => <Text key={`${f}-${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(flattenItem(it))}`}</Text>);
+  return showLabel ? glueFieldLabel(f, rows, f) : rows;
+};
 
-const TherapyProgressNotesDocumentPDFTemplate = ({ document, data }) => {
-  const templateData = document || data;
+/* dispatch one field -> flat element array */
+const fieldEls = (record, f, sid) => {
+  const val = record[f];
+  if (!hasVal(val)) return [];
+  const label = FIELD_LABELS[f] || f;
+  const showLabel = !sameAsTitle(label, sid);
+  if (OBJECT_FIELDS.includes(f)) return isScalar(val) ? stringFieldEls(f, val, showLabel) : objectFieldEls(f, val, showLabel);
+  if (ARRAY_FIELDS.includes(f)) return arrayFieldEls(f, val, showLabel);
+  if (DATE_FIELDS.includes(f)) { if (isEpochDate(val)) return []; return glueFieldLabel(f, [<Text key={`${f}-v`} style={styles.listItem}>{`1. ${formatDate(val)}`}</Text>], f); }
+  return stringFieldEls(f, val, showLabel);
+};
 
-  const unwrapData = (input) => {
-    if (!input) return [];
-    if (Array.isArray(input)) {
-      return input.flatMap(item => {
-        if (item?.document) return Array.isArray(item.document) ? item.document : [item.document];
-        if (item?.data) return Array.isArray(item.data) ? item.data : [item.data];
-        return [item];
-      });
-    }
-    if (input.document) return Array.isArray(input.document) ? input.document : [input.document];
-    if (input.data) return Array.isArray(input.data) ? input.data : [input.data];
-    return [input];
-  };
-
-  const records = unwrapData(templateData);
+/* ======= COMPONENT ======= */
+const TherapyProgressNotesDocumentPDFTemplate = ({ document: data }) => {
+  const records = React.useMemo(() => {
+    if (!data) return [];
+    let arr = Array.isArray(data) ? data : [data];
+    arr = arr.flatMap(r => {
+      if (r?.therapy_progress_notes) return Array.isArray(r.therapy_progress_notes) ? r.therapy_progress_notes : [r.therapy_progress_notes];
+      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.therapy_progress_notes) return Array.isArray(dd.therapy_progress_notes) ? dd.therapy_progress_notes : [dd.therapy_progress_notes]; return [dd]; }
+      return [r];
+    });
+    return arr.filter(r => r && typeof r === 'object');
+  }, [data]);
 
   if (!records || records.length === 0) {
     return (
       <Document>
-        <Page size="A4" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Therapy Progress Notes</Text>
-          </View>
-          <Text style={{ textAlign: 'center', color: '#666666', fontSize: 14 }}>No records available</Text>
+        <Page size="LETTER" style={styles.page}>
+          <Text style={styles.documentTitle}>Therapy Progress Notes</Text>
+          <Text style={styles.noDataText}>No data available</Text>
         </Page>
       </Document>
     );
   }
 
-  // Render a narrative text field split by sentences (quote-aware)
-  const renderSentenceField = (value, title) => {
-    if (!hasValue(value)) return null;
-    const sentences = splitBySentence(value);
-    if (sentences.length === 0) return null;
-
-    return (
-      <View style={styles.section} wrap={sentences.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {sentences.map((sentence, i) => (
-          <View key={i} style={styles.fieldBox}>
-            <View style={styles.numberedItem}>
-              <Text style={styles.itemNumber}>{i + 1}.</Text>
-              <Text style={styles.itemContent}>{safeString(sentence)}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  // Render a semicolon-delimited field with optional Label: Value parsing
-  const renderSemicolonField = (value, title, withSubtitles = false) => {
-    if (!hasValue(value)) return null;
-    const items = splitBySemicolon(value);
-    if (items.length === 0) return null;
-
-    return (
-      <View style={styles.section} wrap={items.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {items.map((item, i) => {
-          if (withSubtitles) {
-            const colonIdx = item.indexOf(':');
-            const dashIdx = item.indexOf(' - ');
-            const textBeforeColon = colonIdx > 0 ? item.substring(0, colonIdx) : '';
-
-            // "Label - SubLabel: val, SubLabel: val" → nested sub-rows
-            if (dashIdx > 0 && dashIdx < 50) {
-              const mainLabel = item.substring(0, dashIdx).trim();
-              const remainder = item.substring(dashIdx + 3).trim();
-              const subItems = remainder.split(/,\s*/).filter(Boolean);
-              return (
-                <View key={i} style={styles.fieldBox}>
-                  <Text style={styles.fieldLabel}>{safeString(mainLabel)}</Text>
-                  {subItems.map((sub, si) => {
-                    const ci = sub.indexOf(':');
-                    const subLabel = ci > 0 ? sub.substring(0, ci).trim() : null;
-                    const subValue = ci > 0 ? sub.substring(ci + 1).trim() : sub.trim();
-                    return (
-                      <View key={si}>
-                        {subLabel && <Text style={styles.subLabel}>{safeString(subLabel)}</Text>}
-                        <View style={styles.numberedItem}>
-                          <Text style={styles.itemNumber}>{`${i + 1}.${si + 1}`}</Text>
-                          <Text style={styles.itemContent}>{safeString(subValue)}</Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              );
-            }
-
-            // "Label: Value" → simple label + value
-            if (colonIdx > 0 && colonIdx < 50) {
-              return (
-                <View key={i} style={styles.fieldBox}>
-                  <Text style={styles.fieldLabel}>{safeString(textBeforeColon.trim())}</Text>
-                  <View style={styles.numberedItem}>
-                    <Text style={styles.itemNumber}>{i + 1}.</Text>
-                    <Text style={styles.itemContent}>{safeString(item.substring(colonIdx + 1).trim())}</Text>
-                  </View>
-                </View>
-              );
-            }
-          }
-
-          // Default: flat numbered item
-          return (
-            <View key={i} style={styles.fieldBox}>
-              <View style={styles.numberedItem}>
-                <Text style={styles.itemNumber}>{i + 1}.</Text>
-                <Text style={styles.itemContent}>{safeString(item)}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
-
-  // Render a grouped field section
-  const renderFieldGroup = (fields, title) => {
-    const validFields = fields.filter(([, v]) => hasValue(v));
-    if (validFields.length === 0) return null;
-
-    return (
-      <View style={styles.section} wrap={validFields.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {validFields.map(([label, value], i) => (
-          <View key={i} style={styles.fieldBox}>
-            <Text style={styles.fieldLabel}>{label}</Text>
-            <Text style={styles.fieldValue}>{safeString(value)}</Text>
-          </View>
-        ))}
-      </View>
-    );
-  };
-
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader} fixed>
-          <Text style={styles.documentTitle}>Therapy Progress Notes</Text>
-          <Text style={styles.documentSubtitle}>Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</Text>
-        </View>
+      <Page size="LETTER" style={styles.page}>
+        <Text style={styles.documentTitle}>Therapy Progress Notes</Text>
 
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            {/* Record Header - thick left accent */}
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>
-                {safeString(`Therapy Progress Notes ${idx + 1}`)}
-              </Text>
-              <Text style={styles.recordMeta}>
-                {hasValue(record.createdAt) && `Date: ${formatDate(record.createdAt)}`}
-                {record.sessionDurationMinutes && ` | Duration: ${record.sessionDurationMinutes} minutes`}
-              </Text>
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <View wrap={false}>
+              <Text style={styles.recordTitle}>{`Therapy Progress Note ${index + 1}`}</Text>
             </View>
 
-            {/* Session Information */}
-            {(record.createdAt || record.sessionDurationMinutes) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Session Information</Text>
-                {record.createdAt && (
-                  <View style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>Date</Text>
-                    <Text style={styles.fieldValue}>{formatDate(record.createdAt)}</Text>
-                  </View>
-                )}
-                {record.sessionDurationMinutes && (
-                  <View style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>Session Duration</Text>
-                    <Text style={styles.fieldValue}>{safeString(String(record.sessionDurationMinutes))} minutes</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Patient Subjective Report — sentence split (quote-aware) */}
-            {renderSentenceField(record.patientSubjectiveReport, 'Patient Subjective Report')}
-
-            {/* Functional Outcome Measures — semicolon split with Label: Value */}
-            {renderSemicolonField(record.functionalOutcomeMeasures, 'Functional Outcome Measures', true)}
-
-            {/* Pain Scale Assessment — semicolon split */}
-            {renderSemicolonField(record.painScaleAssessment, 'Pain Scale Assessment')}
-
-            {/* Cognitive Function Assessment — sentence split */}
-            {renderSentenceField(record.cognitiveFunctionAssessment, 'Cognitive Function Assessment')}
-
-            {/* Physical Assessments */}
-            {renderFieldGroup(
-              [
-                ['Range of Motion', record.rangeOfMotionMeasurements],
-                ['Muscle Strength', record.muscleStrengthGrading],
-                ['Balance Assessment', record.balanceAssessmentScores],
-                ['Gait Analysis', record.gaitAnalysisFindings],
-              ],
-              'Physical Assessments'
-            )}
-
-            {/* Additional Assessments */}
-            {renderFieldGroup(
-              [
-                ['Activities of Daily Living', record.activitiesOfDailyLivingStatus],
-                ['Speech & Language', record.speechLanguageEvaluation],
-                ['Respiratory Function', record.respiratoryFunctionMetrics],
-                ['Cardiovascular Response', record.cardiovascularResponse],
-              ],
-              'Additional Assessments'
-            )}
-
-            {/* Therapeutic Interventions */}
-            {hasValue(record.therapeuticInterventionsProvided) && (() => {
-              const parsed = parseArraySubtitleItems(record.therapeuticInterventionsProvided);
-              if (parsed.length === 0) return null;
+            {SECTION_ORDER.map((sid) => {
+              const fields = SECTION_FIELDS[sid] || [];
+              const flat = [];
+              fields.forEach(f => flat.push(...fieldEls(record, f, sid)));
+              if (flat.length === 0) return null;
+              const first = React.cloneElement(flat[0], { key: 'f0' });
+              const rest = flat.slice(1).map((el, i) => React.cloneElement(el, { key: `f${i + 1}` }));
               return (
-                <View style={styles.section} wrap={parsed.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Therapeutic Interventions</Text>
-                  {parsed.map((item, i) => (
-                    <View key={i} style={styles.fieldBox}>
-                      {item.label && <Text style={styles.fieldLabel}>{safeString(item.label)}</Text>}
-                      <View style={styles.numberedItem}>
-                        <Text style={styles.itemNumber}>{i + 1}.</Text>
-                        <Text style={styles.itemContent}>{safeString(item.content)}</Text>
-                      </View>
-                    </View>
-                  ))}
+                <View key={sid} style={styles.section}>
+                  <View wrap={false}>
+                    <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
+                    {first}
+                  </View>
+                  {rest}
                 </View>
               );
-            })()}
-
-            {/* Patient Compliance — sentence split */}
-            {renderSentenceField(record.patientComplianceLevel, 'Patient Compliance')}
-
-            {/* Home Exercise Program — sentence split */}
-            {renderSentenceField(record.homeExerciseProgramStatus, 'Home Exercise Program')}
-
-            {/* Assistive Device Recommendations — sentence split */}
-            {renderSentenceField(record.assistiveDeviceRecommendations, 'Assistive Device Recommendations')}
-
-            {/* Discharge Readiness — sentence split */}
-            {renderSentenceField(record.dischargeReadinessIndicators, 'Discharge Readiness')}
-
-            {/* Adverse Events — sentence split */}
-            {renderSentenceField(record.adverseEventsDocumentation, 'Adverse Events')}
-
-            {/* Family/Caregiver Education — sentence split */}
-            {renderSentenceField(record.familyCaregiverEducation, 'Family/Caregiver Education')}
+            })}
           </View>
         ))}
-
-        {/* Footer */}
-        <Text style={styles.footer} fixed>
-          Therapy Progress Notes - Confidential Medical Document
-        </Text>
       </Page>
     </Document>
   );

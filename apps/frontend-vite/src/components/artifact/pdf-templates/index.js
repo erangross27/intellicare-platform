@@ -108,6 +108,7 @@ import SurgicalConsentFormsDocumentPDFTemplate from './SurgicalConsentFormsDocum
 import SurgicalHistoryDocumentPDFTemplate from './SurgicalHistoryDocumentPDFTemplate';
 import SurgicalOncologyDocumentPDFTemplate from './SurgicalOncologyDocumentPDFTemplate';
 import SurgicalStepsDocumentPDFTemplate from './SurgicalStepsDocumentPDFTemplate';
+import SurgicalTeamDocumentPDFTemplate from './SurgicalTeamDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -205,6 +206,7 @@ const templateRegistry = {
   'surgical_history': SurgicalHistoryDocumentPDFTemplate,
   'surgical_oncology': SurgicalOncologyDocumentPDFTemplate,
   'surgical_steps': SurgicalStepsDocumentPDFTemplate,
+  'surgical_team': SurgicalTeamDocumentPDFTemplate,
 };
 
 /**

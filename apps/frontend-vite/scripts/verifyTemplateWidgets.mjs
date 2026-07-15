@@ -125,6 +125,7 @@ async function precompileBlueImports(file) {
 /* ─── value-shape classification + expected widget ─── */
 const RE_INT_OR_DEC = /^-?\d+(\.\d+)?$/;
 const RE_NUM_UNIT = /^-?\d+(\.\d+)?\s*(%|[A-Za-z]{1,6}(\/[A-Za-z]{1,6})?)$/; // "100 mg", "7.5%"
+const RE_SCORE_RATIO = /^-?\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?(?:\s+\([^)]*\))?$/; // "48.4/100", "60/100 (22nd percentile)"
 const RE_RANGE = /^-?\d+(\.\d+)?\s*[-–]\s*\d/;                                // "100-150 mg" → text
 const RE_DATE = /^\d{4}-\d{2}-\d{2}/;                                        // ISO
 const RE_DATE_WORDS = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}$/;
@@ -132,6 +133,7 @@ const RE_PHONE = /^\+?1?[\s.-]*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4}$/;          /
 function classify(value) {
   const v = String(value == null ? '' : value).trim();
   if (v === '') return 'empty';
+  if (RE_SCORE_RATIO.test(v)) return 'score-ratio'; // → numerator-only stepper; denominator/suffix fixed
   if (RE_RANGE.test(v)) return 'range';           // stays text
   if (RE_INT_OR_DEC.test(v)) return 'number';     // → stepper
   if (RE_DATE.test(v) || RE_DATE_WORDS.test(v)) return 'date'; // → BlueDatePicker
@@ -200,7 +202,7 @@ async function main() {
     if ((kind === 'number' || kind === 'number-unit') && (idLabel || isMultiItem)) kind = 'identifier/code';
     rows.push({ label, value: value.length > 42 ? value.slice(0, 42) + '…' : value, kind, widget });
     // mismatch rules (mechanical, high-confidence only)
-    if (kind === 'number' && !['num-stepper'].includes(widget)) flags.push({ label, value, kind, widget, why: 'numeric value not on a −/+ stepper' });
+    if ((kind === 'number' || kind === 'score-ratio') && widget !== 'num-stepper') flags.push({ label, value, kind, widget, why: kind === 'score-ratio' ? 'standalone score ratio not on a numerator-only −/+ stepper' : 'numeric value not on a −/+ stepper' });
     if (kind === 'date' && !idLabel && !isMultiItem && !['BlueDatePicker', 'BlueMonthPicker'].includes(widget)) flags.push({ label, value, kind, widget, why: 'date value not on BlueDatePicker' });
     if (widget === 'native-select') flags.push({ label, value, kind, widget, why: 'native <select> — use BlueSelect (RTL-unsafe OS chrome)' });
     if (widget === 'native-date') flags.push({ label, value, kind, widget, why: 'native <input type=date> — use BlueDatePicker' });
@@ -241,7 +243,7 @@ async function main() {
     const kind = classify(value);
     rows.push({ label, value: value.length > 42 ? value.slice(0, 42) + '…' : value, kind, widget });
     if (widget === 'none') flags.push({ label, value, kind, widget, why: `clicking data-edit-field="${fieldName}" mounted no edit control` });
-    if (kind === 'number' && widget !== 'num-stepper') flags.push({ label, value, kind, widget, why: 'numeric value not on a −/+ stepper' });
+    if ((kind === 'number' || kind === 'score-ratio') && widget !== 'num-stepper') flags.push({ label, value, kind, widget, why: kind === 'score-ratio' ? 'standalone score ratio not on a numerator-only −/+ stepper' : 'numeric value not on a −/+ stepper' });
     if (kind === 'date' && !['BlueDatePicker', 'BlueMonthPicker'].includes(widget)) flags.push({ label, value, kind, widget, why: 'date value not on BlueDatePicker' });
     if (widget === 'native-select') flags.push({ label, value, kind, widget, why: 'native <select> — use BlueSelect (RTL-unsafe OS chrome)' });
     if (widget === 'native-date') flags.push({ label, value, kind, widget, why: 'native <input type=date> — use BlueDatePicker' });

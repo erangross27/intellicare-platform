@@ -93,6 +93,7 @@ import ChronicPainAssessmentPDFTemplate from './ChronicPainAssessmentPDFTemplate
 import AsthmaAssessmentsPDFTemplate from './AsthmaAssessmentsPDFTemplate';
 import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTemplate';
 import AcmgGuidelinesReferencePDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
+import StagingSummaryDocumentPDFTemplate from './StagingSummaryDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -175,6 +176,7 @@ const templateRegistry = {
   'renal_nutrition': RenalNutritionDocumentPDFTemplate,
   'renal_protection_plan': RenalProtectionPlanDocumentPDFTemplate,
   'chronic_pain_assessment': ChronicPainAssessmentPDFTemplate,
+  'staging_summary': StagingSummaryDocumentPDFTemplate,
 };
 
 /**

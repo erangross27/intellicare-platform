@@ -7,23 +7,23 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
+  page: { padding: 40, paddingBottom: 52, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 16 },
+  recordHeader: { marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
   recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 6 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
@@ -63,7 +63,7 @@ const fmtVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?:;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -88,27 +88,27 @@ const splitByComma = (text) => {
 };
 
 /* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value) => {
+const renderFieldRow = (label, value, showLabel = true) => {
   if (!hasVal(value)) return null;
   return (
     <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
+      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
+      <Text style={styles.fieldValue}>1. {safeString(fmtVal(value))}</Text>
     </View>
   );
 };
 
 /* renderSentenceField: split by sentence, parseLabel, splitByComma */
-const renderSentenceField = (label, value) => {
+const renderSentenceField = (label, value, showLabel = true) => {
   if (!hasVal(value)) return null;
   const strVal = fmtVal(value);
   const sentences = splitBySentence(strVal);
-  if (sentences.length <= 1) return renderFieldRow(label, value);
+  if (sentences.length <= 1) return renderFieldRow(label, value, showLabel);
 
   let n = 1;
   return (
     <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
       {sentences.map((sentence, sIdx) => {
         const parsed = parseLabel(sentence);
         if (parsed.isLabeled) {
@@ -138,7 +138,7 @@ const renderSentenceField = (label, value) => {
 
 /* ======= SECTIONS ======= */
 const SECTION_FIELDS = {
-  'record-info': { title: 'Record Information', fields: ['date', 'type', 'provider', 'facility'] },
+  'record-info': { title: 'Record Information', fields: ['date', 'type', 'provider', 'facility', 'status'] },
   'staging-details': { title: 'Staging Details', fields: ['overallStage', 'ipiScoreValue'] },
   'prognostic-implications': { title: 'Prognostic Implications', fields: ['prognosticImplications'] },
   'treatment-approach': { title: 'Treatment Approach', fields: ['treatmentApproach'] },
@@ -150,6 +150,7 @@ const SECTION_FIELDS = {
 
 const FIELD_LABELS = {
   date: 'Date', type: 'Type', provider: 'Provider', facility: 'Facility',
+  status: 'Status',
   overallStage: 'Overall Stage', ipiScoreValue: 'IPI Score',
   prognosticImplications: 'Prognostic Implications', treatmentApproach: 'Treatment Approach',
   findings: 'Findings', assessment: 'Clinical Assessment', plan: 'Plan', notes: 'Notes',
@@ -188,13 +189,26 @@ const StagingSummaryDocumentPDFTemplate = ({ document: docProp, data }) => {
     const hasAny = fields.some(f => hasVal(record[f]));
     if (!hasAny) return null;
 
+    const renderedFields = fields.filter(f => hasVal(record[f])).map(f => {
+      const label = FIELD_LABELS[f] || f;
+      const showLabel = label.toLowerCase() !== title.toLowerCase();
+      return (
+        <React.Fragment key={f}>
+          {DATE_FIELDS.includes(f)
+            ? renderFieldRow(label, formatDate(record[f]), showLabel)
+            : renderSentenceField(label, record[f], showLabel)}
+        </React.Fragment>
+      );
+    });
+    const [firstField, ...remainingFields] = renderedFields;
+
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {fields.map(f => {
-          if (DATE_FIELDS.includes(f)) return renderFieldRow(FIELD_LABELS[f] || f, formatDate(record[f]));
-          return renderSentenceField(FIELD_LABELS[f] || f, record[f]);
-        })}
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          {firstField}
+        </View>
+        {remainingFields}
       </View>
     );
   };
@@ -209,10 +223,6 @@ const StagingSummaryDocumentPDFTemplate = ({ document: docProp, data }) => {
         {records.map((record, idx) => (
           <View key={idx} style={styles.recordContainer}>
             <View style={styles.recordHeader}>
-              <View style={styles.recordDateRow}>
-                {hasVal(record.date) && <Text style={styles.recordDate}>{formatDate(record.date)}</Text>}
-                {hasVal(record.status) && <Text style={styles.recordDate}>{safeString(record.status)}</Text>}
-              </View>
               <Text style={styles.recordTitle}>Staging Summary {idx + 1}</Text>
             </View>
 

@@ -95,6 +95,7 @@ import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTempla
 import AcmgGuidelinesReferencePDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
 import StagingSummaryDocumentPDFTemplate from './StagingSummaryDocumentPDFTemplate';
 import StemCellTransplantAssessmentDocumentPDFTemplate from './StemCellTransplantAssessmentDocumentPDFTemplate';
+import StiScreeningPanelDocumentPDFTemplate from './StiScreeningPanelDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -179,6 +180,7 @@ const templateRegistry = {
   'chronic_pain_assessment': ChronicPainAssessmentPDFTemplate,
   'staging_summary': StagingSummaryDocumentPDFTemplate,
   'stem_cell_transplant_assessment': StemCellTransplantAssessmentDocumentPDFTemplate,
+  'sti_screening_panel': StiScreeningPanelDocumentPDFTemplate,
 };
 
 /**

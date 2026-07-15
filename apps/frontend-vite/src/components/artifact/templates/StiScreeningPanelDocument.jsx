@@ -14,6 +14,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import StiScreeningPanelDocumentPDFTemplate from '../pdf-templates/StiScreeningPanelDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './StiScreeningPanelDocument.css';
 
@@ -82,7 +84,9 @@ const SECTION_FIELDS = {
 const BOOLEAN_FIELDS  = ['prepEligibilityStatus', 'expeditedPartnerTherapyProvided'];
 const DATE_FIELDS     = ['screeningDate'];
 const NUMBER_FIELDS   = ['hivViralLoadCopies', 'cd4CountCellsPerMicroliter', 'cd4Cd8Ratio', 'hcvRnaQuantitative'];
+const ZERO_SENTINEL_FIELDS = ['cd4CountCellsPerMicroliter', 'cd4Cd8Ratio', 'hcvRnaQuantitative'];
 const ARRAY_FIELDS    = ['specimenSourceSite', 'hpvGenotyping', 'antimicrobialResistanceMarkers'];
+const COMMA_STRING_FIELDS = ['hsvTypeSpecificIgG'];
 const STRING_FIELDS   = [
   'hivAntigenAntibodyResult', 'hivConfirmatoryMethod',
   'rprTiter', 'treponemaPallidumAntibody', 'syphilisStage',
@@ -90,6 +94,32 @@ const STRING_FIELDS   = [
   'hepatitisBSurfaceAntigen', 'hepatitisBSurfaceAntibody', 'hepatitisBCoreAntibody', 'hepatitisCantibodyResult',
   'hsvTypeSpecificIgG', 'trichomonasVaginalisResult', 'humanPapillomavirusHighRisk',
 ];
+const ENUM_FIELDS = {
+  hivAntigenAntibodyResult: ['Nonreactive', 'Reactive', 'Indeterminate'],
+  treponemaPallidumAntibody: ['Nonreactive', 'Reactive', 'Indeterminate'],
+  syphilisStage: ['Primary', 'Secondary', 'Latent', 'Tertiary', 'Neurosyphilis'],
+  chlamydiaNaatResult: ['Not detected', 'Detected', 'Indeterminate'],
+  gonorrheaNaatResult: ['Not detected', 'Detected', 'Indeterminate'],
+  mycoplasmaGenitaliumNaat: ['Not detected', 'Detected', 'Indeterminate'],
+  hepatitisBSurfaceAntigen: ['Nonreactive', 'Reactive', 'Indeterminate'],
+  hepatitisBSurfaceAntibody: ['Nonreactive', 'Reactive', 'Indeterminate'],
+  hepatitisBCoreAntibody: ['Nonreactive', 'Reactive', 'Indeterminate'],
+  hepatitisCantibodyResult: ['Nonreactive', 'Reactive', 'Indeterminate'],
+  trichomonasVaginalisResult: ['Negative', 'Positive', 'Indeterminate'],
+  humanPapillomavirusHighRisk: ['Negative', 'Positive', 'Indeterminate'],
+};
+
+const enumOptionsWith = (field, current) => {
+  const base = ENUM_FIELDS[field] || [];
+  const cur = String(current || '').trim();
+  if (!cur || base.some(o => o.toLowerCase() === cur.toLowerCase())) return base;
+  return [...base, cur];
+};
+
+const stepFor = (value) => {
+  const decimals = (String(value).split('.')[1] || '').length;
+  return decimals > 0 ? 10 ** -decimals : 1;
+};
 
 /* ═══════ PURE UTILS ═══════ */
 const parseLabel = (text) => {
@@ -124,7 +154,7 @@ const toInputDate = (dateValue) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const StiScreeningPanelDocument = ({ document: docProp }) => {
+const StiScreeningPanelDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm,       setSearchTerm]       = useState('');
   const [copiedSection,    setCopiedSection]    = useState(null);
   const [copiedItems,      setCopiedItems]      = useState({});
@@ -143,15 +173,16 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const raw = templateData || docProp || data;
+    if (!raw) return [];
+    let arr = Array.isArray(raw) ? raw : [raw];
     arr = arr.flatMap(r => {
       if (r?.sti_screening_panel) return Array.isArray(r.sti_screening_panel) ? r.sti_screening_panel : [r.sti_screening_panel];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.sti_screening_panel) return Array.isArray(dd.sti_screening_panel) ? dd.sti_screening_panel : [dd.sti_screening_panel]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [templateData, docProp, data]);
 
   /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
@@ -202,7 +233,7 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?:;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -219,6 +250,19 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
     if (localEdits[k] !== undefined) return localEdits[k];
     return record[fn];
   }, [localEdits]);
+
+  const numberShows = useCallback((record, fn, idx) => {
+    const val = getFieldValue(record, fn, idx);
+    if (val === null || val === undefined || val === '') return false;
+    const num = Number(val);
+    if (Number.isNaN(num)) return false;
+    if (num === 0 && ZERO_SENTINEL_FIELDS.includes(fn)) {
+      const editKey = `${fn}-${idx}`;
+      const doctorEdited = Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(fn);
+      return Boolean(editedFields[editKey]) || doctorEdited;
+    }
+    return true;
+  }, [getFieldValue, editedFields]);
 
   const safeId = useCallback((r) => {
     if (!r?._id) return null;
@@ -374,10 +418,11 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
   const sectionHasEdits = useCallback((idx, sid) => {
     const fields = SECTION_FIELDS[sid] || [];
     return fields.some(f =>
+      pendingEdits[`${f}-${idx}`] ||
       Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) ||
       Object.keys(editedSentences).some(k => k.startsWith(`${f}-${idx}`))
     );
-  }, [editedFields, editedSentences]);
+  }, [pendingEdits, editedFields, editedSentences]);
 
   // Approve = COMMIT all staged drafts for this section's fields to MongoDB, then clear pending so the
   // committed values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
@@ -478,34 +523,32 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
       seenLabels.add(label);
 
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${label}\n${'-'.repeat(40)}\n1. ${formatDate(val)}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `${label}\n${'-'.repeat(40)}\n1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${String(val)}\n\n`;
+        if (!numberShows(record, f, idx)) return;
+        text += `${label}\n${'-'.repeat(40)}\n1. ${String(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val.filter(i => i && String(i).trim()) : [];
         if (items.length > 0) {
-          text += `${label}\n`;
-          items.forEach((item, i) => { text += `  ${i + 1}. ${item}\n`; });
+          text += `${label}\n${'-'.repeat(40)}\n`;
+          items.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
           text += '\n';
         }
       } else if (STRING_FIELDS.includes(f)) {
         const strVal   = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
+        const rows = COMMA_STRING_FIELDS.includes(f) ? splitByComma(strVal) : splitBySentence(strVal);
+        text += `${label}\n${'-'.repeat(40)}\n`;
+        if (COMMA_STRING_FIELDS.includes(f)) rows.forEach((row, rowIdx) => { text += `${rowIdx + 1}. ${row}\n`; });
+        else formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
+        text += '\n';
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${label}\n${'-'.repeat(40)}\n1. ${fmtVal(val)}\n\n`;
       }
     });
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+  }, [getFieldValue, hasVal, fmtVal, numberShows, splitBySentence, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== STI SCREENING PANEL ===\n\n';
@@ -534,12 +577,12 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabelSingle(label)}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value || ''); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -569,15 +612,12 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabelSingle(label)}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={value => { setEditValue(value); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -598,24 +638,30 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
 
   /* ═══════ RENDER: NUMBER FIELD ═══════ */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    if (!numberShows(record, fn, idx)) return null;
+    const val = getFieldValue(record, fn, idx);
     const editKey    = `${fn}-${idx}`;
     const isEditing  = editingField === editKey;
     const label      = FIELD_LABELS[fn] || fn;
     const displayVal = String(val);
+    const step = stepFor(displayVal);
     const isModified = editedFields[editKey];
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabelSingle(label)}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} style={{ minHeight: 'auto', padding: '10px' }} />
+              <div className="number-edit-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(Number((Number(editValue || 0) - step).toFixed(10)))); }}>−</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(Number((Number(editValue || 0) + step).toFixed(10)))); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -623,6 +669,41 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
               <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: CLINICAL ENUM FIELD ═══════ */
+  const renderEnumField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = FIELD_LABELS[fn] || fn;
+    const displayVal = fmtVal(val);
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { const canonical = enumOptionsWith(fn, displayVal).find(option => option.toLowerCase() === displayVal.toLowerCase()) || displayVal; setEditingField(editKey); setEditValue(canonical); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <BlueSelect value={editValue} options={enumOptionsWith(fn, displayVal)} onChange={value => { setEditValue(value); setSaveError(null); }} />
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(displayVal, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -640,7 +721,7 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
         {items.map((item, itemIdx) => {
           const editKey   = `${fn}.${itemIdx}-${idx}`;
@@ -655,7 +736,7 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} data-edit-field={fn}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
@@ -698,6 +779,41 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
     const label     = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
+    if (COMMA_STRING_FIELDS.includes(fn)) {
+      const commaItems = splitByComma(strVal);
+      return (
+        <div key={fn} className="rec-mini-card nested-mini-card">
+          <div className="nested-subtitle">{highlightText(label)}</div>
+          {commaItems.map((item, itemIdx) => {
+            const itemKey = `${fn}-${idx}-c${itemIdx}`;
+            const isEditing = editingField === itemKey;
+            const badge = editedSentences[itemKey];
+            return (
+              <div key={itemIdx} data-edit-field={fn}>
+                <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(itemKey); setEditValue(item); setSaveError(null); } }}>
+                  {isEditing ? (
+                    <div className="edit-field-container">
+                      <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      <div className="edit-actions">
+                        <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const next = [...commaItems]; next[itemIdx] = editValue.trim(); stageDraft(record, fn, idx, sid, next.filter(Boolean).join(', ')); setEditedSentences(prev => ({ ...prev, [itemKey]: 'edited' })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                        <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(item)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[itemKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(item, itemKey); }}>{copiedItems[itemKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+                {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     /* Multi-sentence */
     if (sentences.length > 1) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
@@ -705,7 +821,7 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
+          <div className="rec-mini-card nested-mini-card">
             <div className="nested-subtitle">{highlightText(label)}</div>
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -729,7 +845,7 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -780,7 +896,7 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} data-edit-field={fn} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -835,7 +951,7 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
     const showLabelSingle = label.toLowerCase() !== sectionTitle.toLowerCase();
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabelSingle && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
@@ -865,7 +981,11 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
     if (!shouldShowSection(record, sid)) return null;
     const fields = SECTION_FIELDS[sid] || [];
 
-    const hasAnyVal = fields.some(f => hasVal(getFieldValue(record, f, idx)));
+    const hasAnyVal = fields.some(f => {
+      if (NUMBER_FIELDS.includes(f)) return numberShows(record, f, idx);
+      if (BOOLEAN_FIELDS.includes(f)) return typeof getFieldValue(record, f, idx) === 'boolean';
+      return hasVal(getFieldValue(record, f, idx));
+    });
     if (!hasAnyVal) return null;
 
     const copyId = `${sid}-${idx}`;
@@ -884,6 +1004,7 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f))  return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f))   return renderArrayField(record, f, idx, sid);
+            if (ENUM_FIELDS[f])             return renderEnumField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
           })}
         </div>
@@ -913,7 +1034,7 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
           <PDFDownloadLink
             document={<StiScreeningPanelDocumentPDFTemplate document={pdfData} />}
-            fileName={`sti-screening-panel-${new Date().toISOString().split('T')[0]}.pdf`}
+            fileName="STI_Screening_Panel.pdf"
             className="copy-btn"
           >
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
@@ -928,11 +1049,6 @@ const StiScreeningPanelDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.screeningDate) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.screeningDate)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`STI Screening Panel ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'screening-info')}

@@ -112,6 +112,7 @@ import SurgicalTeamDocumentPDFTemplate from './SurgicalTeamDocumentPDFTemplate';
 import SurrogacyEvaluationDocumentPDFTemplate from './SurrogacyEvaluationDocumentPDFTemplate';
 import SurvivorshipCarePlanDocumentPDFTemplate from './SurvivorshipCarePlanDocumentPDFTemplate';
 import SymptomProgressionDocumentPDFTemplate from './SymptomProgressionDocumentPDFTemplate';
+import SymptomProgressionTimelineDocumentPDFTemplate from './SymptomProgressionTimelineDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -213,6 +214,7 @@ const templateRegistry = {
   'surrogacy_evaluation': SurrogacyEvaluationDocumentPDFTemplate,
   'survivorship_care_plan': SurvivorshipCarePlanDocumentPDFTemplate,
   'symptom_progression': SymptomProgressionDocumentPDFTemplate,
+  'symptom_progression_timeline': SymptomProgressionTimelineDocumentPDFTemplate,
 };
 
 /**

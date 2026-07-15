@@ -11,6 +11,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import TotalWeightGainDocumentPDFTemplate from '../pdf-templates/TotalWeightGainDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './TotalWeightGainDocument.css';
 
@@ -55,13 +56,15 @@ const FIELD_LABELS = {
 const SECTION_FIELDS = {
   'weight-summary': ['amount', 'unit', 'timeframe', 'date', 'provider', 'facility'],
   'clinical-assessment': ['findings', 'assessment'],
-  'management': ['plan', 'notes'],
+  'management': ['plan', 'recommendations', 'notes'],
 };
 
 const NUMBER_FIELDS = [];
 const BOOLEAN_FIELDS = [];
+const DATE_FIELDS = ['date'];
 const ARRAY_FIELDS = ['recommendations'];
 const STRING_FIELDS = ['amount', 'unit', 'timeframe', 'assessment', 'findings', 'plan', 'notes', 'provider', 'facility', 'type', 'status'];
+const PERIOD_SPLIT_FIELDS = new Set(STRING_FIELDS);
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -70,6 +73,8 @@ const parseLabel = (text) => {
   if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
+
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
 
 /* splitByComma: parenthesis-aware comma split */
 const splitByComma = (text) => {
@@ -86,9 +91,99 @@ const splitByComma = (text) => {
   return result.length > 0 ? result : [text];
 };
 
+const stepFor = value => {
+  const match = String(value).trim().match(/\.(\d+)/);
+  return match ? Math.pow(10, -match[1].length) : 1;
+};
+
+const CLINICAL_UNITS = new Set(['lb', 'lbs', 'kg', 'week', 'weeks', 'bmi']);
+const editableNumberTokens = value => {
+  const source = String(value ?? '');
+  const tokens = [];
+  const matcher = /\d+(?:\.\d+)?/g;
+  let cursor = 0;
+  let match;
+  let editableIndex = 0;
+  while ((match = matcher.exec(source))) {
+    if (match.index > cursor) tokens.push({ text: source.slice(cursor, match.index), editable: false });
+    const start = match.index;
+    const end = start + match[0].length;
+    const previousCharacter = source[start - 1] || '';
+    const nextCharacter = source[end] || '';
+    const adjacentUnit = source.slice(end).match(/^([A-Za-z]+)/)?.[1]?.toLowerCase() || '';
+    const editable = previousCharacter !== '#'
+      && previousCharacter !== '/'
+      && !/[A-Za-z0-9]/.test(previousCharacter)
+      && (!/[A-Za-z]/.test(nextCharacter) || CLINICAL_UNITS.has(adjacentUnit));
+    tokens.push({ text: match[0], editable, editableIndex: editable ? editableIndex++ : null });
+    cursor = end;
+  }
+  if (cursor < source.length) tokens.push({ text: source.slice(cursor), editable: false });
+  return tokens;
+};
+
+const replaceEditableNumber = (value, targetIndex, replacement) => editableNumberTokens(value)
+  .map(token => token.editable && token.editableIndex === targetIndex ? String(replacement) : token.text)
+  .join('');
+
+const NumberTextEditor = ({ value, onChange }) => (
+  <div className="multi-number-edit-row">
+    {editableNumberTokens(value).map((token, tokenIndex) => {
+      if (!token.editable) return <span className="number-edit-unit fixed-number-text" key={`${tokenIndex}-${token.text}`}>{token.text}</span>;
+      const change = direction => {
+        const step = stepFor(token.text);
+        const next = Number((Number(token.text || 0) + direction * step).toFixed(10));
+        onChange(replaceEditableNumber(value, token.editableIndex, next));
+      };
+      return (
+        <div className="multi-number-control" key={`${tokenIndex}-${token.editableIndex}`}>
+          <button type="button" className="num-step" onClick={event => { event.stopPropagation(); change(-1); }}>&minus;</button>
+          <input type="text" inputMode="decimal" className="edit-number" value={token.text} onChange={event => onChange(replaceEditableNumber(value, token.editableIndex, event.target.value))} onClick={event => event.stopPropagation()} />
+          <button type="button" className="num-step" onClick={event => { event.stopPropagation(); change(1); }}>+</button>
+        </div>
+      );
+    })}
+  </div>
+);
+
+const hasEditableNumber = value => editableNumberTokens(value).some(token => token.editable);
+
+const splitEditableClauses = (value, fieldPath) => {
+  const source = String(value ?? '');
+  const parts = [];
+  let current = '';
+  let depth = 0;
+  const push = delimiter => { if (current.trim()) parts.push({ text: current.trim(), delimiter }); current = ''; };
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    const next = source[index + 1] || '';
+    const previousWord = current.trim().match(/([A-Za-z]+)$/)?.[1] || '';
+    const safePeriod = character === '.' && PERIOD_SPLIT_FIELDS.has(fieldPath) && depth === 0 && /\s/.test(next)
+      && !['Mr', 'Mrs', 'Ms', 'Dr', 'St', 'Jr', 'Sr', 'Prof', 'Rev', 'Gen', 'Col', 'Sgt', 'vs', 'etc'].includes(previousWord)
+      && !/\d$/.test(current);
+    const safeSemicolon = character === ';' && depth === 0;
+    if (safePeriod || safeSemicolon) {
+      let delimiter = character;
+      while (/\s/.test(source[index + 1] || '')) { delimiter += source[index + 1]; index += 1; }
+      push(delimiter);
+    } else current += character;
+  }
+  push('');
+  return parts.length ? parts : [{ text: source, delimiter: '' }];
+};
+
+const reconstructClauses = parts => parts.map(part => `${part.text}${part.delimiter}`).join('');
+
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
   try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
+};
+
+const toInputDate = (dateValue) => {
+  if (!dateValue) return '';
+  try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
 
 /* ═══════ COMPONENT ═══════ */
@@ -150,7 +245,7 @@ const TotalWeightGainDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?:(?<!\b[A-Z])(?<!\d)\.\s+|;\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -362,23 +457,6 @@ const TotalWeightGainDocument = ({ document: docProp }) => {
   const copySection = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedSection(id); setTimeout(() => setCopiedSection(null), 2000); } }, [copyToClipboard]);
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
-  /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatSentenceFieldLines = useCallback((text) => {
-    const sentences = splitBySentence(text);
-    const lines = []; let n = 1;
-    sentences.forEach(s => {
-      const parsed = parseLabel(s);
-      if (parsed.isLabeled) {
-        const parts = splitByComma(parsed.value);
-        if (parts.length >= 2) {
-          lines.push(parsed.label + ':');
-          parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
-        } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
-      } else { lines.push(`${n++}. ${s}`); }
-    });
-    return lines;
-  }, [splitBySentence]);
-
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
     let text = `${title}\n${'='.repeat(40)}\n\n`;
@@ -387,33 +465,36 @@ const TotalWeightGainDocument = ({ document: docProp }) => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
-      if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}\n${val ? 'Yes' : 'No'}\n\n`;
-      } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}\n${String(val)}\n\n`;
+      if (DATE_FIELDS.includes(f)) {
+        text += `${label}\n1. ${formatDate(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val.filter(Boolean) : [];
         if (items.length > 0) {
           text += `${label}\n`;
-          items.forEach((item, i) => { text += `  ${i + 1}. ${item}\n`; });
+          let number = 1;
+          items.forEach(item => {
+            const parsed = parseLabel(String(item));
+            if (parsed.isLabeled) text += `${parsed.label}\n`;
+            text += `${number++}. ${parsed.isLabeled ? parsed.value : item}\n`;
+          });
           text += '\n';
-        }
-      } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        const strVal = fmtVal(val);
+        const clauses = splitEditableClauses(strVal, f);
+        text += `${label}\n`;
+        let number = 1;
+        clauses.forEach(({ text: clause }) => {
+          const parsed = parseLabel(clause);
+          const items = parsed.isLabeled ? splitByComma(parsed.value) : [clause];
+          if (parsed.isLabeled) text += `${parsed.label}\n`;
+          items.forEach(item => { text += `${number++}. ${item}\n`; });
+        });
+        text += '\n';
       }
     });
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+  }, [getFieldValue, hasVal, fmtVal]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== TOTAL WEIGHT GAIN ===\n\n';
@@ -428,7 +509,38 @@ const TotalWeightGainDocument = ({ document: docProp }) => {
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
-  /* ═══════ RENDER: ARRAY FIELD (per-item editing with dot-path keys) ═══════ */
+  const renderDateField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const label = FIELD_LABELS[fn] || fn;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <BlueDatePicker value={editValue} onChange={setEditValue} />
+              <div className="edit-actions">
+                <button className="save-btn" onClick={event => { event.stopPropagation(); handleSaveField(record, fn, idx, sid); }}>Save</button>
+                <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(formatDate(val))}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${formatDate(val)}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: ARRAY FIELD (per-item editing, whole-array persistence) ═══════ */
   const renderArrayField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
     const items = Array.isArray(val) ? val.filter(Boolean) : [];
@@ -437,13 +549,15 @@ const TotalWeightGainDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card nested-mini-card">
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
           const isModified = editedFields[editKey];
           const itemStr = String(item);
+          const parsed = parseLabel(itemStr);
+          const displayValue = parsed.isLabeled ? parsed.value : itemStr;
 
           if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
             const phrase = searchTerm.toLowerCase().trim();
@@ -451,26 +565,35 @@ const TotalWeightGainDocument = ({ document: docProp }) => {
             if (!labelLower.includes(phrase) && !phrase.includes(labelLower) && !itemStr.toLowerCase().includes(phrase)) return null;
           }
 
-          return (
-            <div key={itemIdx}>
-              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
+          const row = (
+            <div data-edit-field={fn}>
+              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayValue); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
-                    <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                    {hasEditableNumber(displayValue)
+                      ? <NumberTextEditor value={editValue} onChange={setEditValue} />
+                      : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
                     {saveError && <div className="save-error">{saveError}</div>}
                     <div className="edit-actions">
-                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; setSaveError(null); const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])]; const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s); if (subParts.length > 1) { currentArr.splice(itemIdx, 1, ...subParts); } else { currentArr[itemIdx] = trimmed; } stageDraft(record, fn, idx, currentArr); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const currentArr = [...items]; currentArr[itemIdx] = parsed.isLabeled ? `${parsed.label}: ${editValue}` : editValue; stageDraft(record, fn, idx, currentArr); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
                       <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div className="row-content"><span className="content-value">{highlightText(itemStr)}</span><span className="edit-indicator">&#9998;</span></div>
-                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(itemStr, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                    <div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div>
+                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(parsed.isLabeled ? `${parsed.label}\n${parsed.value}` : itemStr, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                   </>
                 )}
               </div>
               {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+            </div>
+          );
+          if (!parsed.isLabeled) return <React.Fragment key={itemIdx}>{row}</React.Fragment>;
+          return (
+            <div key={itemIdx} className="rec-mini-card nested-mini-card" style={{ marginTop: 8 }}>
+              <div className="nested-subtitle">{highlightText(parsed.label)}</div>
+              {row}
             </div>
           );
         })}
@@ -478,131 +601,68 @@ const TotalWeightGainDocument = ({ document: docProp }) => {
     );
   };
 
-  /* ═══════ RENDER: STRING FIELD with splitBySentence ═══════ */
-  const renderStringField = (record, fn, idx, sid, title) => {
+  /* ═══════ RENDER: STRING FIELD with explicit delimiter decisions ═══════ */
+  const renderStringField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
-    const sentences = splitBySentence(strVal);
+    const clauses = splitEditableClauses(strVal, fn);
     const label = FIELD_LABELS[fn] || fn;
-    const sectionTitle = SECTION_TITLES[sid] || '';
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
-      const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
-      const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-      const showLabel = label !== sectionTitle;
-
-      return (
-        <div key={fn}>
-          <div className="rec-mini-card">
-            {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-            {sentences.map((sentence, sIdx) => {
-              const sentenceKey = `${fn}-${idx}-s${sIdx}`;
-              const isEditing = editingField === sentenceKey;
-              const badge = editedSentences[sentenceKey];
-              const sentenceMatches = phraseMatch || labelMatch || (searchTerm.trim() && sentence.toLowerCase().includes(searchTerm.toLowerCase().trim()));
-              if (!sentenceMatches && searchTerm.trim()) return null;
-
-              const parsed = parseLabel(sentence);
-              if (parsed.isLabeled) {
-                const commaItems = splitByComma(parsed.value);
-                const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-                if (commaItems.length >= 2) {
-                  return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                      <div className="nested-subtitle">{highlightText(parsed.label)}</div>
-                      {commaItems.map((ci, ciIdx) => {
-                        const commaKey = `${sentenceKey}-c${ciIdx}`;
-                        const ciEditing = editingField === commaKey;
-                        const ciBadge = editedSentences[commaKey];
-                        const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
-                        if (!ciMatches && searchTerm.trim()) return null;
-                        return (
-                          <div key={ciIdx}>
-                            <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
-                              {ciEditing ? (
-                                <div className="edit-field-container">
-                                  <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                                  {saveError && <div className="save-error">{saveError}</div>}
-                                  <div className="edit-actions">
-                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const currentVal2 = String(getFieldValue(record, fn, idx) || ''); const sentences2 = splitBySentence(currentVal2); const s2 = sentences2[sIdx] || ''; const p2 = parseLabel(s2); if (!p2.isLabeled) return; const items2 = splitByComma(p2.value); const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s); if (subParts.length > 1) { items2.splice(ciIdx, 1, ...subParts); } else { items2[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); } const rebuilt = `${p2.label}: ${items2.join(', ')}.`; const allS = [...sentences2]; allS[sIdx] = rebuilt; const fullText2 = reconstructFullText(allS); setSaveError(null); stageDraft(record, fn, idx, fullText2); const marks = { [commaKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ciIdx + ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
-                                    <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="row-content"><span className="content-value">{highlightText(ci)}</span><span className="edit-indicator">&#9998;</span></div>
-                                  <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(ci, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                                </>
-                              )}
-                            </div>
-                            {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                }
-              }
-
-              /* Regular sentence row */
-              return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
-                  {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
-                  <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
-                    {isEditing ? (
-                      <div className="edit-field-container">
-                        <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                        {saveError && <div className="save-error">{saveError}</div>}
-                        <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { const id3 = safeId(record); if (!id3) return; const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const sentences2 = splitBySentence(String(getFieldValue(record, fn, idx) || '')); sentences2[sIdx] = reconstructed; const fullText = reconstructFullText(sentences2); setSaveError(null); stageDraft(record, fn, idx, fullText); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); setEditingField(null); setEditValue(''); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
-                          <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="row-content"><span className="content-value">{highlightText(parsed.isLabeled ? parsed.value : sentence)}</span><span className="edit-indicator">&#9998;</span></div>
-                        <button className={`copy-btn ${copiedItems[sentenceKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(sentence, sentenceKey); }}>{copiedItems[sentenceKey] ? 'Copied!' : 'Copy'}</button>
-                      </>
-                    )}
-                  </div>
-                  {badge && <span className={`modified-badge ${badge === 'added' ? 'added' : ''}`}>{badge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    /* Single-value string: use saveSentence(record, fn, idx, sid, 0) */
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const isModified = editedFields[editKey] || editedSentences[`${fn}-${idx}-s0`];
-    const showLabelSingle = label.toLowerCase() !== sectionTitle.toLowerCase();
-
     return (
-      <div key={fn} className="rec-mini-card">
-        {showLabelSingle && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSentence(record, fn, idx, sid, 0); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+      <div key={fn} className="rec-mini-card nested-mini-card">
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        {clauses.map((clause, clauseIndex) => {
+          const parsed = parseLabel(clause.text);
+          const commaItems = parsed.isLabeled ? splitByComma(parsed.value) : [clause.text];
+          const rows = commaItems.map((item, itemIndex) => {
+            const editKey = `${fn}-${idx}-s${clauseIndex}${parsed.isLabeled ? `-c${itemIndex}` : ''}`;
+            const isEditing = editingField === editKey;
+            const isModified = editedSentences[editKey];
+            const saveValue = () => {
+              const nextClauses = splitEditableClauses(String(getFieldValue(record, fn, idx) || ''), fn);
+              const currentParsed = parseLabel(nextClauses[clauseIndex]?.text || '');
+              if (currentParsed.isLabeled) {
+                const nextItems = splitByComma(currentParsed.value);
+                nextItems[itemIndex] = editValue;
+                nextClauses[clauseIndex].text = `${currentParsed.label}: ${nextItems.join(', ')}`;
+              } else nextClauses[clauseIndex].text = editValue;
+              stageDraft(record, fn, idx, reconstructClauses(nextClauses));
+              setEditedSentences(prev => ({ ...prev, [editKey]: 'edited' }));
+              setApprovedSections(prev => { const next = { ...prev }; delete next[`${sid}-${idx}`]; return next; });
+              setEditingField(null); setEditValue('');
+            };
+            return (
+              <div key={itemIndex} data-edit-field={fn}>
+                <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(item); setSaveError(null); } }}>
+                  {isEditing ? (
+                    <div className="edit-field-container">
+                      {hasEditableNumber(item)
+                        ? <NumberTextEditor value={editValue} onChange={setEditValue} />
+                        : <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus onKeyDown={event => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); } }} />}
+                      <div className="edit-actions">
+                        <button className="save-btn" onClick={event => { event.stopPropagation(); saveValue(); }}>Save</button>
+                        <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(item)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(item, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+                {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
               </div>
+            );
+          });
+          if (!parsed.isLabeled) return <React.Fragment key={clauseIndex}>{rows}</React.Fragment>;
+          return (
+            <div key={clauseIndex} className="rec-mini-card nested-mini-card" style={{ marginTop: 8 }}>
+              <div className="nested-subtitle">{highlightText(parsed.label)}</div>
+              {rows}
             </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(strVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${strVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+          );
+        })}
       </div>
     );
   };
@@ -631,8 +691,9 @@ const TotalWeightGainDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
+            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
-            return renderStringField(record, f, idx, sid, title);
+            return renderStringField(record, f, idx, sid);
           })}
         </div>
       </div>
@@ -655,7 +716,7 @@ const TotalWeightGainDocument = ({ document: docProp }) => {
         <h2 className="document-title">Total Weight Gain</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<TotalWeightGainDocumentPDFTemplate document={pdfData} />} fileName={`total-weight-gain-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<TotalWeightGainDocumentPDFTemplate document={pdfData} />} fileName="Total_Weight_Gain.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -668,11 +729,6 @@ const TotalWeightGainDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Total Weight Gain ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'weight-summary')}

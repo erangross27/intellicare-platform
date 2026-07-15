@@ -24,7 +24,7 @@ function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
 const ALLOWED_FIELDS = [
-  'date', 'provider', 'facility', 'riskLevel',
+  'date', 'type', 'provider', 'facility', 'riskLevel',
   'ideation.current', 'ideation.passive', 'ideation.active', 'ideation.frequency', 'ideation.duration',
   'plan.hasPlan', 'plan.method', 'plan.means', 'plan.timeline',
   'intent',

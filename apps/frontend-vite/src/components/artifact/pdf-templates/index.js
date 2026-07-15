@@ -100,6 +100,7 @@ import StressManagementReferralsDocumentPDFTemplate from './StressManagementRefe
 import StressTestReportsDocumentPDFTemplate from './StressTestReportsDocumentPDFTemplate';
 import StrokeAssessmentDocumentPDFTemplate from './StrokeAssessmentDocumentPDFTemplate';
 import SubstanceUseAssessmentDocumentPDFTemplate from './SubstanceUseAssessmentDocumentPDFTemplate';
+import SuicideRiskAssessmentDocumentPDFTemplate from './SuicideRiskAssessmentDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -189,6 +190,7 @@ const templateRegistry = {
   'stress_test_reports': StressTestReportsDocumentPDFTemplate,
   'stroke_assessment': StrokeAssessmentDocumentPDFTemplate,
   'substance_use_assessment': SubstanceUseAssessmentDocumentPDFTemplate,
+  'suicide_risk_assessment': SuicideRiskAssessmentDocumentPDFTemplate,
 };
 
 /**

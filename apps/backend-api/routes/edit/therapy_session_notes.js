@@ -45,6 +45,8 @@ function toObjectId(str) {
 
 // Allowed editable fields
 const ALLOWED_FIELDS = [
+  'sessionDate',
+  'sessionNumber',
   'sessionType',
   'response',
   'homework',

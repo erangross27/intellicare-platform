@@ -117,6 +117,7 @@ import SyphilisTreatmentFollowUpDocumentPDFTemplate from './SyphilisTreatmentFol
 import TelemedicineEncountersDocumentPDFTemplate from './TelemedicineEncountersDocumentPDFTemplate';
 import TherapyProgressNotesDocumentPDFTemplate from './TherapyProgressNotesDocumentPDFTemplate';
 import TherapyRequestsDocumentPDFTemplate from './TherapyRequestsDocumentPDFTemplate';
+import TherapySessionNotesDocumentPDFTemplate from './TherapySessionNotesDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -223,6 +224,7 @@ const templateRegistry = {
   'telemedicine_encounters': TelemedicineEncountersDocumentPDFTemplate,
   'therapy_progress_notes': TherapyProgressNotesDocumentPDFTemplate,
   'therapy_requests': TherapyRequestsDocumentPDFTemplate,
+  'therapy_session_notes': TherapySessionNotesDocumentPDFTemplate,
 };
 
 /**

@@ -1,294 +1,383 @@
-/**
- * SupportiveCareDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — supportive care
- * Collection: supportive_care
- */
-import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import React from "react";
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 
-const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
-});
-
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
-};
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
-};
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
-};
-
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
-};
-
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
-};
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
-};
-
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
-};
-
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
-
-/* renderDateField */
-const renderDateFieldPDF = (label, value) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
-  const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
-    }
-  });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
-};
-
-/* renderArrayField */
-const renderArrayFieldPDF = (label, items) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* SECTION CONFIGS */
-const SECTION_CONFIGS = [
-  {
-    title: 'Performance Status',
-    fields: [
-      { key: 'palliativeConsultDate', label: 'Palliative Consult Date', isDate: true },
-      { key: 'painScaleScore', label: 'Pain Scale Score' },
-      { key: 'edmontonSymptomAssessmentScore', label: 'Edmonton Symptom Assessment Score' },
-      { key: 'karnofskyPerformanceStatus', label: 'Karnofsky Performance Status' },
-      { key: 'ecogPerformanceStatus', label: 'ECOG Performance Status' },
-    ],
-  },
-  {
-    title: 'Symptom Management',
-    fields: [
-      { key: 'opioidMedicationName', label: 'Opioid Medication Name', isSentence: true },
-      { key: 'morphineEquivalentDose', label: 'Morphine Equivalent Dose' },
-      { key: 'nauseaVomitingSeverity', label: 'Nausea/Vomiting Severity', isSentence: true },
-      { key: 'dyspneaSeverity', label: 'Dyspnea Severity', isSentence: true },
-      { key: 'constrainedBowelMovementDays', label: 'Constipation (Days Without BM)' },
-      { key: 'symptomManagementMedications', label: 'Symptom Management Medications', isArray: true },
-    ],
-  },
-  {
-    title: 'Nutrition & Well-Being',
-    fields: [
-      { key: 'nutritionalSupportType', label: 'Nutritional Support Type', isSentence: true },
-      { key: 'albuminLevel', label: 'Albumin Level' },
-      { key: 'prealbumin', label: 'Prealbumin' },
-      { key: 'weightLossPercentage', label: 'Weight Loss Percentage' },
-      { key: 'sleepDisturbanceScale', label: 'Sleep Disturbance Scale' },
-      { key: 'anxietyLevel', label: 'Anxiety Level', isSentence: true },
-      { key: 'depressionScreeningScore', label: 'Depression Screening Score' },
-    ],
-  },
-  {
-    title: 'Psychosocial Support',
-    fields: [
-      { key: 'socialWorkConsult', label: 'Social Work Consult' },
-      { key: 'chaplainServices', label: 'Chaplain Services' },
-      { key: 'familyMeetingDate', label: 'Family Meeting Date', isDate: true },
-    ],
-  },
-  {
-    title: 'Advance Care Planning',
-    fields: [
-      { key: 'advanceDirectiveStatus', label: 'Advance Directive Status', isSentence: true },
-      { key: 'codeStatus', label: 'Code Status', isSentence: true },
-      { key: 'hospiceReferralDate', label: 'Hospice Referral Date', isDate: true },
-    ],
-  },
+const SECTIONS = [
+  { title: 'Performance Status', fields: ['palliativeConsultDate', 'painScaleScore', 'edmontonSymptomAssessmentScore', 'karnofskyPerformanceStatus', 'ecogPerformanceStatus'] },
+  { title: 'Symptom Management', fields: ['opioidMedicationName', 'morphineEquivalentDose', 'nauseaVomitingSeverity', 'dyspneaSeverity', 'constrainedBowelMovementDays', 'symptomManagementMedications'] },
+  { title: 'Nutrition & Well-Being', fields: ['nutritionalSupportType', 'albuminLevel', 'prealbumin', 'weightLossPercentage', 'sleepDisturbanceScale', 'anxietyLevel', 'depressionScreeningScore'] },
+  { title: 'Psychosocial Support', fields: ['socialWorkConsult', 'chaplainServices', 'familyMeetingDate'] },
+  { title: 'Advance Care Planning', fields: ['advanceDirectiveStatus', 'codeStatus', 'hospiceReferralDate'] },
 ];
 
-/* ======= COMPONENT ======= */
-const SupportiveCareDocumentPDFTemplate = ({ document: data }) => {
-  const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.supportive_care) return Array.isArray(r.supportive_care) ? r.supportive_care : [r.supportive_care];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.supportive_care) return Array.isArray(dd.supportive_care) ? dd.supportive_care : [dd.supportive_care]; return [dd]; }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+const LABELS = {
+  palliativeConsultDate: 'Palliative Consult Date', painScaleScore: 'Pain Scale Score',
+  edmontonSymptomAssessmentScore: 'Edmonton Symptom Assessment Score', karnofskyPerformanceStatus: 'Karnofsky Performance Status',
+  ecogPerformanceStatus: 'ECOG Performance Status', opioidMedicationName: 'Opioid Medication Name',
+  morphineEquivalentDose: 'Morphine Equivalent Dose', nauseaVomitingSeverity: 'Nausea/Vomiting Severity',
+  dyspneaSeverity: 'Dyspnea Severity', constrainedBowelMovementDays: 'Constipation (Days Without BM)',
+  symptomManagementMedications: 'Symptom Management Medications', nutritionalSupportType: 'Nutritional Support Type',
+  albuminLevel: 'Albumin Level', prealbumin: 'Prealbumin', weightLossPercentage: 'Weight Loss Percentage',
+  sleepDisturbanceScale: 'Sleep Disturbance Scale', anxietyLevel: 'Anxiety Level',
+  depressionScreeningScore: 'Depression Screening Score', socialWorkConsult: 'Social Work Consult',
+  chaplainServices: 'Chaplain Services', familyMeetingDate: 'Family Meeting Date',
+  advanceDirectiveStatus: 'Advance Directive Status', codeStatus: 'Code Status', hospiceReferralDate: 'Hospice Referral Date',
+};
 
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Supportive Care</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
+const COMMA_ARRAY_FIELDS = ['symptomManagementMedications'];
+const NUMBER_SUFFIXES = {
+  painScaleScore: '/10', edmontonSymptomAssessmentScore: '/90',
+  karnofskyPerformanceStatus: '/100', ecogPerformanceStatus: '/5',
+  morphineEquivalentDose: ' mg/day', constrainedBowelMovementDays: ' days',
+  albuminLevel: ' g/dL', prealbumin: ' mg/dL', weightLossPercentage: '%',
+  sleepDisturbanceScale: '/10', depressionScreeningScore: '/27',
+};
+const fieldMatches = (fields, path) =>
+  fields.some((field) => path === field || path.startsWith(`${field}.`));
+const empty = (value) =>
+  value == null ||
+  value === "" ||
+  (Array.isArray(value)
+    ? !value.some((item) => !empty(item))
+    : typeof value === "object" && !value.$date
+      ? Object.values(value).every(empty)
+      : false);
+const isDate = (value) =>
+  Boolean(
+    value?.$date ||
+    (typeof value === "string" && /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(value)),
+  );
+const safe = (value) =>
+  String(value ?? "")
+    .replace(/[µμ]/g, "u")
+    .replace(/°/g, " deg")
+    .replace(/±/g, "+/-")
+    .replace(/≥/g, ">=")
+    .replace(/≤/g, "<=")
+    .replace(/→/g, "->")
+    .replace(/–/g, "-");
+const formatDate = (value) => {
+  try {
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime())
+      ? safe(value)
+      : date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+  } catch {
+    return safe(value);
   }
+};
+const humanize = (value) =>
+  String(value || "")
+    .replace(/_/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
+const splitComma = (text) => {
+  const rows = [];
+  let current = "";
+  let depth = 0;
+  for (const char of String(text || "")) {
+    if (char === "(") {
+      depth += 1;
+      current += char;
+    } else if (char === ")") {
+      depth = Math.max(0, depth - 1);
+      current += char;
+    } else if (char === "," && depth === 0) {
+      if (current.trim()) rows.push(current.trim());
+      current = "";
+    } else current += char;
+  }
+  if (current.trim()) rows.push(current.trim());
+  return rows.length ? rows : [String(text || "")];
+};
+const parseLabel = (text) => {
+  const match = String(text || "").match(
+    /^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/,
+  );
+  return match
+    ? { label: match[1].trim(), value: match[2].trim() }
+    : { label: "", value: String(text || "") };
+};
+const splitTokens = (text) => {
+  const source = String(text || "");
+  const regex =
+    /(?:;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/g;
+  const tokens = [];
+  let start = 0;
+  let match;
+  while ((match = regex.exec(source))) {
+    const value = source.slice(start, match.index).trim();
+    if (value) tokens.push(value);
+    start = match.index + match[0].length;
+  }
+  const tail = source
+    .slice(start)
+    .replace(/[.;]\s*$/, "")
+    .trim();
+  if (tail) tokens.push(tail);
+  return tokens.length ? tokens : [source.trim()];
+};
+const scalarRows = (path, value) => {
+  const display = isDate(value)
+    ? formatDate(value)
+    : typeof value === "boolean"
+      ? value
+        ? "Yes"
+        : "No"
+      : typeof value === "number" && NUMBER_SUFFIXES[path]
+        ? `${safe(value)}${NUMBER_SUFFIXES[path]}`
+        : safe(value);
+  if (
+    /^-?\d+(?:\.\d+)?(?:\s*\/\s*\d+(?:\.\d+)?|\s*-\s*\d+(?:\.\d+)?)?[\s\S]*$/.test(
+      display,
+    )
+  ) {
+    return [{ label: "", text: display }];
+  }
+  return splitTokens(display).flatMap((token) => {
+    const parsed = parseLabel(token);
+    const values = fieldMatches(COMMA_ARRAY_FIELDS, path)
+      ? splitComma(parsed.value)
+      : [parsed.value];
+    return values.map((text, index) => ({
+      label: index === 0 ? parsed.label : "",
+      text,
+    }));
+  });
+};
+const unwrap = (input) => {
+  if (!input) return [];
+  return (Array.isArray(input) ? input : [input])
+    .flatMap((item) => {
+      if (item?.supportive_care)
+        return Array.isArray(item.supportive_care)
+          ? item.supportive_care
+          : [item.supportive_care];
+      if (item?.documentData?.supportive_care)
+        return Array.isArray(item.documentData.supportive_care)
+          ? item.documentData.supportive_care
+          : [item.documentData.supportive_care];
+      if (item?.documentData)
+        return Array.isArray(item.documentData)
+          ? item.documentData
+          : [item.documentData];
+      if (item?.document)
+        return Array.isArray(item.document) ? item.document : [item.document];
+      return [item];
+    })
+    .filter((record) => record && typeof record === "object");
+};
 
+const styles = StyleSheet.create({
+  page: {
+    padding: 36,
+    fontFamily: "Helvetica",
+    color: "#000000",
+    fontSize: 14,
+    backgroundColor: "#ffffff",
+  },
+  documentTitle: {
+    fontSize: 26,
+    fontFamily: "Helvetica-Bold",
+    textAlign: "center",
+    marginBottom: 18,
+    paddingBottom: 7,
+    borderBottomWidth: 2,
+    borderBottomColor: "#000000",
+  },
+  record: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: "Helvetica-Bold", marginBottom: 12 },
+  section: { marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 7,
+    paddingBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: "#000000",
+  },
+  fieldBlock: { marginLeft: 10, marginBottom: 7 },
+  fieldLabel: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 3,
+    paddingBottom: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#999999",
+  },
+  fieldValue: { fontSize: 14, lineHeight: 1.35, marginBottom: 2 },
+});
+
+const scalarBlocks = (path, value, label = "") =>
+  scalarRows(path, value).map((row, index) => (
+    <View key={`${path}-${index}`} style={styles.fieldBlock} wrap={false}>
+      {index === 0 && label ? (
+        <Text style={styles.fieldLabel}>{safe(label)}</Text>
+      ) : null}
+      {row.label ? (
+        <Text style={styles.fieldLabel}>{safe(row.label)}</Text>
+      ) : null}
+      <Text style={styles.fieldValue}>{`${index + 1}. ${safe(row.text)}`}</Text>
+    </View>
+  ));
+
+const nodeBlocks = (path, value, label = "") => {
+  if (empty(value)) return [];
+  if (isDate(value) || typeof value !== "object")
+    return scalarBlocks(path, value, label);
+  if (Array.isArray(value)) {
+    const items = value
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => !empty(item));
+    if (items.every(({ item }) => isDate(item) || typeof item !== "object")) {
+      return items.flatMap(({ item, index }) => {
+        const rows = scalarRows(`${path}.${index}`, item);
+        return rows.map((row, rowIndex) => (
+          <View
+            key={`${path}.${index}-${rowIndex}`}
+            style={styles.fieldBlock}
+            wrap={false}
+          >
+            {index === 0 && rowIndex === 0 && label ? (
+              <Text style={styles.fieldLabel}>{safe(label)}</Text>
+            ) : null}
+            {row.label ? (
+              <Text style={styles.fieldLabel}>{safe(row.label)}</Text>
+            ) : null}
+            <Text style={styles.fieldValue}>{`${index + 1}. ${safe(row.text)}`}</Text>
+          </View>
+        ));
+      });
+    }
+    return items.flatMap(({ item, index }) => {
+      const itemLabel =
+        item?.substance || item?.type || `${label || "Item"} ${index + 1}`;
+      const heading = (
+        <View
+          key={`${path}.${index}-heading`}
+          style={styles.fieldBlock}
+          wrap={false}
+        >
+          <Text style={styles.fieldLabel}>{safe(itemLabel)}</Text>
+        </View>
+      );
+      return [
+        heading,
+        ...Object.entries(item)
+          .filter(([, child]) => !empty(child))
+          .flatMap(([key, child]) =>
+            nodeBlocks(`${path}.${index}.${key}`, child, humanize(key)),
+          ),
+      ];
+    });
+  }
+  return Object.entries(value)
+    .filter(([, child]) => !empty(child))
+    .flatMap(([key, child]) =>
+      nodeBlocks(`${path}.${key}`, child, humanize(key)),
+    );
+};
+
+const recommendationBlocks = (value) => {
+  const groups = new Map();
+  value.forEach((item, index) => {
+    const date = item?.date || "";
+    const key = date ? String(date?.$date || date).slice(0, 10) : "no-date";
+    if (!groups.has(key)) groups.set(key, { date, items: [] });
+    groups.get(key).items.push({ item, index });
+  });
+  return [...groups.entries()].flatMap(([key, group]) => {
+    const blocks = [];
+    if (key !== "no-date")
+      blocks.push(
+        <View key={`${key}-date`} style={styles.fieldBlock} wrap={false}>
+          <Text style={styles.fieldLabel}>Date</Text>
+          <Text style={styles.fieldValue}>{formatDate(group.date)}</Text>
+        </View>,
+      );
+    let rowNumber = 1;
+    group.items.forEach(({ item, index }) => {
+      const text = typeof item === "object" ? item.recommendation : item;
+      scalarRows(`recommendations.${index}.recommendation`, text).forEach(
+        (row) => {
+          blocks.push(
+            <View
+              key={`${key}-${index}-${rowNumber}`}
+              style={styles.fieldBlock}
+              wrap={false}
+            >
+              {row.label ? (
+                <Text style={styles.fieldLabel}>{safe(row.label)}</Text>
+              ) : null}
+              <Text
+                style={styles.fieldValue}
+              >{`${rowNumber}. ${safe(row.text)}`}</Text>
+            </View>,
+          );
+          rowNumber += 1;
+        },
+      );
+    });
+    return blocks;
+  });
+};
+
+const sectionBlocks = (record, section) =>
+  section.fields.flatMap((field) => {
+    const value = record[field];
+    if (empty(value)) return [];
+    if (field === "recommendations" && Array.isArray(value))
+      return recommendationBlocks(value);
+    const label =
+      (LABELS[field] || humanize(field)).toLowerCase() ===
+      section.title.toLowerCase()
+        ? ""
+        : LABELS[field] || humanize(field);
+    return nodeBlocks(field, value, label);
+  });
+
+const SupportiveCareDocumentPDFTemplate = ({
+  document,
+  data,
+  templateData,
+}) => {
+  const records = unwrap(templateData || document || data);
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Supportive Care</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.palliativeConsultDate && (
-                  <Text style={styles.recordDate}>{formatDate(record.palliativeConsultDate)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                Supportive Care {index + 1}
-              </Text>
+      {records.length ? (
+        records.map((record, recordIndex) => (
+          <Page size="A4" style={styles.page} key={recordIndex}>
+            <Text style={styles.documentTitle}>Supportive Care</Text>
+            <View style={styles.record}>
+              <Text
+                style={styles.recordTitle}
+              >{`Supportive Care ${recordIndex + 1}`}</Text>
+              {SECTIONS.map((section) => {
+                const blocks = sectionBlocks(record, section);
+                if (!blocks.length) return null;
+                return (
+                  <View style={styles.section} key={section.title}>
+                    <View wrap={false}>
+                      <Text style={styles.sectionTitle}>{section.title}</Text>
+                      {blocks[0]}
+                    </View>
+                    {blocks.slice(1)}
+                  </View>
+                );
+              })}
             </View>
-
-            {/* Sections */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const hasAnyVal = sectionConfig.fields.some(f => hasVal(record[f.key]));
-              if (!hasAnyVal) return null;
-
-              return (
-                <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = record[field.key];
-                    if (!hasVal(val)) return null;
-
-                    if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
-                    if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
-                  })}
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </Page>
+          </Page>
+        ))
+      ) : (
+        <Page size="A4" style={styles.page}>
+          <Text style={styles.documentTitle}>Supportive Care</Text>
+          <Text style={styles.fieldValue}>No records available</Text>
+        </Page>
+      )}
     </Document>
   );
 };

@@ -102,6 +102,7 @@ import StrokeAssessmentDocumentPDFTemplate from './StrokeAssessmentDocumentPDFTe
 import SubstanceUseAssessmentDocumentPDFTemplate from './SubstanceUseAssessmentDocumentPDFTemplate';
 import SuicideRiskAssessmentDocumentPDFTemplate from './SuicideRiskAssessmentDocumentPDFTemplate';
 import SupplementationPlansDocumentPDFTemplate from './SupplementationPlansDocumentPDFTemplate';
+import SupportiveCareDocumentPDFTemplate from './SupportiveCareDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -193,6 +194,7 @@ const templateRegistry = {
   'substance_use_assessment': SubstanceUseAssessmentDocumentPDFTemplate,
   'suicide_risk_assessment': SuicideRiskAssessmentDocumentPDFTemplate,
   'supplementation_plans': SupplementationPlansDocumentPDFTemplate,
+  'supportive_care': SupportiveCareDocumentPDFTemplate,
 };
 
 /**

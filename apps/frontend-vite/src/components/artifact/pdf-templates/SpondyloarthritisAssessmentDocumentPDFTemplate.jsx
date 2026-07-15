@@ -59,6 +59,8 @@ const safeString = (value) => {
   if (value === null || value === undefined) return '';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return String(value)
+    .replace(/\u2265/g, '>=')
+    .replace(/\u2264/g, '<=')
     .replace(/\u00d7/g, 'x')
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201c\u201d]/g, '"')

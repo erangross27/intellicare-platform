@@ -115,6 +115,12 @@ const safeString = (value) => {
   return String(value);
 };
 
+// Keep the persisted clinical text untouched while using glyphs that render
+// consistently in the browser, clipboard, and React-PDF's built-in fonts.
+const formatDisplayString = (value) => safeString(value)
+  .replace(/\u2265/g, '>=')
+  .replace(/\u2264/g, '<=');
+
 // Score values are stored as a numeric numerator followed by a fixed denominator
 // and, sometimes, fixed explanatory text. Only the numerator is editable.
 const splitMeasurementValue = (value) => {
@@ -337,7 +343,7 @@ const SpondyloarthritisAssessmentDocument = ({ document: docProp }) => {
   const pdfData = useMemo(() => filteredRecords.map(({ record, index }) => mergeRecord(record, index, false)), [filteredRecords, mergeRecord]);
 
   const highlightText = useCallback((value) => {
-    const text = safeString(value);
+    const text = formatDisplayString(value);
     const phrase = searchTerm.trim();
     if (!phrase || !text) return text;
     const regex = new RegExp(`(${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
@@ -433,10 +439,11 @@ const SpondyloarthritisAssessmentDocument = ({ document: docProp }) => {
   };
 
   const copyToClipboard = useCallback(async (text) => {
-    try { await navigator.clipboard.writeText(text); return true; }
+    const displayText = formatDisplayString(text);
+    try { await navigator.clipboard.writeText(displayText); return true; }
     catch {
       const textarea = window.document.createElement('textarea');
-      textarea.value = text;
+      textarea.value = displayText;
       textarea.style.position = 'absolute';
       textarea.style.left = '-9999px';
       (containerRef.current || window.document.body).appendChild(textarea);

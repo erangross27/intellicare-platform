@@ -1,280 +1,83 @@
-/**
- * TpnManagementDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — TPN management — NO BLUE
- * Collection: tpn_management
- */
+/** TPN Management — canonical box-free PDF, collection tpn_management. */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 5, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, marginTop: 9, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 1, marginTop: 4, marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 1, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
-/* ======= UTILS ======= */
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  return String(val);
+const SECTION_TITLES = {
+  'tpn-overview': 'TPN Overview', macronutrients: 'Macronutrients', electrolytes: 'Electrolytes', additives: 'Additives',
+  access: 'Venous Access', monitoring: 'Monitoring', complications: 'Complications & Tolerance',
 };
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
+const FIELD_LABELS = {
+  tpnIndicationType: 'TPN Indication Type', estimatedTpnDuration: 'Estimated TPN Duration', totalDailyCalories: 'Total Daily Calories',
+  proteinProvision: 'Protein Provision', infusionRate: 'Infusion Rate', cyclicTpnSchedule: 'Cyclic TPN Schedule', dextroseConcentration: 'Dextrose Concentration',
+  lipidEmulsionType: 'Lipid Emulsion Type', lipidDose: 'Lipid Dose', sodiumProvision: 'Sodium Provision', potassiumProvision: 'Potassium Provision',
+  phosphorusProvision: 'Phosphorus Provision', calciumGluconateProvision: 'Calcium Gluconate Provision', magnesiumProvision: 'Magnesium Provision',
+  traceElementsFormulation: 'Trace Elements Formulation', multiVitaminAdditive: 'Multivitamin Additive', centralVenousAccessType: 'Central Venous Access Type',
+  catheterTipPosition: 'Catheter Tip Position', baselinePrealbuminLevel: 'Baseline Prealbumin Level', triglycerideMonitoring: 'Triglyceride Monitoring',
+  bloodGlucoseManagement: 'Blood Glucose Management', hepaticFunctionPanel: 'Hepatic Function Panel', refeedingSyndromeRisk: 'Refeeding Syndrome Risk',
+  tpnAssociatedCholestasis: 'TPN-Associated Cholestasis', catheterRelatedBloodstreamInfection: 'Catheter-Related Bloodstream Infection', enteralFeedingTolerance: 'Enteral Feeding Tolerance',
 };
-
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
+const SECTION_FIELDS = {
+  'tpn-overview': ['tpnIndicationType', 'estimatedTpnDuration', 'totalDailyCalories', 'proteinProvision', 'infusionRate', 'cyclicTpnSchedule'],
+  macronutrients: ['dextroseConcentration', 'lipidEmulsionType', 'lipidDose'], electrolytes: ['sodiumProvision', 'potassiumProvision', 'phosphorusProvision', 'calciumGluconateProvision', 'magnesiumProvision'],
+  additives: ['traceElementsFormulation', 'multiVitaminAdditive'], access: ['centralVenousAccessType', 'catheterTipPosition'],
+  monitoring: ['baselinePrealbuminLevel', 'triglycerideMonitoring', 'bloodGlucoseManagement', 'hepaticFunctionPanel'],
+  complications: ['refeedingSyndromeRisk', 'tpnAssociatedCholestasis', 'catheterRelatedBloodstreamInfection', 'enteralFeedingTolerance'],
 };
-
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+const NUMBER_UNITS = {
+  totalDailyCalories: 'kcal/day', proteinProvision: 'g/day', dextroseConcentration: '%', lipidDose: 'g/kg/day', infusionRate: 'mL/hour',
+  sodiumProvision: 'mEq/day', potassiumProvision: 'mEq/day', phosphorusProvision: 'mmol/day', calciumGluconateProvision: 'mEq/day',
+  magnesiumProvision: 'mEq/day', baselinePrealbuminLevel: 'mg/dL', triglycerideMonitoring: 'mg/dL',
 };
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
+const NUMBER_FIELDS = new Set(Object.keys(NUMBER_UNITS));
+const BOOLEAN_FIELDS = new Set(['tpnAssociatedCholestasis', 'catheterRelatedBloodstreamInfection']);
+const ARRAY_FIELDS = new Set(['hepaticFunctionPanel']);
+const PERIOD_SPLIT_FIELDS = new Set(['cyclicTpnSchedule', 'refeedingSyndromeRisk', 'bloodGlucoseManagement']);
+const COMMA_SPLIT_FIELDS = new Set(['refeedingSyndromeRisk']);
+const safeString = value => String(value ?? '').replace(/×/g, 'x').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
+const hasVal = value => value !== null && value !== undefined && value !== '' && (typeof value !== 'string' || value.trim() !== '') && (!Array.isArray(value) || value.some(Boolean));
+const sameAsTitle = (label, sid) => label.trim().toLowerCase() === SECTION_TITLES[sid].trim().toLowerCase();
+const parseLabel = text => { const match = String(text || '').match(/^([A-Za-z0-9][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]+)/); return match ? { isLabeled: true, label: match[1].trim(), value: match[2].trim() } : { isLabeled: false, label: '', value: String(text || '') }; };
+const splitByComma = text => {
+  const source = String(text || ''); const out = []; let current = ''; let depth = 0;
+  for (let i = 0; i < source.length; i += 1) { const ch = source[i]; if (ch === '(') depth += 1; if (ch === ')') depth = Math.max(0, depth - 1); if (ch === ',' && depth === 0) { const before = current.trim(); const after = source.slice(i + 1).trimStart(); if (/\d$/.test(before) && /^\d{3}\b/.test(after)) current += ch; else { if (before) out.push(before); current = ''; } } else current += ch; }
+  if (current.trim()) out.push(current.trim()); return out.length ? out : [source];
 };
-
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
+const splitEditableClauses = (value, fieldPath) => {
+  const source = String(value ?? ''); const out = []; let current = ''; let depth = 0; const push = () => { if (current.trim()) out.push(current.trim()); current = ''; };
+  for (let i = 0; i < source.length; i += 1) { const ch = source[i]; if (ch === '(') depth += 1; if (ch === ')') depth = Math.max(0, depth - 1); const next = source[i + 1] || ''; const safePeriod = ch === '.' && PERIOD_SPLIT_FIELDS.has(fieldPath) && depth === 0 && /\s/.test(next) && !/\d$/.test(current); const safeSemicolon = ch === ';' && PERIOD_SPLIT_FIELDS.has(fieldPath) && depth === 0; if (safePeriod || safeSemicolon) { push(); while (/\s/.test(source[i + 1] || '')) i += 1; } else current += ch; }
+  push(); return out.length ? out : [source];
 };
+const unwrapRecords = data => (Array.isArray(data) ? data : data ? [data] : []).flatMap(record => {
+  if (record?.tpn_management) return Array.isArray(record.tpn_management) ? record.tpn_management : [record.tpn_management];
+  if (record?.documentData) { const inner = record.documentData; if (Array.isArray(inner)) return inner; if (inner?.tpn_management) return Array.isArray(inner.tpn_management) ? inner.tpn_management : [inner.tpn_management]; return [inner]; }
+  return [record];
+}).filter(record => record && typeof record === 'object');
 
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value, showLabel = true) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text, showLabel = true) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
-  const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
-    }
-  });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
-};
-
-/* renderArrayField */
-const renderArrayFieldPDF = (label, items, showLabel = true) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* SECTION CONFIGS */
-const SECTION_CONFIGS = [
-  {
-    title: 'TPN Overview',
-    fields: [
-      { key: 'tpnIndicationType', label: 'TPN Indication Type', isSentence: true },
-      { key: 'estimatedTpnDuration', label: 'Estimated TPN Duration', isSentence: true },
-      { key: 'totalDailyCalories', label: 'Total Daily Calories' },
-      { key: 'proteinProvision', label: 'Protein Provision' },
-      { key: 'infusionRate', label: 'Infusion Rate' },
-      { key: 'cyclicTpnSchedule', label: 'Cyclic TPN Schedule', isSentence: true },
-    ],
-  },
-  {
-    title: 'Macronutrients',
-    fields: [
-      { key: 'dextroseConcentration', label: 'Dextrose Concentration' },
-      { key: 'lipidEmulsionType', label: 'Lipid Emulsion Type', isSentence: true },
-      { key: 'lipidDose', label: 'Lipid Dose' },
-    ],
-  },
-  {
-    title: 'Electrolytes',
-    fields: [
-      { key: 'sodiumProvision', label: 'Sodium Provision' },
-      { key: 'potassiumProvision', label: 'Potassium Provision' },
-      { key: 'phosphorusProvision', label: 'Phosphorus Provision' },
-      { key: 'calciumGluconateProvision', label: 'Calcium Gluconate Provision' },
-      { key: 'magnesiumProvision', label: 'Magnesium Provision' },
-    ],
-  },
-  {
-    title: 'Additives',
-    fields: [
-      { key: 'traceElementsFormulation', label: 'Trace Elements Formulation', isSentence: true },
-      { key: 'multiVitaminAdditive', label: 'Multivitamin Additive', isSentence: true },
-    ],
-  },
-  {
-    title: 'Venous Access',
-    fields: [
-      { key: 'centralVenousAccessType', label: 'Central Venous Access Type', isSentence: true },
-      { key: 'catheterTipPosition', label: 'Catheter Tip Position', isSentence: true },
-    ],
-  },
-  {
-    title: 'Monitoring',
-    fields: [
-      { key: 'baselinePrealbuminLevel', label: 'Baseline Prealbumin Level' },
-      { key: 'triglycerideMonitoring', label: 'Triglyceride Monitoring' },
-      { key: 'bloodGlucoseManagement', label: 'Blood Glucose Management', isSentence: true },
-      { key: 'hepaticFunctionPanel', label: 'Hepatic Function Panel', isArray: true },
-    ],
-  },
-  {
-    title: 'Complications & Tolerance',
-    fields: [
-      { key: 'refeedingSyndromeRisk', label: 'Refeeding Syndrome Risk', isSentence: true },
-      { key: 'tpnAssociatedCholestasis', label: 'TPN-Associated Cholestasis' },
-      { key: 'catheterRelatedBloodstreamInfection', label: 'Catheter-Related Bloodstream Infection' },
-      { key: 'enteralFeedingTolerance', label: 'Enteral Feeding Tolerance', isSentence: true },
-    ],
-  },
-];
-
-/* ======= COMPONENT ======= */
 const TpnManagementDocumentPDFTemplate = ({ document: data }) => {
-  const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.tpn_management) return Array.isArray(r.tpn_management) ? r.tpn_management : [r.tpn_management];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.tpn_management) return Array.isArray(dd.tpn_management) ? dd.tpn_management : [dd.tpn_management]; return [dd]; }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>TPN Management</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>TPN Management</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>
-                {`TPN Management ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const hasAnyVal = sectionConfig.fields.some(f => hasVal(record[f.key]));
-              if (!hasAnyVal) return null;
-
-              return (
-                <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = record[field.key];
-                    if (!hasVal(val)) return null;
-                    const showFieldLabel = field.label.toLowerCase() !== (sectionConfig.title || '').toLowerCase();
-
-                    if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val, showFieldLabel)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val, showFieldLabel)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val, showFieldLabel)}</View>;
-                  })}
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+  const records = unwrapRecords(data);
+  const fieldBody = (record, fn, sid) => {
+    const value = record[fn]; if (!hasVal(value)) return [];
+    const label = FIELD_LABELS[fn] || fn; const elements = [];
+    if (NUMBER_FIELDS.has(fn)) elements.push(<Text key={`${fn}-number`} style={styles.listItem}>1. {safeString(value)} {NUMBER_UNITS[fn]}</Text>);
+    else if (BOOLEAN_FIELDS.has(fn)) elements.push(<Text key={`${fn}-bool`} style={styles.listItem}>1. {value ? 'Yes' : 'No'}</Text>);
+    else if (ARRAY_FIELDS.has(fn)) value.filter(Boolean).forEach((item, index) => elements.push(<Text key={`${fn}-${index}`} style={styles.listItem}>{index + 1}. {safeString(item)}</Text>));
+    else { let rowNumber = 1; splitEditableClauses(value, fn).forEach((clause, clauseIndex) => { const parsed = parseLabel(clause); if (parsed.isLabeled) elements.push(<Text key={`${fn}-${clauseIndex}-label`} style={styles.subLabel}>{safeString(parsed.label)}</Text>); const items = COMMA_SPLIT_FIELDS.has(fn) ? splitByComma(parsed.isLabeled ? parsed.value : clause) : [parsed.isLabeled ? parsed.value : clause]; items.forEach((item, itemIndex) => elements.push(<Text key={`${fn}-${clauseIndex}-${itemIndex}`} style={styles.listItem}>{rowNumber++}. {safeString(item)}</Text>)); }); }
+    if (!sameAsTitle(label, sid) && elements.length) { const [first, ...rest] = elements; return [<View key={`${fn}-head`} wrap={false}><Text style={styles.fieldLabel}>{safeString(label)}</Text>{first}</View>, ...rest]; }
+    return elements;
+  };
+  const renderSection = (record, sid) => { let body = []; SECTION_FIELDS[sid].forEach(fn => { body = body.concat(fieldBody(record, fn, sid)); }); if (!body.length) return null; body = body.map((element, index) => React.cloneElement(element, { key: `${sid}-${index}` })); const [first, ...rest] = body; return <View key={sid}><View wrap={false}><Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>{first}</View>{rest}</View>; };
+  return <Document><Page size="LETTER" style={styles.page}><Text style={styles.documentTitle}>TPN Management</Text>{records.length === 0 && <Text style={styles.noDataText}>No TPN management records available</Text>}{records.map((record, index) => <View key={index} break={index > 0}><Text style={styles.recordTitle}>{`TPN Management ${index + 1}`}</Text>{Object.keys(SECTION_FIELDS).map(sid => renderSection(record, sid))}</View>)}</Page></Document>;
 };
 
 export default TpnManagementDocumentPDFTemplate;

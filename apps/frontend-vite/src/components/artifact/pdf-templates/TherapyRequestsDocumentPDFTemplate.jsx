@@ -1,145 +1,329 @@
+/**
+ * TherapyRequestsDocumentPDFTemplate.jsx
+ * Box-free canonical PDF - Helvetica - LETTER - therapy requests
+ * Collection: therapy_requests
+ *
+ * Array-object fields render stacked, one leaf per numbered row. Anti-orphan renderSection glues
+ * the section title to its first field while the remaining field groups flow normally.
+ */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-// PDF styles - December 2025 standard (12pt, Helvetica, wrap={false})
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 16,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 8,
-  },
-  recordCard: {
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 4,
-    padding: 16,
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 12,
-    color: '#1f2937',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingBottom: 6,
-  },
-  section: {
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase',
-    marginBottom: 6,
-    color: '#3a3f47',
-  },
-  fieldBlock: {
-    marginBottom: 6,
-    paddingLeft: 8,
-  },
-  fieldSubtitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase',
-    marginBottom: 2,
-    color: '#4b5563',
-  },
-  fieldValue: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    color: '#1f2937',
-  },
-  listItem: {
-    fontSize: 12,
-    paddingLeft: 8,
-    marginBottom: 4,
-    lineHeight: 1.4,
-  },
-  statusYes: {
-    fontSize: 12,
-    color: '#1f2937',
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-  },
-  statusNo: {
-    fontSize: 12,
-    color: '#4b5563',
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-  },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 6, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  value: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 2 },
+  noDataText: { fontSize: 14, color: '#000000', textAlign: 'center', marginTop: 40 },
 });
 
-const TherapyRequestsDocumentPDFTemplate = ({ document }) => {
-  // Data unwrapping
-  let records = [];
-  if (Array.isArray(document)) {
-    if (document.length > 0 && document[0]?.records) {
-      records = document[0].records;
-    } else if (document.length > 0 && document[0]?._records) {
-      records = document[0]._records;
-    } else {
-      records = document;
+/* ======= UTILS ======= */
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr.$date || dateStr);
+    if (isNaN(date.getTime())) return String(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return String(dateStr); }
+};
+
+/* safeString: \u-escapes only (no literal smart-quotes / invisible chars) */
+const safeString = (val) => {
+  if (val === null || val === undefined) return '';
+  let s;
+  if (typeof val === 'string') s = val;
+  else if (typeof val === 'number') s = String(val);
+  else if (typeof val === 'boolean') s = val ? 'Yes' : 'No';
+  else if (typeof val === 'object' && val.$date) s = formatDate(val.$date);
+  else s = String(val);
+  return s
+    .replace(/\u00d7/g, 'x')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/[\u00b5\u03bc]/g, 'u')
+    .replace(/\u00b1/g, '+/-')
+    .replace(/\u2265/g, '>=').replace(/\u2264/g, '<=').replace(/\u2192/g, '->');
+};
+
+const isEpochDate = (v) => {
+  if (v === null || v === undefined || v === '') return true;
+  try { const d = new Date(v.$date || v); return isNaN(d.getTime()) || d.getUTCFullYear() <= 1970; } catch { return false; }
+};
+
+const hasVal = (v) => {
+  if (v === null || v === undefined || v === '') return false;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length > 0;
+  if (typeof v === 'object') return !isEmptyDeep(v);
+  return true;
+};
+
+const fmtVal = (v) => {
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return String(v);
+  return String(v || '');
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  const normalizedText = text.replace(/;\s+/g, '; ');
+  return normalizedText.split(/(?:(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.|;)(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  return { isLabeled: false, label: '', value: text };
+};
+
+/* splitByComma: parenthesis-aware with Oxford ("and"/"or") + numeric-thousands guards */
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') { depth++; current += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
+    else if (ch === ',' && depth === 0) {
+      const rest = text.slice(i + 1).replace(/^\s+/, '');
+      if (/^(and|or)\b/i.test(rest) || /^\d/.test(text[i + 1] || '')) { current += ch; }
+      else { const t = current.trim(); if (t) result.push(t); current = ''; }
     }
-  } else if (document?.records) {
-    records = document.records;
-  } else if (document?._records) {
-    records = document._records;
-  } else if (document) {
-    records = [document];
+    else { current += ch; }
   }
+  const t = current.trim(); if (t) result.push(t);
+  return result.length > 0 ? result : [text];
+};
 
-  const validRecords = Array.isArray(records) ? records : [];
+/* ======= OBJECT (recursive) HELPERS ======= */
+const KEY_OVERRIDES = {
+  type: 'Type', value: 'Value', unit: 'Unit', method: 'Method', name: 'Name', dosage: 'Dosage', frequency: 'Frequency', route: 'Route',
+  allergen: 'Allergen', reaction: 'Reaction', medication: 'Medication', directions: 'Directions', test: 'Test', indication: 'Indication', modality: 'Modality', region: 'Region',
+};
+const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+function isEmptyDeep(v) {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'boolean') return false;
+  if (typeof v === 'number') return !Number.isFinite(v);
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
+  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+  return false;
+}
+const isScalar = (v) => v === null || typeof v !== 'object';
+const isDateStr = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v.trim());
+const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
 
-  // Safe string conversion
-  const safeString = (val) => {
-    if (val === null || val === undefined) return '';
-    if (typeof val === 'string') return val;
-    if (typeof val === 'number') return String(val);
-    if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-    if (typeof val === 'object') {
-      if (Object.keys(val).length === 0) return '';
-      if (val.value !== undefined) return String(val.value);
-      if (val.text !== undefined) return String(val.text);
-      return JSON.stringify(val);
-    }
-    return String(val);
-  };
+const flattenItem = (item) => {
+  if (item === null || item === undefined) return '';
+  if (typeof item === 'string') return item;
+  if (typeof item === 'object') {
+    const primary = item.recommendation || item.text || item.name || item.__simpleType;
+    if (primary) return String(primary) + (item.date ? ` (${formatDate(item.date)})` : '');
+    return Object.entries(item).filter(([, v]) => !isEmptyDeep(v)).map(([k, v]) => `${humanizeKey(k)}: ${fmtScalar(v)}`).join(', ');
+  }
+  return String(item);
+};
 
-  // Format date helper
-  const formatDate = (dateValue) => {
-    if (!dateValue) return '';
-    try {
-      const dateStr = dateValue.$date || dateValue;
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return String(dateValue || '');
-      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    } catch {
-      return String(dateValue || '');
-    }
-  };
+/* ======= CONFIG (mirrors JSX) ======= */
+const SECTION_TITLES = {
+  'request-info': 'Request Information',
+  'therapy-details': 'Therapy Details',
+  'clinical-justification': 'Clinical Justification',
+  'requester-info': 'Requester Information',
+  'performer-info': 'Performer Information',
+  schedule: 'Schedule',
+  'functional-goals': 'Functional Goals',
+  authorization: 'Authorization',
+  setting: 'Setting',
+};
+const SECTION_ORDER = ['request-info', 'therapy-details', 'clinical-justification', 'requester-info', 'performer-info', 'schedule', 'functional-goals', 'authorization', 'setting'];
+const SECTION_FIELDS = {
+  'request-info': ['date', 'requestIntent', 'requestPriority', 'authoredOn'],
+  'therapy-details': ['therapyType', 'bodyStructure', 'laterality', 'therapyCode', 'therapyCodeSystem'],
+  'clinical-justification': ['reasonCode', 'reasonReference'],
+  'requester-info': ['requesterName', 'requesterSpecialty', 'requesterId'],
+  'performer-info': ['performerType', 'performerId'],
+  schedule: ['numberOfSessions', 'sessionDuration', 'occurrenceTiming', 'occurrenceStartDate', 'occurrenceEndDate'],
+  'functional-goals': ['functionalGoals'],
+  authorization: ['priorAuthorizationRequired', 'priorAuthorizationNumber', 'insuranceVerified'],
+  setting: ['settingType', 'locationId'],
+};
+const FIELD_LABELS = {
+  date: 'Date', requestIntent: 'Intent', requestPriority: 'Priority', authoredOn: 'Authored On',
+  therapyType: 'Therapy Type', therapyCode: 'Therapy Code', therapyCodeSystem: 'Code System', bodyStructure: 'Body Structure', laterality: 'Laterality',
+  reasonCode: 'Reason', reasonReference: 'Reference',
+  requesterId: 'Requester ID', requesterName: 'Requester', requesterSpecialty: 'Specialty',
+  performerType: 'Performer Type', performerId: 'Performer ID',
+  occurrenceTiming: 'Occurrence Timing', occurrenceStartDate: 'Start Date', occurrenceEndDate: 'End Date',
+  sessionDuration: 'Session Duration (Minutes)', numberOfSessions: 'Number of Sessions',
+  functionalGoals: 'Functional Goals',
+  priorAuthorizationRequired: 'Prior Authorization Required', priorAuthorizationNumber: 'Authorization Number', insuranceVerified: 'Insurance Verified',
+  locationId: 'Location', settingType: 'Setting Type',
+};
+const DATE_FIELDS = ['date', 'authoredOn', 'occurrenceStartDate', 'occurrenceEndDate'];
+const OBJECT_FIELDS = [];
+const ARRAY_FIELDS = ['functionalGoals'];
+const BOOLEAN_FIELDS = ['priorAuthorizationRequired', 'insuranceVerified'];
+const NUMBER_FIELDS = ['numberOfSessions', 'sessionDuration'];
+const COMMA_FIELDS = new Set([]);
+const OBJECT_ITEM_LABELS = {};
 
-  if (!validRecords.length) {
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
+
+/* ======= FLAT ELEMENT BUILDERS (each returns an array of small <Text> elements) ======= */
+const labelEl = (f, key) => <Text key={key} style={styles.fieldLabel}>{FIELD_LABELS[f] || f}</Text>;
+const glueFieldLabel = (f, rows, key) => {
+  if (!rows.length) return [];
+  return [
+    <View key={`${key}-glue`} wrap={false}>
+      <Text style={styles.fieldLabel}>{FIELD_LABELS[f] || f}</Text>
+      {rows[0]}
+    </View>,
+    ...rows.slice(1),
+  ];
+};
+const glueSubLabel = (label, rows, key) => {
+  if (!rows.length) return [];
+  return [
+    <View key={`${key}-glue`} wrap={false}>
+      <Text style={styles.subLabel}>{safeString(label)}</Text>
+      {rows[0]}
+    </View>,
+    ...rows.slice(1),
+  ];
+};
+
+const splitTopLevelComma = (text) => {
+  const parts = []; let current = ''; let depth = 0;
+  for (const character of String(text || '')) {
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    if (character === ',' && depth === 0) { if (current.trim()) parts.push(current.trim()); current = ''; }
+    else current += character;
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts.length ? parts : [String(text || '')];
+};
+
+/* string field -> bare label + sentence/comma value lines (mirrors JSX renderStringField display) */
+const stringFieldEls = (f, val, showLabel) => {
+  const strVal = fmtVal(val);
+  const sentences = splitBySentence(strVal);
+  const els = [];
+  if (sentences.length <= 1) {
+    els.push(<Text key={`${f}-v`} style={styles.listItem}>{`1. ${safeString(strVal)}`}</Text>);
+    return showLabel ? glueFieldLabel(f, els, f) : els;
+  }
+  let n = 1;
+  sentences.forEach((s, si) => {
+    const parsed = parseLabel(s);
+    if (parsed.isLabeled) {
+      const parts = splitByComma(parsed.value);
+      const rows = parts.map((p, pi) => <Text key={`${f}-s${si}c${pi}`} style={styles.listItem}>{`${pi + 1}. ${safeString(p)}`}</Text>);
+      els.push(...glueSubLabel(parsed.label, rows, `${f}-s${si}`));
+    } else if (COMMA_FIELDS.has(f)) splitTopLevelComma(s).forEach((part, pi) => els.push(<Text key={`${f}-s${si}c${pi}`} style={styles.listItem}>{`${n++}. ${safeString(part)}`}</Text>));
+    else els.push(<Text key={`${f}-s${si}`} style={styles.listItem}>{`${n++}. ${safeString(s)}`}</Text>);
+  });
+  return showLabel ? glueFieldLabel(f, els, f) : els;
+};
+
+/* recursive object node -> flat STACKED elements. ARRAY branch numbers each item under the sub-label;
+   scalar date leaves format; numeric-index sub-labels suppressed. */
+const objectNodeEls = (label, value, keyPath, depth) => {
+  if (isEmptyDeep(value)) return [];
+  if (isScalar(value)) {
+    const disp = isDateStr(value) ? formatDate(value) : fmtScalar(value);
+    const row = <Text key={`${keyPath}-v`} style={styles.listItem}>{`1. ${safeString(disp)}`}</Text>;
+    if (!label) return [row];
+    return [<View key={`${keyPath}-glue`} wrap={false}><Text style={depth <= 1 ? styles.fieldLabel : styles.subLabel}>{safeString(label)}</Text>{row}</View>];
+  }
+  if (Array.isArray(value)) {
+    const items = value.filter(v => !isEmptyDeep(v));
+    if (items.length === 0) return [];
+    const els = [];
+    items.forEach((v, i) => {
+      if (isScalar(v)) els.push(<Text key={`${keyPath}-${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(isDateStr(v) ? formatDate(v) : fmtScalar(v))}`}</Text>);
+      else objectNodeEls('', v, `${keyPath}-${i}`, depth + 1).forEach(e => els.push(e));
+    });
+    if (!label) return els;
+    const labelStyle = depth <= 1 ? styles.fieldLabel : styles.subLabel;
+    return [<View key={`${keyPath}-glue`} wrap={false}><Text style={labelStyle}>{safeString(label)}</Text>{els[0]}</View>, ...els.slice(1)];
+  }
+  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
+  if (entries.length === 0) return [];
+  const els = [];
+  entries.forEach(([k, v]) => els.push(...objectNodeEls(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1)));
+  if (!label) return els;
+  const labelStyle = depth <= 1 ? styles.fieldLabel : styles.subLabel;
+  return [<View key={`${keyPath}-glue`} wrap={false}><Text style={labelStyle}>{safeString(label)}</Text>{els[0]}</View>, ...els.slice(1)];
+};
+
+/* top-level OBJECT field -> flat stacked elements. showLabel emits the object label (single-name gated) */
+const objectFieldEls = (f, val, showLabel) => {
+  if (isEmptyDeep(val) || isScalar(val)) return [];
+  const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
+  if (entries.length === 0) return [];
+  const els = [];
+  if (Array.isArray(val)) {
+    entries.forEach(([k, item]) => {
+      const itemRows = isScalar(item) ? objectNodeEls('', item, `${f}-${k}`, 2) : Object.entries(item).filter(([, child]) => !isEmptyDeep(child)).flatMap(([childKey, child]) => objectNodeEls(humanizeKey(childKey), child, `${f}-${k}-${childKey}`, 2));
+      els.push(...glueSubLabel(`${OBJECT_ITEM_LABELS[f] || 'Item'} ${Number(k) + 1}`, itemRows, `${f}-${k}-item`));
+    });
+  } else entries.forEach(([k, v]) => els.push(...objectNodeEls(humanizeKey(k), v, `${f}-${k}`, 1)));
+  return showLabel ? glueFieldLabel(f, els, f) : els;
+};
+
+/* array field -> bare label + numbered items */
+const arrayFieldEls = (f, val, showLabel) => {
+  const items = Array.isArray(val) ? val.filter(hasVal) : [];
+  if (items.length === 0) return [];
+  const rows = items.map((it, i) => <Text key={`${f}-${i}`} style={styles.listItem}>{`${i + 1}. ${safeString(flattenItem(it))}`}</Text>);
+  return showLabel ? glueFieldLabel(f, rows, f) : rows;
+};
+
+/* dispatch one field -> flat element array */
+const fieldEls = (record, f, sid) => {
+  const val = record[f];
+  if (!hasVal(val)) return [];
+  const label = FIELD_LABELS[f] || f;
+  const showLabel = !sameAsTitle(label, sid);
+  if (OBJECT_FIELDS.includes(f)) return isScalar(val) ? stringFieldEls(f, val, showLabel) : objectFieldEls(f, val, showLabel);
+  if (ARRAY_FIELDS.includes(f)) return arrayFieldEls(f, val, showLabel);
+  if (DATE_FIELDS.includes(f)) { if (isEpochDate(val)) return []; return glueFieldLabel(f, [<Text key={`${f}-v`} style={styles.listItem}>{`1. ${formatDate(val)}`}</Text>], f); }
+  return stringFieldEls(f, val, showLabel);
+};
+
+/* ======= COMPONENT ======= */
+const TherapyRequestsDocumentPDFTemplate = ({ document: data }) => {
+  const records = React.useMemo(() => {
+    if (!data) return [];
+    let arr = Array.isArray(data) ? data : [data];
+    arr = arr.flatMap(r => {
+      if (r?.therapy_requests) return Array.isArray(r.therapy_requests) ? r.therapy_requests : [r.therapy_requests];
+      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.therapy_requests) return Array.isArray(dd.therapy_requests) ? dd.therapy_requests : [dd.therapy_requests]; return [dd]; }
+      return [r];
+    });
+    return arr.filter(r => r && typeof r === 'object');
+  }, [data]);
+
+  if (!records || records.length === 0) {
     return (
       <Document>
-        <Page size="A4" style={styles.page}>
+        <Page size="LETTER" style={styles.page}>
           <Text style={styles.documentTitle}>Therapy Requests</Text>
-          <Text style={{ textAlign: 'center', color: '#6b7280' }}>No therapy request data available</Text>
+          <Text style={styles.noDataText}>No data available</Text>
         </Page>
       </Document>
     );
@@ -147,232 +331,32 @@ const TherapyRequestsDocumentPDFTemplate = ({ document }) => {
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="LETTER" style={styles.page}>
         <Text style={styles.documentTitle}>Therapy Requests</Text>
 
-        {validRecords.map((record, idx) => (
-          <View key={idx} style={styles.recordCard}>
-            <Text style={styles.recordTitle}>{`Therapy Request ${idx + 1}`}</Text>
-
-            {/* Request Information Section */}
-            {(record.date || record.requestIntent || record.requestPriority || record.authoredOn) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Request Information</Text>
-                {record.date && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Date</Text>
-                    <Text style={styles.fieldValue}>{String(formatDate(record.date))}</Text>
-                  </View>
-                )}
-                {record.requestIntent && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Intent</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.requestIntent))}</Text>
-                  </View>
-                )}
-                {record.requestPriority && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Priority</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.requestPriority))}</Text>
-                  </View>
-                )}
-                {record.authoredOn && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Authored On</Text>
-                    <Text style={styles.fieldValue}>{String(formatDate(record.authoredOn))}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Therapy Details Section */}
-            {(record.therapyType || record.bodyStructure || record.laterality || record.therapyCode || record.therapyCodeSystem) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Therapy Details</Text>
-                {record.therapyType && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Therapy Type</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.therapyType))}</Text>
-                  </View>
-                )}
-                {record.bodyStructure && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Body Structure</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.bodyStructure))}</Text>
-                  </View>
-                )}
-                {record.laterality && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Laterality</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.laterality))}</Text>
-                  </View>
-                )}
-                {record.therapyCode && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Therapy Code</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.therapyCode))}</Text>
-                  </View>
-                )}
-                {record.therapyCodeSystem && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Code System</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.therapyCodeSystem))}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Clinical Justification Section */}
-            {(record.reasonCode || record.reasonReference) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Clinical Justification</Text>
-                {record.reasonCode && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Reason</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.reasonCode))}</Text>
-                  </View>
-                )}
-                {record.reasonReference && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Reference</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.reasonReference))}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Requester Information Section */}
-            {(record.requesterName || record.requesterSpecialty || record.requesterId) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Requester Information</Text>
-                {record.requesterName && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Requester</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.requesterName))}</Text>
-                  </View>
-                )}
-                {record.requesterSpecialty && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Specialty</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.requesterSpecialty))}</Text>
-                  </View>
-                )}
-                {record.requesterId && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Requester ID</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.requesterId))}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Performer Information Section */}
-            {(record.performerType || record.performerId) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Performer Information</Text>
-                {record.performerType && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Performer Type</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.performerType))}</Text>
-                  </View>
-                )}
-                {record.performerId && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Performer ID</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.performerId))}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Schedule Section */}
-            {(record.numberOfSessions || record.sessionDuration || record.occurrenceTiming || record.occurrenceStartDate || record.occurrenceEndDate) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Schedule</Text>
-                {record.numberOfSessions !== undefined && record.numberOfSessions !== null && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Number of Sessions</Text>
-                    <Text style={styles.fieldValue}>{String(record.numberOfSessions)}</Text>
-                  </View>
-                )}
-                {record.sessionDuration !== undefined && record.sessionDuration !== null && record.sessionDuration > 0 && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Session Duration</Text>
-                    <Text style={styles.fieldValue}>{`${record.sessionDuration} minutes`}</Text>
-                  </View>
-                )}
-                {record.occurrenceTiming && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Occurrence Timing</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.occurrenceTiming))}</Text>
-                  </View>
-                )}
-                {record.occurrenceStartDate && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Start Date</Text>
-                    <Text style={styles.fieldValue}>{String(formatDate(record.occurrenceStartDate))}</Text>
-                  </View>
-                )}
-                {record.occurrenceEndDate && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>End Date</Text>
-                    <Text style={styles.fieldValue}>{String(formatDate(record.occurrenceEndDate))}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Functional Goals Section */}
-            {record.functionalGoals && record.functionalGoals.length > 0 && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Functional Goals</Text>
-                {record.functionalGoals.map((goal, gIdx) => (
-                  <Text key={gIdx} style={styles.listItem}>{`${gIdx + 1}. ${String(goal)}`}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Authorization Section */}
-            <View style={styles.section} wrap={false}>
-              <Text style={styles.sectionTitle}>Authorization</Text>
-              <View style={styles.fieldBlock}>
-                <Text style={styles.fieldSubtitle}>Prior Authorization Required</Text>
-                <Text style={record.priorAuthorizationRequired ? styles.statusYes : styles.statusNo}>
-                  {record.priorAuthorizationRequired ? 'Yes' : 'No'}
-                </Text>
-              </View>
-              {record.priorAuthorizationNumber && (
-                <View style={styles.fieldBlock}>
-                  <Text style={styles.fieldSubtitle}>Authorization Number</Text>
-                  <Text style={styles.fieldValue}>{String(safeString(record.priorAuthorizationNumber))}</Text>
-                </View>
-              )}
-              <View style={styles.fieldBlock}>
-                <Text style={styles.fieldSubtitle}>Insurance Verified</Text>
-                <Text style={record.insuranceVerified ? styles.statusYes : styles.statusNo}>
-                  {record.insuranceVerified ? 'Yes' : 'No'}
-                </Text>
-              </View>
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <View wrap={false}>
+              <Text style={styles.recordTitle}>{`Therapy Request ${index + 1}`}</Text>
             </View>
 
-            {/* Setting Section */}
-            {(record.settingType || record.locationId) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Setting</Text>
-                {record.settingType && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Setting Type</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.settingType))}</Text>
+            {SECTION_ORDER.map((sid) => {
+              const fields = SECTION_FIELDS[sid] || [];
+              const flat = [];
+              fields.forEach(f => flat.push(...fieldEls(record, f, sid)));
+              if (flat.length === 0) return null;
+              const first = React.cloneElement(flat[0], { key: 'f0' });
+              const rest = flat.slice(1).map((el, i) => React.cloneElement(el, { key: `f${i + 1}` }));
+              return (
+                <View key={sid} style={styles.section}>
+                  <View wrap={false}>
+                    <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
+                    {first}
                   </View>
-                )}
-                {record.locationId && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Location</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.locationId))}</Text>
-                  </View>
-                )}
-              </View>
-            )}
+                  {rest}
+                </View>
+              );
+            })}
           </View>
         ))}
       </Page>

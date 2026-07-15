@@ -45,18 +45,32 @@ function toObjectId(str) {
 
 // Allowed editable fields
 const ALLOWED_FIELDS = [
+  'date',
   'requestIntent',
   'requestPriority',
   'therapyType',
+  'therapyCode',
+  'therapyCodeSystem',
+  'bodyStructure',
+  'laterality',
   'reasonCode',
+  'reasonReference',
+  'authoredOn',
   'requesterId',
   'requesterName',
   'requesterSpecialty',
   'performerType',
   'performerId',
   'occurrenceTiming',
+  'occurrenceStartDate',
+  'occurrenceEndDate',
+  'sessionDuration',
+  'numberOfSessions',
   'settingType',
+  'locationId',
+  'priorAuthorizationRequired',
   'priorAuthorizationNumber',
+  'insuranceVerified',
   'functionalGoals',
 ];
 

@@ -1,409 +1,212 @@
+/**
+ * TourniquetDataDocumentPDFTemplate.jsx
+ * July 2026 — Helvetica — LETTER size — box-free — tourniquet data
+ * Collection: tourniquet_data
+ */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * TourniquetDataDocumentPDFTemplate
- *
- * PDF export template for tourniquet data records.
- * Uses Helvetica font, LETTER size, 20pt/12pt
- * Black & white only - no decorative elements
- *
- * March 2026 - Following PDF template standard
- */
-
-// PDF Styles - Helvetica font, LETTER, 20pt/12pt
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  recordContainer: {
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottom: '1px solid #cccccc',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 12,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
-    borderBottom: '1px solid #999999',
-    paddingBottom: 4,
-  },
-  fieldBlock: {
-    marginBottom: 8,
-    paddingLeft: 8,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 2,
-  },
-  fieldValue: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    paddingLeft: 8,
-  },
-  listItem: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    paddingLeft: 16,
-    marginBottom: 4,
-  },
-  noData: {
-    fontSize: 12,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 40,
-  },
-  subLabel: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginTop: 4,
-    marginBottom: 1,
-  },
-  nested: {
-    marginLeft: 10,
-    paddingLeft: 8,
-    borderLeftWidth: 1,
-    borderLeftColor: '#000000',
-    marginTop: 2,
-  },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 5, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginTop: 12, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 6, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
-// Humanize object keys for the results object
-const humanizeKey = (key) => {
-  if (key === null || key === undefined || key === '') return '';
-  const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  return s.charAt(0).toUpperCase() + s.slice(1);
+const SECTION_TITLES = {
+  'study-information': 'Study Information',
+  'tourniquet-parameters': 'Tourniquet Parameters',
+  notes: 'Notes',
+  findings: 'Findings',
+  'results-section': 'Results',
+  assessment: 'Assessment',
+  plan: 'Plan',
+  recommendations: 'Recommendations',
 };
 
-// Deep-empty check
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
+const FIELD_LABELS = {
+  date: 'Date', provider: 'Provider', facility: 'Facility', status: 'Status', used: 'Used', pressure: 'Pressure', duration: 'Duration', location: 'Location',
+  notes: 'Notes', findings: 'Findings', results: 'Results', assessment: 'Assessment', plan: 'Plan', recommendations: 'Recommendations',
+};
+
+const SECTION_FIELDS = {
+  'study-information': ['date', 'provider', 'facility', 'status'],
+  'tourniquet-parameters': ['used', 'pressure', 'duration', 'location'],
+  notes: ['notes'],
+  findings: ['findings'],
+  'results-section': ['results'],
+  assessment: ['assessment'],
+  plan: ['plan'],
+  recommendations: ['recommendations'],
+};
+
+const DATE_FIELDS = ['date'];
+const BOOLEAN_FIELDS = ['used'];
+const ARRAY_FIELDS = ['recommendations'];
+const OBJECT_FIELDS = ['results'];
+const PERIOD_SPLIT_FIELDS = new Set(['provider', 'facility', 'status', 'pressure', 'duration', 'location', 'notes', 'findings', 'assessment', 'plan']);
+
+const safeString = value => {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/×/g, 'x').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
+};
+
+const humanizeKey = key => {
+  const value = String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  return value.charAt(0).toUpperCase() + value.slice(1);
+};
+
+const formatDate = value => {
+  if (!value) return '';
+  try {
+    const date = new Date(value.$date || value);
+    return isNaN(date.getTime()) ? safeString(value) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return safeString(value); }
+};
+
+const parseLabel = text => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const match = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  return match ? { isLabeled: true, label: match[1].trim(), value: match[2].trim() } : { isLabeled: false, label: '', value: text };
+};
+
+const splitByComma = text => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (const character of text) {
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    if (character === ',' && depth === 0) {
+      if (current.trim()) result.push(current.trim());
+      current = '';
+    } else current += character;
+  }
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [text];
+};
+
+const splitEditableClauses = (value, fieldPath) => {
+  const source = String(value ?? '');
+  const parts = [];
+  let current = '';
+  let depth = 0;
+  const push = () => { if (current.trim()) parts.push(current.trim()); current = ''; };
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    const next = source[index + 1] || '';
+    const previousWord = current.trim().match(/([A-Za-z]+)$/)?.[1] || '';
+    const safePeriod = character === '.' && PERIOD_SPLIT_FIELDS.has(fieldPath) && depth === 0 && /\s/.test(next)
+      && !['Mr', 'Mrs', 'Ms', 'Dr', 'St', 'Jr', 'Sr', 'Prof', 'Rev', 'Gen', 'Col', 'Sgt', 'vs', 'etc'].includes(previousWord)
+      && !/\d$/.test(current);
+    const safeSemicolon = character === ';' && depth === 0;
+    if (safePeriod || safeSemicolon) {
+      push();
+      while (/\s/.test(source[index + 1] || '')) index += 1;
+    } else current += character;
+  }
+  push();
+  return parts.length ? parts : [source];
+};
+
+const isEmptyDeep = value => {
+  if (value === null || value === undefined || value === '') return true;
+  if (typeof value === 'boolean' || typeof value === 'number') return false;
+  if (typeof value === 'string') return value.trim() === '';
+  if (Array.isArray(value)) return value.every(isEmptyDeep);
+  if (typeof value === 'object') return Object.values(value).every(isEmptyDeep);
   return false;
 };
-const isScalar = (v) => v === null || typeof v !== 'object';
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return safeString(v ?? ''); };
 
-// Recursive object node: label = bold heading; value = plain line below
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
-  if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
-      </View>
-    );
-  }
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
-  );
-};
+const hasVal = (record, fn) => !isEmptyDeep(record[fn]);
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
 
-// Count rows for the Rule #74 wrap heuristic
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-// Safe string conversion with Unicode sanitization
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  let str;
-  if (typeof val === 'string') str = val;
-  else if (typeof val === 'object') str = JSON.stringify(val);
-  else str = String(val);
-
-  // Replace problematic Unicode characters with ASCII equivalents
-  str = str.replace(/μm/g, 'um');
-  str = str.replace(/µm/g, 'um');
-  str = str.replace(/μ/g, 'u');
-  str = str.replace(/µ/g, 'u');
-  str = str.replace(/°/g, ' deg');
-  str = str.replace(/±/g, '+/-');
-  str = str.replace(/≥/g, '>=');
-  str = str.replace(/≤/g, '<=');
-  str = str.replace(/→/g, '->');
-  str = str.replace(/←/g, '<-');
-
-  return str;
-};
-
-// Format date
-const formatDate = (dateValue) => {
-  if (!dateValue) return '';
-  try {
-    const date = new Date(dateValue);
-    if (isNaN(date.getTime())) return safeString(dateValue);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(date);
-  } catch (e) {
-    return safeString(dateValue);
-  }
-};
-
-// Check if value exists
-const hasValue = (val) => {
-  if (val === null || val === undefined) return false;
-  if (typeof val === 'string') return val.trim().length > 0;
-  if (Array.isArray(val)) return val.length > 0;
-  if (typeof val === 'object') return Object.keys(val).length > 0;
-  return true;
-};
-
-// Split by sentence
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  const prepared = text
-    .replace(/Dr\./g, 'Dr_DOT_')
-    .replace(/Mr\./g, 'Mr_DOT_')
-    .replace(/Mrs\./g, 'Mrs_DOT_')
-    .replace(/Ms\./g, 'Ms_DOT_')
-    .replace(/Prof\./g, 'Prof_DOT_')
-    .replace(/vs\./g, 'vs_DOT_')
-    .replace(/etc\./g, 'etc_DOT_');
-
-  const sentences = prepared.split(/(?<=[.!?])\s+/).map(s =>
-    s.replace(/Dr_DOT_/g, 'Dr.')
-     .replace(/Mr_DOT_/g, 'Mr.')
-     .replace(/Mrs_DOT_/g, 'Mrs.')
-     .replace(/Ms_DOT_/g, 'Ms.')
-     .replace(/Prof_DOT_/g, 'Prof.')
-     .replace(/vs_DOT_/g, 'vs.')
-     .replace(/etc_DOT_/g, 'etc.')
-     .trim()
-  ).filter(s => s.length > 0);
-
-  return sentences;
-};
-
-const TourniquetDataDocumentPDFTemplate = ({ document, data }) => {
-  // CRITICAL: Accept BOTH document AND data props (same as JSX!)
-  const templateData = document || data;
-
-  // Handle empty/null data
-  if (!templateData) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <Text style={styles.documentTitle}>Tourniquet Data</Text>
-          <Text style={styles.noData}>No tourniquet data available.</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  // Unwrap data (same pattern as JSX)
-  let records = Array.isArray(templateData) ? templateData : [templateData];
-
-  records = records.flatMap(record => {
+const unwrapRecords = data => {
+  if (!data) return [];
+  const initial = Array.isArray(data) ? data : [data];
+  return initial.flatMap(record => {
+    if (record?.tourniquet_data) return Array.isArray(record.tourniquet_data) ? record.tourniquet_data : [record.tourniquet_data];
     if (record?._records && Array.isArray(record._records)) return record._records;
     if (record?.records && Array.isArray(record.records) && !record.date && !record.pressure) return record.records;
-    if (record?.tourniquet_data && Array.isArray(record.tourniquet_data)) return record.tourniquet_data;
-    return record;
-  });
+    if (record?.documentData) {
+      const inner = record.documentData;
+      if (Array.isArray(inner)) return inner;
+      if (inner?.tourniquet_data) return Array.isArray(inner.tourniquet_data) ? inner.tourniquet_data : [inner.tourniquet_data];
+      return [inner];
+    }
+    return [record];
+  }).filter(record => record && typeof record === 'object');
+};
 
-  records = records.filter(record =>
-    record && (record.date || record.pressure || record.duration || record.location || record.provider || typeof record.used === 'boolean' || (record.results && typeof record.results === 'object'))
-  );
+const TourniquetDataDocumentPDFTemplate = ({ document: data }) => {
+  const records = unwrapRecords(data);
 
-  if (records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <Text style={styles.documentTitle}>Tourniquet Data</Text>
-          <Text style={styles.noData}>No tourniquet data records found.</Text>
-        </Page>
-      </Document>
-    );
-  }
+  const objectElements = (value, keyPrefix) => {
+    const elements = [];
+    Object.entries(value || {}).filter(([, child]) => !isEmptyDeep(child)).forEach(([key, child], index) => {
+      elements.push(<Text key={`${keyPrefix}-${key}-${index}-label`} style={styles.subLabel}>{safeString(humanizeKey(key))}</Text>);
+      if (child && typeof child === 'object' && !Array.isArray(child)) elements.push(...objectElements(child, `${keyPrefix}-${key}`));
+      else elements.push(<Text key={`${keyPrefix}-${key}-${index}-value`} style={styles.listItem}>1. {safeString(typeof child === 'boolean' ? (child ? 'Yes' : 'No') : child)}</Text>);
+    });
+    return elements;
+  };
+
+  const fieldBody = (record, fn, sid) => {
+    if (!hasVal(record, fn)) return [];
+    const label = FIELD_LABELS[fn] || fn;
+    const value = record[fn];
+    const elements = [];
+    if (!sameAsTitle(label, sid)) elements.push(<Text key={`${fn}-label`} style={styles.fieldLabel} minPresenceAhead={26}>{safeString(label)}</Text>);
+    if (DATE_FIELDS.includes(fn)) {
+      elements.push(<Text key={`${fn}-value`} style={styles.value}>1. {formatDate(value)}</Text>);
+    } else if (BOOLEAN_FIELDS.includes(fn)) {
+      elements.push(<Text key={`${fn}-value`} style={styles.value}>1. {value ? 'Yes' : 'No'}</Text>);
+    } else if (ARRAY_FIELDS.includes(fn)) {
+      value.filter(Boolean).forEach((item, itemIndex) => {
+        const parsed = parseLabel(String(item));
+        if (parsed.isLabeled) elements.push(<Text key={`${fn}-${itemIndex}-label`} style={styles.subLabel}>{safeString(parsed.label)}</Text>);
+        elements.push(<Text key={`${fn}-${itemIndex}-value`} style={styles.listItem}>{itemIndex + 1}. {safeString(parsed.isLabeled ? parsed.value : item)}</Text>);
+      });
+    } else if (OBJECT_FIELDS.includes(fn)) {
+      elements.push(...objectElements(value, fn));
+    } else {
+      let number = 1;
+      splitEditableClauses(value, fn).forEach((clause, clauseIndex) => {
+        const parsed = parseLabel(clause);
+        const items = parsed.isLabeled ? splitByComma(parsed.value) : [clause];
+        if (parsed.isLabeled) elements.push(<Text key={`${fn}-${clauseIndex}-label`} style={styles.subLabel}>{safeString(parsed.label)}</Text>);
+        items.forEach((item, itemIndex) => elements.push(<Text key={`${fn}-${clauseIndex}-${itemIndex}`} style={styles.listItem}>{number++}. {safeString(item)}</Text>));
+      });
+    }
+    return elements;
+  };
+
+  const renderSection = (record, sid) => {
+    let body = [];
+    (SECTION_FIELDS[sid] || []).forEach(fn => { body = body.concat(fieldBody(record, fn, sid)); });
+    if (!body.length) return null;
+    body = body.map((element, index) => React.cloneElement(element, { key: `${sid}-${index}` }));
+    const [first, ...rest] = body;
+    return <View key={sid}><View wrap={false}><Text style={styles.sectionTitle}>{safeString(SECTION_TITLES[sid])}</Text>{first}</View>{rest}</View>;
+  };
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
         <Text style={styles.documentTitle}>Tourniquet Data</Text>
-
-        {records.map((record, recordIndex) => (
-          <View key={recordIndex} style={styles.recordContainer}>
-            <Text style={styles.recordTitle}>Tourniquet Data {recordIndex + 1}</Text>
-
-            {/* Study Information */}
-            {(hasValue(record.date) || hasValue(record.provider) || hasValue(record.facility) || hasValue(record.status)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Study Information</Text>
-
-                {hasValue(record.date) && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Date:</Text>
-                    <Text style={styles.fieldValue}>{formatDate(record.date)}</Text>
-                  </View>
-                )}
-
-                {hasValue(record.provider) && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Provider:</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.provider)}</Text>
-                  </View>
-                )}
-
-                {hasValue(record.facility) && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Facility:</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.facility)}</Text>
-                  </View>
-                )}
-
-                {hasValue(record.status) && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Status:</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.status)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Tourniquet Parameters */}
-            {(typeof record.used === 'boolean' || hasValue(record.pressure) || hasValue(record.duration) || hasValue(record.location)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Tourniquet Parameters</Text>
-
-                {typeof record.used === 'boolean' && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Used:</Text>
-                    <Text style={styles.fieldValue}>{record.used ? 'Yes' : 'No'}</Text>
-                  </View>
-                )}
-
-                {hasValue(record.pressure) && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Pressure:</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.pressure)}</Text>
-                  </View>
-                )}
-
-                {hasValue(record.duration) && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Duration:</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.duration)}</Text>
-                  </View>
-                )}
-
-                {hasValue(record.location) && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Location:</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.location)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Notes */}
-            {hasValue(record.notes) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Notes</Text>
-                {splitBySentence(record.notes).map((sentence, idx) => (
-                  <Text key={idx} style={styles.listItem}>{idx + 1}. {safeString(sentence)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Findings */}
-            {hasValue(record.findings) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Findings</Text>
-                {splitBySentence(record.findings).map((sentence, idx) => (
-                  <Text key={idx} style={styles.listItem}>{idx + 1}. {safeString(sentence)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Results (OBJECT, recursive) */}
-            {hasValue(record.results) && typeof record.results === 'object' && (() => {
-              const entries = Object.entries(record.results).filter(([, v]) => !isEmptyDeep(v));
-              if (entries.length === 0) return null;
-              return entries.map(([k, v], i) => {
-                const rows = countRows(v);
-                return (
-                  <View key={`results-${k}`} style={styles.section} wrap={rows > 8 ? undefined : false}>
-                    {i === 0 ? <Text style={styles.sectionTitle}>Results</Text> : null}
-                    {renderObjectNode(humanizeKey(k), v, `results-${k}`, 1)}
-                  </View>
-                );
-              });
-            })()}
-
-            {/* Assessment */}
-            {hasValue(record.assessment) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Assessment</Text>
-                {splitBySentence(record.assessment).map((sentence, idx) => (
-                  <Text key={idx} style={styles.listItem}>{idx + 1}. {safeString(sentence)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Plan */}
-            {hasValue(record.plan) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Plan</Text>
-                {splitBySentence(record.plan).map((sentence, idx) => (
-                  <Text key={idx} style={styles.listItem}>{idx + 1}. {safeString(sentence)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Recommendations */}
-            {hasValue(record.recommendations) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Recommendations</Text>
-                {(record.recommendations || []).map((rec, idx) => {
-                  const recText = typeof rec === 'string' ? rec : safeString(rec.recommendation);
-                  return (
-                    <Text key={idx} style={styles.listItem}>{idx + 1}. {safeString(recText)}</Text>
-                  );
-                })}
-              </View>
-            )}
+        {records.length === 0 && <Text style={styles.noDataText}>No tourniquet data records available</Text>}
+        {records.map((record, index) => (
+          <View key={index} break={index > 0}>
+            <Text style={styles.recordTitle}>{`Tourniquet Data ${index + 1}`}</Text>
+            {Object.keys(SECTION_FIELDS).map(sid => renderSection(record, sid))}
           </View>
         ))}
       </Page>

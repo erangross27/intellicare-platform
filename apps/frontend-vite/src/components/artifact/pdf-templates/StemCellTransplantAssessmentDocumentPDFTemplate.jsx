@@ -9,21 +9,21 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, paddingBottom: 52, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#333333', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
@@ -57,13 +57,14 @@ const numberShowsPDF = (record, key) => {
   if (val === null || val === undefined || val === '') return false;
   const num = Number(val);
   if (Number.isNaN(num)) return false;
-  if (num === 0) return Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(key);
+  const zeroSentinelFields = ['kpsScore', 'totalNucleatedCellDose', 'neutrophilEngraftmentDay', 'plateletEngraftmentDay'];
+  if (num === 0 && zeroSentinelFields.includes(key)) return Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(key);
   return true;
 };
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?:;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -94,7 +95,7 @@ const renderFieldRow = (label, value, sectionTitle) => {
     <View style={styles.fieldBox} wrap={false}>
       {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
+      <Text style={styles.fieldValue}>1. {safeString(fmtVal(value))}</Text>
     </View>
   );
 };
@@ -115,14 +116,15 @@ const renderSentenceSection = (label, text, sectionTitle) => {
         rows.push({ type: 'subtitle', text: safeString(parsed.label) });
         commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
       } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
+        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
+        rows.push({ type: 'item', text: safeString(parsed.value), num: n++ });
       }
     } else {
       rows.push({ type: 'item', text: safeString(s), num: n++ });
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
+  const wrapProp = sectionTitle ? false : rows.length > 8;
 
   return (
     <View style={styles.fieldBox} wrap={wrapProp}>
@@ -139,16 +141,17 @@ const renderSentenceSection = (label, text, sectionTitle) => {
 };
 
 /* renderArrayField */
-const renderArrayFieldPDF = (label, items, sectionTitle) => {
+const renderArrayFieldPDF = (label, items, sectionTitle, splitCommas = false) => {
   if (!Array.isArray(items) || items.length === 0) return null;
   const safeItems = items.filter(Boolean);
   if (safeItems.length === 0) return null;
+  const rows = splitCommas ? safeItems.flatMap(item => splitByComma(String(item))) : safeItems;
 
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={sectionTitle ? false : rows.length > 8}>
       {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
       <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
+      {rows.map((item, i) => (
         <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
       ))}
     </View>
@@ -233,7 +236,7 @@ const fieldPresent = (record, field) => {
 
 const renderField = (record, field, sectionTitle, key) => {
   const val = record[field.key];
-  if (field.isArray) return <View key={key}>{renderArrayFieldPDF(field.label, val, sectionTitle)}</View>;
+  if (field.isArray) return <View key={key}>{renderArrayFieldPDF(field.label, val, sectionTitle, field.key === 'donorSpecificAntibodies')}</View>;
   if (field.isSentence) return <View key={key}>{renderSentenceSection(field.label, val, sectionTitle)}</View>;
   return <View key={key}>{renderFieldRow(field.label, val, sectionTitle)}</View>;
 };
@@ -289,10 +292,9 @@ const StemCellTransplantAssessmentDocumentPDFTemplate = ({ document: data }) => 
               if (presentFields.length === 0) return null;
 
               return (
-                <View key={sIdx} style={styles.section} wrap={presentFields.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
+                <View key={sIdx} style={styles.section} wrap={false}>
                   {presentFields.map((field, fIdx) =>
-                    renderField(record, field, null, fIdx)
+                    renderField(record, field, fIdx === 0 ? sectionConfig.title : null, fIdx)
                   )}
                 </View>
               );

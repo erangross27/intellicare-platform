@@ -66,6 +66,12 @@ const DATE_FIELDS = ['assessmentDate'];
 const ARRAY_FIELDS = ['recommendations', 'goals'];
 const OBJECT_FIELDS = ['communicationAssessment', 'swallowingAssessment', 'cognitiveLanguage', 'voiceAssessment', 'treatmentPlan'];
 const COMMA_FIELDS = ['communicationAssessment.auditoryComprehension'];
+const SCORE_RATIO_FIELDS = new Set([
+  'communicationAssessment.WAB_R_AQ',
+  'communicationAssessment.WAB_R_CQ',
+  'communicationAssessment.BNT',
+  'communicationAssessment.RCBA_2_TotalCore',
+]);
 
 const readDrafts = () => {
   try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; }
@@ -98,6 +104,23 @@ const safeString = (value) => {
   if (value === null || value === undefined) return '';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return String(value);
+};
+
+// Score values are stored as a numeric numerator followed by a fixed denominator
+// and, sometimes, fixed explanatory text. Only the numerator is editable.
+const splitScoreRatio = (value) => {
+  const source = safeString(value);
+  const match = source.match(/^(\s*)(-?\d+(?:\.\d+)?)(\s*\/\s*(\d+(?:\.\d+)?)[\s\S]*)$/);
+  if (!match) return null;
+  const decimals = (match[2].split('.')[1] || '').length;
+  return {
+    prefix: match[1],
+    number: match[2],
+    suffix: match[3],
+    denominator: Number(match[4]),
+    step: decimals ? `0.${'0'.repeat(decimals - 1)}1` : '1',
+    decimals,
+  };
 };
 
 const humanizeKey = (key) => String(key || '')
@@ -434,7 +457,7 @@ const SpeechTherapyAssessmentsDocument = ({ document: docProp }) => {
     setSaveError(null);
   };
 
-  const renderEditableLeaf = ({ record, idx, sid, field, displayValue, initialEditValue = displayValue, saveValue, leafKey, widget = 'text' }) => {
+  const renderEditableLeaf = ({ record, idx, sid, field, displayValue, initialEditValue = displayValue, saveValue, leafKey, widget = 'text', ratioMeta = null }) => {
     const stableLeafKey = leafKey || field;
     const editKey = `${stableLeafKey}-${idx}`;
     const isEditing = editingField === editKey;
@@ -446,11 +469,47 @@ const SpeechTherapyAssessmentsDocument = ({ document: docProp }) => {
             <div className="edit-field-container">
               {widget === 'date'
                 ? <BlueDatePicker value={editValue} onSelect={(value) => { setEditValue(value || ''); setSaveError(null); }} />
-                : <textarea className="edit-textarea" value={editValue} onChange={(event) => setEditValue(event.target.value)} autoFocus onKeyDown={(event) => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
+                : widget === 'score-ratio' && ratioMeta
+                  ? <div className="num-stepper-row">
+                    <button type="button" className="num-step" disabled={saving} onClick={(event) => {
+                      event.stopPropagation();
+                      const current = Number(editValue);
+                      const next = Math.max(0, (Number.isFinite(current) ? current : 0) - Number(ratioMeta.step));
+                      setEditValue(next.toFixed(ratioMeta.decimals));
+                      setSaveError(null);
+                    }}>−</button>
+                    <input
+                      type="text"
+                      className="edit-number"
+                      inputMode="decimal"
+                      min="0"
+                      max={ratioMeta.denominator}
+                      step={ratioMeta.step}
+                      value={editValue}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={(event) => { setEditValue(event.target.value); setSaveError(null); }}
+                      onKeyDown={(event) => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}
+                      autoFocus
+                    />
+                    <button type="button" className="num-step" disabled={saving} onClick={(event) => {
+                      event.stopPropagation();
+                      const current = Number(editValue);
+                      const next = Math.min(ratioMeta.denominator, (Number.isFinite(current) ? current : 0) + Number(ratioMeta.step));
+                      setEditValue(next.toFixed(ratioMeta.decimals));
+                      setSaveError(null);
+                    }}>+</button>
+                    <span className="number-edit-unit" aria-label="Fixed score denominator and suffix">{ratioMeta.suffix}</span>
+                  </div>
+                  : <textarea className="edit-textarea" value={editValue} onChange={(event) => setEditValue(event.target.value)} autoFocus onKeyDown={(event) => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={(event) => {
                   event.stopPropagation();
+                  if (widget === 'score-ratio' && ratioMeta) {
+                    const numericValue = Number(editValue);
+                    if (editValue === '' || !Number.isFinite(numericValue)) { setSaveError('Please enter a valid number'); return; }
+                    if (numericValue < 0 || numericValue > ratioMeta.denominator) { setSaveError(`Enter a value from 0 to ${ratioMeta.denominator}`); return; }
+                  }
                   const value = saveValue ? saveValue(editValue) : editValue;
                   if (widget === 'date' && (!value || Number.isNaN(new Date(value).getTime()))) { setSaveError('Please enter a valid date'); return; }
                   stageDrafts(record, idx, sid, [{ field, value }]);
@@ -471,6 +530,21 @@ const SpeechTherapyAssessmentsDocument = ({ document: docProp }) => {
   };
 
   const renderTextParts = (record, idx, sid, field, value) => {
+    const scoreRatio = SCORE_RATIO_FIELDS.has(field) ? splitScoreRatio(value) : null;
+    if (scoreRatio) {
+      return [renderEditableLeaf({
+        record,
+        idx,
+        sid,
+        field,
+        displayValue: safeString(value),
+        initialEditValue: scoreRatio.number,
+        leafKey: `${field}-score-ratio`,
+        widget: 'score-ratio',
+        ratioMeta: scoreRatio,
+        saveValue: (nextValue) => `${scoreRatio.prefix}${Number(nextValue)}${scoreRatio.suffix}`,
+      })];
+    }
     const parts = displayPartsForField(field, value);
     return parts.map((part, partIndex) => {
       const leaf = renderEditableLeaf({

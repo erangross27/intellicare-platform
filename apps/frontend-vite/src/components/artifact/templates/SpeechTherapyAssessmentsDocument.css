@@ -44,6 +44,14 @@
 .speech-therapy-assessments-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
 .speech-therapy-assessments-document .edit-field-container { width: 100%; }
 .speech-therapy-assessments-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0f1b33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; }
+.speech-therapy-assessments-document .num-stepper-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.speech-therapy-assessments-document .num-step { flex: 0 0 42px; min-height: 44px; padding: 8px; background: rgba(37, 99, 235, 0.2); border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 20px; font-weight: 700; cursor: pointer; }
+.speech-therapy-assessments-document .num-step:hover { background: rgba(37, 99, 235, 0.4); }
+.speech-therapy-assessments-document .num-step:disabled { opacity: 0.55; cursor: not-allowed; }
+.speech-therapy-assessments-document .edit-number { flex: 1 1 110px; min-width: 80px; padding: 10px; background: #0f1b33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; text-align: center; outline: none; -moz-appearance: textfield; appearance: textfield; }
+.speech-therapy-assessments-document .edit-number::-webkit-inner-spin-button,
+.speech-therapy-assessments-document .edit-number::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+.speech-therapy-assessments-document .number-edit-unit { display: flex; align-items: center; flex: 0 0 auto; padding: 0 10px; color: #93c5fd; font-size: 15px; font-weight: 700; white-space: nowrap; }
 .speech-therapy-assessments-document .edit-actions { display: flex; justify-content: flex-start; gap: 8px; margin-top: 8px; }
 .speech-therapy-assessments-document .save-btn { padding: 6px 16px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .speech-therapy-assessments-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
@@ -63,4 +71,6 @@
   .speech-therapy-assessments-document .document-header { padding-bottom: 12px; }
   .speech-therapy-assessments-document .document-title { font-size: 24px; }
   .speech-therapy-assessments-document .header-actions { flex-direction: column; }
+  .speech-therapy-assessments-document .num-stepper-row { flex-wrap: wrap; }
+  .speech-therapy-assessments-document .number-edit-unit { width: 100%; min-height: 32px; justify-content: center; }
 }

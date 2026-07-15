@@ -14,6 +14,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import SpongeInstrumentCountsDocumentPDFTemplate from '../pdf-templates/SpongeInstrumentCountsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './SpongeInstrumentCountsDocument.css';
 
@@ -43,6 +44,7 @@ const SECTION_TITLES = {
 };
 
 const FIELD_LABELS = {
+  date: 'Procedure Date',
   facility: 'Facility',
   countingNurse: 'Counting Nurse',
   scrubTech: 'Scrub Tech',
@@ -57,7 +59,7 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
-  'record-info': ['facility', 'countingNurse', 'scrubTech'],
+  'record-info': ['date', 'facility', 'countingNurse', 'scrubTech'],
   'procedure': ['procedureName'],
   'initial-count': ['initialCount'],
   'additional-counts': ['additionalCounts'],
@@ -68,6 +70,9 @@ const SECTION_FIELDS = {
 const DATE_FIELDS = ['date'];
 const ARRAY_FIELDS = ['additionalCounts'];
 const STRING_FIELDS = ['procedureName', 'initialCount', 'finalCount', 'countCorrect', 'discrepancy', 'xrayObtained', 'countingNurse', 'scrubTech', 'facility', 'notes'];
+// Only these real-record fields contain genuine top-level comma-separated clauses.
+// Credentials, facility names, and parenthetical count inventories stay whole.
+const COMMA_FIELDS = new Set(['finalCount', 'xrayObtained']);
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -173,7 +178,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\d)\.\s+|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   const splitBySemicolon = useCallback((text) => {
@@ -313,9 +318,8 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
   function saveSentence(record, fn, idx, sid, sentenceIdx) {
     const id = safeId(record); if (!id) return;
     const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const periodItems = splitBySentence(currentVal);
-    const isSemicolon = periodItems.length < 2;
-    const sentences = isSemicolon ? splitBySemicolon(currentVal) : periodItems;
+    const isSemicolon = !/(?<!\d)\.\s+/.test(currentVal) && /;\s*/.test(currentVal);
+    const sentences = splitBySentence(currentVal);
     const editedVal = editValue.trim();
     if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
       const updated = [...sentences]; updated.splice(sentenceIdx, 1);
@@ -346,9 +350,8 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
   function saveCommaItem(record, fn, idx, sid, sIdx, ciIdx) {
     const id = safeId(record); if (!id) return;
     const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const periodItems = splitBySentence(currentVal);
-    const isSemicolon = periodItems.length < 2;
-    const sentences = isSemicolon ? splitBySemicolon(currentVal) : periodItems;
+    const isSemicolon = !/(?<!\d)\.\s+/.test(currentVal) && /;\s*/.test(currentVal);
+    const sentences = splitBySentence(currentVal);
     const s = sentences[sIdx] || '';
     const p = parseLabel(s);
     if (!p.isLabeled) return;
@@ -376,10 +379,11 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
   const sectionHasEdits = useCallback((idx, sid) => {
     const fields = SECTION_FIELDS[sid] || [];
     return fields.some(f =>
+      pendingEdits[`${f}-${idx}`] ||
       Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) ||
       Object.keys(editedSentences).some(k => k.startsWith(`${f}-${idx}`))
     );
-  }, [editedFields, editedSentences]);
+  }, [editedFields, editedSentences, pendingEdits]);
 
   // Approve = COMMIT all staged drafts for this section to MongoDB, then clear pending so the
   // committed values flow into pdfData/PDF. This is the ONLY path that writes to the database.
@@ -467,9 +471,14 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const scItems = splitBySemicolon(strVal);
+        const commaItems = COMMA_FIELDS.has(f) ? splitByComma(strVal) : [];
         if (scItems.length >= 2) {
           if (showLabelCopy) text += `${label}\n`;
-          scItems.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
+          formatSentenceFieldLines(strVal).forEach(line => { text += `${line}\n`; });
+          text += '\n';
+        } else if (commaItems.length >= 2) {
+          if (showLabelCopy) text += `${label}\n`;
+          commaItems.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
           text += '\n';
         } else {
           const sentences = splitBySentence(strVal);
@@ -515,12 +524,12 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value || ''); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -549,7 +558,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
@@ -564,7 +573,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} data-edit-field={fn}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
@@ -594,9 +603,8 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
   const renderStringField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
-    const periodItems = splitBySentence(strVal);
-    const isSemicolon = periodItems.length < 2;
-    const sentences = isSemicolon ? splitBySemicolon(strVal) : periodItems;
+    const isSemicolon = !/(?<!\d)\.\s+/.test(strVal) && /;\s*/.test(strVal);
+    const sentences = splitBySentence(strVal);
     const label = FIELD_LABELS[fn] || fn;
     const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
@@ -608,7 +616,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
+          <div className={`rec-mini-card nested-mini-card ${showLabel ? '' : 'regular-row-group'}`}>
             {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -625,7 +633,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
                 if (commaItems.length >= 2 && !hasOxfordComma) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} style={{ marginTop: 8 }}>
                       <div className="nested-subtitle">{highlightText(parsed.label)}</div>
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
@@ -634,7 +642,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -663,10 +671,10 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
 
               /* Non-labeled sentence with 2+ comma items: split into rows */
               if (!parsed.isLabeled) {
-                const nlCommaItems = splitByComma(sentence);
+                const nlCommaItems = COMMA_FIELDS.has(fn) ? splitByComma(sentence) : [sentence];
                 if (nlCommaItems.length >= 2) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} style={{ marginTop: 8 }}>
                       {nlCommaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
                         const ciEditing = editingField === commaKey;
@@ -674,7 +682,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -703,22 +711,16 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
 
               /* Regular sentence row (single item, no comma split) — always rec-mini-card */
               const rowValue = parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim();
-              const isDateValue = parsed.isLabeled && /^(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s*\d{4}/.test(rowValue.trim());
-
               return (
-                <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                <div key={sIdx} data-edit-field={fn} style={{ marginTop: 8 }}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
-                  <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(isDateValue ? toInputDate(new Date(rowValue.replace(/\.$/, ''))) : rowValue); setSaveError(null); } }}>
+                  <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(rowValue); setSaveError(null); } }}>
                     {isEditing ? (
                       <div className="edit-field-container">
-                        {isDateValue ? (
-                          <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                        ) : (
-                          <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                        )}
+                        <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                         {saveError && <div className="save-error">{saveError}</div>}
                         <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { let trimmed = editValue.trim(); if (isDateValue && /^\d{4}-\d{2}-\d{2}$/.test(trimmed)) { trimmed = formatDate(trimmed); } const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const currentSentences = isSemicolon ? splitBySemicolon(String(getFieldValue(record, fn, idx) || '')) : splitBySentence(String(getFieldValue(record, fn, idx) || '')); currentSentences[sIdx] = reconstructed; const fullText = reconstructFullText(currentSentences, isSemicolon); setSaveError(null); stageEdit(record, fn, idx, sid, fullText, fn); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
+                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const currentSentences = splitBySentence(String(getFieldValue(record, fn, idx) || '')); currentSentences[sIdx] = reconstructed; const fullText = reconstructFullText(currentSentences, isSemicolon); setSaveError(null); stageEdit(record, fn, idx, sid, fullText, fn); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
                           <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                         </div>
                       </div>
@@ -739,7 +741,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
     }
 
     /* Single-value: split comma items into separate rows (labeled or not) */
-    const singleCommaItems = splitByComma(strVal);
+    const singleCommaItems = COMMA_FIELDS.has(fn) ? splitByComma(strVal) : [strVal];
 
     if (singleCommaItems.length >= 2) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
@@ -747,7 +749,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
+          <div className={`rec-mini-card nested-mini-card ${showLabel ? '' : 'regular-row-group'}`}>
             {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
             {singleCommaItems.map((ci, ciIdx) => {
               const ciParsed = parseLabel(ci);
@@ -759,7 +761,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
 
               if (ciParsed.isLabeled) {
                 return (
-                  <div key={ciIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                  <div key={ciIdx} data-edit-field={fn} style={{ marginTop: 8 }}>
                     <div className="nested-subtitle">{highlightText(ciParsed.label)}</div>
                     <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ciParsed.value); setSaveError(null); } }}>
                       {ciEditing ? (
@@ -784,7 +786,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
               }
 
               return (
-                <div key={ciIdx}>
+                <div key={ciIdx} data-edit-field={fn}>
                   <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                     {ciEditing ? (
                       <div className="edit-field-container">
@@ -817,7 +819,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
     const isModified = editedFields[`${fn}-${idx}`] || editedSentences[singleEditKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(singleEditKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
@@ -890,7 +892,7 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Sponge/Instrument Counts</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<SpongeInstrumentCountsDocumentPDFTemplate document={pdfData} />} fileName={`sponge-instrument-counts-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<SpongeInstrumentCountsDocumentPDFTemplate document={pdfData} />} fileName="Sponge_Instrument_Counts.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -903,11 +905,6 @@ const SpongeInstrumentCountsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{highlightText(formatDate(record.date))}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Sponge/Instrument Count ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'record-info')}

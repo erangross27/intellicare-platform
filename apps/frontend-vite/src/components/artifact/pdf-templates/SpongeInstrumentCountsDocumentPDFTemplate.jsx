@@ -7,23 +7,21 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, paddingBottom: 52, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
@@ -63,7 +61,7 @@ const fmtVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\d)\.\s+|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const splitBySemicolon = (text) => {
@@ -96,6 +94,8 @@ const splitByComma = (text) => {
   return result.length > 0 ? result : [text];
 };
 
+const COMMA_FIELDS = new Set(['finalCount', 'xrayObtained']);
+
 /* renderFieldRow: label + value inside fieldBox */
 const renderFieldRow = (label, value, showLabel) => {
   if (!hasVal(value)) return null;
@@ -119,13 +119,11 @@ const renderDateFieldPDF = (label, value, showLabel) => {
 };
 
 /* renderSentenceField: period-first splitting with semicolon fallback */
-const renderSentenceField = (label, text, showLabel) => {
+const renderSentenceField = (fieldKey, label, text, showLabel) => {
   if (!hasVal(text)) return null;
   const strVal = fmtVal(text);
 
-  /* Period-first splitting with semicolon fallback */
-  const periodItems = splitBySentence(strVal);
-  const sentences = periodItems.length >= 2 ? periodItems : splitBySemicolon(strVal);
+  const sentences = splitBySentence(strVal).flatMap(item => COMMA_FIELDS.has(fieldKey) ? splitByComma(item) : [item]);
 
   if (sentences.length < 2) {
     return (
@@ -143,21 +141,19 @@ const renderSentenceField = (label, text, showLabel) => {
     if (parsed.isLabeled) {
       const semiSub = splitBySemicolon(parsed.value);
       const commaItems = semiSub.length >= 2 ? semiSub : splitByComma(parsed.value);
+      rows.push({ type: 'subtitle', text: safeString(parsed.label) });
       if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
         commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
       } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
+        rows.push({ type: 'item', text: safeString(parsed.value), num: n++ });
       }
     } else {
       rows.push({ type: 'item', text: safeString(s), num: n++ });
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View style={styles.fieldBox} wrap={rows.length > 8 ? true : false}>
       {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
       {rows.map((row, i) => {
         if (row.type === 'subtitle') {
@@ -176,7 +172,7 @@ const renderArrayFieldPDF = (label, items, showLabel) => {
   if (safeItems.length === 0) return null;
 
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? true : false}>
       {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
       {safeItems.map((item, i) => (
         <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
@@ -190,6 +186,7 @@ const SECTION_CONFIGS = [
   {
     title: 'Record Information',
     fields: [
+      { key: 'date', label: 'Procedure Date', isDate: true },
       { key: 'facility', label: 'Facility', isSentence: true },
       { key: 'countingNurse', label: 'Counting Nurse', isSentence: true },
       { key: 'scrubTech', label: 'Scrub Tech', isSentence: true },
@@ -270,11 +267,6 @@ const SpongeInstrumentCountsDocumentPDFTemplate = ({ document: data }) => {
 
             {/* Record Header */}
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
               <Text style={styles.recordTitle}>
                 {`Sponge/Instrument Count ${index + 1}`}
               </Text>
@@ -290,7 +282,7 @@ const SpongeInstrumentCountsDocumentPDFTemplate = ({ document: data }) => {
                 const showLabel = field.label.toLowerCase() !== sectionConfig.title.toLowerCase();
                 if (field.isDate) return renderDateFieldPDF(field.label, val, showLabel);
                 if (field.isArray) return renderArrayFieldPDF(field.label, val, showLabel);
-                if (field.isSentence) return renderSentenceField(field.label, val, showLabel);
+                if (field.isSentence) return renderSentenceField(field.key, field.label, val, showLabel);
                 return renderFieldRow(field.label, val, showLabel);
               };
 

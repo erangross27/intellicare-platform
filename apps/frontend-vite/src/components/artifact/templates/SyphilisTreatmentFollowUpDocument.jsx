@@ -1,17 +1,15 @@
 /**
  * SyphilisTreatmentFollowUpDocument.jsx
- * June 2026 — Complete template with inline editing, blue glow theme
+ * March 2026 — Complete rewrite with inline editing, blue glow theme
  * Collection: syphilis_treatment_follow_up
  *
- * 5 Sections:
- *   1. staging-serology: syphilisStage, initialRprTiter, followUpRprTiter, vdrlTiter, fourFoldTiterDecline, titerDeclinePercentage, serofastState
- *   2. treatment: treatmentRegimen, penicillinDosesCompleted, jarischHerxheimerReaction
- *   3. neurosyphilis-csf: lumbarPunctureDate, csfVdrlResult, csfProteinLevel, csfWhiteCellCount
- *   4. hiv-special: hivCoinfectionStatus, cd4CountAtTreatment, ophthalmicExamFindings, otologicSymptomResolution, partnerNotificationStatus, pregnancyStatus
- *   5. response-followup: clinicalSymptomResolution, treatmentFailureCriteria, retreatmentIndicated, followUpIntervalMonths, nextScheduledFollowUp
+ * Covers staging and serology, treatment, neurosyphilis/CSF evaluation,
+ * special populations, clinical response, and follow-up.
  */
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import SyphilisTreatmentFollowUpDocumentPDFTemplate from '../pdf-templates/SyphilisTreatmentFollowUpDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
 import './SyphilisTreatmentFollowUpDocument.css';
@@ -19,8 +17,8 @@ import './SyphilisTreatmentFollowUpDocument.css';
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
    written to MongoDB and NOT shown in the PDF until the user clicks Approve.
    Kept in a SEPARATE key (NOT artifactGridData) so drafts never leak into the PDF/DB source.
-   Shape: { [recordId]: { [fieldPart]: value } }  (fieldPart = "field") */
-const DRAFT_KEY = 'syphilis_treatment_follow_upPendingEdits';
+   Shape: { [recordId]: { [fieldPart]: value } }  (fieldPart = field name; localEdits keys are "field-idx") */
+const DRAFT_KEY = 'syphilisTreatmentFollowUpPendingEdits';
 const readDrafts = () => {
   try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; }
 };
@@ -34,52 +32,104 @@ const writeDrafts = (store) => {
 /* ═══════ CONSTANTS ═══════ */
 const SECTION_TITLES = {
   'staging-serology': 'Staging & Serology',
-  'treatment': 'Treatment',
+  treatment: 'Treatment',
   'neurosyphilis-csf': 'Neurosyphilis / CSF',
   'hiv-special': 'HIV & Special Populations',
   'response-followup': 'Response & Follow-Up',
 };
 
 const FIELD_LABELS = {
-  syphilisStage: 'Syphilis Stage',
-  initialRprTiter: 'Initial RPR Titer',
-  followUpRprTiter: 'Follow-Up RPR Titer',
-  vdrlTiter: 'VDRL Titer',
-  fourFoldTiterDecline: 'Four-Fold Titer Decline',
-  titerDeclinePercentage: 'Titer Decline (%)',
-  serofastState: 'Serofast State',
-  treatmentRegimen: 'Treatment Regimen',
-  penicillinDosesCompleted: 'Penicillin Doses Completed',
-  jarischHerxheimerReaction: 'Jarisch-Herxheimer Reaction',
-  lumbarPunctureDate: 'Lumbar Puncture Date',
-  csfVdrlResult: 'CSF VDRL Result',
-  csfProteinLevel: 'CSF Protein (mg/dL)',
-  csfWhiteCellCount: 'CSF White Cell Count (cells/µL)',
-  hivCoinfectionStatus: 'HIV Co-Infection Status',
-  cd4CountAtTreatment: 'CD4 Count (cells/mm³)',
-  ophthalmicExamFindings: 'Ophthalmic Exam Findings',
-  otologicSymptomResolution: 'Otologic Symptom Resolution',
-  partnerNotificationStatus: 'Partner Notification Status',
-  pregnancyStatus: 'Pregnancy Status',
-  clinicalSymptomResolution: 'Clinical Symptom Resolution',
-  treatmentFailureCriteria: 'Treatment Failure Criteria',
-  retreatmentIndicated: 'Retreatment Indicated',
-  followUpIntervalMonths: 'Follow-Up Interval (months)',
-  nextScheduledFollowUp: 'Next Scheduled Follow-Up',
+  syphilisStage: 'Syphilis Stage', initialRprTiter: 'Initial RPR Titer', followUpRprTiter: 'Follow-Up RPR Titer', vdrlTiter: 'VDRL Titer',
+  fourFoldTiterDecline: 'Four-Fold Titer Decline', titerDeclinePercentage: 'Titer Decline (%)', serofastState: 'Serofast State',
+  treatmentRegimen: 'Treatment Regimen', penicillinDosesCompleted: 'Penicillin Doses Completed', jarischHerxheimerReaction: 'Jarisch-Herxheimer Reaction',
+  lumbarPunctureDate: 'Lumbar Puncture Date', csfVdrlResult: 'CSF VDRL Result', csfProteinLevel: 'CSF Protein (mg/dL)', csfWhiteCellCount: 'CSF White Cell Count (cells/uL)',
+  hivCoinfectionStatus: 'HIV Co-Infection Status', cd4CountAtTreatment: 'CD4 Count (cells/mm3)', ophthalmicExamFindings: 'Ophthalmic Exam Findings',
+  otologicSymptomResolution: 'Otologic Symptom Resolution', partnerNotificationStatus: 'Partner Notification Status', pregnancyStatus: 'Pregnancy Status',
+  clinicalSymptomResolution: 'Clinical Symptom Resolution', treatmentFailureCriteria: 'Treatment Failure Criteria', retreatmentIndicated: 'Retreatment Indicated',
+  followUpIntervalMonths: 'Follow-Up Interval (months)', nextScheduledFollowUp: 'Next Scheduled Follow-Up',
 };
 
 const SECTION_FIELDS = {
   'staging-serology': ['syphilisStage', 'initialRprTiter', 'followUpRprTiter', 'vdrlTiter', 'fourFoldTiterDecline', 'titerDeclinePercentage', 'serofastState'],
-  'treatment': ['treatmentRegimen', 'penicillinDosesCompleted', 'jarischHerxheimerReaction'],
+  treatment: ['treatmentRegimen', 'penicillinDosesCompleted', 'jarischHerxheimerReaction'],
   'neurosyphilis-csf': ['lumbarPunctureDate', 'csfVdrlResult', 'csfProteinLevel', 'csfWhiteCellCount'],
   'hiv-special': ['hivCoinfectionStatus', 'cd4CountAtTreatment', 'ophthalmicExamFindings', 'otologicSymptomResolution', 'partnerNotificationStatus', 'pregnancyStatus'],
   'response-followup': ['clinicalSymptomResolution', 'treatmentFailureCriteria', 'retreatmentIndicated', 'followUpIntervalMonths', 'nextScheduledFollowUp'],
 };
 
-const NUMBER_FIELDS = ['titerDeclinePercentage', 'penicillinDosesCompleted', 'csfProteinLevel', 'csfWhiteCellCount', 'cd4CountAtTreatment', 'followUpIntervalMonths'];
-const BOOLEAN_FIELDS = ['fourFoldTiterDecline', 'serofastState', 'jarischHerxheimerReaction', 'otologicSymptomResolution', 'treatmentFailureCriteria', 'retreatmentIndicated', 'clinicalSymptomResolution'];
-const DATE_FIELDS = ['lumbarPunctureDate', 'nextScheduledFollowUp'];
-const STRING_FIELDS = ['syphilisStage', 'initialRprTiter', 'followUpRprTiter', 'vdrlTiter', 'treatmentRegimen', 'csfVdrlResult', 'hivCoinfectionStatus', 'ophthalmicExamFindings', 'partnerNotificationStatus', 'pregnancyStatus'];
+const ARRAY_FIELDS = new Set();
+const NUMBER_FIELDS = new Set(['titerDeclinePercentage', 'penicillinDosesCompleted', 'csfProteinLevel', 'csfWhiteCellCount', 'cd4CountAtTreatment', 'followUpIntervalMonths']);
+const BOOLEAN_FIELDS = new Set(['fourFoldTiterDecline', 'serofastState', 'jarischHerxheimerReaction', 'otologicSymptomResolution', 'treatmentFailureCriteria', 'retreatmentIndicated', 'clinicalSymptomResolution']);
+const ENUM_FIELDS = {
+  ...Object.fromEntries([...BOOLEAN_FIELDS].map(field => [field, ['Yes', 'No']])),
+  syphilisStage: ['primary', 'secondary', 'early latent', 'late latent', 'tertiary', 'neurosyphilis', 'congenital'],
+  hivCoinfectionStatus: ['negative', 'positive', 'unknown'],
+  pregnancyStatus: ['not pregnant', 'pregnant', 'unknown', 'not applicable'],
+};
+const COMMA_ARRAY_FIELDS = new Set(['partnerNotificationStatus']);
+const KEEP_LABEL_COMMA_FIELDS = new Set();
+const COPY_LINE_EQ = '='.repeat(40);
+const COPY_LINE_DASH = '-'.repeat(40);
+const sameAsTitle = (label, title) => String(label || '').trim().toLowerCase() === String(title || '').trim().toLowerCase();
+
+const humanizeKey = (key) => String(key || '')
+  .replace(/_/g, ' ')
+  .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  .replace(/^./, character => character.toUpperCase());
+
+const getPathValue = (record, path) => String(path).split('.').reduce((value, part) => value?.[part], record);
+const scalarValue = (value) => {
+  if (value && typeof value === 'object') {
+    const numericKey = ['$numberInt', '$numberLong', '$numberDouble', '$numberDecimal'].find(key => value[key] !== undefined);
+    if (numericKey) return Number(value[numericKey]);
+  }
+  return value;
+};
+const setPathValue = (record, path, value) => {
+  const parts = String(path).split('.');
+  let cursor = record;
+  parts.forEach((part, index) => {
+    if (index === parts.length - 1) cursor[part] = value;
+    else {
+      const nextIsIndex = /^\d+$/.test(parts[index + 1]);
+      if (!cursor[part] || typeof cursor[part] !== 'object') cursor[part] = nextIsIndex ? [] : {};
+      cursor = cursor[part];
+    }
+  });
+};
+const flattenLeafPaths = (value, prefix) => {
+  if (!value || typeof value !== 'object') return [];
+  return Object.entries(value).flatMap(([key, child]) => {
+    const path = `${prefix}.${key}`;
+    if (child !== null && typeof child === 'object') return flattenLeafPaths(child, path);
+    return child === '' || child === null || child === undefined ? [] : [path];
+  });
+};
+const sectionFields = (record, sid) => {
+  if (sid === 'results') return flattenLeafPaths(record?.results, 'results');
+  if (sid === 'recommendations') return Array.isArray(record?.recommendations)
+    ? record.recommendations.flatMap((recommendation, index) => [
+      recommendation?.recommendation ? `recommendations.${index}.recommendation` : null,
+      recommendation?.date ? `recommendations.${index}.date` : null,
+    ].filter(Boolean))
+    : [];
+  return (SECTION_FIELDS[sid] || []).flatMap(field => {
+    if (!ARRAY_FIELDS.has(field)) return [field];
+    const values = record?.[field];
+    return Array.isArray(values) ? values.map((_, index) => `${field}.${index}`) : [];
+  });
+};
+const fieldLabel = (path) => {
+  if (FIELD_LABELS[path]) return FIELD_LABELS[path];
+  const parts = String(path).split('.');
+  if (ARRAY_FIELDS.has(parts[0])) return FIELD_LABELS[parts[0]];
+  if (parts[0] === 'recommendations') {
+    const itemNumber = Number(parts[1]) + 1;
+    return parts[2] === 'date' ? `Recommendation ${itemNumber} Date` : `Recommendation ${itemNumber}`;
+  }
+  return humanizeKey(parts[parts.length - 1]);
+};
+const isDateField = path => path === 'lumbarPunctureDate' || path === 'nextScheduledFollowUp';
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -89,7 +139,7 @@ const parseLabel = (text) => {
   return { isLabeled: false, label: '', value: text };
 };
 
-/* splitByComma: parenthesis-aware comma split */
+/* Parenthesis-aware comma split with credential, conjunction, and numeric guards. */
 const splitByComma = (text) => {
   if (!text || typeof text !== 'string') return [text || ''];
   const result = []; let current = ''; let depth = 0;
@@ -97,7 +147,15 @@ const splitByComma = (text) => {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
+    else if (ch === ',' && depth === 0) {
+      const before = current.trim();
+      const after = text.slice(i + 1);
+      const afterTrimmed = after.trimStart();
+      const numericThousands = /\d$/.test(before) && /^\d{3}\b/.test(afterTrimmed);
+      const noFollowingSpace = after.length === afterTrimmed.length;
+      if (numericThousands || noFollowingSpace) current += ch;
+      else { if (before) result.push(before); current = ''; }
+    }
     else { current += ch; }
   }
   const t = current.trim(); if (t) result.push(t);
@@ -106,13 +164,76 @@ const splitByComma = (text) => {
 
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
+  try { const raw = dateValue?.$date?.$numberLong ?? dateValue?.$date ?? dateValue; const d = new Date(typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw) : raw); if (isNaN(d.getTime()) || d.getFullYear() < 1971) return ''; return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
 };
 
 const toInputDate = (dateValue) => {
   if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
+  try { const raw = dateValue?.$date?.$numberLong ?? dateValue?.$date ?? dateValue; const d = new Date(typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw) : raw); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
+
+/* Text-backed clinical measurements stay readable while each meaningful number gets its own
+   stepper. Ratio denominators, ordinal suffixes, staging-code digits, and # identifiers are fixed. */
+const editableNumberTokens = (value) => {
+  const source = String(value ?? '');
+  const tokens = [];
+  const matcher = /-?\d+(?:\.\d+)?/g;
+  let cursor = 0;
+  let match;
+  let editableIndex = 0;
+  while ((match = matcher.exec(source))) {
+    if (match.index > cursor) tokens.push({ text: source.slice(cursor, match.index), numeric: false });
+    const start = match.index;
+    const end = start + match[0].length;
+    const previousCharacter = source[start - 1] || '';
+    const previousNonSpace = source.slice(0, start).match(/\S(?=\s*$)/)?.[0] || '';
+    const nextCharacter = source[end] || '';
+    const editable = previousNonSpace !== '/'
+      && previousCharacter !== '#'
+      && !/[A-Za-z0-9]/.test(previousCharacter)
+      && !/[A-Za-z]/.test(nextCharacter);
+    tokens.push({
+      text: match[0],
+      numeric: true,
+      editable,
+      editableIndex: editable ? editableIndex++ : null,
+    });
+    cursor = end;
+  }
+  if (cursor < source.length) tokens.push({ text: source.slice(cursor), numeric: false });
+  return tokens;
+};
+const hasEditableNumber = (value) => editableNumberTokens(value).some(token => token.numeric && token.editable);
+const replaceEditableNumber = (value, targetIndex, replacement) => editableNumberTokens(value)
+  .map(token => token.numeric && token.editable && token.editableIndex === targetIndex ? String(replacement) : token.text)
+  .join('');
+const numberStep = (value) => String(value).includes('.') ? 0.1 : 1;
+
+const NumberTextEditor = ({ value, onChange }) => (
+  <div className="multi-number-edit-row">
+    {editableNumberTokens(value).map((token, tokenIndex) => {
+      if (!token.numeric || !token.editable) {
+        return <span className="number-edit-unit fixed-number-text" key={`${tokenIndex}-${token.text}`}>{token.text}</span>;
+      }
+      const change = (direction) => {
+        const next = Number((Number(token.text || 0) + direction * numberStep(token.text)).toFixed(10));
+        onChange(replaceEditableNumber(value, token.editableIndex, next));
+      };
+      return (
+        <div className="multi-number-control" key={`${tokenIndex}-${token.editableIndex}`}>
+          <button type="button" className="num-step" onClick={event => { event.stopPropagation(); change(-1); }}>−</button>
+          <input
+            className="edit-number"
+            inputMode="decimal"
+            value={token.text}
+            onChange={event => onChange(replaceEditableNumber(value, token.editableIndex, event.target.value))}
+          />
+          <button type="button" className="num-step" onClick={event => { event.stopPropagation(); change(1); }}>+</button>
+        </div>
+      );
+    })}
+  </div>
+);
 
 /* ═══════ COMPONENT ═══════ */
 const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
@@ -121,6 +242,8 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
   const [copiedItems, setCopiedItems] = useState({});
   const [showCopied, setShowCopied] = useState(false);
   const [localEdits, setLocalEdits] = useState({});
+  // editKeys that are staged drafts (saved locally, NOT yet committed to DB/PDF). Cleared on Approve.
+  const [pendingEdits, setPendingEdits] = useState({});
   const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [editedFields, setEditedFields] = useState({});
@@ -128,8 +251,6 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
   const [approvedSections, setApprovedSections] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  // editKeys that are staged drafts (saved locally, NOT yet committed to DB/PDF). Cleared on Approve.
-  const [pendingEdits, setPendingEdits] = useState({});
   const containerRef = useRef(null);
 
   /* ═══════ DATA UNWRAP ═══════ */
@@ -144,15 +265,17 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
     return arr.filter(r => r && typeof r === 'object');
   }, [docProp]);
 
-  /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
+  /* ═══════ REHYDRATE PENDING DRAFTS ═══════
+     Read the localStorage draft store so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
     const store = readDrafts();
     if (!store || Object.keys(store).length === 0) return;
-    const recId = (r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); };
     const nLocal = {}, nPending = {}, nFields = {};
     records.forEach((record, idx) => {
-      const id = recId(record);
-      const recDrafts = id ? store[id] : null;
+      const rid = record && record._id
+        ? (typeof record._id === 'string' ? record._id : (record._id.$oid || String(record._id)))
+        : null;
+      const recDrafts = rid ? store[rid] : null;
       if (!recDrafts) return;
       Object.entries(recDrafts).forEach(([fieldPart, value]) => {
         const editKey = `${fieldPart}-${idx}`;
@@ -168,13 +291,51 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
   }, [records]);
 
   /* ═══════ UTILS ═══════ */
-  const hasVal = useCallback((v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; }, []);
-  const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
+  const hasVal = useCallback((input) => { const v = scalarValue(input); if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean' || typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; }, []);
+  const fmtVal = useCallback((input) => { const v = scalarValue(input); if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    const delimiterWithWhitespace = /[.;]\s/;
+    const result = [];
+    let current = '';
+    let parenthesisDepth = 0;
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === '(') parenthesisDepth += 1;
+      else if (ch === ')') parenthesisDepth = Math.max(0, parenthesisDepth - 1);
+      const isDelimiter = delimiterWithWhitespace.test(`${ch}${text[i + 1] || ''}`) && parenthesisDepth === 0;
+      const isProtectedTitle = ch === '.' && /\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)$/.test(current);
+      if (isDelimiter && !isProtectedTitle) {
+        const trimmed = current.trim();
+        if (trimmed) result.push(trimmed);
+        current = '';
+        while (/\s/.test(text[i + 1] || '')) i += 1;
+      } else current += ch;
+    }
+    const tail = current.replace(/[.;]+$/, '').trim();
+    if (tail) result.push(tail);
+    return result;
   }, []);
+
+  const buildStringGroups = useCallback((text, fieldName = '') => {
+    const groups = [];
+    splitBySentence(text).forEach((sentence, sentenceIndex) => {
+      const parsed = parseLabel(sentence);
+      const splitCommas = (parsed.isLabeled && !KEEP_LABEL_COMMA_FIELDS.has(fieldName.split('.')[0])) || COMMA_ARRAY_FIELDS.has(fieldName);
+      const source = parsed.isLabeled ? parsed.value : sentence;
+      const rows = (splitCommas ? splitByComma(source) : [source]).map((row, commaIndex) => ({
+        text: row.replace(/[;.]+$/, '').trim(),
+        sentenceIndex,
+        commaIndex: splitCommas ? commaIndex : null,
+        label: parsed.isLabeled ? parsed.label : '',
+      })).filter(row => row.text);
+      if (!rows.length) return;
+      if (!parsed.isLabeled && groups.length && !groups[groups.length - 1].label) groups[groups.length - 1].rows.push(...rows);
+      else groups.push({ label: parsed.isLabeled ? parsed.label : '', rows });
+    });
+    return groups;
+  }, [splitBySentence]);
 
   function reconstructFullText(sentences) {
     if (!sentences || sentences.length === 0) return '';
@@ -188,22 +349,8 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
   const getFieldValue = useCallback((record, fn, idx) => {
     const k = `${fn}-${idx}`;
     if (localEdits[k] !== undefined) return localEdits[k];
-    return record[fn];
+    return getPathValue(record, fn);
   }, [localEdits]);
-
-  /* hide-zero: numeric "not recorded" (0) hidden unless doctor-edited */
-  const numberShows = useCallback((record, fn, idx) => {
-    const val = getFieldValue(record, fn, idx);
-    if (val === null || val === undefined || val === '') return false;
-    const num = Number(val);
-    if (Number.isNaN(num)) return false;
-    if (num === 0) {
-      const editKey = `${fn}-${idx}`;
-      const doctorEdited = Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(fn);
-      return Boolean(editedFields[editKey]) || doctorEdited;
-    }
-    return true;
-  }, [getFieldValue, editedFields]);
 
   const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -223,19 +370,18 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
   }, [searchTerm]);
 
   /* ═══════ SEARCH — 4-LEVEL ═══════ */
-  const shouldShowSection = useCallback((record, sid) => {
+  const shouldShowSection = useCallback((record, idx, sid) => {
     if (!searchTerm.trim() || record._showAllSections) return true;
     const phrase = searchTerm.toLowerCase().trim();
     const title = (SECTION_TITLES[sid] || '').toLowerCase();
     if (title.includes(phrase) || phrase.includes(title)) return true;
-    const fields = SECTION_FIELDS[sid] || [];
+    const fields = sectionFields(record, sid);
     for (const f of fields) {
-      const label = (FIELD_LABELS[f] || f).toLowerCase();
+      const label = fieldLabel(f).toLowerCase();
       if (label.includes(phrase) || phrase.includes(label)) return true;
-      const val = getFieldValue(record, f, 0);
+      const val = getFieldValue(record, f, idx);
       if (val !== null && val !== undefined) {
         if (Array.isArray(val)) { if (val.some(item => String(item).toLowerCase().includes(phrase))) return true; }
-        else if (typeof val === 'object') { if (Object.entries(val).some(([k, v]) => String(k).toLowerCase().includes(phrase) || String(v).toLowerCase().includes(phrase))) return true; }
         else if (fmtVal(val).toLowerCase().includes(phrase)) return true;
       }
     }
@@ -245,12 +391,11 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
   const fieldMatches = useCallback((record, fn, idx) => {
     if (!searchTerm.trim() || record._showAllSections) return true;
     const phrase = searchTerm.toLowerCase().trim();
-    const label = (FIELD_LABELS[fn] || fn).toLowerCase();
+    const label = fieldLabel(fn).toLowerCase();
     if (label.includes(phrase) || phrase.includes(label)) return true;
     const val = getFieldValue(record, fn, idx);
     if (val !== null && val !== undefined) {
       if (Array.isArray(val)) return val.some(item => String(item).toLowerCase().includes(phrase));
-      if (typeof val === 'object') return Object.entries(val).some(([k, v]) => String(k).toLowerCase().includes(phrase) || String(v).toLowerCase().includes(phrase));
       return fmtVal(val).toLowerCase().includes(phrase);
     }
     return false;
@@ -265,8 +410,8 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
       if (rt.includes(phrase) || phrase.includes(rt)) { record._showAllSections = true; return true; }
       for (const t of Object.values(SECTION_TITLES)) { if (t.toLowerCase().includes(phrase) || phrase.includes(t.toLowerCase())) return true; }
       for (const l of Object.values(FIELD_LABELS)) { if (l.toLowerCase().includes(phrase) || phrase.includes(l.toLowerCase())) return true; }
-      for (const fields of Object.values(SECTION_FIELDS)) {
-        for (const f of fields) {
+      for (const sid of Object.keys(SECTION_TITLES)) {
+        for (const f of sectionFields(record, sid)) {
           const val = getFieldValue(record, f, idx);
           if (val && (Array.isArray(val) ? val.some(item => String(item).toLowerCase().includes(phrase)) : fmtVal(val).toLowerCase().includes(phrase))) return true;
         }
@@ -278,12 +423,12 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
   /* ═══════ PDF DATA ═══════ */
   const pdfData = useMemo(() => {
     return filteredRecords.map((record, idx) => {
-      const merged = { ...record };
+      const merged = JSON.parse(JSON.stringify(record));
       Object.keys(localEdits).forEach(key => {
         if (pendingEdits[key]) return; // pending drafts stay OUT of the PDF until approved
         const m = key.match(/^(.+)-(\d+)$/);
         if (m && parseInt(m[2]) === idx) {
-          merged[m[1]] = localEdits[key];
+          setPathValue(merged, m[1], localEdits[key]);
         }
       });
       return merged;
@@ -298,12 +443,12 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
     const saveVal = valueOverride !== undefined ? valueOverride : editValue;
     setSaveError(null);
     const editKey = `${fn}-${idx}`;
+    const trackKey = editTrackingKey || editKey;
     setLocalEdits(prev => ({ ...prev, [editKey]: saveVal }));
     setPendingEdits(prev => ({ ...prev, [editKey]: true }));
-    const trackKey = editTrackingKey || editKey;
     setEditedFields(prev => ({ ...prev, [trackKey]: 'edited' }));
-    // Re-edit after approval → drop the section's 'approved' flag so the button goes back to yellow
-    if (sid) setApprovedSections(prev => { const k = `${sid}-${idx}`; if (!prev[k]) return prev; const n = { ...prev }; delete n[k]; return n; });
+    // Re-edit after approval → drop this section's approved flag so the button returns to yellow Pending
+    if (sid) setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
     const store = readDrafts();
     if (!store[id]) store[id] = {};
     store[id][fn] = saveVal;
@@ -311,28 +456,27 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
     setEditingField(null); setEditValue('');
   }, [editValue, safeId]);
 
-  // Stage as a DRAFT (no DB write). localStorage keeps it across refresh; Approve commits it.
-  function stageDraft(id, fn, idx, sid, fullText) {
-    const editKey = `${fn}-${idx}`;
-    setLocalEdits(prev => ({ ...prev, [editKey]: fullText }));
-    setPendingEdits(prev => ({ ...prev, [editKey]: true }));
-    if (sid) setApprovedSections(prev => { const k = `${sid}-${idx}`; if (!prev[k]) return prev; const n = { ...prev }; delete n[k]; return n; });
-    const store = readDrafts();
-    if (!store[id]) store[id] = {};
-    store[id][fn] = fullText;
-    writeDrafts(store);
-  }
-
+  // saveSentence = stage a DRAFT locally (no DB write). localStorage keeps it across refresh; Approve commits it.
   function saveSentence(record, fn, idx, sid, sentenceIdx) {
     const id = safeId(record); if (!id) return;
     const currentVal = String(getFieldValue(record, fn, idx) || '');
     const sentences = splitBySentence(currentVal);
     const editedVal = editValue.trim();
+    const editKey = `${fn}-${idx}`;
+    const stageDraft = (fullText) => {
+      setLocalEdits(prev => ({ ...prev, [editKey]: fullText }));
+      setPendingEdits(prev => ({ ...prev, [editKey]: true }));
+      if (sid) setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
+      const store = readDrafts();
+      if (!store[id]) store[id] = {};
+      store[id][fn] = fullText;
+      writeDrafts(store);
+    };
     if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
       const updated = [...sentences]; updated.splice(sentenceIdx, 1);
       const fullText = reconstructFullText(updated);
       setSaveError(null);
-      stageDraft(id, fn, idx, sid, fullText);
+      stageDraft(fullText);
       setEditedSentences(prev => ({ ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }));
       setEditingField(null); setEditValue('');
       return;
@@ -341,7 +485,7 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
     const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
     const fullText = reconstructFullText(updated);
     setSaveError(null);
-    stageDraft(id, fn, idx, sid, fullText);
+    stageDraft(fullText);
     const orig = sentences[sentenceIdx] || '';
     const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
     setEditedSentences(prev => {
@@ -354,61 +498,34 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
     setEditingField(null); setEditValue('');
   }
 
-  function saveCommaItem(record, fn, idx, sid, sIdx, ciIdx) {
-    const id = safeId(record); if (!id) return;
-    const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const sentences = splitBySentence(currentVal);
-    const s = sentences[sIdx] || '';
-    const p = parseLabel(s);
-    if (!p.isLabeled) return;
-    const items = splitByComma(p.value);
-    const trimmed = editValue.trim();
-    const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp);
-    if (subParts.length > 1) { items.splice(ciIdx, 1, ...subParts); } else { items[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); }
-    const rebuilt = `${p.label}: ${items.join(', ')}.`;
-    const allS = [...sentences]; allS[sIdx] = rebuilt;
-    const fullText = reconstructFullText(allS);
-    setSaveError(null);
-    stageDraft(id, fn, idx, sid, fullText);
-    const sentenceKey = `${fn}-${idx}-s${sIdx}`;
-    const commaKey = `${sentenceKey}-c${ciIdx}`;
-    const marks = { [commaKey]: 'edited' };
-    for (let ei = 1; ei < subParts.length; ei++) marks[`${sentenceKey}-c${ciIdx + ei}`] = 'added';
-    setEditedSentences(prev => ({ ...prev, ...marks }));
-    setEditingField(null); setEditValue('');
-  }
-
   /* ═══════ APPROVE ═══════ */
-  const sectionHasEdits = useCallback((idx, sid) => {
-    const fields = SECTION_FIELDS[sid] || [];
+  const sectionHasEdits = useCallback((record, idx, sid) => {
+    const fields = sectionFields(record, sid);
     return fields.some(f =>
-      Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) ||
+      Object.keys(pendingEdits).some(k => k === `${f}-${idx}`) ||
+      Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`)) ||
       Object.keys(editedSentences).some(k => k.startsWith(`${f}-${idx}`))
     );
-  }, [editedFields, editedSentences]);
+  }, [pendingEdits, editedFields, editedSentences]);
 
-  // Approve = COMMIT all staged drafts for this section's fields to MongoDB, then clear pending so the
-  // committed values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
+  // Approve = COMMIT this section's staged drafts to MongoDB, then clear pending so the committed
+  // values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
   const handleApproveSection = useCallback(async (record, sid, idx) => {
     const id = safeId(record); if (!id) return;
-    const fields = SECTION_FIELDS[sid] || [];
-    const suffix = `-${idx}`;
+    const fields = sectionFields(record, sid);
     setSaving(true);
     try {
-      // Commit each staged field belonging to this section (field, or field+arrayIndex for array elements)
+      // Persist each staged dotted/indexed leaf in this section to the DB now.
       const toCommit = Object.keys(localEdits).filter(k => {
-        if (!pendingEdits[k] || !k.endsWith(suffix)) return false;
-        const fieldPart = k.slice(0, -suffix.length);
-        const lastDot = fieldPart.lastIndexOf('.');
-        const baseField = lastDot !== -1 && /^\d+$/.test(fieldPart.slice(lastDot + 1)) ? fieldPart.slice(0, lastDot) : fieldPart;
-        return fields.includes(baseField);
+        if (!pendingEdits[k]) return false;
+        const m = k.match(/^(.+)-(\d+)$/);
+        if (!m || parseInt(m[2], 10) !== idx) return false;
+        return fields.includes(m[1]);
       });
       for (const editKey of toCommit) {
-        const fieldPart = editKey.slice(0, -suffix.length); // "field" or "field.arrayIndex"
-        const lastDot = fieldPart.lastIndexOf('.');
-        const hasArrayIndex = lastDot !== -1 && /^\d+$/.test(fieldPart.slice(lastDot + 1));
-        const payload = { field: hasArrayIndex ? fieldPart.slice(0, lastDot) : fieldPart, value: localEdits[editKey] };
-        if (hasArrayIndex) payload.arrayIndex = parseInt(fieldPart.slice(lastDot + 1), 10);
+        const m = editKey.match(/^(.+)-(\d+)$/);
+        const fieldPart = m[1];
+        const payload = { field: fieldPart, value: localEdits[editKey] };
         const resp = await secureApiClient.put(`/api/edit/syphilis_treatment_follow_up/${id}/edit`, payload);
         if (resp && resp.success === false) throw new Error(resp.error || 'save failed');
       }
@@ -419,89 +536,76 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
       setPendingEdits(prev => { const n = { ...prev }; toCommit.forEach(k => delete n[k]); return n; });
       // Drop this record's committed drafts from localStorage
       const store = readDrafts();
-      if (store[id]) { fields.forEach(f => { delete store[id][f]; }); if (Object.keys(store[id]).length === 0) delete store[id]; writeDrafts(store); }
+      if (store[id]) {
+        fields.forEach(f => { if (store[id]) delete store[id][f]; });
+        if (store[id] && Object.keys(store[id]).length === 0) delete store[id];
+        writeDrafts(store);
+      }
 
       setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
       setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) delete n[k]; }); }); return n; });
       setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
-    } catch (err) { console.error(err); } finally { setSaving(false); }
+    } catch (err) {
+      console.error(err);
+      setSaveError(err?.message || 'Approval failed');
+    } finally {
+      setSaving(false);
+    }
   }, [safeId, localEdits, pendingEdits]);
 
   const renderApproveButton = useCallback((record, sid, idx) => {
-    const hasEdits = sectionHasEdits(idx, sid);
+    const hasEdits = sectionHasEdits(record, idx, sid);
     const isApproved = approvedSections[`${sid}-${idx}`];
-    if (hasEdits) return (<button className="approve-btn pending" onClick={e => { e.stopPropagation(); handleApproveSection(record, sid, idx); }}>Pending Approve</button>);
+    if (hasEdits) return (<button className="approve-btn pending" disabled={saving} onClick={e => { e.stopPropagation(); handleApproveSection(record, sid, idx); }}>{saving ? 'Approving...' : 'Pending Approve'}</button>);
     if (isApproved) return <span className="approve-btn approved">Approved</span>;
     return null;
-  }, [sectionHasEdits, approvedSections, handleApproveSection]);
+  }, [sectionHasEdits, approvedSections, handleApproveSection, saving]);
 
   /* ═══════ COPY ═══════ */
   const copyToClipboard = useCallback(async (text) => { try { await navigator.clipboard.writeText(text); return true; } catch { const ta = window.document.createElement('textarea'); ta.value = text; ta.style.position = 'absolute'; ta.style.left = '-9999px'; (containerRef.current || window.document.body).appendChild(ta); ta.select(); window.document.execCommand('copy'); (containerRef.current || window.document.body).removeChild(ta); return true; } }, []);
-  const copySectionText = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedSection(id); setTimeout(() => setCopiedSection(null), 2000); } }, [copyToClipboard]);
+  const copySection = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedSection(id); setTimeout(() => setCopiedSection(null), 2000); } }, [copyToClipboard]);
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatSentenceFieldLines = useCallback((text) => {
-    const sentences = splitBySentence(text);
-    const lines = []; let n = 1;
-    sentences.forEach(s => {
-      const parsed = parseLabel(s);
-      if (parsed.isLabeled) {
-        const parts = splitByComma(parsed.value);
-        if (parts.length >= 2) {
-          lines.push(parsed.label + ':');
-          parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
-        } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
-      } else { lines.push(`${n++}. ${s}`); }
+  const formatSentenceFieldLines = useCallback((text, fieldName) => {
+    const lines = [];
+    let unlabeledNumber = 1;
+    buildStringGroups(text, fieldName).forEach(group => {
+      if (group.label) {
+        lines.push(group.label, COPY_LINE_DASH);
+        group.rows.forEach((row, index) => lines.push(`${index + 1}. ${row.text}`));
+      } else {
+        group.rows.forEach(row => lines.push(`${unlabeledNumber++}. ${row.text}`));
+      }
     });
     return lines;
-  }, [splitBySentence]);
+  }, [buildStringGroups]);
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
-    const fields = SECTION_FIELDS[sid] || [];
+    const body = [];
+    const fields = sectionFields(record, sid);
     fields.forEach(f => {
-      const label = FIELD_LABELS[f] || f;
+      const label = fieldLabel(f);
       const val = getFieldValue(record, f, idx);
-      if (NUMBER_FIELDS.includes(f)) {
-        if (!numberShows(record, f, idx)) return;
-        text += `${label}: ${val}\n\n`;
-        return;
-      }
-      if (BOOLEAN_FIELDS.includes(f)) {
-        if (typeof val !== 'boolean') return;
-        text += `${label}: ${fmtVal(val)}\n\n`;
-        return;
-      }
-      if (DATE_FIELDS.includes(f)) {
-        if (!hasVal(val)) return;
-        text += `${label}\n${formatDate(val)}\n\n`;
-        return;
-      }
       if (!hasVal(val)) return;
-      if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
+      if (!sameAsTitle(label, title)) body.push(label, COPY_LINE_DASH);
+      if (isDateField(f)) {
+        body.push(`1. ${formatDate(val)}`);
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        body.push(...formatSentenceFieldLines(fmtVal(val), f));
       }
+      body.push('');
     });
-    return text;
-  }, [getFieldValue, hasVal, fmtVal, numberShows, splitBySentence, formatSentenceFieldLines]);
+    if (!body.length) return '';
+    return `${title}\n${COPY_LINE_EQ}\n\n${body.join('\n').trim()}\n\n`;
+  }, [getFieldValue, hasVal, fmtVal, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== SYPHILIS TREATMENT FOLLOW-UP ===\n\n';
+    let text = `Syphilis Treatment Follow-Up\n${COPY_LINE_EQ}\n\n`;
     pdfData.forEach((r, idx) => {
-      text += `Syphilis Treatment Follow-Up ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      Object.keys(SECTION_FIELDS).forEach(sid => {
+      text += `Syphilis Treatment Follow-Up ${idx + 1}\n${COPY_LINE_EQ}\n\n`;
+      Object.keys(SECTION_TITLES).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
       text += '\n';
@@ -510,98 +614,23 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
-  /* ═══════ RENDER: NUMBER FIELD (hide-zero) ═══════ */
-  const renderNumberField = (record, fn, idx, sid) => {
-    if (!numberShows(record, fn, idx)) return null;
-    const val = getFieldValue(record, fn, idx);
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
-    const displayVal = String(val);
-    const isModified = editedFields[editKey];
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
-
-  /* ═══════ RENDER: BOOLEAN FIELD (Yes/No dropdown) ═══════ */
-  const renderBooleanField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx);
-    if (typeof val !== 'boolean') return null;
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
-    const displayVal = val ? 'Yes' : 'No';
-    const isModified = editedFields[editKey];
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'true' : 'false'); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue === 'true'); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
-
   /* ═══════ RENDER: DATE FIELD ═══════ */
   const renderDateField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
+    const label = fieldLabel(fn);
     const displayVal = formatDate(val);
     const isModified = editedFields[editKey];
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -620,23 +649,96 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
     );
   };
 
+  /* ═══════ RENDER: NUMBER FIELD ═══════ */
+  const renderNumberField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = fieldLabel(fn);
+    const rawValue = scalarValue(val);
+    const displayVal = BOOLEAN_FIELDS.has(fn) ? (rawValue ? 'Yes' : 'No') : String(rawValue);
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <NumberTextEditor value={editValue} onChange={setEditValue} />
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); const numericValue = Number(editValue); if (!Number.isFinite(numericValue)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numericValue); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: ENUM FIELD ═══════ */
+  const renderEnumField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = fieldLabel(fn);
+    const rawValue = scalarValue(val);
+    const displayVal = BOOLEAN_FIELDS.has(fn) ? (rawValue ? 'Yes' : 'No') : String(rawValue);
+    const options = ENUM_FIELDS[fn] || [displayVal];
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <BlueSelect value={editValue} options={options} onChange={setEditValue} />
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); handleSaveField(record, fn, idx, sid, null, BOOLEAN_FIELDS.has(fn) ? editValue === 'Yes' : editValue); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: STRING FIELD with splitBySentence ═══════ */
-  const renderStringField = (record, fn, idx, sid) => {
+  const renderStringField = (record, fn, idx, sid, title) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
-    const label = FIELD_LABELS[fn] || fn;
+    const label = fieldLabel(fn);
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with splitBySentence */
-    if (sentences.length > 1) {
+    /* Rich strings: multi-sentence values or a single embedded Label: value group. */
+    if (sentences.length > 1 || (sentences[0] && parseLabel(sentences[0]).isLabeled) || COMMA_ARRAY_FIELDS.has(fn)) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+          <div className="rec-mini-card nested-mini-card">
+            {!sameAsTitle(label, title) && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -645,13 +747,13 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
               if (!sentenceMatches && searchTerm.trim()) return null;
 
               const parsed = parseLabel(sentence);
-              if (parsed.isLabeled) {
-                const commaItems = splitByComma(parsed.value);
+              if ((parsed.isLabeled && !KEEP_LABEL_COMMA_FIELDS.has(fn.split('.')[0])) || COMMA_ARRAY_FIELDS.has(fn)) {
+                const commaItems = splitByComma(parsed.isLabeled ? parsed.value : sentence);
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
                 if (commaItems.length >= 2) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                      <div className="nested-subtitle">{highlightText(parsed.label)}</div>
+                    <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                      {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
                         const ciEditing = editingField === commaKey;
@@ -659,14 +761,16 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
-                                  <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                                  {hasEditableNumber(editValue)
+                                    ? <NumberTextEditor value={editValue} onChange={setEditValue} />
+                                    : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
                                   {saveError && <div className="save-error">{saveError}</div>}
                                   <div className="edit-actions">
-                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveCommaItem(record, fn, idx, sid, sIdx, ciIdx); }}>{saving ? 'Saving...' : 'Save'}</button>
+                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const currentVal2 = String(getFieldValue(record, fn, idx) || ''); const sentences2 = splitBySentence(currentVal2); const s2 = sentences2[sIdx] || ''; const p2 = parseLabel(s2); const items2 = splitByComma(p2.isLabeled ? p2.value : s2); const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s); if (subParts.length > 1) { items2.splice(ciIdx, 1, ...subParts); } else { items2[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); } const rebuilt = p2.isLabeled ? `${p2.label}: ${items2.join(', ')}` : items2.join(', '); const allS = [...sentences2]; allS[sIdx] = rebuilt; const fullText2 = reconstructFullText(allS); setSaveError(null); const stageKey = `${fn}-${idx}`; setLocalEdits(prev => ({ ...prev, [stageKey]: fullText2 })); setPendingEdits(prev => ({ ...prev, [stageKey]: true })); setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); const store = readDrafts(); if (!store[id2]) store[id2] = {}; store[id2][fn] = fullText2; writeDrafts(store); const marks = { [commaKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ciIdx + ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
                                     <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                                   </div>
                                 </div>
@@ -677,7 +781,7 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
                                 </>
                               )}
                             </div>
-                            {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
+                            {ciBadge && <span className="modified-badge">edited - click Pending Approve to save</span>}
                           </div>
                         );
                       })}
@@ -688,15 +792,17 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} data-edit-field={fn} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
                       <div className="edit-field-container">
-                        <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                        {hasEditableNumber(editValue)
+                          ? <NumberTextEditor value={editValue} onChange={setEditValue} />
+                          : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
                         {saveError && <div className="save-error">{saveError}</div>}
                         <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { const sid2 = safeId(record); if (!sid2) return; const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const sentences2 = splitBySentence(String(getFieldValue(record, fn, idx) || '')); sentences2[sIdx] = reconstructed; const fullText = reconstructFullText(sentences2); setSaveError(null); stageDraft(sid2, fn, idx, sid, fullText); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
+                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { const id3 = safeId(record); if (!id3) return; const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const sentences2 = splitBySentence(String(getFieldValue(record, fn, idx) || '')); sentences2[sIdx] = reconstructed; const fullText = reconstructFullText(sentences2); setSaveError(null); const stageKey = `${fn}-${idx}`; setLocalEdits(prev => ({ ...prev, [stageKey]: fullText })); setPendingEdits(prev => ({ ...prev, [stageKey]: true })); setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); const store = readDrafts(); if (!store[id3]) store[id3] = {}; store[id3][fn] = fullText; writeDrafts(store); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
                           <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                         </div>
                       </div>
@@ -716,21 +822,23 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
       );
     }
 
-    /* Single-value string: use saveSentence */
+    /* Single-value string: simple editable */
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        {!sameAsTitle(label, title) && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              {hasEditableNumber(editValue)
+                ? <NumberTextEditor value={editValue} onChange={setEditValue} />
+                : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSentence(record, fn, idx, sid, 0); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -749,13 +857,12 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    if (!shouldShowSection(record, sid)) return null;
-    const fields = SECTION_FIELDS[sid] || [];
+    if (!shouldShowSection(record, idx, sid)) return null;
+    const fields = sectionFields(record, sid);
 
     const hasAnyVal = fields.some(f => {
-      if (NUMBER_FIELDS.includes(f)) return numberShows(record, f, idx);
-      if (BOOLEAN_FIELDS.includes(f)) return typeof getFieldValue(record, f, idx) === 'boolean';
-      return hasVal(getFieldValue(record, f, idx));
+      const val = getFieldValue(record, f, idx);
+      return hasVal(val);
     });
     if (!hasAnyVal) return null;
 
@@ -766,15 +873,15 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
           <div className="section-header">
             <h4 className="section-title">{highlightText(title)}</h4>
             <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => copySectionText(buildSectionCopyText(record, idx, sid), copyId)}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
+              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => copySection(buildSectionCopyText(record, idx, sid), copyId)}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
               {renderApproveButton(record, sid, idx)}
             </div>
           </div>
           {fields.map(f => {
-            if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
-            if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
-            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
-            return renderStringField(record, f, idx, sid);
+            if (isDateField(f)) return renderDateField(record, f, idx, sid);
+            if (NUMBER_FIELDS.has(f)) return renderNumberField(record, f, idx, sid);
+            if (ENUM_FIELDS[f]) return renderEnumField(record, f, idx, sid);
+            return renderStringField(record, f, idx, sid, title);
           })}
         </div>
       </div>
@@ -786,7 +893,7 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
     return (
       <div className="syphilis-treatment-follow-up-document" ref={containerRef}>
         <div className="document-header"><h2 className="document-title">Syphilis Treatment Follow-Up</h2></div>
-        <div className="empty-state">No syphilis treatment follow-up data available</div>
+        <div className="empty-state">No syphilis treatment follow-up records available</div>
       </div>
     );
   }
@@ -797,7 +904,7 @@ const SyphilisTreatmentFollowUpDocument = ({ document: docProp }) => {
         <h2 className="document-title">Syphilis Treatment Follow-Up</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<SyphilisTreatmentFollowUpDocumentPDFTemplate document={pdfData} />} fileName={`syphilis-treatment-follow-up-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<SyphilisTreatmentFollowUpDocumentPDFTemplate document={pdfData} />} fileName="Syphilis_Treatment_Follow_Up.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

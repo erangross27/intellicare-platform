@@ -105,6 +105,7 @@ import SupplementationPlansDocumentPDFTemplate from './SupplementationPlansDocum
 import SupportiveCareDocumentPDFTemplate from './SupportiveCareDocumentPDFTemplate';
 import SurgicalApproachDocumentPDFTemplate from './SurgicalApproachDocumentPDFTemplate';
 import SurgicalConsentFormsDocumentPDFTemplate from './SurgicalConsentFormsDocumentPDFTemplate';
+import SurgicalHistoryDocumentPDFTemplate from './SurgicalHistoryDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -199,6 +200,7 @@ const templateRegistry = {
   'supportive_care': SupportiveCareDocumentPDFTemplate,
   'surgical_approach': SurgicalApproachDocumentPDFTemplate,
   'surgical_consent_forms': SurgicalConsentFormsDocumentPDFTemplate,
+  'surgical_history': SurgicalHistoryDocumentPDFTemplate,
 };
 
 /**

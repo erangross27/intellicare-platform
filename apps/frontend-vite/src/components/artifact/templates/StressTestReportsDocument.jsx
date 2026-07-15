@@ -14,6 +14,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import StressTestReportsDocumentPDFTemplate from '../pdf-templates/StressTestReportsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './StressTestReportsDocument.css';
 
@@ -67,11 +68,26 @@ const SECTION_FIELDS = {
 };
 
 const NUMBER_FIELDS = ['maxHeartRate', 'targetHeartRate'];
+const UNIT_NUMBER_FIELDS = ['duration'];
+/* Explicit real-record decision: split the interpretation's top-level comma, but keep parenthetical commas intact. */
+const COMMA_ARRAY_FIELDS = ['interpretation'];
 /* Heart-rate fields: 0 bpm is physiologically impossible during a stress test → sentinel for "not recorded", hide it (matches PDF falsy gating) */
 const ZERO_SENTINEL_FIELDS = ['maxHeartRate', 'targetHeartRate'];
 const DATE_FIELDS = ['date'];
 const ARRAY_FIELDS = ['symptoms'];
-const STRING_FIELDS = ['testType', 'protocol', 'duration', 'bloodPressureResponse', 'ecgChanges', 'result', 'interpretation', 'cardiologist'];
+const STRING_FIELDS = ['testType', 'protocol', 'bloodPressureResponse', 'ecgChanges', 'result', 'interpretation', 'cardiologist'];
+
+const splitNumberUnit = (value) => {
+  const source = String(value ?? '');
+  const match = source.match(/^\s*(-?\d+(?:\.\d+)?)([\s\S]*)$/);
+  if (!match) return null;
+  return { number: match[1], suffix: match[2] || '' };
+};
+
+const stepFor = (value) => {
+  const decimals = (String(value).split('.')[1] || '').length;
+  return decimals > 0 ? 10 ** -decimals : 1;
+};
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -107,7 +123,7 @@ const toInputDate = (dateValue) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const StressTestReportsDocument = ({ document: docProp }) => {
+const StressTestReportsDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -126,15 +142,16 @@ const StressTestReportsDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const raw = templateData || docProp || data;
+    if (!raw) return [];
+    let arr = Array.isArray(raw) ? raw : [raw];
     arr = arr.flatMap(r => {
       if (r?.stress_test_reports) return Array.isArray(r.stress_test_reports) ? r.stress_test_reports : [r.stress_test_reports];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.stress_test_reports) return Array.isArray(dd.stress_test_reports) ? dd.stress_test_reports : [dd.stress_test_reports]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [templateData, docProp, data]);
 
   /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
@@ -185,7 +202,7 @@ const StressTestReportsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?:;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -355,10 +372,11 @@ const StressTestReportsDocument = ({ document: docProp }) => {
   const sectionHasEdits = useCallback((idx, sid) => {
     const fields = SECTION_FIELDS[sid] || [];
     return fields.some(f =>
+      Object.keys(pendingEdits).some(k => k === `${f}-${idx}`) ||
       Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) ||
       Object.keys(editedSentences).some(k => k.startsWith(`${f}-${idx}`))
     );
-  }, [editedFields, editedSentences]);
+  }, [pendingEdits, editedFields, editedSentences]);
 
   // Approve = COMMIT all staged drafts for this section to MongoDB, then clear pending so the committed
   // values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
@@ -441,28 +459,36 @@ const StressTestReportsDocument = ({ document: docProp }) => {
       const val = getFieldValue(record, f, idx);
       if (!fieldHasVal(f, val)) return;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${label}\n${'-'.repeat(40)}\n1. ${formatDate(val)}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
+        text += `${label}\n${'-'.repeat(40)}\n1. ${val}\n\n`;
+      } else if (UNIT_NUMBER_FIELDS.includes(f)) {
+        text += `${label}\n${'-'.repeat(40)}\n1. ${fmtVal(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        text += `${label}\n${'-'.repeat(40)}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
+        if (COMMA_ARRAY_FIELDS.includes(f)) {
+          text += `${label}\n${'-'.repeat(40)}\n`;
+          let rowNumber = 1;
+          splitBySentence(strVal).forEach(sentence => {
+            const parsed = parseLabel(sentence);
+            if (parsed.isLabeled) text += `${parsed.label}:\n`;
+            splitByComma(parsed.isLabeled ? parsed.value : sentence).forEach(row => { text += `${rowNumber++}. ${row}\n`; });
+          });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${label}\n${'-'.repeat(40)}\n`;
+          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
+          text += '\n';
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${label}\n${'-'.repeat(40)}\n1. ${fmtVal(val)}\n\n`;
       }
     });
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+  }, [getFieldValue, fieldHasVal, fmtVal, formatSentenceFieldLines]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== STRESS TEST REPORTS ===\n\n';
@@ -488,12 +514,12 @@ const StressTestReportsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value || ''); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -520,16 +546,21 @@ const StressTestReportsDocument = ({ document: docProp }) => {
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
     const displayVal = String(val);
+    const step = stepFor(displayVal);
     const isModified = editedFields[editKey];
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); } }} />
+              <div className="number-edit-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(Number((Number(editValue || 0) - step).toFixed(10)))); }}>−</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(Number((Number(editValue || 0) + step).toFixed(10)))); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -548,6 +579,47 @@ const StressTestReportsDocument = ({ document: docProp }) => {
     );
   };
 
+  /* Text-backed numeric unit: edit only the leading number and preserve the original suffix verbatim. */
+  const renderUnitNumberField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const parsed = splitNumberUnit(val); if (!parsed) return renderStringField(record, fn, idx, sid);
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = FIELD_LABELS[fn] || fn;
+    const step = stepFor(parsed.number);
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(parsed.number); setSaveError(null); } }}>
+          {isEditing ? (
+            <div className="edit-field-container">
+              <div className="number-edit-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(Number((Number(editValue || 0) - step).toFixed(10)))); }}>−</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(Number((Number(editValue || 0) + step).toFixed(10)))); }}>+</button>
+                <span className="number-edit-unit">{parsed.suffix}</span>
+              </div>
+              {saveError && <div className="save-error">{saveError}</div>}
+              <div className="edit-actions">
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = Number.parseFloat(editValue); if (!Number.isFinite(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, `${numVal}${parsed.suffix}`); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="row-content"><span className="content-value">{highlightText(String(val))}</span><span className="edit-indicator">&#9998;</span></div>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(String(val), editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+            </>
+          )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: ARRAY FIELD (per-item editing with dot-path keys) ═══════ */
   const renderArrayField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
@@ -557,8 +629,8 @@ const StressTestReportsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card nested-mini-card">
+        {label.toLowerCase() !== SECTION_TITLES[sid].toLowerCase() && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
@@ -572,7 +644,7 @@ const StressTestReportsDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} data-edit-field={fn}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
@@ -606,6 +678,49 @@ const StressTestReportsDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
+    if (COMMA_ARRAY_FIELDS.includes(fn)) {
+      const groups = sentences.map((sentence, sentenceIndex) => {
+        const parsed = parseLabel(sentence);
+        return { sentenceIndex, parsed, rows: splitByComma(parsed.isLabeled ? parsed.value : sentence) };
+      });
+      return (
+        <div key={fn} className="rec-mini-card nested-mini-card">
+          <div className="nested-subtitle">{highlightText(label)}</div>
+          {groups.map((group, groupIndex) => (
+            <React.Fragment key={groupIndex}>
+              {group.parsed.isLabeled && <div className="nested-subtitle">{highlightText(group.parsed.label)}</div>}
+              {group.rows.map((row, rowIndex) => {
+                const rowKey = `${fn}-${idx}-s${group.sentenceIndex}-c${rowIndex}`;
+                const isEditing = editingField === rowKey;
+                const badge = editedSentences[rowKey];
+                return (
+                  <div key={rowKey} data-edit-field={fn}>
+                    <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(rowKey); setEditValue(row); setSaveError(null); } }}>
+                      {isEditing ? (
+                        <div className="edit-field-container">
+                          <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus />
+                          <div className="edit-actions">
+                            <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const nextGroups = sentences.map(sentence => { const parsed = parseLabel(sentence); return { parsed, rows: splitByComma(parsed.isLabeled ? parsed.value : sentence) }; }); nextGroups[groupIndex].rows[rowIndex] = editValue.replace(/[;.]+$/, '').trim(); const rebuilt = nextGroups.map(item => `${item.parsed.isLabeled ? `${item.parsed.label}: ` : ''}${item.rows.join(', ')}`).join('. '); setEditedSentences(prev => ({ ...prev, [rowKey]: 'edited' })); stageDraft(record, fn, rebuilt); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                            <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="row-content"><span className="content-value">{highlightText(row)}</span><span className="edit-indicator">&#9998;</span></div>
+                          <button className={`copy-btn ${copiedItems[rowKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(row, rowKey); }}>{copiedItems[rowKey] ? 'Copied!' : 'Copy'}</button>
+                        </>
+                      )}
+                    </div>
+                    {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+
     /* Multi-sentence: render with splitBySentence */
     if (sentences.length > 1) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
@@ -613,8 +728,8 @@ const StressTestReportsDocument = ({ document: docProp }) => {
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(label)}</div>
+          <div className="rec-mini-card nested-mini-card">
+            {label.toLowerCase() !== SECTION_TITLES[sid].toLowerCase() && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
               const isEditing = editingField === sentenceKey;
@@ -637,7 +752,7 @@ const StressTestReportsDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -666,7 +781,7 @@ const StressTestReportsDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} data-edit-field={fn} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -700,8 +815,8 @@ const StressTestReportsDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        {label.toLowerCase() !== SECTION_TITLES[sid].toLowerCase() && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -750,6 +865,7 @@ const StressTestReportsDocument = ({ document: docProp }) => {
           {fields.map(f => {
             if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
+            if (UNIT_NUMBER_FIELDS.includes(f)) return renderUnitNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
           })}
@@ -774,7 +890,7 @@ const StressTestReportsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Stress Test Reports</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<StressTestReportsDocumentPDFTemplate document={pdfData} />} fileName={`stress-test-reports-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<StressTestReportsDocumentPDFTemplate document={pdfData} />} fileName="Stress_Test_Reports.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -787,12 +903,6 @@ const StressTestReportsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                  {hasVal(record.cardiologist) && <span className="record-cardiologist">{record.cardiologist}</span>}
-                </div>
-              )}
               <h3 className="record-name">{highlightText(record.testType || `Stress Test Report ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'test-info')}

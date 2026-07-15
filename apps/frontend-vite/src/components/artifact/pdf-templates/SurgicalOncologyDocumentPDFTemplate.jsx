@@ -1,395 +1,340 @@
 /**
- * SurgicalOncologyDocumentPDFTemplate.jsx
- * PDF export template for surgical_oncology collection
- * March 2026 - Helvetica font, LETTER size, 20pt header / 12pt content
+ * Canonical box-free PDF for surgical_oncology.
+ * Mirrors SurgicalOncologyDocument JSX field order, grouping, and numbering.
  */
-
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  page: { padding: 0, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.45, color: '#000000', backgroundColor: '#ffffff' },
+  pageBody: { flexGrow: 1, minHeight: '100%', padding: 40, backgroundColor: '#ffffff' },
+  documentHeader: { paddingBottom: 18 },
+  documentTitle: {
+    fontSize: 26,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 20,
-    textAlign: 'center',
+    paddingBottom: 8,
     borderBottomWidth: 2,
-    borderBottomColor: '#333333',
-    paddingBottom: 10,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
   },
-  recordCard: {
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 4,
-  },
-  recordHeader: {
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
+  recordContainer: { paddingBottom: 18 },
+  recordHeader: { paddingBottom: 8 },
   recordTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 19,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-  },
-  recordMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  metaItem: {
-    fontSize: 11,
-    color: '#666666',
-  },
-  section: {
-    padding: 12,
+    paddingBottom: 5,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
   },
+  section: { paddingBottom: 14 },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase',
-    marginBottom: 8,
-    color: '#333333',
+    paddingBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
   },
-  fieldBlock: {
-    marginBottom: 8,
-    paddingLeft: 8,
-  },
-  fieldSubtitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
+  fieldBlock: { paddingTop: 6, paddingBottom: 3 },
+  rowBlock: { paddingBottom: 3 },
+  fieldLabel: {
+    fontSize: 13,
     fontFamily: 'Helvetica-Bold',
+    paddingBottom: 2,
     marginBottom: 3,
-    color: '#1f2937',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#999999',
+    borderBottomStyle: 'solid',
   },
-  fieldValue: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    color: '#3a3a3a',
-  },
-  listItem: {
-    fontSize: 12,
-    paddingLeft: 12,
-    marginBottom: 4,
-    lineHeight: 1.4,
-  },
-  booleanPositive: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1f2937',
-  },
-  booleanNegative: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    color: '#3a3a3a',
-  },
-  listItemSub: {
-    fontSize: 11,
-    paddingLeft: 20,
-    marginBottom: 3,
-    lineHeight: 1.4,
-    color: '#3a3a3a',
-  },
+  nestedLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.45, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#4b5563', paddingTop: 24 },
 });
 
-const formatDate = (dateVal) => {
-  if (!dateVal) return '';
-  try {
-    if (dateVal.$date) return new Date(dateVal.$date).toLocaleDateString();
-    if (dateVal instanceof Date) return dateVal.toLocaleDateString();
-    return new Date(dateVal).toLocaleDateString();
-  } catch {
-    return String(dateVal);
-  }
-};
+const SECTION_CONFIGS = [
+  {
+    id: 'procedure-info',
+    title: 'Procedure Information',
+    fields: ['procedureType', 'dateOfSurgery', 'surgeon', 'provider', 'facility'],
+  },
+  {
+    id: 'pathology-findings',
+    title: 'Pathology Findings',
+    fields: [
+      'pathologyFindings.tumorSize',
+      'pathologyFindings.margins',
+      'pathologyFindings.lymphNodesExamined',
+      'pathologyFindings.lymphNodesPositive',
+      'pathologyFindings.extrandalExtension',
+      'pathologyFindings.lymphovascularInvasion',
+      'pathologyFindings.perineuralInvasion',
+    ],
+  },
+  { id: 'reconstruction', title: 'Reconstruction', fields: [] },
+  { id: 'findings', title: 'Findings', fields: ['findings'] },
+  { id: 'results', title: 'Results', fields: [] },
+  { id: 'assessment', title: 'Assessment', fields: ['assessment'] },
+  { id: 'complications', title: 'Complications', fields: [] },
+  { id: 'plan', title: 'Plan', fields: ['plan'], breakBefore: true },
+  { id: 'recommendations', title: 'Recommendations', fields: [] },
+  { id: 'notes', title: 'Notes', fields: ['notes'] },
+];
 
-const humanizeKey = (key) => {
-  if (key === null || key === undefined || key === '') return '';
-  const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  return s.charAt(0).toUpperCase() + s.slice(1);
+const FIELD_LABELS = {
+  procedureType: 'Procedure Type',
+  dateOfSurgery: 'Date of Surgery',
+  surgeon: 'Surgeon',
+  provider: 'Provider',
+  facility: 'Facility',
+  'pathologyFindings.tumorSize': 'Tumor Size',
+  'pathologyFindings.margins': 'Margins',
+  'pathologyFindings.lymphNodesExamined': 'Lymph Nodes Examined',
+  'pathologyFindings.lymphNodesPositive': 'Lymph Nodes Positive',
+  'pathologyFindings.extrandalExtension': 'Extranodal Extension',
+  'pathologyFindings.lymphovascularInvasion': 'Lymphovascular Invasion',
+  'pathologyFindings.perineuralInvasion': 'Perineural Invasion',
+  reconstruction: 'Reconstruction',
+  findings: 'Findings',
+  results: 'Results',
+  assessment: 'Assessment',
+  complications: 'Complications',
+  plan: 'Plan',
+  recommendations: 'Recommendations',
+  notes: 'Notes',
 };
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
-  return false;
-};
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-const isScalar = (v) => v === null || typeof v !== 'object';
-/* flatten a nested OBJECT into [{label, value, depth}] leaf rows (value undefined = group header) */
-const objectRows = (obj, depth = 0, out = []) => {
-  if (isEmptyDeep(obj) || isScalar(obj)) return out;
-  Object.entries(obj).forEach(([k, v]) => {
-    if (isEmptyDeep(v)) return;
-    if (isScalar(v)) out.push({ label: humanizeKey(k), value: fmtScalar(v), depth });
-    else { out.push({ label: humanizeKey(k), value: undefined, depth }); objectRows(v, depth + 1, out); }
+const COMMA_ARRAY_FIELDS = new Set(['pathologyFindings.lymphNodesExamined', 'plan']);
+
+const humanizeKey = (key) => String(key || '')
+  .replace(/_/g, ' ')
+  .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  .replace(/^./, character => character.toUpperCase());
+const getPathValue = (record, path) => String(path).split('.').reduce((value, part) => value?.[part], record);
+const flattenLeafPaths = (value, prefix) => {
+  if (!value || typeof value !== 'object') return [];
+  return Object.entries(value).flatMap(([key, child]) => {
+    const path = `${prefix}.${key}`;
+    if (child !== null && typeof child === 'object') return flattenLeafPaths(child, path);
+    return child === '' || child === null || child === undefined ? [] : [path];
   });
-  return out;
+};
+const sectionFields = (record, section) => {
+  if (section.id === 'reconstruction' || section.id === 'results') return flattenLeafPaths(record?.[section.id], section.id);
+  if (section.id === 'complications') return Array.isArray(record?.complications)
+    ? record.complications.map((_, index) => `complications.${index}`)
+    : [];
+  if (section.id === 'recommendations') return Array.isArray(record?.recommendations)
+    ? record.recommendations.flatMap((recommendation, index) => [
+      recommendation?.recommendation ? `recommendations.${index}.recommendation` : null,
+      recommendation?.date ? `recommendations.${index}.date` : null,
+    ].filter(Boolean))
+    : [];
+  return section.fields;
+};
+const fieldLabel = (path) => {
+  if (FIELD_LABELS[path]) return FIELD_LABELS[path];
+  const parts = String(path).split('.');
+  if (parts[0] === 'complications') return 'Complications';
+  if (parts[0] === 'recommendations') {
+    const itemNumber = Number(parts[1]) + 1;
+    return parts[2] === 'date' ? `Recommendation ${itemNumber} Date` : `Recommendation ${itemNumber}`;
+  }
+  return humanizeKey(parts[parts.length - 1]);
+};
+const isDateField = path => path === 'dateOfSurgery' || /^recommendations\.\d+\.date$/.test(path);
+
+const sameAsTitle = (label, title) => String(label || '').trim().toLowerCase() === String(title || '').trim().toLowerCase();
+
+const safeString = (value) => String(value ?? '')
+  .replace(/\u00d7/g, 'x')
+  .replace(/[\u2018\u2019]/g, "'")
+  .replace(/[\u201c\u201d]/g, '"')
+  .replace(/[\u2013\u2014]/g, '-');
+
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  return typeof value === 'object' ? Object.keys(value).length > 0 : true;
 };
 
-const SurgicalOncologyDocumentPDFTemplate = ({ document: records }) => {
-  // Handle data unwrapping
-  let recordsArray = [];
-  if (Array.isArray(records)) {
-    recordsArray = records;
-  } else if (records?.surgical_oncology && Array.isArray(records.surgical_oncology)) {
-    recordsArray = records.surgical_oncology;
-  } else if (records?.documentData) {
-    const docData = records.documentData;
-    if (Array.isArray(docData)) {
-      recordsArray = docData;
-    } else if (docData?.surgical_oncology && Array.isArray(docData.surgical_oncology)) {
-      recordsArray = docData.surgical_oncology;
-    } else if (docData && typeof docData === 'object') {
-      recordsArray = [docData];
-    }
-  } else if (records && typeof records === 'object' && !Array.isArray(records)) {
-    recordsArray = [records];
-  }
+const formatDate = (value) => {
+  if (!value) return '';
+  try {
+    const date = new Date(value.$date || value);
+    if (Number.isNaN(date.getTime()) || date.getFullYear() < 1971) return '';
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return safeString(value); }
+};
 
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  const delimiterWithWhitespace = /[.;]\s/;
+  const result = [];
+  let current = '';
+  let parenthesisDepth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '(') parenthesisDepth += 1;
+    else if (character === ')') parenthesisDepth = Math.max(0, parenthesisDepth - 1);
+    const isDelimiter = delimiterWithWhitespace.test(`${character}${text[index + 1] || ''}`) && parenthesisDepth === 0;
+    const isProtectedTitle = character === '.' && /\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)$/.test(current);
+    if (isDelimiter && !isProtectedTitle) {
+      if (current.trim()) result.push(current.trim());
+      current = '';
+      while (/\s/.test(text[index + 1] || '')) index += 1;
+    } else current += character;
+  }
+  const tail = current.replace(/[.;]+$/, '').trim();
+  if (tail) result.push(tail);
+  return result;
+};
+
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const match = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (!match) return { isLabeled: false, label: '', value: text };
+  return { isLabeled: true, label: match[1].trim(), value: match[2].trim() };
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '(') { depth += 1; current += character; continue; }
+    if (character === ')') { depth = Math.max(0, depth - 1); current += character; continue; }
+    if (character !== ',' || depth !== 0) { current += character; continue; }
+    const before = current.trim();
+    const after = text.slice(index + 1);
+    const afterTrimmed = after.trimStart();
+    const nextWord = (afterTrimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+    const previousWord = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+    const numericThousands = /\d$/.test(before) && /^\d{3}\b/.test(afterTrimmed);
+    const noFollowingSpace = after.length === afterTrimmed.length;
+    const linkedByConjunction = ['and', 'or'].includes(nextWord) || ['and', 'or'].includes(previousWord);
+    if (numericThousands || noFollowingSpace || linkedByConjunction) current += character;
+    else { if (before) result.push(before); current = ''; }
+  }
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [text];
+};
+
+const buildStringGroups = (text, fieldName = '') => {
+  const groups = [];
+  splitBySentence(text).forEach(sentence => {
+    const parsed = parseLabel(sentence);
+    const splitCommas = parsed.isLabeled || COMMA_ARRAY_FIELDS.has(fieldName);
+    const source = parsed.isLabeled ? parsed.value : sentence;
+    const rows = (splitCommas ? splitByComma(source) : [source])
+      .map(value => safeString(value).replace(/[;.]+$/, '').trim())
+      .filter(Boolean);
+    if (!rows.length) return;
+    if (!parsed.isLabeled && groups.length && !groups[groups.length - 1].label) groups[groups.length - 1].rows.push(...rows);
+    else groups.push({ label: parsed.isLabeled ? parsed.label : '', rows });
+  });
+  return groups;
+};
+
+const fieldGroups = (record, config) => {
+  const value = getPathValue(record, config.key);
+  if (!hasVal(value)) return [];
+  if (config.kind === 'date') {
+    const formatted = formatDate(value);
+    return formatted ? [{ label: '', rows: [formatted] }] : [];
+  }
+  if (typeof value === 'boolean') return [{ label: '', rows: [value ? 'Yes' : 'No'] }];
+  return buildStringGroups(safeString(value), config.key);
+};
+
+const renderFieldNodes = (record, config, sectionTitle) => {
+  const groups = fieldGroups(record, config);
+  if (!groups.length) return [];
+  const nodes = [];
+  let firstFieldRow = true;
+  groups.forEach((group, groupIndex) => {
+    group.rows.forEach((row, rowIndex) => {
+      const firstGroupRow = rowIndex === 0;
+      nodes.push(
+        <View key={`${config.key}-${groupIndex}-${rowIndex}`} style={firstFieldRow ? styles.fieldBlock : styles.rowBlock} wrap={false}>
+          {firstFieldRow && !sameAsTitle(config.label, sectionTitle) ? <Text style={styles.fieldLabel}>{config.label}</Text> : null}
+          {firstGroupRow && group.label ? <Text style={styles.nestedLabel}>{safeString(group.label)}</Text> : null}
+          <Text style={styles.listItem}>{rowIndex + 1}. {safeString(row)}</Text>
+        </View>,
+      );
+      firstFieldRow = false;
+    });
+  });
+  return nodes;
+};
+
+const renderSection = (record, section) => {
+  const configs = sectionFields(record, section).map(key => ({
+    key,
+    label: fieldLabel(key),
+    kind: isDateField(key) ? 'date' : 'string',
+  }));
+  const nodes = configs.flatMap(config => renderFieldNodes(record, config, section.title));
+  if (!nodes.length) return null;
+  return (
+    <View key={section.id} style={styles.section} break={section.breakBefore}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{section.title}</Text>
+        {React.cloneElement(nodes[0], { key: `${section.id}-first` })}
+      </View>
+      {nodes.slice(1).map((node, index) => React.cloneElement(node, { key: `${section.id}-node-${index + 1}` }))}
+    </View>
+  );
+};
+
+const unwrapRecords = (data) => {
+  if (!data) return [];
+  const input = Array.isArray(data) ? data : [data];
+  return input.flatMap(record => {
+    if (record?.surgical_oncology) return Array.isArray(record.surgical_oncology) ? record.surgical_oncology : [record.surgical_oncology];
+    if (record?.documentData) {
+      const nested = record.documentData;
+      if (Array.isArray(nested)) return nested;
+      if (nested?.surgical_oncology) return Array.isArray(nested.surgical_oncology) ? nested.surgical_oncology : [nested.surgical_oncology];
+      return [nested];
+    }
+    return [record];
+  }).filter(record => record && typeof record === 'object');
+};
+
+const SurgicalOncologyDocumentPDFTemplate = ({ document: data }) => {
+  const records = unwrapRecords(data);
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        <Text style={styles.header}>Surgical Oncology</Text>
-
-        {recordsArray.map((record, idx) => {
-          const pf = record.pathologyFindings || {};
-          const hasPathology = pf.tumorSize || pf.margins || pf.lymphNodesExamined ||
-                               pf.lymphNodesPositive || pf.extrandalExtension !== undefined ||
-                               pf.lymphovascularInvasion !== undefined || pf.perineuralInvasion !== undefined;
-          const reconRows = objectRows(record.reconstruction);
-          const resultRows = objectRows(record.results);
-          const recs = Array.isArray(record.recommendations) ? record.recommendations.filter(r => r && (r.recommendation || '').trim()) : [];
-
-          return (
-            <View key={idx} style={styles.recordCard}>
-              {/* Record Header */}
-              <View style={styles.recordHeader}>
-                <Text style={styles.recordTitle}>Surgical Oncology {idx + 1}</Text>
-                <View style={styles.recordMeta}>
-                  {record.date && <Text style={styles.metaItem}>Date: {formatDate(record.date)}</Text>}
-                  {record.status && <Text style={styles.metaItem}>Status: {String(record.status)}</Text>}
-                </View>
+      {records.length ? records.map((record, index) => (
+        <Page size="A4" style={styles.page} key={record._id?.$oid || record._id || index}>
+          <View style={styles.pageBody}>
+            {index === 0 ? (
+              <View style={styles.documentHeader} wrap={false}>
+                <Text style={styles.documentTitle}>Surgical Oncology</Text>
               </View>
-
-              {/* Procedure Information */}
-              {(record.procedureType || record.dateOfSurgery || record.surgeon || record.provider || record.facility) && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Procedure Information</Text>
-                  {record.procedureType && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Procedure Type</Text>
-                      <Text style={styles.fieldValue}>{String(record.procedureType)}</Text>
-                    </View>
-                  )}
-                  {record.dateOfSurgery && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Date of Surgery</Text>
-                      <Text style={styles.fieldValue}>{formatDate(record.dateOfSurgery)}</Text>
-                    </View>
-                  )}
-                  {record.surgeon && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Surgeon</Text>
-                      <Text style={styles.fieldValue}>{String(record.surgeon)}</Text>
-                    </View>
-                  )}
-                  {record.provider && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Provider</Text>
-                      <Text style={styles.fieldValue}>{String(record.provider)}</Text>
-                    </View>
-                  )}
-                  {record.facility && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Facility</Text>
-                      <Text style={styles.fieldValue}>{String(record.facility)}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Pathology Findings */}
-              {hasPathology && (
-                <View style={styles.section}>
-                  {/* Title + first item together */}
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Pathology Findings</Text>
-                    {pf.tumorSize && (
-                      <View style={styles.fieldBlock}>
-                        <Text style={styles.fieldSubtitle}>Tumor Size</Text>
-                        <Text style={styles.fieldValue}>{String(pf.tumorSize)}</Text>
-                      </View>
-                    )}
-                  </View>
-                  {pf.margins && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Margins</Text>
-                      <Text style={styles.fieldValue}>{String(pf.margins)}</Text>
-                    </View>
-                  )}
-                  {pf.lymphNodesExamined && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Lymph Nodes Examined</Text>
-                      <Text style={styles.fieldValue}>{String(pf.lymphNodesExamined)}</Text>
-                    </View>
-                  )}
-                  {pf.lymphNodesPositive && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Lymph Nodes Positive</Text>
-                      <Text style={styles.fieldValue}>{String(pf.lymphNodesPositive)}</Text>
-                    </View>
-                  )}
-                  {pf.extrandalExtension !== undefined && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Extranodal Extension</Text>
-                      <Text style={pf.extrandalExtension ? styles.booleanPositive : styles.booleanNegative}>
-                        {pf.extrandalExtension ? 'Yes' : 'No'}
-                      </Text>
-                    </View>
-                  )}
-                  {pf.lymphovascularInvasion !== undefined && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Lymphovascular Invasion</Text>
-                      <Text style={pf.lymphovascularInvasion ? styles.booleanPositive : styles.booleanNegative}>
-                        {pf.lymphovascularInvasion ? 'Yes' : 'No'}
-                      </Text>
-                    </View>
-                  )}
-                  {pf.perineuralInvasion !== undefined && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Perineural Invasion</Text>
-                      <Text style={pf.perineuralInvasion ? styles.booleanPositive : styles.booleanNegative}>
-                        {pf.perineuralInvasion ? 'Yes' : 'No'}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Reconstruction (OBJECT, recursive) */}
-              {reconRows.length > 0 && (
-                <View style={styles.section} wrap={reconRows.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Reconstruction</Text>
-                  {reconRows.map((row, rIdx) => (
-                    <View key={rIdx} style={styles.fieldBlock}>
-                      {row.value === undefined ? (
-                        <Text style={styles.fieldSubtitle}>{row.label}</Text>
-                      ) : (
-                        <>
-                          <Text style={styles.fieldSubtitle}>{row.label}</Text>
-                          <Text style={row.depth > 0 ? styles.listItemSub : styles.fieldValue}>{row.value}</Text>
-                        </>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Findings */}
-              {record.findings && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Findings</Text>
-                  <Text style={styles.fieldValue}>{String(record.findings)}</Text>
-                </View>
-              )}
-
-              {/* Results (OBJECT, recursive) */}
-              {resultRows.length > 0 && (
-                <View style={styles.section} wrap={resultRows.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Results</Text>
-                  {resultRows.map((row, rIdx) => (
-                    <View key={rIdx} style={styles.fieldBlock}>
-                      {row.value === undefined ? (
-                        <Text style={styles.fieldSubtitle}>{row.label}</Text>
-                      ) : (
-                        <>
-                          <Text style={styles.fieldSubtitle}>{row.label}</Text>
-                          <Text style={row.depth > 0 ? styles.listItemSub : styles.fieldValue}>{row.value}</Text>
-                        </>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Assessment */}
-              {record.assessment && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Assessment</Text>
-                  <Text style={styles.fieldValue}>{String(record.assessment)}</Text>
-                </View>
-              )}
-
-              {/* Complications */}
-              {Array.isArray(record.complications) && record.complications.length > 0 && (
-                <View style={styles.section}>
-                  {/* Title + first item together */}
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Complications</Text>
-                    <Text style={styles.listItem}>1. {String(record.complications[0])}</Text>
-                  </View>
-                  {record.complications.slice(1).map((comp, cIdx) => (
-                    <Text key={cIdx} style={styles.listItem}>
-                      {cIdx + 2}. {String(comp)}
-                    </Text>
-                  ))}
-                </View>
-              )}
-
-              {/* Plan */}
-              {record.plan && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Plan</Text>
-                  <Text style={styles.fieldValue}>{String(record.plan)}</Text>
-                </View>
-              )}
-
-              {/* Recommendations (ARRAY of {recommendation, date}) */}
-              {recs.length > 0 && (
-                <View style={styles.section} wrap={recs.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Recommendations</Text>
-                  {recs.map((rec, recIdx) => {
-                    const rt = (rec.recommendation || '').trim();
-                    const rd = (rec.date || '').trim();
-                    return (
-                      <Text key={recIdx} style={styles.listItem}>
-                        {recIdx + 1}. {rt}{rd ? ` (${rd})` : ''}
-                      </Text>
-                    );
-                  })}
-                </View>
-              )}
-
-              {/* Notes */}
-              {record.notes && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Notes</Text>
-                  <Text style={styles.fieldValue}>{String(record.notes)}</Text>
-                </View>
-              )}
+            ) : null}
+            <View style={styles.recordContainer}>
+              <View style={styles.recordHeader} wrap={false}>
+                <Text style={styles.recordTitle}>Surgical Oncology {index + 1}</Text>
+              </View>
+              {SECTION_CONFIGS.map(section => renderSection(record, section))}
             </View>
-          );
-        })}
-      </Page>
+          </View>
+        </Page>
+      )) : (
+        <Page size="A4" style={styles.page}>
+          <View style={styles.pageBody}>
+            <View style={styles.documentHeader} wrap={false}>
+              <Text style={styles.documentTitle}>Surgical Oncology</Text>
+            </View>
+            <Text style={styles.noDataText}>No surgical oncology records available.</Text>
+          </View>
+        </Page>
+      )}
     </Document>
   );
 };

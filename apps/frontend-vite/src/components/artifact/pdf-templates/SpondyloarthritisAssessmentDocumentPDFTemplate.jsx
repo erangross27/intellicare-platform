@@ -1,446 +1,273 @@
 /**
- * SpondyloarthritisAssessmentDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — spondyloarthritis assessment
- * Collection: spondyloarthritis_assessment
+ * Box-free LETTER PDF for spondyloarthritis_assessment.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#000000', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#000000', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#000000', textAlign: 'center', marginTop: 40 },
+  page: { padding: 40, paddingBottom: 52, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  record: { paddingBottom: 14 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { paddingBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginTop: 12, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldUnit: { paddingBottom: 5 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 6, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  value: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
+const SECTION_TITLES = {
+  overview: 'Overview',
+  'disease-activity': 'Disease Activity',
+  'spinal-mobility': 'Spinal Mobility',
+  manifestations: 'Peripheral Manifestations',
+  clinical: 'Clinical Assessment',
+  recommendations: 'Recommendations',
+  results: 'Results',
 };
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+const FIELD_LABELS = {
+  date: 'Assessment Date',
+  type: 'Assessment Type',
+  provider: 'Provider',
+  facility: 'Facility',
+  status: 'Status',
+  basdaiScore: 'BASDAI Score',
+  basfiScore: 'BASFI Score',
+  asdas: 'ASDAS',
+  hlab27: 'HLA-B27',
+  sacroiliitis: 'Sacroiliitis',
+  enthesitis: 'Enthesitis',
+  dactylitis: 'Dactylitis',
+  findings: 'Findings',
+  assessment: 'Assessment',
+  plan: 'Plan',
+  recommendations: 'Recommendations',
+  notes: 'Notes',
 };
 
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
+const OBJECT_SECTIONS = {
+  'spinal-mobility': 'spinalMobility',
+  results: 'results',
+};
+
+const COMMA_FIELDS = [];
+
+const safeString = (value) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  return String(value)
+    .replace(/\u00d7/g, 'x')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/\u00a0/g, ' ');
+};
+
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasVal);
+  if (typeof value === 'object') return Object.values(value).some(hasVal);
   return true;
 };
 
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
+const humanizeKey = (key) => safeString(key)
+  .replace(/_/g, ' ')
+  .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  .replace(/^./, (char) => char.toUpperCase());
+
+const unwrapData = (input) => {
+  if (!input) return [];
+  if (Array.isArray(input)) return input.flatMap(unwrapData);
+  if (input.spondyloarthritis_assessment) return unwrapData(input.spondyloarthritis_assessment);
+  if (input.documentData) return unwrapData(input.documentData);
+  if (input.data) return unwrapData(input.data);
+  if (input.records) return unwrapData(input.records);
+  return [input];
 };
 
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+const formatDate = (value) => {
+  if (!value) return '';
+  try {
+    const date = new Date(value.$date || value);
+    if (Number.isNaN(date.getTime())) return safeString(value);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return safeString(value); }
 };
 
-const splitBySemicolon = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/;\s*/).map(s => s.trim()).filter(Boolean);
+const normalizeDateKey = (value) => {
+  if (!value) return 'no-date';
+  try {
+    const date = new Date(value.$date || value);
+    return Number.isNaN(date.getTime()) ? safeString(value) : date.toISOString().slice(0, 10);
+  } catch { return safeString(value) || 'no-date'; }
 };
 
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
+const isProtectedPeriod = (source, index) => {
+  const before = source.slice(0, index);
+  const token = (before.match(/([A-Za-z.]+)$/) || [])[1] || '';
+  return /^(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)$/i.test(token)
+    || /^[A-Z]$/.test(token)
+    || /\d$/.test(before);
 };
 
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
+const isProtectedComma = (source, index, currentText) => {
+  const after = source.slice(index + 1);
+  const trimmed = after.trimStart();
+  const next = (trimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+  const previous = (currentText.trim().match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+  return after.length === trimmed.length
+    || (/\d$/.test(currentText.trim()) && /^\d{3}\b/.test(trimmed))
+    || ['and', 'or', 'then'].includes(next)
+    || ['and', 'or'].includes(previous);
+};
+
+const splitNarrativeSegments = (value, splitCommas = false) => {
+  const source = safeString(value);
+  if (!source) return [];
+  const values = [];
+  let start = 0;
+  let depth = 0;
+  const push = (end) => {
+    const text = source.slice(start, end).trim();
+    if (text) values.push(text);
+  };
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); continue; }
+    if (depth > 0) continue;
+    const nextIsSpace = /\s/.test(source[index + 1] || '');
+    const currentText = source.slice(start, index);
+    const splitSemicolon = char === ';' && nextIsSpace;
+    const splitPeriod = char === '.' && nextIsSpace && !isProtectedPeriod(source, index);
+    const splitComma = splitCommas && char === ',' && nextIsSpace && !isProtectedComma(source, index, currentText);
+    if (!splitSemicolon && !splitPeriod && !splitComma) continue;
+    push(index);
+    start = index + 1;
   }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
+  push(source.length);
+  return values.length ? values : [source];
 };
 
-const humanizeKey = (k) => k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
+const splitBySentence = (value) => safeString(value)
+  .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.(?:\s+)|;\s+/)
+  .map((part) => part.trim())
+  .filter(Boolean);
 
-/* Flatten dynamic-key object for display (results). Nested objects expanded one level → no [object Object]. */
-const flattenObject = (obj) => {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return [];
-  const items = [];
-  Object.entries(obj).forEach(([key, value]) => {
-    if (value === null || value === undefined || value === '') return;
-    const label = humanizeKey(key);
-    if (typeof value === 'boolean') {
-      items.push({ key, label, value: value ? 'Yes' : 'No' });
-    } else if (Array.isArray(value)) {
-      items.push({ key, label, value: value.map(v => (v && typeof v === 'object') ? Object.values(v).join(' ') : String(v)).join(', ') });
-    } else if (typeof value === 'object') {
-      Object.entries(value).forEach(([subKey, subValue]) => {
-        if (subValue !== null && subValue !== undefined && subValue !== '') {
-          items.push({ key: `${key}.${subKey}`, label: `${label} - ${humanizeKey(subKey)}`, value: (subValue && typeof subValue === 'object') ? Object.values(subValue).join(' ') : String(subValue) });
-        }
-      });
-    } else {
-      items.push({ key, label, value: String(value) });
-    }
-  });
-  return items;
+const parseLabel = (value) => {
+  const match = safeString(value).match(/^([A-Za-z0-9][A-Za-z0-9\s/&(),.#'"-]{0,60}?):\s+(.+)$/);
+  return match
+    ? { label: match[1].trim(), value: match[2].trim() }
+    : { label: '', value: safeString(value) };
 };
 
-const RECOMMENDATION_SUBFIELDS = [
-  { key: 'recommendation', label: 'Recommendation' },
-  { key: 'date', label: 'Date', isDate: true },
-];
-
-const SPINAL_MOBILITY_KEYS = ['schober', 'occiputToWall', 'chestExpansion', 'cervicalRotation'];
-const SPINAL_MOBILITY_LABELS = {
-  schober: 'Schober',
-  occiputToWall: 'Occiput-to-Wall',
-  chestExpansion: 'Chest Expansion',
-  cervicalRotation: 'Cervical Rotation',
+const partsForField = (field, value) => {
+  splitBySentence(value);
+  return splitNarrativeSegments(value, COMMA_FIELDS.includes(field) || /^recommendations\.\d+(?:\.recommendation)?$/.test(field)).map(parseLabel);
 };
 
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value, showLabel = true) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
+const sameAsTitle = (label, sid) => safeString(label).trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
 
-/* renderDateField */
-const renderDateFieldPDF = (label, value, showLabel = true) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceSection: splitBySemicolon pre-split + parseLabel + comma-split */
-const renderSentenceSection = (label, text, showLabel = true) => {
-  if (!hasVal(text)) return null;
-  const semiItems = splitBySemicolon(fmtVal(text));
-  const raw = semiItems.length >= 2 ? semiItems : splitBySentence(fmtVal(text));
-  if (raw.length === 0) return null;
-
-  const rows = [];
-  let n = 1;
-  raw.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
-    }
-  });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
-};
-
-/* renderArrayField */
-const renderArrayFieldPDF = (label, items, showLabel = true) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* renderSpinalMobilityField: nested-subtitle + value row per key */
-const renderSpinalMobilityFieldPDF = (label, obj, showLabel = true) => {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
-  const activeKeys = SPINAL_MOBILITY_KEYS.filter(k => hasVal(obj[k]));
-  if (activeKeys.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {activeKeys.map((key, i) => {
-        const keyLabel = SPINAL_MOBILITY_LABELS[key] || key;
-        return (
-          <View key={i}>
-            <Text style={styles.nestedSubtitle}>{keyLabel}</Text>
-            <Text style={styles.listItem}>{safeString(obj[key])}</Text>
-          </View>
-        );
-      })}
-    </View>
-  );
-};
-
-/* renderObjectArrayFieldPDF: recommendations — {recommendation, date} objects or plain strings.
-   Items flatten readable (no [object Object]); unknown keys appended so nothing is dropped. */
-const renderObjectArrayFieldPDF = (label, items, showLabel = true) => {
-  if (!Array.isArray(items)) return null;
-  const safeItems = items.filter(it => it !== null && it !== undefined && it !== '');
-  if (safeItems.length === 0) return null;
-  const knownKeys = RECOMMENDATION_SUBFIELDS.map(sf => sf.key);
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {safeItems.map((item, i) => {
-        if (typeof item !== 'object' || item === null) {
-          return <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>;
-        }
-        const allDefs = [...RECOMMENDATION_SUBFIELDS, ...Object.keys(item).filter(k => !knownKeys.includes(k)).map(k => ({ key: k, label: humanizeKey(k) }))];
-        const parts = allDefs.filter(sf => hasVal(item[sf.key])).map(sf => `${sf.label}: ${sf.isDate ? formatDate(item[sf.key]) : safeString(item[sf.key])}`);
-        return <Text key={i} style={styles.listItem}>{i + 1}. {parts.join(' | ')}</Text>;
-      })}
-    </View>
-  );
-};
-
-/* renderDynamicObjectFieldPDF: results — dynamic-key object → humanized label + value per leaf. */
-const renderDynamicObjectFieldPDF = (label, obj, showLabel = true) => {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
-  const items = flattenObject(obj);
-  if (items.length === 0) return null;
-  return (
-    <View style={styles.fieldBox} wrap={items.length > 8 ? undefined : false}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {items.map((item, i) => (
-        <View key={i}>
-          <Text style={styles.nestedSubtitle}>{safeString(item.label)}</Text>
-          <Text style={styles.listItem}>{safeString(item.value)}</Text>
-        </View>
-      ))}
-    </View>
-  );
-};
-
-/* SECTION CONFIGS */
-const SECTION_CONFIGS = [
-  {
-    title: 'Record Information',
-    fields: [
-      { key: 'date', label: 'Date', isDate: true },
-      { key: 'provider', label: 'Provider', isSentence: true },
-      { key: 'facility', label: 'Facility', isSentence: true },
-      { key: 'status', label: 'Status', isSentence: true },
-      { key: 'type', label: 'Type', isSentence: true },
-    ],
-  },
-  {
-    title: 'Disease Scores',
-    fields: [
-      { key: 'basdaiScore', label: 'BASDAI Score', isSentence: true },
-      { key: 'basfiScore', label: 'BASFI Score', isSentence: true },
-      { key: 'asdas', label: 'ASDAS', isSentence: true },
-      { key: 'hlab27', label: 'HLA-B27', isSentence: true },
-    ],
-  },
-  {
-    title: 'Sacroiliitis',
-    fields: [
-      { key: 'sacroiliitis', label: 'Sacroiliitis', isSentence: true },
-    ],
-  },
-  {
-    title: 'Spinal Mobility',
-    fields: [
-      { key: 'spinalMobility', label: 'Spinal Mobility', isObject: true },
-    ],
-  },
-  {
-    title: 'Extra-Articular Manifestations',
-    fields: [
-      { key: 'enthesitis', label: 'Enthesitis', isArray: true },
-      { key: 'dactylitis', label: 'Dactylitis', isArray: true },
-    ],
-  },
-  {
-    title: 'Findings',
-    fields: [
-      { key: 'findings', label: 'Findings', isSentence: true },
-    ],
-  },
-  {
-    title: 'Assessment',
-    fields: [
-      { key: 'assessment', label: 'Assessment', isSentence: true },
-    ],
-  },
-  {
-    title: 'Plan',
-    fields: [
-      { key: 'plan', label: 'Plan', isSentence: true },
-    ],
-  },
-  {
-    title: 'Recommendations',
-    fields: [
-      { key: 'recommendations', label: 'Recommendations', isObjectArray: true },
-    ],
-  },
-  {
-    title: 'Results',
-    fields: [
-      { key: 'results', label: 'Results', isDynamicObject: true },
-    ],
-  },
-  {
-    title: 'Notes',
-    fields: [
-      { key: 'notes', label: 'Notes', isSentence: true },
-    ],
-  },
-];
-
-/* ======= COMPONENT ======= */
-const SpondyloarthritisAssessmentDocumentPDFTemplate = ({ document: data }) => {
-  const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.spondyloarthritis_assessment) return Array.isArray(r.spondyloarthritis_assessment) ? r.spondyloarthritis_assessment : [r.spondyloarthritis_assessment];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.spondyloarthritis_assessment) return Array.isArray(dd.spondyloarthritis_assessment) ? dd.spondyloarthritis_assessment : [dd.spondyloarthritis_assessment]; return [dd]; }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
-
-  if (!records || records.length === 0) {
+const fieldUnits = (label, inputParts, keyBase, showLabel = true) => {
+  let row = 0;
+  return inputParts.map((input, index) => {
+    const part = typeof input === 'object' && input && Object.hasOwn(input, 'value') ? input : { label: '', value: safeString(input) };
+    if (part.label) row = 1;
+    else row += 1;
     return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Spondyloarthritis Assessment</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
+      <View key={`${keyBase}-${index}`} style={styles.fieldUnit} wrap={false}>
+        {index === 0 && showLabel && <Text style={styles.fieldLabel}>{safeString(label)}</Text>}
+        {part.label && <Text style={styles.fieldLabel}>{safeString(part.label)}</Text>}
+        <Text style={styles.listItem}>{row}. {safeString(part.value)}</Text>
+      </View>
     );
-  }
+  });
+};
+
+const renderSection = (title, units, key) => {
+  if (!units.length) return null;
+  const [first, ...rest] = units;
+  return (
+    <View key={key} style={styles.section}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {first}
+      </View>
+      {rest}
+    </View>
+  );
+};
+
+const sectionUnits = (record, fields) => fields.flatMap((field) => {
+  const value = record[field];
+  if (!hasVal(value)) return [];
+  const values = field === 'date'
+    ? [formatDate(value)]
+    : Array.isArray(value)
+      ? value.filter(hasVal).map(safeString)
+      : partsForField(field, value);
+  return fieldUnits(FIELD_LABELS[field] || humanizeKey(field), values, field);
+});
+
+const objectUnits = (record, sid) => {
+  const root = OBJECT_SECTIONS[sid];
+  const object = record[root];
+  if (!object || typeof object !== 'object' || Array.isArray(object)) return [];
+  return Object.entries(object).filter(([, value]) => hasVal(value)).flatMap(([key, value]) => {
+    const field = `${root}.${key}`;
+    const values = Array.isArray(value) ? value.filter(hasVal).map(safeString) : partsForField(field, value);
+    return fieldUnits(humanizeKey(key), values, field);
+  });
+};
+
+const recommendationUnits = (record) => {
+  const groups = new Map();
+  (Array.isArray(record.recommendations) ? record.recommendations : []).forEach((item, itemIndex) => {
+    const recommendation = typeof item === 'string' ? { recommendation: item, date: '' } : item || {};
+    if (!hasVal(recommendation.recommendation)) return;
+    const key = normalizeDateKey(recommendation.date);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ recommendation, itemIndex });
+  });
+  return [...groups.entries()].flatMap(([key, items]) => {
+    const values = [];
+    items.forEach(({ recommendation, itemIndex }) => {
+      const field = typeof record.recommendations[itemIndex] === 'string'
+        ? `recommendations.${itemIndex}`
+        : `recommendations.${itemIndex}.recommendation`;
+      values.push(...partsForField(field, recommendation.recommendation));
+    });
+    const label = key === 'no-date' ? 'No Date' : formatDate(items[0].recommendation.date);
+    return fieldUnits(label, values, `recommendations-${key}`);
+  });
+};
+
+const goalUnits = (record) => fieldUnits('Goals', (Array.isArray(record.goals) ? record.goals : []).filter(hasVal).map(safeString), 'goals', false);
+
+const SpondyloarthritisAssessmentDocumentPDFTemplate = ({ document: data }) => {
+  const records = unwrapData(data).filter((record) => record && typeof record === 'object');
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Spondyloarthritis Assessment</Text>
-        </View>
-
+        <Text style={styles.documentTitle}>Spondyloarthritis Assessment</Text>
+        {!records.length && <Text style={styles.noDataText}>No data available</Text>}
         {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header — title + first field wrap={false} */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {`Spondyloarthritis Assessment ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const presentFields = sectionConfig.fields.filter(f => hasVal(record[f.key]));
-              if (presentFields.length === 0) return null;
-
-              /* Count total items for wrap/break decisions */
-              let totalItems = presentFields.length;
-              presentFields.forEach(f => {
-                const v = record[f.key];
-                if (Array.isArray(v)) totalItems += v.length;
-                else if (typeof v === 'string') {
-                  const semi = splitBySemicolon(v);
-                  const s = semi.length >= 2 ? semi : splitBySentence(v);
-                  if (s.length > 1) totalItems += s.length;
-                }
-              });
-
-              const breakProp = totalItems >= 15 ? true : undefined;
-
-              const renderField = (field) => {
-                const val = record[field.key];
-                const showFieldLabel = field.label.toLowerCase() !== sectionConfig.title.toLowerCase();
-                if (field.isDate) return renderDateFieldPDF(field.label, val, showFieldLabel);
-                if (field.isObjectArray) return renderObjectArrayFieldPDF(field.label, val, showFieldLabel);
-                if (field.isArray) return renderArrayFieldPDF(field.label, val, showFieldLabel);
-                if (field.isDynamicObject) return renderDynamicObjectFieldPDF(field.label, val, showFieldLabel);
-                if (field.isObject) return renderSpinalMobilityFieldPDF(field.label, val, showFieldLabel);
-                if (field.isSentence) return renderSentenceSection(field.label, val, showFieldLabel);
-                return renderFieldRow(field.label, val, showFieldLabel);
-              };
-
-              return (
-                <View key={sIdx} style={styles.section} break={breakProp}>
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                    {renderField(presentFields[0])}
-                  </View>
-                  {presentFields.slice(1).map((field, fIdx) => (
-                    <View key={fIdx}>{renderField(field)}</View>
-                  ))}
-                </View>
-              );
-            })}
+          <View key={record._id?.$oid || record._id || index} style={styles.record} break={index > 0}>
+            <Text style={styles.recordTitle}>Spondyloarthritis Assessment {index + 1}</Text>
+            {renderSection(SECTION_TITLES.overview, sectionUnits(record, ['date', 'type', 'provider', 'facility', 'status']), `overview-${index}`)}
+            {renderSection(SECTION_TITLES['disease-activity'], sectionUnits(record, ['basdaiScore', 'basfiScore', 'asdas', 'hlab27', 'sacroiliitis']), `disease-activity-${index}`)}
+            {renderSection(SECTION_TITLES['spinal-mobility'], objectUnits(record, 'spinal-mobility'), `spinal-mobility-${index}`)}
+            {renderSection(SECTION_TITLES.manifestations, sectionUnits(record, ['enthesitis', 'dactylitis']), `manifestations-${index}`)}
+            {renderSection(SECTION_TITLES.clinical, sectionUnits(record, ['findings', 'assessment', 'plan', 'notes']), `clinical-${index}`)}
+            {renderSection(SECTION_TITLES.recommendations, recommendationUnits(record), `recommendations-${index}`)}
+            {renderSection(SECTION_TITLES.results, objectUnits(record, 'results'), `results-${index}`)}
           </View>
         ))}
       </Page>

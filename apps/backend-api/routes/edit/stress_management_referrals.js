@@ -45,6 +45,7 @@ function toObjectId(str) {
 
 // Allowed editable fields
 const ALLOWED_FIELDS = [
+  'date',
   'specialty',
   'reason',
   'status',

@@ -96,6 +96,7 @@ import AcmgGuidelinesReferencePDFTemplate from './AcmgGuidelinesReferenceDocumen
 import StagingSummaryDocumentPDFTemplate from './StagingSummaryDocumentPDFTemplate';
 import StemCellTransplantAssessmentDocumentPDFTemplate from './StemCellTransplantAssessmentDocumentPDFTemplate';
 import StiScreeningPanelDocumentPDFTemplate from './StiScreeningPanelDocumentPDFTemplate';
+import StressManagementReferralsDocumentPDFTemplate from './StressManagementReferralsDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -181,6 +182,7 @@ const templateRegistry = {
   'staging_summary': StagingSummaryDocumentPDFTemplate,
   'stem_cell_transplant_assessment': StemCellTransplantAssessmentDocumentPDFTemplate,
   'sti_screening_panel': StiScreeningPanelDocumentPDFTemplate,
+  'stress_management_referrals': StressManagementReferralsDocumentPDFTemplate,
 };
 
 /**

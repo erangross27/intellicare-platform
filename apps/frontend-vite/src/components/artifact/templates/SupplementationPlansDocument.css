@@ -1,54 +1,50 @@
-/* SupplementationPlansDocument.css — March 2026 Blue glow editing theme */
-.supplementation-plans-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
-.supplementation-plans-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
-.supplementation-plans-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
-.supplementation-plans-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
-.supplementation-plans-document .records-container { display: flex; flex-direction: column; gap: 24px; }
-.supplementation-plans-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
-.supplementation-plans-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
-.supplementation-plans-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
-.supplementation-plans-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.supplementation-plans-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
-.supplementation-plans-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
-.supplementation-plans-document .status-badge { font-size: 15px; color: #fbbf24; font-weight: 600; padding: 4px 12px; border: 1px solid #fbbf24; border-radius: 6px; white-space: nowrap; margin-top: 8px; align-self: flex-start; }
-.supplementation-plans-document .section { margin-top: 16px; }
-.supplementation-plans-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
-.supplementation-plans-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
-.supplementation-plans-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
-.supplementation-plans-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
-.supplementation-plans-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
-.supplementation-plans-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
-.supplementation-plans-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
-.supplementation-plans-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
-.supplementation-plans-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
-.supplementation-plans-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
-.supplementation-plans-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
-.supplementation-plans-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
-.supplementation-plans-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
-.supplementation-plans-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: white; }
-.supplementation-plans-document .editable-row { cursor: pointer; }
-.supplementation-plans-document .editable-row:hover .edit-indicator { opacity: 1; }
-.supplementation-plans-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
-.supplementation-plans-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
-.supplementation-plans-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
-.supplementation-plans-document .modified-badge.added { color: #4ade80; }
-.supplementation-plans-document .edit-field-container { width: 100%; }
-.supplementation-plans-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.supplementation-plans-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
-.supplementation-plans-document .edit-select option { background: #0F1B33; color: #ececf1; }
-.supplementation-plans-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.supplementation-plans-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-.supplementation-plans-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
-.supplementation-plans-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
-.supplementation-plans-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
-.supplementation-plans-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
-.supplementation-plans-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
-.supplementation-plans-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.supplementation-plans-document { direction: ltr; text-align: left; font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; line-height: 1.8; color: #ececf1; padding: 24px; background: #0f1b33; box-sizing: border-box; }
+.supplementation-plans-document * { direction: ltr; }
+.supplementation-plans-document .document-header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
+.supplementation-plans-document .document-title { font-size: 35px; color: #ececf1; margin: 0 0 12px; text-transform: none !important; }
+.supplementation-plans-document .header-actions { display: flex; justify-content: flex-end; gap: 12px; }
 .supplementation-plans-document .search-container { margin-bottom: 20px; }
-.supplementation-plans-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
-.supplementation-plans-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
-.supplementation-plans-document .search-input::placeholder { color: #9ca3af; }
-.supplementation-plans-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
-.supplementation-plans-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
-.supplementation-plans-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
-@media (max-width: 768px) { .supplementation-plans-document .document-header { padding-bottom: 12px; } .supplementation-plans-document .document-title { font-size: 24px; } .supplementation-plans-document .header-actions { flex-direction: column; } }
+.supplementation-plans-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96,165,250,.3); border-radius: 8px; color: #ececf1; font: inherit; box-sizing: border-box; }
+.supplementation-plans-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+.supplementation-plans-document .record-card { background: rgba(96,165,250,.12); border: 1px solid rgba(96,165,250,.2); border-radius: 8px; padding: 20px; }
+.supplementation-plans-document .record-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96,165,250,.3); }
+.supplementation-plans-document .record-name { font-size: 23px; margin: 0; color: #ececf1; }
+.supplementation-plans-document .section { margin-top: 16px; }
+.supplementation-plans-document .mini-cards-container { border: 2px solid rgba(96,165,250,.3); border-radius: 8px; padding: 16px; background: rgba(37,99,235,.05); }
+.supplementation-plans-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96,165,250,.4); padding-bottom: 10px; margin-bottom: 12px; }
+.supplementation-plans-document .section-title { font-size: 19px; color: #60a5fa; margin: 0; text-transform: none !important; }
+.supplementation-plans-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+.supplementation-plans-document .nested-group { display: flex; flex-direction: column; gap: 8px; }
+.supplementation-plans-document .nested-mini-card { background: rgba(13,25,41,.78); border: 1px solid rgba(96,165,250,.32); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.supplementation-plans-document .object-item-card { border-width: 2px; }
+.supplementation-plans-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; padding-bottom: 4px; border-bottom: 1px solid rgba(96,165,250,.18); margin-bottom: 6px; text-transform: none !important; }
+.supplementation-plans-document .nested-subtitle.sub-label { font-size: 15px; }
+.supplementation-plans-document .date-subtitle { cursor: pointer; display: flex; justify-content: space-between; }
+.supplementation-plans-document .numbered-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; margin-bottom: 6px; background: #0d1929; border: 1px solid rgba(96,165,250,.3); border-radius: 6px; }
+.supplementation-plans-document .editable-row { cursor: pointer; }
+.supplementation-plans-document .row-content { flex: 1; display: flex; gap: 8px; color: #ececf1; overflow-wrap: anywhere; }
+.supplementation-plans-document .edit-indicator { opacity: 0; color: #60a5fa; }
+.supplementation-plans-document .editable-row:hover .edit-indicator { opacity: 1; }
+.supplementation-plans-document .modified { border-color: #60a5fa; }
+.supplementation-plans-document .modified-badge { color: #facc15; font-size: 11px; font-style: italic; }
+.supplementation-plans-document .copy-btn { background: rgba(96,165,250,.15); color: #93c5fd; border: 1px solid rgba(96,165,250,.4); padding: 5px 10px; border-radius: 4px; cursor: pointer; font: 600 11px 'Comfortaa', sans-serif; white-space: nowrap; }
+.supplementation-plans-document .copy-btn.copied { background: #2563eb; color: #fff; }
+.supplementation-plans-document .edit-field-container { width: 100%; }
+.supplementation-plans-document .edit-textarea, .supplementation-plans-document .edit-number { width: 100%; padding: 10px; background: #0f1b33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font: 15px 'Comfortaa', sans-serif; box-sizing: border-box; }
+.supplementation-plans-document .edit-textarea { min-height: 54px; resize: vertical; }
+.supplementation-plans-document .number-edit-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.supplementation-plans-document .multi-number-edit-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; width: 100%; }
+.supplementation-plans-document .multi-number-control { display: flex; align-items: center; gap: 6px; }
+.supplementation-plans-document .fixed-number-text { white-space: pre-wrap; }
+.supplementation-plans-document .edit-number { flex: 1; min-width: 0; }
+.supplementation-plans-document .num-step { width: 36px; min-width: 36px; height: 36px; border: 1px solid rgba(96,165,250,.55); border-radius: 6px; background: rgba(96,165,250,.16); color: #bfdbfe; font-size: 20px; cursor: pointer; }
+.supplementation-plans-document .number-edit-unit { color: #bfdbfe; white-space: pre; }
+.supplementation-plans-document .edit-actions { display: flex; justify-content: flex-start; gap: 8px; margin-top: 8px; }
+.supplementation-plans-document .save-btn, .supplementation-plans-document .cancel-btn { padding: 6px 16px; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; }
+.supplementation-plans-document .save-btn { background: #2563eb; color: #fff; border: 0; }
+.supplementation-plans-document .cancel-btn { background: transparent; color: #ececf1; border: 1px solid #565869; }
+.supplementation-plans-document .approve-btn { text-transform: capitalize; padding: 4px 12px; border-radius: 4px; font: 600 12px 'Comfortaa', sans-serif; }
+.supplementation-plans-document .approve-btn.pending { background: rgba(234,179,8,.15); border: 1px solid rgba(234,179,8,.5); color: #eab308; cursor: pointer; }
+.supplementation-plans-document .approve-btn.approved { background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.4); color: #22c55e; }
+.supplementation-plans-document mark { display: inline !important; background: #fef08a !important; color: #000 !important; padding: 0 !important; }
+.supplementation-plans-document .empty-state { text-align: center; padding: 50px; color: #9ca3af; }

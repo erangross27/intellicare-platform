@@ -19,6 +19,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import SportsMedicineEvaluationsDocumentPDFTemplate from '../pdf-templates/SportsMedicineEvaluationsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './SportsMedicineEvaluationsDocument.css';
 
@@ -104,6 +106,7 @@ const DATE_FIELDS = ['evaluationDate'];
 const ARRAY_FIELDS = ['cardiacScreening.personalHistory', 'cardiacScreening.familyHistory', 'musculoskeletalExam.instability', 'musculoskeletalExam.previousInjuries', 'musculoskeletalExam.concerns', 'restrictions', 'previousInjuries', 'returnToPlayCriteria'];
 const STRING_FIELDS = ['sport', 'level', 'position', 'competitionLevel', 'evaluationType', 'clearanceStatus', 'cardiacScreening.ecgFindings', 'cardiacScreening.clearanceDecision', 'musculoskeletalExam.rom', 'musculoskeletalExam.strength', 'returnToPlayPlan', 'provider', 'facility'];
 const OBJECT_FIELDS = ['rehabilitationPlan'];
+const COMMA_FIELDS = new Set(['musculoskeletalExam.rom']);
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -265,7 +268,7 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\d)\.\s+|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -438,20 +441,23 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
   function saveSentence(record, fn, idx, sid, sentenceIdx) {
     const id = safeId(record); if (!id) return;
     const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const sentences = splitBySentence(currentVal);
+    const commaField = COMMA_FIELDS.has(fn);
+    const sentences = commaField ? splitByComma(currentVal) : splitBySentence(currentVal);
     const editedVal = editValue.trim();
     if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
       const updated = [...sentences]; updated.splice(sentenceIdx, 1);
-      const fullText = reconstructFullText(updated);
+      const fullText = commaField ? updated.join(', ') : reconstructFullText(updated);
       stageFieldDraft(id, fn, idx, fullText);
       setEditedSentences(prev => ({ ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }));
       setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
       setEditingField(null); setEditValue(''); setSaveError(null);
       return;
     }
-    const newSentences = splitBySentence(editedVal);
+    const newSentences = commaField
+      ? editedVal.split(/\.\s+/).map(s => s.replace(/[;.,]+$/, '').trim()).filter(Boolean)
+      : splitBySentence(editedVal);
     const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
-    const fullText = reconstructFullText(updated);
+    const fullText = commaField ? updated.join(', ') : reconstructFullText(updated);
     stageFieldDraft(id, fn, idx, fullText);
     const orig = sentences[sentenceIdx] || '';
     const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
@@ -471,9 +477,10 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
     const fields = SECTION_FIELDS[sid] || [];
     return fields.some(f =>
       Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) ||
-      Object.keys(editedSentences).some(k => k.startsWith(`${f}-${idx}`))
+      Object.keys(editedSentences).some(k => k.startsWith(`${f}-${idx}`)) ||
+      Object.keys(pendingEdits).some(k => pendingEdits[k] && k === `${f}-${idx}`)
     );
-  }, [editedFields, editedSentences]);
+  }, [editedFields, editedSentences, pendingEdits]);
 
   // Approve = COMMIT all staged drafts for this section+record to MongoDB, then clear pending so the
   // committed values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
@@ -533,8 +540,8 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatSentenceFieldLines = useCallback((text) => {
-    const sentences = splitBySentence(text);
+  const formatSentenceFieldLines = useCallback((text, field) => {
+    const sentences = COMMA_FIELDS.has(field) ? splitByComma(text) : splitBySentence(text);
     const lines = []; let n = 1;
     sentences.forEach(s => {
       const parsed = parseLabel(s);
@@ -552,8 +559,12 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
   const objectCopyLines = useCallback((label, value, indent) => {
     const pad = '  '.repeat(indent); const out = [];
     if (isEmptyDeep(value)) return out;
-    if (isScalar(value)) { out.push(`${pad}${label ? label + ': ' : ''}${fmtScalar(value)}`); return out; }
-    if (label) out.push(`${pad}${label}:`);
+    if (isScalar(value)) {
+      if (label) out.push(`${pad}${label}`);
+      out.push(`${pad}1. ${fmtScalar(value)}`);
+      return out;
+    }
+    if (label) out.push(`${pad}${label}`);
     Object.entries(value).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v]) => out.push(...objectCopyLines(humanizeKey(k), v, indent + (label ? 1 : 0))));
     return out;
   }, []);
@@ -573,16 +584,22 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
       } else if (DATE_FIELDS.includes(f)) {
         text += `${label}\n${formatDate(val)}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `${label}\n1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
+        text += `${label}\n`;
+        items.forEach((item, i) => {
+          const parsed = parseLabel(item);
+          if (parsed.isLabeled) text += `${parsed.label}\n  ${i + 1}. ${parsed.value}\n`;
+          else text += `${i + 1}. ${item}\n`;
+        });
+        text += '\n';
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
+        const sentences = COMMA_FIELDS.has(f) ? splitByComma(strVal) : splitBySentence(strVal);
         if (sentences.length > 1) {
           text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
+          formatSentenceFieldLines(strVal, f).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
           text += `${label}\n${strVal}\n\n`;
@@ -618,12 +635,12 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={value => { setEditValue(value || ''); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -653,15 +670,12 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={value => { setEditValue(value); setSaveError(null); }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -689,13 +703,14 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
           const isEditing = editingField === editKey;
           const isModified = editedFields[editKey];
           const itemStr = String(item);
+          const parsed = parseLabel(itemStr);
 
           if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
             const phrase = searchTerm.toLowerCase().trim();
@@ -704,20 +719,21 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
           }
 
           return (
-            <div key={itemIdx}>
-              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
+            <div key={itemIdx} data-edit-field={fn} className={parsed.isLabeled ? 'labeled-array-item' : undefined}>
+              {parsed.isLabeled && <div className="nested-subtitle sub-label">{highlightText(parsed.label)}</div>}
+              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(parsed.isLabeled ? parsed.value : itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                     {saveError && <div className="save-error">{saveError}</div>}
                     <div className="edit-actions">
-                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])]; currentArr[itemIdx] = editValue; const arrKey = `${fn}-${idx}`; setLocalEdits(prev => ({ ...prev, [arrKey]: currentArr })); setPendingEdits(prev => ({ ...prev, [arrKey]: true })); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fn] = currentArr; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(null); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])]; const nextValue = editValue.trim(); currentArr[itemIdx] = parsed.isLabeled ? `${parsed.label}: ${nextValue}` : nextValue; const arrKey = `${fn}-${idx}`; setLocalEdits(prev => ({ ...prev, [arrKey]: currentArr })); setPendingEdits(prev => ({ ...prev, [arrKey]: true })); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fn] = currentArr; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(null); }}>{saving ? 'Saving...' : 'Save'}</button>
                       <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div className="row-content"><span className="content-value">{highlightText(itemStr)}</span><span className="edit-indicator">&#9998;</span></div>
+                    <div className="row-content"><span className="content-value">{highlightText(parsed.isLabeled ? parsed.value : itemStr)}</span><span className="edit-indicator">&#9998;</span></div>
                     <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(itemStr, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                   </>
                 )}
@@ -734,7 +750,7 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
   const renderStringField = (record, fn, idx, sid, title) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
-    const sentences = splitBySentence(strVal);
+    const sentences = COMMA_FIELDS.has(fn) ? splitByComma(strVal) : splitBySentence(strVal);
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
@@ -745,7 +761,7 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
+          <div className="rec-mini-card nested-mini-card">
             <div className="nested-subtitle">{highlightText(label)}</div>
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -769,7 +785,7 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                            <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -798,7 +814,7 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} data-edit-field={fn} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -832,7 +848,7 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
@@ -867,19 +883,18 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
     const nu = (isBool || ratio) ? null : splitNumberUnit(leafValueString);
     const editStartValue = isBool ? (value ? 'yes' : 'no') : ratio ? ratio.num : nu ? nu.num : leafValueString;
     return (
-      <div key={path[path.length - 1]} className="nested-mini-card">
+      <div key={path[path.length - 1]} className="nested-mini-card" data-edit-field={rootField}>
         <div className="nested-subtitle sub-label">{highlightText(humanizeKey(path[path.length - 1]))}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(leafKey); setEditValue(editStartValue); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
               {isBool ? (
-                <select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <BlueSelect value={editValue} options={['yes', 'no']} onChange={value => { setEditValue(value); setSaveError(null); }} />
               ) : (ratio || nu) ? (
                 <div className="number-edit-row">
-                  <input type="number" step="any" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button>
                   {ratio ? <span className="number-edit-unit">{`/ ${ratio.denom}`}</span> : (nu.unit && <span className="number-edit-unit">{nu.unit}</span>)}
                 </div>
               ) : (
@@ -997,7 +1012,7 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
   if (!records || records.length === 0) {
     return (
       <div className="sports-medicine-evaluations-document" ref={containerRef}>
-        <div className="document-header"><div className="header-title"><h2>Sports Medicine Evaluation</h2></div></div>
+        <div className="document-header"><div className="header-title"><h2 className="document-title">Sports Medicine Evaluations</h2></div></div>
         <div className="no-data-message">No sports medicine evaluation data available</div>
       </div>
     );
@@ -1007,12 +1022,12 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
     <div className="sports-medicine-evaluations-document" ref={containerRef}>
       <div className="document-header">
         <div className="header-title">
-          <h2>Sports Medicine Evaluation</h2>
+          <h2 className="document-title">Sports Medicine Evaluations</h2>
           <span className="record-count">{filteredRecords.length} of {records.length} records</span>
         </div>
         <div className="header-actions">
           <button className={`copy-all-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<SportsMedicineEvaluationsDocumentPDFTemplate document={pdfData} />} fileName={`sports-medicine-evaluation-${new Date().toISOString().split('T')[0]}.pdf`} className="export-pdf-btn">
+          <PDFDownloadLink document={<SportsMedicineEvaluationsDocumentPDFTemplate document={pdfData} />} fileName="Sports_Medicine_Evaluations.pdf" className="export-pdf-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1029,17 +1044,6 @@ const SportsMedicineEvaluationsDocument = ({ document: docProp, data, templateDa
             <div className="record-header">
               <div className="record-header-left">
                 <h3>{highlightText(record._documentTitle || `Sports Medicine Evaluation ${idx + 1}`)}</h3>
-                {record.evaluationType && (
-                  <span className="evaluation-type">{highlightText(record.evaluationType)}</span>
-                )}
-              </div>
-              <div className="record-header-badges">
-                {record.clearanceStatus && (
-                  <span className={`status-badge ${record.clearanceStatus.toLowerCase() === 'cleared' ? 'status-cleared' : 'status-other'}`}>
-                    {highlightText(record.clearanceStatus)}
-                  </span>
-                )}
-                {record.evaluationDate && <span className="date-badge">{highlightText(formatDate(record.evaluationDate))}</span>}
               </div>
             </div>
 

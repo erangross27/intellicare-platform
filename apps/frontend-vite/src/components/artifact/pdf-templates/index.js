@@ -109,6 +109,7 @@ import SurgicalHistoryDocumentPDFTemplate from './SurgicalHistoryDocumentPDFTemp
 import SurgicalOncologyDocumentPDFTemplate from './SurgicalOncologyDocumentPDFTemplate';
 import SurgicalStepsDocumentPDFTemplate from './SurgicalStepsDocumentPDFTemplate';
 import SurgicalTeamDocumentPDFTemplate from './SurgicalTeamDocumentPDFTemplate';
+import SurrogacyEvaluationDocumentPDFTemplate from './SurrogacyEvaluationDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -207,6 +208,7 @@ const templateRegistry = {
   'surgical_oncology': SurgicalOncologyDocumentPDFTemplate,
   'surgical_steps': SurgicalStepsDocumentPDFTemplate,
   'surgical_team': SurgicalTeamDocumentPDFTemplate,
+  'surrogacy_evaluation': SurrogacyEvaluationDocumentPDFTemplate,
 };
 
 /**

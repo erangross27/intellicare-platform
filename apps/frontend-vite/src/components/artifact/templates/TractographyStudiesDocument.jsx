@@ -12,6 +12,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import TractographyStudiesDocumentPDFTemplate from '../pdf-templates/TractographyStudiesDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './TractographyStudiesDocument.css';
 
@@ -45,6 +46,8 @@ const DATE_FIELDS = ['reportDate'];
 const NUMBER_FIELDS = [];
 const ARRAY_FIELDS = [];
 const STRING_FIELDS = ['reportType', 'urgency', 'clinicalIndication', 'findings', 'followUp', 'recommendations'];
+const PERIOD_SPLIT_FIELDS = new Set(['clinicalIndication', 'findings', 'recommendations']);
+const sameAsTitle = (label, sid) => (label || '').trim().toLowerCase() === (SECTION_TITLES[sid] || '').trim().toLowerCase();
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -68,6 +71,25 @@ const splitByComma = (text) => {
   const t = current.trim(); if (t) result.push(t);
   return result.length > 0 ? result : [text];
 };
+
+const splitEditableClauses = (value, fieldPath) => {
+  const source = String(value ?? ''); const parts = []; let current = ''; let depth = 0;
+  const push = delimiter => { if (current.trim()) parts.push({ text: current.trim(), delimiter }); current = ''; };
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    const next = source[index + 1] || '';
+    const previousWord = current.trim().match(/([A-Za-z]+)$/)?.[1] || '';
+    const safePeriod = character === '.' && PERIOD_SPLIT_FIELDS.has(fieldPath) && depth === 0 && /\s/.test(next)
+      && !['Mr', 'Mrs', 'Ms', 'Dr', 'St', 'Jr', 'Sr', 'Prof', 'Rev', 'Gen', 'Col', 'Sgt', 'vs', 'etc'].includes(previousWord) && !/\b[A-Z]$/.test(current) && !/\d$/.test(current);
+    const safeSemicolon = character === ';' && PERIOD_SPLIT_FIELDS.has(fieldPath) && depth === 0;
+    if (safePeriod || safeSemicolon) { let delimiter = character; while (/\s/.test(source[index + 1] || '')) { delimiter += source[index + 1]; index += 1; } push(delimiter); }
+    else current += character;
+  }
+  push(''); return parts.length ? parts : [{ text: source, delimiter: '' }];
+};
+const reconstructClauses = parts => parts.map(part => `${part.text}${part.delimiter}`).join('');
 
 const formatDate = (dateValue) => {
   if (!dateValue) return '';
@@ -155,7 +177,7 @@ const TractographyStudiesDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\d)\.\s+|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -402,14 +424,16 @@ const TractographyStudiesDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
+    const header = `${title}\n${'='.repeat(40)}\n\n`;
+    let text = header;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
+      const showLabelCopy = !sameAsTitle(label, sid);
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${showLabelCopy ? `${label}\n` : ''}1. ${formatDate(val)}\n\n`;
       } else if (BOOLEAN_FIELDS.includes(f)) {
         text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
@@ -417,23 +441,22 @@ const TractographyStudiesDocument = ({ document: docProp }) => {
         text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
+        if (showLabelCopy) text += `${label}\n`;
+        splitEditableClauses(strVal, f).forEach((clause, clauseIndex) => {
+          const parsed = parseLabel(clause.text);
+          if (parsed.isLabeled) text += `${parsed.label}\n`;
+          text += `${clauseIndex + 1}. ${parsed.isLabeled ? parsed.value : clause.text}\n`;
+        });
+        text += '\n';
       } else {
         text += `${label}\n${fmtVal(val)}\n\n`;
       }
     });
-    return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+    return text === header ? '' : text;
+  }, [getFieldValue, hasVal, fmtVal]);
 
   const copyAllText = useCallback(async () => {
-    let text = '=== TRACTOGRAPHY STUDIES ===\n\n';
+    let text = `Tractography Studies\n${'='.repeat(40)}\n\n`;
     pdfData.forEach((r, idx) => {
       text += `Tractography Study ${idx + 1}\n${'='.repeat(40)}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
@@ -456,12 +479,13 @@ const TractographyStudiesDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
+      <div key={fn} className="rec-mini-card nested-mini-card">
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -476,6 +500,7 @@ const TractographyStudiesDocument = ({ document: docProp }) => {
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
@@ -606,6 +631,49 @@ const TractographyStudiesDocument = ({ document: docProp }) => {
     );
   };
 
+  const renderCanonicalStringField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const strVal = fmtVal(val); const label = FIELD_LABELS[fn] || fn;
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const clauses = splitEditableClauses(strVal, fn);
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card">
+        {!sameAsTitle(label, sid) && <div className="nested-subtitle">{highlightText(label)}</div>}
+        {clauses.map((clause, clauseIndex) => {
+          const parsed = parseLabel(clause.text);
+          const item = parsed.isLabeled ? parsed.value : clause.text;
+          const editKey = `${fn}-${idx}-s${clauseIndex}`;
+          const isEditing = editingField === editKey; const badge = editedSentences[editKey];
+          const saveItem = () => {
+            const currentClauses = splitEditableClauses(String(getFieldValue(record, fn, idx) || ''), fn);
+            if (!currentClauses[clauseIndex]) return;
+            const currentParsed = parseLabel(currentClauses[clauseIndex].text);
+            currentClauses[clauseIndex].text = currentParsed.isLabeled ? `${currentParsed.label}: ${editValue.trim()}` : editValue.trim();
+            handleSaveField(record, fn, idx, sid, null, reconstructClauses(currentClauses), editKey);
+            setEditedSentences(prev => ({ ...prev, [editKey]: 'edited' }));
+          };
+          return (
+            <div key={clauseIndex} className={parsed.isLabeled ? 'nested-mini-card' : ''}>
+              {parsed.isLabeled && <div className="nested-subtitle sub-label">{highlightText(parsed.label)}</div>}
+              <div data-edit-field={fn}>
+                <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(item); setSaveError(null); } }}>
+                  {isEditing ? (
+                    <div className="edit-field-container">
+                      <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                      {saveError && <div className="save-error">{saveError}</div>}
+                      <div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveItem(); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div>
+                    </div>
+                  ) : <><div className="row-content"><span className="content-value">{highlightText(item)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${parsed.isLabeled ? `${parsed.label}\n` : ''}${item}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}
+                </div>
+                {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -631,7 +699,7 @@ const TractographyStudiesDocument = ({ document: docProp }) => {
           </div>
           {fields.map(f => {
             if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
-            return renderStringField(record, f, idx, sid, title);
+            return renderCanonicalStringField(record, f, idx, sid);
           })}
         </div>
       </div>
@@ -654,7 +722,7 @@ const TractographyStudiesDocument = ({ document: docProp }) => {
         <h2 className="document-title">Tractography Studies</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<TractographyStudiesDocumentPDFTemplate document={pdfData} />} fileName={`tractography-studies-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<TractographyStudiesDocumentPDFTemplate document={pdfData} />} fileName="Tractography_Studies.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -667,11 +735,6 @@ const TractographyStudiesDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.reportDate) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.reportDate)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(record.reportType || `Tractography Study ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'header-info')}

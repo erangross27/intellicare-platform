@@ -7,24 +7,24 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, paddingBottom: 52, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
   recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
   recordStatus: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#666666' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
 /* ======= UTILS ======= */
@@ -57,7 +57,7 @@ const hasVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\d)\.\s+|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -83,7 +83,7 @@ const splitByComma = (text) => {
 
 /* ======= SECTION FIELDS ======= */
 const SECTION_FIELDS = {
-  'sport-info': ['sportType', 'competitionLevel'],
+  'sport-info': ['date', 'sportType', 'competitionLevel'],
   'vital-signs': ['vitalSignsRestingHeartRate', 'vitalSignsBloodPressure', 'bmiPercentile'],
   'cardiac-auscultation': ['cardiacAuscultationFindings'],
   'cardiac-screening': ['marfanScreeningResult'],
@@ -117,6 +117,7 @@ const SECTION_TITLES = {
 };
 
 const FIELD_LABELS = {
+  date: 'Date',
   sportType: 'Sport Type',
   competitionLevel: 'Competition Level',
   vitalSignsRestingHeartRate: 'Resting Heart Rate',
@@ -144,12 +145,14 @@ const FIELD_LABELS = {
 };
 
 const BOOLEAN_FIELDS = ['previousConcussionHistory', 'asthmaExerciseInduced', 'seizureDisorderControlled', 'heatIllnessHistory', 'immunizationCompliance', 'followUpRequired'];
+const DATE_FIELDS = ['date'];
 const NUMBER_FIELDS = ['vitalSignsRestingHeartRate', 'concussionCount', 'bmiPercentile'];
 const ARRAY_FIELDS = ['sportType', 'cardiacRiskFactors', 'musculoskeletalLimitations', 'restrictionsImposed'];
 /* Numeric fields where 0 is a sentinel (missing/not-measured), NOT meaningful.
    concussionCount is excluded: 0 concussions is a meaningful clinical statement. */
 const ZERO_SENTINEL_FIELDS = ['vitalSignsRestingHeartRate', 'bmiPercentile'];
 const STRING_FIELDS = ['competitionLevel', 'vitalSignsBloodPressure', 'cardiacAuscultationFindings', 'marfanScreeningResult', 'functionalMovementScreen', 'visionScreeningResult', 'singleOrganStatus', 'orthodonticAppliances', 'menstrualHistoryFemaleAthlete', 'clearanceStatus', 'examinerPhysicianName'];
+const COMMA_FIELDS = new Set(['visionScreeningResult']);
 
 /* ======= PDF COMPONENT ======= */
 const SportsPhysicalExaminationDocumentPDFTemplate = ({ document: data }) => {
@@ -182,16 +185,16 @@ const SportsPhysicalExaminationDocumentPDFTemplate = ({ document: data }) => {
     );
   }
 
-  const renderStringFieldPdf = (record, fn) => {
+  const renderStringFieldPdf = (record, fn, showLabel = true) => {
     const val = record[fn]; if (!hasVal(val)) return null;
     const strVal = safeString(val);
     const label = FIELD_LABELS[fn] || fn;
-    const sentences = splitBySentence(strVal);
+    const sentences = COMMA_FIELDS.has(fn) ? splitByComma(strVal) : splitBySentence(strVal);
 
     if (sentences.length > 1) {
       return (
         <View style={styles.fieldBox} key={fn}>
-          <Text style={styles.fieldLabel}>{label}</Text>
+          {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
           {sentences.map((sentence, sIdx) => {
             const parsed = parseLabel(sentence);
             if (parsed.isLabeled) {
@@ -221,20 +224,23 @@ const SportsPhysicalExaminationDocumentPDFTemplate = ({ document: data }) => {
 
     return (
       <View style={styles.fieldBox} key={fn}>
-        <Text style={styles.fieldLabel}>{label}</Text>
+        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
         <Text style={styles.fieldValue}>{strVal}</Text>
       </View>
     );
   };
 
-  const renderFieldPdf = (record, fn) => {
+  const renderFieldPdf = (record, fn, showLabel = true) => {
     const val = record[fn]; if (!hasVal(val)) return null;
     const label = FIELD_LABELS[fn] || fn;
 
+    if (DATE_FIELDS.includes(fn)) {
+      return <View style={styles.fieldBox} key={fn} wrap={false}>{showLabel && <Text style={styles.fieldLabel}>{label}</Text>}<Text style={styles.fieldValue}>{formatDate(val)}</Text></View>;
+    }
     if (BOOLEAN_FIELDS.includes(fn)) {
       return (
         <View style={styles.fieldBox} key={fn}>
-          <Text style={styles.fieldLabel}>{label}</Text>
+          {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
           <Text style={styles.fieldValue}>{val ? 'Yes' : 'No'}</Text>
         </View>
       );
@@ -243,7 +249,7 @@ const SportsPhysicalExaminationDocumentPDFTemplate = ({ document: data }) => {
       if (ZERO_SENTINEL_FIELDS.includes(fn) && Number(val) === 0) return null;
       return (
         <View style={styles.fieldBox} key={fn}>
-          <Text style={styles.fieldLabel}>{label}</Text>
+          {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
           <Text style={styles.fieldValue}>{String(val)}</Text>
         </View>
       );
@@ -253,7 +259,7 @@ const SportsPhysicalExaminationDocumentPDFTemplate = ({ document: data }) => {
       if (items.length === 0) return null;
       return (
         <View style={styles.fieldBox} key={fn}>
-          <Text style={styles.fieldLabel}>{label}</Text>
+          {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
           {items.map((item, i) => (
             <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
           ))}
@@ -261,11 +267,11 @@ const SportsPhysicalExaminationDocumentPDFTemplate = ({ document: data }) => {
       );
     }
     if (STRING_FIELDS.includes(fn)) {
-      return renderStringFieldPdf(record, fn);
+      return renderStringFieldPdf(record, fn, showLabel);
     }
     return (
       <View style={styles.fieldBox} key={fn}>
-        <Text style={styles.fieldLabel}>{label}</Text>
+        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
         <Text style={styles.fieldValue}>{safeString(val)}</Text>
       </View>
     );
@@ -274,16 +280,19 @@ const SportsPhysicalExaminationDocumentPDFTemplate = ({ document: data }) => {
   const renderSectionPdf = (record, sid) => {
     const fields = SECTION_FIELDS[sid] || [];
     const title = SECTION_TITLES[sid];
-    const hasAnyVal = fields.some(f => {
+    const presentFields = fields.filter(f => {
       if (ZERO_SENTINEL_FIELDS.includes(f) && Number(record[f]) === 0) return false;
       return hasVal(record[f]);
     });
-    if (!hasAnyVal) return null;
+    if (!presentFields.length) return null;
 
     return (
       <View style={styles.section} key={sid}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {fields.map(f => renderFieldPdf(record, f))}
+        <View style={styles.fieldBox} wrap={false}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          {renderFieldPdf(record, presentFields[0], (FIELD_LABELS[presentFields[0]] || '').toLowerCase() !== title.toLowerCase())}
+        </View>
+        {presentFields.slice(1).map(f => renderFieldPdf(record, f, (FIELD_LABELS[f] || '').toLowerCase() !== title.toLowerCase()))}
       </View>
     );
   };
@@ -300,14 +309,6 @@ const SportsPhysicalExaminationDocumentPDFTemplate = ({ document: data }) => {
             {index > 0 && <View style={styles.separator} />}
 
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-                {record.clearanceStatus && (
-                  <Text style={styles.recordStatus}>{record.clearanceStatus}</Text>
-                )}
-              </View>
               <Text style={styles.recordTitle}>Sports Physical Examination {index + 1}</Text>
             </View>
 

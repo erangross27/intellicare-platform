@@ -1,370 +1,320 @@
+/**
+ * Canonical box-free PDF for surgical_steps.
+ * Mirrors SurgicalStepsDocument JSX field order, grouping, and numbering.
+ */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-// PDF styles — March 2026 standard (Helvetica, LETTER, 20pt title / 12pt body)
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    size: 'LETTER',
-  },
+  page: { padding: 0, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.45, color: '#000000', backgroundColor: '#ffffff' },
+  pageBody: { flexGrow: 1, minHeight: '100%', padding: 40, backgroundColor: '#ffffff' },
+  documentHeader: { paddingBottom: 18 },
   documentTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 26,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 16,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#404040',
     paddingBottom: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
   },
-  recordCard: {
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 4,
-    padding: 16,
-  },
+  recordContainer: { paddingBottom: 18 },
+  recordHeader: { paddingBottom: 8 },
   recordTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 19,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 12,
-    color: '#1f2937',
+    paddingBottom: 5,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingBottom: 6,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
   },
-  section: {
-    marginBottom: 12,
-  },
+  section: { paddingBottom: 14 },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase',
-    marginBottom: 6,
-    color: '#404040',
+    paddingBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
   },
-  fieldBlock: {
-    marginBottom: 6,
-    paddingLeft: 8,
-  },
-  fieldSubtitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
+  fieldBlock: { paddingTop: 6, paddingBottom: 3 },
+  rowBlock: { paddingBottom: 3 },
+  fieldLabel: {
+    fontSize: 13,
     fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase',
-    marginBottom: 2,
-    color: '#4b5563',
+    paddingBottom: 2,
+    marginBottom: 3,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#999999',
+    borderBottomStyle: 'solid',
   },
-  fieldValue: {
-    fontSize: 12,
-    lineHeight: 1.4,
-    color: '#1f2937',
-  },
-  listItem: {
-    fontSize: 12,
-    paddingLeft: 8,
-    marginBottom: 4,
-    lineHeight: 1.4,
-  },
+  nestedLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.45, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#4b5563', paddingTop: 24 },
 });
 
-const SurgicalStepsDocumentPDFTemplate = ({ document }) => {
-  // Data unwrapping
-  let records = [];
-  if (Array.isArray(document)) {
-    if (document.length > 0 && document[0]?.records) {
-      records = document[0].records;
-    } else if (document.length > 0 && document[0]?._records) {
-      records = document[0]._records;
-    } else {
-      records = document;
-    }
-  } else if (document?.records) {
-    records = document.records;
-  } else if (document?._records) {
-    records = document._records;
-  } else if (document) {
-    records = [document];
+const SECTION_CONFIGS = [
+  { id: 'overview', title: 'Step Overview', fields: ['date', 'procedureName', 'status', 'facility', 'surgeon', 'assistants'] },
+  { id: 'details', title: 'Step Details', fields: ['stepNumber', 'stepDescription', 'technique', 'approach', 'anatomicalLocation'] },
+  { id: 'tools', title: 'Tools and Equipment', fields: ['instrumentsUsed', 'equipmentUsed'] },
+  { id: 'clinical', title: 'Clinical Details', fields: ['tissuesInvolved', 'duration', 'bloodLoss', 'findings'] },
+  { id: 'safety', title: 'Safety and Specimens', fields: ['complications', 'specimens', 'safetyChecks', 'anesthesiaEvents'] },
+  { id: 'documentation', title: 'Documentation', fields: ['notes', 'operativeReport', 'images'] },
+];
+
+const FIELD_LABELS = {
+  date: 'Date',
+  procedureName: 'Procedure Name',
+  status: 'Status',
+  facility: 'Facility',
+  surgeon: 'Surgeon',
+  assistants: 'Assistants',
+  stepNumber: 'Step Number',
+  stepDescription: 'Step Description',
+  technique: 'Technique',
+  approach: 'Approach',
+  anatomicalLocation: 'Anatomical Location',
+  instrumentsUsed: 'Instruments Used',
+  equipmentUsed: 'Equipment Used',
+  tissuesInvolved: 'Tissues Involved',
+  duration: 'Duration',
+  bloodLoss: 'Blood Loss',
+  findings: 'Findings',
+  complications: 'Complications',
+  specimens: 'Specimens',
+  safetyChecks: 'Safety Checks',
+  anesthesiaEvents: 'Anesthesia Events',
+  notes: 'Notes',
+  operativeReport: 'Operative Report',
+  images: 'Images',
+};
+const ARRAY_FIELDS = new Set([
+  'assistants', 'instrumentsUsed', 'equipmentUsed', 'tissuesInvolved', 'complications',
+  'specimens', 'safetyChecks', 'anesthesiaEvents', 'images',
+]);
+const COMMA_ARRAY_FIELDS = new Set();
+const KEEP_LABEL_COMMA_FIELDS = new Set(['images']);
+
+const humanizeKey = (key) => String(key || '')
+  .replace(/_/g, ' ')
+  .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  .replace(/^./, character => character.toUpperCase());
+const getPathValue = (record, path) => String(path).split('.').reduce((value, part) => value?.[part], record);
+const scalarValue = (value) => {
+  if (value && typeof value === 'object') {
+    const numericKey = ['$numberInt', '$numberLong', '$numberDouble', '$numberDecimal'].find(key => value[key] !== undefined);
+    if (numericKey) return Number(value[numericKey]);
   }
+  return value;
+};
+const sectionFields = (record, section) => {
+  return section.fields.flatMap(field => {
+    if (!ARRAY_FIELDS.has(field)) return [field];
+    const values = record?.[field];
+    return Array.isArray(values) ? values.map((_, index) => `${field}.${index}`) : [];
+  });
+};
+const fieldLabel = (path) => {
+  if (FIELD_LABELS[path]) return FIELD_LABELS[path];
+  const parts = String(path).split('.');
+  if (ARRAY_FIELDS.has(parts[0])) return FIELD_LABELS[parts[0]];
+  return humanizeKey(parts[parts.length - 1]);
+};
+const isDateField = path => path === 'date';
 
-  const validRecords = Array.isArray(records) ? records : [];
+const sameAsTitle = (label, title) => String(label || '').trim().toLowerCase() === String(title || '').trim().toLowerCase();
 
-  // Safe string conversion
-  const safeString = (val) => {
-    if (val === null || val === undefined) return '';
-    if (typeof val === 'string') return val;
-    if (typeof val === 'number') return String(val);
-    if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-    if (typeof val === 'object') {
-      if (Object.keys(val).length === 0) return '';
-      if (val.value !== undefined) return String(val.value);
-      if (val.text !== undefined) return String(val.text);
-      return JSON.stringify(val);
-    }
-    return String(val);
-  };
+const safeString = (value) => String(scalarValue(value) ?? '')
+  .replace(/\u00d7/g, 'x')
+  .replace(/[\u2018\u2019]/g, "'")
+  .replace(/[\u201c\u201d]/g, '"')
+  .replace(/[\u2013\u2014]/g, '-');
 
-  // Format date helper
-  const formatDate = (dateValue) => {
-    if (!dateValue) return '';
-    try {
-      const dateStr = dateValue.$date || dateValue;
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return String(dateValue || '');
-      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    } catch {
-      return String(dateValue || '');
-    }
-  };
+const hasVal = (input) => {
+  const value = scalarValue(input);
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  return typeof value === 'object' ? Object.keys(value).length > 0 : true;
+};
 
-  if (!validRecords.length) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <Text style={styles.documentTitle}>Surgical Steps</Text>
-          <Text style={{ textAlign: 'center', color: '#6b7280' }}>No surgical steps data available</Text>
-        </Page>
-      </Document>
-    );
+const formatDate = (value) => {
+  if (!value) return '';
+  try {
+    const raw = value?.$date?.$numberLong ?? value?.$date ?? value;
+    const date = new Date(typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw) : raw);
+    if (Number.isNaN(date.getTime()) || date.getFullYear() < 1971) return '';
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return safeString(value); }
+};
+
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  const delimiterWithWhitespace = /[.;]\s/;
+  const result = [];
+  let current = '';
+  let parenthesisDepth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '(') parenthesisDepth += 1;
+    else if (character === ')') parenthesisDepth = Math.max(0, parenthesisDepth - 1);
+    const isDelimiter = delimiterWithWhitespace.test(`${character}${text[index + 1] || ''}`) && parenthesisDepth === 0;
+    const isProtectedTitle = character === '.' && /\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)$/.test(current);
+    if (isDelimiter && !isProtectedTitle) {
+      if (current.trim()) result.push(current.trim());
+      current = '';
+      while (/\s/.test(text[index + 1] || '')) index += 1;
+    } else current += character;
   }
+  const tail = current.replace(/[.;]+$/, '').trim();
+  if (tail) result.push(tail);
+  return result;
+};
 
+const parseLabel = (text) => {
+  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
+  const match = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  if (!match) return { isLabeled: false, label: '', value: text };
+  return { isLabeled: true, label: match[1].trim(), value: match[2].trim() };
+};
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '(') { depth += 1; current += character; continue; }
+    if (character === ')') { depth = Math.max(0, depth - 1); current += character; continue; }
+    if (character !== ',' || depth !== 0) { current += character; continue; }
+    const before = current.trim();
+    const after = text.slice(index + 1);
+    const afterTrimmed = after.trimStart();
+    const nextWord = (afterTrimmed.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+    const previousWord = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+    const numericThousands = /\d$/.test(before) && /^\d{3}\b/.test(afterTrimmed);
+    const noFollowingSpace = after.length === afterTrimmed.length;
+    const linkedByConjunction = ['and', 'or'].includes(nextWord) || ['and', 'or'].includes(previousWord);
+    if (numericThousands || noFollowingSpace || linkedByConjunction) current += character;
+    else { if (before) result.push(before); current = ''; }
+  }
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [text];
+};
+
+const buildStringGroups = (text, fieldName = '') => {
+  const groups = [];
+  splitBySentence(text).forEach(sentence => {
+    const parsed = parseLabel(sentence);
+    const splitCommas = (parsed.isLabeled && !KEEP_LABEL_COMMA_FIELDS.has(fieldName.split('.')[0])) || COMMA_ARRAY_FIELDS.has(fieldName);
+    const source = parsed.isLabeled ? parsed.value : sentence;
+    const rows = (splitCommas ? splitByComma(source) : [source])
+      .map(value => safeString(value).replace(/[;.]+$/, '').trim())
+      .filter(Boolean);
+    if (!rows.length) return;
+    if (!parsed.isLabeled && groups.length && !groups[groups.length - 1].label) groups[groups.length - 1].rows.push(...rows);
+    else groups.push({ label: parsed.isLabeled ? parsed.label : '', rows });
+  });
+  return groups;
+};
+
+const fieldGroups = (record, config) => {
+  const value = scalarValue(getPathValue(record, config.key));
+  if (!hasVal(value)) return [];
+  if (config.kind === 'date') {
+    const formatted = formatDate(value);
+    return formatted ? [{ label: '', rows: [formatted] }] : [];
+  }
+  if (typeof value === 'boolean') return [{ label: '', rows: [value ? 'Yes' : 'No'] }];
+  return buildStringGroups(safeString(value), config.key);
+};
+
+const renderFieldNodes = (record, config, sectionTitle) => {
+  const groups = fieldGroups(record, config);
+  if (!groups.length) return [];
+  const nodes = [];
+  let firstFieldRow = true;
+  groups.forEach((group, groupIndex) => {
+    group.rows.forEach((row, rowIndex) => {
+      const firstGroupRow = rowIndex === 0;
+      nodes.push(
+        <View key={`${config.key}-${groupIndex}-${rowIndex}`} style={firstFieldRow ? styles.fieldBlock : styles.rowBlock} wrap={false}>
+          {firstFieldRow && !sameAsTitle(config.label, sectionTitle) ? <Text style={styles.fieldLabel}>{config.label}</Text> : null}
+          {firstGroupRow && group.label ? <Text style={styles.nestedLabel}>{safeString(group.label)}</Text> : null}
+          <Text style={styles.listItem}>{rowIndex + 1}. {safeString(row)}</Text>
+        </View>,
+      );
+      firstFieldRow = false;
+    });
+  });
+  return nodes;
+};
+
+const renderSection = (record, section) => {
+  const configs = sectionFields(record, section).map(key => ({
+    key,
+    label: fieldLabel(key),
+    kind: isDateField(key) ? 'date' : 'string',
+  }));
+  const nodes = configs.flatMap(config => renderFieldNodes(record, config, section.title));
+  if (!nodes.length) return null;
+  return (
+    <View key={section.id} style={styles.section} break={section.breakBefore}>
+      <View wrap={false}>
+        <Text style={styles.sectionTitle}>{section.title}</Text>
+        {React.cloneElement(nodes[0], { key: `${section.id}-first` })}
+      </View>
+      {nodes.slice(1).map((node, index) => React.cloneElement(node, { key: `${section.id}-node-${index + 1}` }))}
+    </View>
+  );
+};
+
+const unwrapRecords = (data) => {
+  if (!data) return [];
+  const input = Array.isArray(data) ? data : [data];
+  return input.flatMap(record => {
+    if (record?.surgical_steps) return Array.isArray(record.surgical_steps) ? record.surgical_steps : [record.surgical_steps];
+    if (record?.documentData) {
+      const nested = record.documentData;
+      if (Array.isArray(nested)) return nested;
+      if (nested?.surgical_steps) return Array.isArray(nested.surgical_steps) ? nested.surgical_steps : [nested.surgical_steps];
+      return [nested];
+    }
+    return [record];
+  }).filter(record => record && typeof record === 'object');
+};
+
+const SurgicalStepsDocumentPDFTemplate = ({ document: data }) => {
+  const records = unwrapRecords(data);
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        <Text style={styles.documentTitle}>Surgical Steps</Text>
-
-        {validRecords.map((record, idx) => (
-          <View key={idx} style={styles.recordCard}>
-            <Text style={styles.recordTitle}>{String(safeString(record.procedureName) || `Surgical Steps ${idx + 1}`)}</Text>
-
-            {/* Procedure Information Section */}
-            {(record.date || record.procedureName || record.status || record.facility) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Procedure Information</Text>
-                {record.date && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Date</Text>
-                    <Text style={styles.fieldValue}>{String(formatDate(record.date))}</Text>
-                  </View>
-                )}
-                {record.procedureName && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Procedure Name</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.procedureName))}</Text>
-                  </View>
-                )}
-                {record.status && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Status</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.status))}</Text>
-                  </View>
-                )}
-                {record.facility && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Facility</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.facility))}</Text>
-                  </View>
-                )}
+      {records.length ? records.map((record, index) => (
+        <Page size="A4" style={styles.page} key={record._id?.$oid || record._id || index}>
+          <View style={styles.pageBody}>
+            {index === 0 ? (
+              <View style={styles.documentHeader} wrap={false}>
+                <Text style={styles.documentTitle}>Surgical Steps</Text>
               </View>
-            )}
-
-            {/* Surgical Team Section */}
-            {(record.surgeon || (record.assistants && record.assistants.length > 0)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Surgical Team</Text>
-                {record.surgeon && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Surgeon</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.surgeon))}</Text>
-                  </View>
-                )}
-                {record.assistants && record.assistants.length > 0 && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Assistants</Text>
-                    {record.assistants.map((assistant, aIdx) => (
-                      <Text key={aIdx} style={styles.listItem}>{`${aIdx + 1}. ${String(safeString(assistant))}`}</Text>
-                    ))}
-                  </View>
-                )}
+            ) : null}
+            <View style={styles.recordContainer}>
+              <View style={styles.recordHeader} wrap={false}>
+                <Text style={styles.recordTitle}>Surgical Steps {index + 1}</Text>
               </View>
-            )}
-
-            {/* Technique and Approach Section */}
-            {(record.technique || record.approach || record.anatomicalLocation) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Technique and Approach</Text>
-                {record.technique && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Technique</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.technique))}</Text>
-                  </View>
-                )}
-                {record.approach && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Approach</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.approach))}</Text>
-                  </View>
-                )}
-                {record.anatomicalLocation && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Anatomical Location</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.anatomicalLocation))}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Step Description Section */}
-            {(record.stepNumber || record.stepDescription) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Step Description</Text>
-                {record.stepNumber && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Step Number</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.stepNumber))}</Text>
-                  </View>
-                )}
-                {record.stepDescription && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Description</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.stepDescription))}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Equipment and Instruments Section */}
-            {((record.equipmentUsed && record.equipmentUsed.length > 0) || (record.instrumentsUsed && record.instrumentsUsed.length > 0)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Equipment and Instruments</Text>
-                {record.equipmentUsed && record.equipmentUsed.length > 0 && (
-                  <View style={styles.fieldBlock} wrap={false}>
-                    <Text style={styles.fieldSubtitle}>Equipment Used</Text>
-                    {record.equipmentUsed.map((equip, eIdx) => (
-                      <Text key={eIdx} style={styles.listItem}>{`${eIdx + 1}. ${String(safeString(equip))}`}</Text>
-                    ))}
-                  </View>
-                )}
-                {record.instrumentsUsed && record.instrumentsUsed.length > 0 && (
-                  <View style={styles.fieldBlock} wrap={false}>
-                    <Text style={styles.fieldSubtitle}>Instruments Used</Text>
-                    {record.instrumentsUsed.map((inst, iIdx) => (
-                      <Text key={iIdx} style={styles.listItem}>{`${iIdx + 1}. ${String(safeString(inst))}`}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Procedure Details Section */}
-            {(record.duration || record.bloodLoss || (record.tissuesInvolved && record.tissuesInvolved.length > 0)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Procedure Details</Text>
-                {record.duration && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Duration</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.duration))}</Text>
-                  </View>
-                )}
-                {record.bloodLoss && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Blood Loss</Text>
-                    <Text style={styles.fieldValue}>{String(safeString(record.bloodLoss))}</Text>
-                  </View>
-                )}
-                {record.tissuesInvolved && record.tissuesInvolved.length > 0 && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Tissues Involved</Text>
-                    {record.tissuesInvolved.map((tissue, tIdx) => (
-                      <Text key={tIdx} style={styles.listItem}>{`${tIdx + 1}. ${String(safeString(tissue))}`}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Findings Section */}
-            {record.findings && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Findings</Text>
-                <Text style={styles.listItem}>{String(safeString(record.findings))}</Text>
-              </View>
-            )}
-
-            {/* Specimens Section */}
-            {record.specimens && record.specimens.length > 0 && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Specimens</Text>
-                {record.specimens.map((specimen, sIdx) => (
-                  <Text key={sIdx} style={styles.listItem}>{`${sIdx + 1}. ${String(safeString(specimen))}`}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Complications Section */}
-            {record.complications && record.complications.length > 0 && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Complications</Text>
-                {record.complications.map((complication, cIdx) => (
-                  <Text key={cIdx} style={styles.listItem}>{`${cIdx + 1}. ${String(safeString(complication))}`}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Safety Checks Section */}
-            {record.safetyChecks && record.safetyChecks.length > 0 && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Safety Checks</Text>
-                {record.safetyChecks.map((check, chkIdx) => (
-                  <Text key={chkIdx} style={styles.listItem}>{`${chkIdx + 1}. ${String(safeString(check))}`}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Anesthesia Events Section */}
-            {record.anesthesiaEvents && record.anesthesiaEvents.length > 0 && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Anesthesia Events</Text>
-                {record.anesthesiaEvents.map((event, evtIdx) => (
-                  <Text key={evtIdx} style={styles.listItem}>{`${evtIdx + 1}. ${String(safeString(event))}`}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Notes Section */}
-            {record.notes && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Notes</Text>
-                <Text style={styles.listItem}>{String(safeString(record.notes))}</Text>
-              </View>
-            )}
-
-            {/* Operative Report Section */}
-            {record.operativeReport && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Operative Report</Text>
-                <Text style={styles.listItem}>{String(safeString(record.operativeReport))}</Text>
-              </View>
-            )}
-
-            {/* Images Section */}
-            {record.images && record.images.length > 0 && (
-              <View style={styles.section} wrap={record.images.length > 8 ? undefined : false}>
-                <Text style={styles.sectionTitle}>Images</Text>
-                {record.images.map((image, imgIdx) => (
-                  <Text key={imgIdx} style={styles.listItem}>{`${imgIdx + 1}. ${String(safeString(image))}`}</Text>
-                ))}
-              </View>
-            )}
+              {SECTION_CONFIGS.map(section => renderSection(record, section))}
+            </View>
           </View>
-        ))}
-      </Page>
+        </Page>
+      )) : (
+        <Page size="A4" style={styles.page}>
+          <View style={styles.pageBody}>
+            <View style={styles.documentHeader} wrap={false}>
+              <Text style={styles.documentTitle}>Surgical Steps</Text>
+            </View>
+            <Text style={styles.noDataText}>No surgical steps records available.</Text>
+          </View>
+        </Page>
+      )}
     </Document>
   );
 };

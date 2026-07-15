@@ -104,6 +104,7 @@ import SuicideRiskAssessmentDocumentPDFTemplate from './SuicideRiskAssessmentDoc
 import SupplementationPlansDocumentPDFTemplate from './SupplementationPlansDocumentPDFTemplate';
 import SupportiveCareDocumentPDFTemplate from './SupportiveCareDocumentPDFTemplate';
 import SurgicalApproachDocumentPDFTemplate from './SurgicalApproachDocumentPDFTemplate';
+import SurgicalConsentFormsDocumentPDFTemplate from './SurgicalConsentFormsDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -197,6 +198,7 @@ const templateRegistry = {
   'supplementation_plans': SupplementationPlansDocumentPDFTemplate,
   'supportive_care': SupportiveCareDocumentPDFTemplate,
   'surgical_approach': SurgicalApproachDocumentPDFTemplate,
+  'surgical_consent_forms': SurgicalConsentFormsDocumentPDFTemplate,
 };
 
 /**

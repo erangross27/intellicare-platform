@@ -1,297 +1,385 @@
-/**
- * SurgicalConsentFormsDocumentPDFTemplate.jsx
- * March 2026 -- Helvetica -- LETTER size -- surgical consent forms
- * Collection: surgical_consent_forms
- */
-import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import React from "react";
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+
+const SECTIONS = [
+  { title: 'Consent Information', fields: ['consentDate', 'consentType', 'decisionMaker', 'obtainingProvider'] },
+  { title: 'Procedure Details', fields: ['plannedProcedure', 'alternativeName', 'indication'] },
+  { title: 'Risks Discussed', fields: ['risksDiscussed'] },
+  { title: 'Benefits Discussed', fields: ['benefitsDiscussed'] },
+  { title: 'Alternatives Discussed', fields: ['alternativesDiscussed'] },
+  { title: 'Specific Risks', fields: ['specificRisks', 'anesthesiaRisks'] },
+  { title: 'Transfusion & Patient Questions', fields: ['bloodTransfusion', 'patientQuestions', 'patientUnderstanding'] },
+  { title: 'Consent Process', fields: ['interpreterUsed', 'witnessPresent'] },
+  { title: 'Signatures', fields: ['patientSignature', 'providerSignature'] },
+  { title: 'Recommendations', fields: ['recommendations'] },
+];
+
+const LABELS = {
+  consentDate: 'Consent Date', consentType: 'Consent Type', decisionMaker: 'Decision Maker', obtainingProvider: 'Obtaining Provider',
+  plannedProcedure: 'Planned Procedure', alternativeName: 'Alternative Name', indication: 'Indication',
+  risksDiscussed: 'Risks Discussed', benefitsDiscussed: 'Benefits Discussed', alternativesDiscussed: 'Alternatives Discussed',
+  specificRisks: 'Specific Risks', anesthesiaRisks: 'Anesthesia Risks', bloodTransfusion: 'Blood Transfusion',
+  patientQuestions: 'Patient Questions', patientUnderstanding: 'Patient Understanding', interpreterUsed: 'Interpreter Used',
+  witnessPresent: 'Witness Present', patientSignature: 'Patient Signature', providerSignature: 'Provider Signature',
+  recommendations: 'Recommendations',
+};
+
+const COMMA_ARRAY_FIELDS = ['patientQuestions'];
+const fieldMatches = (fields, path) =>
+  fields.some((field) => path === field || path.startsWith(`${field}.`));
+const empty = (value) =>
+  value == null ||
+  value === "" ||
+  (Array.isArray(value)
+    ? !value.some((item) => !empty(item))
+    : typeof value === "object" && !value.$date
+      ? Object.values(value).every(empty)
+      : false);
+const isDate = (value) =>
+  Boolean(
+    value?.$date ||
+    (typeof value === "string" && /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(value)),
+  );
+const safe = (value) =>
+  String(value ?? "")
+    .replace(/[µμ]/g, "u")
+    .replace(/°/g, " deg")
+    .replace(/±/g, "+/-")
+    .replace(/≥/g, ">=")
+    .replace(/≤/g, "<=")
+    .replace(/→/g, "->")
+    .replace(/–/g, "-");
+const formatDate = (value) => {
+  try {
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime())
+      ? safe(value)
+      : date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+  } catch {
+    return safe(value);
+  }
+};
+const humanize = (value) =>
+  String(value || "")
+    .replace(/_/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
+const splitComma = (text) => {
+  const rows = [];
+  let current = "";
+  let depth = 0;
+  for (const char of String(text || "")) {
+    if (char === "(") {
+      depth += 1;
+      current += char;
+    } else if (char === ")") {
+      depth = Math.max(0, depth - 1);
+      current += char;
+    } else if (char === "," && depth === 0) {
+      if (current.trim()) rows.push(current.trim());
+      current = "";
+    } else current += char;
+  }
+  if (current.trim()) rows.push(current.trim());
+  return rows.length ? rows : [String(text || "")];
+};
+const parseLabel = (text) => {
+  const match = String(text || "").match(
+    /^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/,
+  );
+  return match
+    ? { label: match[1].trim(), value: match[2].trim() }
+    : { label: "", value: String(text || "") };
+};
+const splitTokens = (text) => {
+  const source = String(text || "");
+  const regex =
+    /(?:;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/g;
+  const tokens = [];
+  let start = 0;
+  let match;
+  while ((match = regex.exec(source))) {
+    const value = source.slice(start, match.index).trim();
+    if (value) tokens.push(value);
+    start = match.index + match[0].length;
+  }
+  const tail = source
+    .slice(start)
+    .replace(/[.;]\s*$/, "")
+    .trim();
+  if (tail) tokens.push(tail);
+  return tokens.length ? tokens : [source.trim()];
+};
+const scalarRows = (path, value) => {
+  const display = isDate(value)
+    ? formatDate(value)
+    : typeof value === "boolean"
+      ? value
+        ? "Yes"
+        : "No"
+      : safe(value);
+  if (
+    /^-?\d+(?:\.\d+)?(?:\s*\/\s*\d+(?:\.\d+)?|\s*-\s*\d+(?:\.\d+)?)?[\s\S]*$/.test(
+      display,
+    )
+  ) {
+    return [{ label: "", text: display }];
+  }
+  return splitTokens(display).flatMap((token) => {
+    const parsed = parseLabel(token);
+    const values = fieldMatches(COMMA_ARRAY_FIELDS, path)
+      ? splitComma(parsed.value)
+      : [parsed.value];
+    return values.map((text, index) => ({
+      label: index === 0 ? parsed.label : "",
+      text,
+    }));
+  });
+};
+const unwrap = (input) => {
+  if (!input) return [];
+  return (Array.isArray(input) ? input : [input])
+    .flatMap((item) => {
+      if (item?.surgical_consent_forms)
+        return Array.isArray(item.surgical_consent_forms)
+          ? item.surgical_consent_forms
+          : [item.surgical_consent_forms];
+      if (item?.documentData?.surgical_consent_forms)
+        return Array.isArray(item.documentData.surgical_consent_forms)
+          ? item.documentData.surgical_consent_forms
+          : [item.documentData.surgical_consent_forms];
+      if (item?.documentData)
+        return Array.isArray(item.documentData)
+          ? item.documentData
+          : [item.documentData];
+      if (item?.document)
+        return Array.isArray(item.document) ? item.document : [item.document];
+      return [item];
+    })
+    .filter((record) => record && typeof record === "object");
+};
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1f2937', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: {
+    padding: 36,
+    fontFamily: "Helvetica",
+    color: "#000000",
+    fontSize: 14,
+    backgroundColor: "#ffffff",
+  },
+  pageBackground: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "#ffffff",
+  },
+  documentTitle: {
+    fontSize: 26,
+    fontFamily: "Helvetica-Bold",
+    textAlign: "center",
+    marginBottom: 18,
+    paddingBottom: 7,
+    borderBottomWidth: 2,
+    borderBottomColor: "#000000",
+  },
+  record: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: "Helvetica-Bold", marginBottom: 12 },
+  section: { marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 7,
+    paddingBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: "#000000",
+  },
+  fieldBlock: { marginLeft: 10, marginBottom: 7 },
+  fieldLabel: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 3,
+    paddingBottom: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#999999",
+  },
+  fieldValue: { fontSize: 14, lineHeight: 1.35, marginBottom: 2 },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
-};
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  let str = typeof val === 'string' ? val : String(val);
-  str = str.replace(/\u03bcm/g, 'um');
-  str = str.replace(/\u00b5m/g, 'um');
-  str = str.replace(/\u00b0/g, ' deg');
-  str = str.replace(/\u00b1/g, '+/-');
-  str = str.replace(/\u2265/g, '>=');
-  str = str.replace(/\u2264/g, '<=');
-  str = str.replace(/\u2192/g, '->');
-  return str;
-};
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
-};
-
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 0);
-};
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
-};
-
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
-};
-
-/* ======= FIELD RENDERERS ======= */
-const renderSentenceField = (label, val) => {
-  if (!hasVal(val)) return null;
-  const strVal = safeString(val);
-  const sentences = splitBySentence(strVal);
-  if (sentences.length <= 1) {
-    return (
-      <View style={styles.fieldBox}>
-        <Text style={styles.fieldLabel}>{safeString(label)}</Text>
-        <Text style={styles.fieldValue}>{strVal}</Text>
-      </View>
-    );
-  }
-  let n = 1;
-  return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{safeString(label)}</Text>
-      {sentences.map((sentence, sIdx) => {
-        const parsed = parseLabel(sentence);
-        if (parsed.isLabeled) {
-          const commaItems = splitByComma(parsed.value);
-          if (commaItems.length >= 2) {
-            return (
-              <View key={sIdx}>
-                <Text style={styles.nestedSubtitle}>{safeString(parsed.label)}:</Text>
-                {commaItems.map((ci, ciIdx) => (
-                  <Text key={ciIdx} style={styles.listItem}>{n++}. {safeString(ci)}</Text>
-                ))}
-              </View>
-            );
-          }
-          return (
-            <View key={sIdx}>
-              <Text style={styles.nestedSubtitle}>{safeString(parsed.label)}:</Text>
-              <Text style={styles.listItem}>{n++}. {safeString(parsed.value)}</Text>
-            </View>
-          );
-        }
-        return <Text key={sIdx} style={styles.listItem}>{n++}. {safeString(sentence)}</Text>;
-      })}
+const scalarBlocks = (path, value, label = "") =>
+  scalarRows(path, value).map((row, index) => (
+    <View key={`${path}-${index}`} style={styles.fieldBlock} wrap={false}>
+      {index === 0 && label ? (
+        <Text style={styles.fieldLabel}>{safe(label)}</Text>
+      ) : null}
+      {row.label ? (
+        <Text style={styles.fieldLabel}>{safe(row.label)}</Text>
+      ) : null}
+      <Text style={styles.fieldValue}>{`${index + 1}. ${safe(row.text)}`}</Text>
     </View>
-  );
+  ));
+
+const nodeBlocks = (path, value, label = "") => {
+  if (empty(value)) return [];
+  if (isDate(value) || typeof value !== "object")
+    return scalarBlocks(path, value, label);
+  if (Array.isArray(value)) {
+    const items = value
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => !empty(item));
+    if (items.every(({ item }) => isDate(item) || typeof item !== "object")) {
+      return items.flatMap(({ item, index }) => {
+        const rows = scalarRows(`${path}.${index}`, item);
+        return rows.map((row, rowIndex) => (
+          <View
+            key={`${path}.${index}-${rowIndex}`}
+            style={styles.fieldBlock}
+            wrap={false}
+          >
+            {index === 0 && rowIndex === 0 && label ? (
+              <Text style={styles.fieldLabel}>{safe(label)}</Text>
+            ) : null}
+            {row.label ? (
+              <Text style={styles.fieldLabel}>{safe(row.label)}</Text>
+            ) : null}
+            <Text style={styles.fieldValue}>{`${index + 1}. ${safe(row.text)}`}</Text>
+          </View>
+        ));
+      });
+    }
+    return items.flatMap(({ item, index }) => {
+      const itemLabel =
+        item?.substance || item?.type || `${label || "Item"} ${index + 1}`;
+      const heading = (
+        <View
+          key={`${path}.${index}-heading`}
+          style={styles.fieldBlock}
+          wrap={false}
+        >
+          <Text style={styles.fieldLabel}>{safe(itemLabel)}</Text>
+        </View>
+      );
+      return [
+        heading,
+        ...Object.entries(item)
+          .filter(([, child]) => !empty(child))
+          .flatMap(([key, child]) =>
+            nodeBlocks(`${path}.${index}.${key}`, child, humanize(key)),
+          ),
+      ];
+    });
+  }
+  return Object.entries(value)
+    .filter(([, child]) => !empty(child))
+    .flatMap(([key, child]) =>
+      nodeBlocks(`${path}.${key}`, child, humanize(key)),
+    );
 };
 
-const SurgicalConsentFormsDocumentPDFTemplate = ({ document: docProp, data }) => {
-  const templateData = docProp || data;
-
-  const records = (() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => {
-      if (r?.surgical_consent_forms) return Array.isArray(r.surgical_consent_forms) ? r.surgical_consent_forms : [r.surgical_consent_forms];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.surgical_consent_forms) return Array.isArray(dd.surgical_consent_forms) ? dd.surgical_consent_forms : [dd.surgical_consent_forms]; return [dd]; }
-      return [r];
+const recommendationBlocks = (value) => {
+  const groups = new Map();
+  value.forEach((item, index) => {
+    const date = item?.date || "";
+    const key = date ? String(date?.$date || date).slice(0, 10) : "no-date";
+    if (!groups.has(key)) groups.set(key, { date, items: [] });
+    groups.get(key).items.push({ item, index });
+  });
+  return [...groups.entries()].flatMap(([key, group]) => {
+    const blocks = [];
+    if (key !== "no-date")
+      blocks.push(
+        <View key={`${key}-date`} style={styles.fieldBlock} wrap={false}>
+          <Text style={styles.fieldLabel}>Date</Text>
+          <Text style={styles.fieldValue}>{formatDate(group.date)}</Text>
+        </View>,
+      );
+    let rowNumber = 1;
+    group.items.forEach(({ item, index }) => {
+      const text = typeof item === "object" ? item.recommendation : item;
+      scalarRows(`recommendations.${index}.recommendation`, text).forEach(
+        (row) => {
+          blocks.push(
+            <View
+              key={`${key}-${index}-${rowNumber}`}
+              style={styles.fieldBlock}
+              wrap={false}
+            >
+              {row.label ? (
+                <Text style={styles.fieldLabel}>{safe(row.label)}</Text>
+              ) : null}
+              <Text
+                style={styles.fieldValue}
+              >{`${rowNumber}. ${safe(row.text)}`}</Text>
+            </View>,
+          );
+          rowNumber += 1;
+        },
+      );
     });
-    return arr.filter(r => r && typeof r === 'object');
-  })();
+    return blocks;
+  });
+};
 
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Surgical Consent Forms</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
-  }
+const sectionBlocks = (record, section) =>
+  section.fields.flatMap((field) => {
+    const value = record[field];
+    if (empty(value)) return [];
+    if (field === "recommendations" && Array.isArray(value))
+      return recommendationBlocks(value);
+    const label =
+      (LABELS[field] || humanize(field)).toLowerCase() ===
+      section.title.toLowerCase()
+        ? ""
+        : LABELS[field] || humanize(field);
+    return nodeBlocks(field, value, label);
+  });
 
+const SurgicalConsentFormsDocumentPDFTemplate = ({
+  document,
+  data,
+  templateData,
+}) => {
+  const records = unwrap(templateData || document || data);
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Surgical Consent Forms</Text>
-        </View>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            {idx > 0 && <View style={styles.separator} />}
-
-            <View style={styles.recordHeader}>
-              <View style={styles.recordDateRow}>
-                {record.createdAt && <Text style={styles.recordDate}>{formatDate(record.createdAt)}</Text>}
-              </View>
-              <Text style={styles.recordTitle}>{safeString(record.plannedProcedure || `Surgical Consent Form ${idx + 1}`)}</Text>
-            </View>
-
-            {/* Consent Information */}
-            {(hasVal(record.consentDate) || hasVal(record.consentType) || hasVal(record.decisionMaker) || hasVal(record.obtainingProvider)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Consent Information</Text>
-                {hasVal(record.consentDate) && (
-                  <View style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>Consent Date</Text>
-                    <Text style={styles.fieldValue}>{formatDate(record.consentDate)}</Text>
-                  </View>
-                )}
-                {hasVal(record.consentType) && renderSentenceField('Consent Type', record.consentType)}
-                {hasVal(record.decisionMaker) && renderSentenceField('Decision Maker', record.decisionMaker)}
-                {hasVal(record.obtainingProvider) && renderSentenceField('Obtaining Provider', record.obtainingProvider)}
-              </View>
-            )}
-
-            {/* Procedure Details */}
-            {(hasVal(record.plannedProcedure) || hasVal(record.alternativeName) || hasVal(record.indication)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Procedure Details</Text>
-                {hasVal(record.plannedProcedure) && renderSentenceField('Planned Procedure', record.plannedProcedure)}
-                {hasVal(record.alternativeName) && renderSentenceField('Alternative Name', record.alternativeName)}
-                {hasVal(record.indication) && renderSentenceField('Indication', record.indication)}
-              </View>
-            )}
-
-            {/* Risks Discussed */}
-            {hasVal(record.risksDiscussed) && record.risksDiscussed.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Risks Discussed</Text>
-                {record.risksDiscussed.map((risk, rIdx) => (
-                  <Text key={rIdx} style={styles.listItem}>{rIdx + 1}. {safeString(risk)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Benefits Discussed */}
-            {hasVal(record.benefitsDiscussed) && record.benefitsDiscussed.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Benefits Discussed</Text>
-                {record.benefitsDiscussed.map((benefit, bIdx) => (
-                  <Text key={bIdx} style={styles.listItem}>{bIdx + 1}. {safeString(benefit)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Alternatives Discussed */}
-            {hasVal(record.alternativesDiscussed) && record.alternativesDiscussed.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Alternatives Discussed</Text>
-                {record.alternativesDiscussed.map((alt, aIdx) => (
-                  <Text key={aIdx} style={styles.listItem}>{aIdx + 1}. {safeString(alt)}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Specific Risks */}
-            {(hasVal(record.specificRisks) || hasVal(record.anesthesiaRisks)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Specific Risks</Text>
-                {hasVal(record.specificRisks) && renderSentenceField('Specific Risks', record.specificRisks)}
-                {hasVal(record.anesthesiaRisks) && renderSentenceField('Anesthesia Risks', record.anesthesiaRisks)}
-              </View>
-            )}
-
-            {/* Transfusion & Patient Questions */}
-            {(hasVal(record.bloodTransfusion) || hasVal(record.patientQuestions) || hasVal(record.patientUnderstanding)) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Transfusion & Patient Questions</Text>
-                {hasVal(record.bloodTransfusion) && renderSentenceField('Blood Transfusion', record.bloodTransfusion)}
-                {hasVal(record.patientQuestions) && renderSentenceField('Patient Questions', record.patientQuestions)}
-                {hasVal(record.patientUnderstanding) && renderSentenceField('Patient Understanding', record.patientUnderstanding)}
-              </View>
-            )}
-
-            {/* Consent Process */}
-            {(hasVal(record.interpreterUsed) || hasVal(record.witnessPresent)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Consent Process</Text>
-                {hasVal(record.interpreterUsed) && renderSentenceField('Interpreter Used', record.interpreterUsed)}
-                {hasVal(record.witnessPresent) && renderSentenceField('Witness Present', record.witnessPresent)}
-              </View>
-            )}
-
-            {/* Signatures */}
-            {(hasVal(record.patientSignature) || hasVal(record.providerSignature)) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Signatures</Text>
-                {hasVal(record.patientSignature) && renderSentenceField('Patient Signature', record.patientSignature)}
-                {hasVal(record.providerSignature) && renderSentenceField('Provider Signature', record.providerSignature)}
-              </View>
-            )}
-
-            {/* Recommendations */}
-            {hasVal(record.recommendations) && record.recommendations.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Recommendations</Text>
-                {(() => {
-                  const groupedByDate = {};
-                  record.recommendations.forEach((rec, recIdx) => {
-                    const date = rec.date || 'No Date';
-                    if (!groupedByDate[date]) groupedByDate[date] = [];
-                    groupedByDate[date].push({ ...rec, recText: rec.recommendation || String(rec) });
-                  });
-                  return Object.entries(groupedByDate).map(([date, recs], dateIdx) => (
-                    <View key={dateIdx} style={{ marginBottom: 10 }}>
-                      <Text style={styles.nestedSubtitle}>{safeString(date)}</Text>
-                      {recs.map((rec, rIdx) => (
-                        <Text key={rIdx} style={styles.listItem}>{rIdx + 1}. {safeString(rec.recText)}</Text>
-                      ))}
+      {records.length ? (
+        records.map((record, recordIndex) => (
+          <Page size="A4" style={styles.page} key={recordIndex}>
+            <View fixed style={styles.pageBackground} />
+            <Text style={styles.documentTitle}>Surgical Consent Forms</Text>
+            <View style={styles.record}>
+              <Text
+                style={styles.recordTitle}
+              >{`Surgical Consent Forms ${recordIndex + 1}`}</Text>
+              {SECTIONS.map((section) => {
+                const blocks = sectionBlocks(record, section);
+                if (!blocks.length) return null;
+                return (
+                  <View style={styles.section} key={section.title}>
+                    <View wrap={false}>
+                      <Text style={styles.sectionTitle}>{section.title}</Text>
+                      {blocks[0]}
                     </View>
-                  ));
-                })()}
-              </View>
-            )}
-          </View>
-        ))}
-      </Page>
+                    {blocks.slice(1)}
+                  </View>
+                );
+              })}
+            </View>
+          </Page>
+        ))
+      ) : (
+        <Page size="A4" style={styles.page}>
+          <View fixed style={styles.pageBackground} />
+          <Text style={styles.documentTitle}>Surgical Consent Forms</Text>
+          <Text style={styles.fieldValue}>No records available</Text>
+        </Page>
+      )}
     </Document>
   );
 };

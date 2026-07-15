@@ -14,20 +14,17 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 14, borderBottomWidth: 2, borderBottomColor: '#000000' },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1, color: '#000000' },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordMeta: { fontSize: 11, color: '#000000', marginTop: 3 },
-  section: { marginBottom: 16 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, backgroundColor: '#ffffff', color: '#000000' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 6, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  section: { marginBottom: 10 },
   fieldGroup: { marginBottom: 8 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 2, textTransform: 'uppercase' },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  value: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 1 },
-  nested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', marginTop: 2 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 4, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 2, marginTop: 6, marginBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  value: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 2 },
+  nested: { marginLeft: 10, marginTop: 2 },
   emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#000000' },
   pageNumber: { position: 'absolute', bottom: 20, right: 40, fontSize: 10, color: '#000000' },
 });
@@ -110,7 +107,7 @@ const SECTION_FIELDS = {
   'alternatives': ['alternativeTreatments'],
   'postop': ['postoperativeOrders'],
   'results': ['results'],
-  'clinical': ['type', 'findings', 'assessment', 'plan'],
+  'clinical': ['date', 'provider', 'facility', 'type', 'findings', 'assessment', 'plan'],
   'recommendations-section': ['recommendations'],
   'notes-status': ['notes', 'status'],
 };
@@ -125,6 +122,16 @@ const SENTENCE_FIELDS = ['consultationReason', 'adlStatus', 'findings', 'assessm
 const STRING_FIELDS = ['consultationReason', 'surgeonCredentials', 'adlStatus', 'type', 'provider', 'facility', 'findings', 'assessment', 'plan', 'notes', 'status'];
 const OBJECT_FIELDS = ['performanceStatus', 'pulmonaryFunction', 'tumorStaging', 'mediastinoscopy', 'bronchoscopy', 'vatsAssessment', 'preoperativePreparation', 'operativeDetails', 'adjuvantTherapy', 'petCtFindings', 'informedConsent', 'tumorBoard', 'anesthesiaPlanning', 'enhancedRecoveryProtocol', 'postoperativeOrders', 'results'];
 const ARRAY_FIELDS = ['backupSurgicalPlan', 'alternativeTreatments', 'recommendations'];
+const COMMA_SPLIT_FIELDS = new Set([
+  'performanceStatus.description',
+  'informedConsent.patientDecision',
+  'backupSurgicalPlan.1.plan',
+  'assessment',
+]);
+const PERIOD_SPLIT_FIELDS = new Set([
+  'consultationReason', 'adlStatus', 'findings', 'assessment', 'plan', 'notes',
+  'informedConsent.patientDecision',
+]);
 
 const KEY_OVERRIDES = {
   ecog: 'ECOG', fev1: 'FEV1', fvc: 'FVC', dlco: 'DLCO', tnm: 'TNM', tnmStage: 'TNM Stage',
@@ -157,15 +164,44 @@ const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; 
 const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
 const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
 
+const splitEditableClauses = (value, fieldPath) => {
+  const source = String(value ?? '');
+  const splitCommas = COMMA_SPLIT_FIELDS.has(fieldPath);
+  const splitPeriods = PERIOD_SPLIT_FIELDS.has(fieldPath);
+  const parts = [];
+  let current = '';
+  let depth = 0;
+  const push = () => { if (current.trim()) parts.push(current.trim()); current = ''; };
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    const next = source[index + 1] || '';
+    const previousWord = current.trim().match(/([A-Za-z]+)$/)?.[1] || '';
+    const safePeriod = character === '.' && splitPeriods && depth === 0 && /\s/.test(next)
+      && !['Mr', 'Mrs', 'Ms', 'Dr', 'St', 'Jr', 'Sr', 'Prof', 'Rev', 'Gen', 'Col', 'Sgt', 'vs', 'etc'].includes(previousWord);
+    const safeComma = character === ',' && splitCommas && depth === 0;
+    const safeSemicolon = character === ';' && depth === 0;
+    if (safePeriod || safeComma || safeSemicolon) {
+      push();
+      while (/\s/.test(source[index + 1] || '')) index += 1;
+    } else current += character;
+  }
+  push();
+  return parts.length ? parts : [source];
+};
+
 /* recursive node: object -> labelled nested block; array -> numbered/recursive items; scalar -> value line */
-const renderNode = (label, value, keyPath, depth) => {
+const renderNode = (label, value, keyPath, depth, fieldPath) => {
   if (isEmptyDeep(value)) return null;
   const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
   if (isScalar(value)) {
+    const displayValue = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value.trim()) ? formatDate(value) : fmtScalar(value);
+    const parts = splitEditableClauses(displayValue, fieldPath);
     return (
       <View key={keyPath}>
         {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.value}>{fmtScalar(value)}</Text>
+        {parts.map((part, index) => <Text key={`${keyPath}-${index}`} style={styles.value}>{`${index + 1}. ${part}`}</Text>)}
       </View>
     );
   }
@@ -176,11 +212,9 @@ const renderNode = (label, value, keyPath, depth) => {
       <View key={keyPath}>
         {label ? <Text style={LabelTag}>{label}</Text> : null}
         <View style={label ? styles.nested : undefined}>
-          {items.map((v, i) => (
-            isScalar(v)
-              ? <Text key={i} style={styles.value}>{i + 1}. {fmtScalar(v)}</Text>
-              : <View key={i}>{renderNode('', v, `${keyPath}-${i}`, depth + 1)}</View>
-          ))}
+          {items.flatMap((v, i) => isScalar(v)
+            ? splitEditableClauses(fmtScalar(v), `${fieldPath}.${i}`).map((part, partIndex) => <Text key={`${i}-${partIndex}`} style={styles.value}>{`${i + 1}${partIndex ? `.${partIndex + 1}` : ''}. ${part}`}</Text>)
+            : [<View key={i}>{renderNode('', v, `${keyPath}-${i}`, depth + 1, `${fieldPath}.${i}`)}</View>])}
         </View>
       </View>
     );
@@ -190,7 +224,7 @@ const renderNode = (label, value, keyPath, depth) => {
   return (
     <View key={keyPath}>
       {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
+      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1, `${fieldPath}.${k}`))}</View>
     </View>
   );
 };
@@ -225,18 +259,20 @@ const renderField = (record, field, sectionTitle, isFirst) => {
   if (ARRAY_FIELDS.includes(field)) {
     const items = Array.isArray(val) ? val.filter(v => !isEmptyDeep(v)) : [];
     if (items.length === 0) return [];
-    const rows = countRows(val);
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
+    let arrayRowNumber = 1;
+    const itemNodes = items.flatMap((item, index) => isScalar(item)
+      ? splitEditableClauses(fmtScalar(item), `${field}.${index}`).map((part, partIndex) => (
+        <Text key={`${index}-${partIndex}`} style={styles.value}>{`${arrayRowNumber++}. ${part}`}</Text>
+      ))
+      : [<View key={index}>{renderNode('', item, `${field}-${index}`, 1, `${field}.${index}`)}</View>]);
+    return [
+      <View key={`${field}-first`} style={styles.fieldGroup} wrap={false}>
         {titleNode}
         {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        {items.map((it, i) => (
-          isScalar(it)
-            ? <Text key={i} style={styles.value}>{i + 1}. {fmtScalar(it)}</Text>
-            : <View key={i}>{renderNode('', it, `${field}-${i}`, 1)}</View>
-        ))}
-      </View>
-    )];
+        {itemNodes[0]}
+      </View>,
+      ...itemNodes.slice(1).map((node, index) => <View key={`${field}-rest-${index}`} style={styles.fieldGroup}>{node}</View>),
+    ];
   }
 
   if (OBJECT_FIELDS.includes(field)) {
@@ -245,10 +281,10 @@ const renderField = (record, field, sectionTitle, isFirst) => {
     return entries.map(([k, v], i) => {
       const rows = countRows(v);
       return (
-        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
+        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={rows <= 8 ? false : true}>
           {i === 0 ? titleNode : null}
           {i === 0 && showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
-          {renderNode(humanizeKey(k), v, `${field}-${k}`, 1)}
+          {renderNode(humanizeKey(k), v, `${field}-${k}`, 1, `${field}.${k}`)}
         </View>
       );
     });
@@ -256,10 +292,10 @@ const renderField = (record, field, sectionTitle, isFirst) => {
 
   /* string — narrative fields split into sentences */
   const strVal = fmtVal(val);
-  const sentences = SENTENCE_FIELDS.includes(field) ? splitBySentence(strVal) : [strVal];
+  const sentences = splitEditableClauses(strVal, field);
   if (sentences.length > 1) {
     return [(
-      <View key={field} style={styles.fieldGroup} wrap={sentences.length > 8 ? undefined : false}>
+      <View key={field} style={styles.fieldGroup} wrap={sentences.length <= 8 ? false : true}>
         {titleNode}
         {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
         {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.value}>{sIdx + 1}. {s}</Text>))}
@@ -286,20 +322,17 @@ const ThoracicSurgeryAssessmentDocumentPDFTemplate = ({ document: data }) => {
   records = (records || []).filter(r => r && typeof r === 'object');
 
   if (records.length === 0) {
-    return (<Document><Page size="A4" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Thoracic Surgery Assessment</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+    return (<Document><Page size="LETTER" style={styles.page}><Text style={styles.documentTitle}>Thoracic Surgery Assessment</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>);
   }
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Thoracic Surgery Assessment</Text></View>
+      <Page size="LETTER" style={styles.page}>
+        <Text style={styles.documentTitle}>Thoracic Surgery Assessment</Text>
         {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
+          <View key={idx} style={styles.recordContainer} break={idx > 0}>
+            <View wrap={false}>
               <Text style={styles.recordTitle}>{`Thoracic Surgery Assessment ${String(record._recordNumber || idx + 1)}`}</Text>
-              {hasVal(record.date) && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
-              {hasVal(record.provider) && <Text style={styles.recordMeta}>{fmtVal(record.provider)}</Text>}
-              {hasVal(record.facility) && <Text style={styles.recordMeta}>{fmtVal(record.facility)}</Text>}
             </View>
 
             {/* Rule #74 (per-field gating): section View only provides spacing and always FLOWS.

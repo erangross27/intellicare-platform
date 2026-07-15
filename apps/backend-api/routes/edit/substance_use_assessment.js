@@ -57,6 +57,11 @@ const ALLOWED_FIELDS = [
   'recommendations',
   'results',
   'status',
+  'date',
+  'type',
+  'facility',
+  'duidHistory',
+  'cageScore',
 ];
 
 // --- PUT /:id/edit --- Edit a single field ----------------------------------------

@@ -1,527 +1,380 @@
-/**
- * SubstanceUseAssessmentDocumentPDFTemplate.jsx
- * December 2025 Standard - Black and White Only
- * Helvetica font, 14pt minimum body text
- */
+import React from "react";
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 
-import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+const SECTIONS = [
+  {
+    title: "Record Information",
+    fields: ["date", "type", "provider", "facility"],
+  },
+  { title: "Current Substance Use", fields: ["currentUse"] },
+  { title: "Past Substance Use", fields: ["pastUse"] },
+  { title: "Withdrawal Symptoms", fields: ["withdrawalSymptoms"] },
+  { title: "Treatment History", fields: ["treatmentHistory"] },
+  { title: "Screening", fields: ["duidHistory", "cageScore"] },
+  { title: "Findings", fields: ["findings"] },
+  { title: "Assessment", fields: ["assessment"] },
+  { title: "Plan", fields: ["plan"] },
+  { title: "Recommendations", fields: ["recommendations"] },
+  { title: "Results", fields: ["results"] },
+  { title: "Notes", fields: ["notes"] },
+  { title: "Status", fields: ["status"] },
+];
 
-// Helper: sanitize Unicode for Helvetica
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  let str = typeof val === 'string' ? val : String(val);
-  str = str.replace(/μm/g, 'um');
-  str = str.replace(/µm/g, 'um');
-  str = str.replace(/°/g, ' deg');
-  str = str.replace(/±/g, '+/-');
-  str = str.replace(/≥/g, '>=');
-  str = str.replace(/≤/g, '<=');
-  str = str.replace(/→/g, '->');
-  return str;
+const LABELS = {
+  date: "Date",
+  type: "Assessment Type",
+  provider: "Provider",
+  facility: "Facility",
+  currentUse: "Current Substance Use",
+  pastUse: "Past Substance Use",
+  withdrawalSymptoms: "Withdrawal Symptoms",
+  treatmentHistory: "Treatment History",
+  duidHistory: "DUID History",
+  cageScore: "CAGE Score",
+  findings: "Findings",
+  assessment: "Assessment",
+  plan: "Plan",
+  recommendations: "Recommendations",
+  results: "Results",
+  notes: "Notes",
+  status: "Status",
 };
 
-// Helper: format date
-const formatDate = (dateVal) => {
-  if (!dateVal) return '';
+const COMMA_ARRAY_FIELDS = [
+  "findings",
+  "assessment",
+  "plan",
+  "notes",
+  "results.Alcohol",
+  "results.Tobacco",
+];
+const empty = (value) =>
+  value == null ||
+  value === "" ||
+  (Array.isArray(value)
+    ? !value.some((item) => !empty(item))
+    : typeof value === "object" && !value.$date
+      ? Object.values(value).every(empty)
+      : false);
+const isDate = (value) =>
+  Boolean(
+    value?.$date ||
+    (typeof value === "string" && /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(value)),
+  );
+const safe = (value) =>
+  String(value ?? "")
+    .replace(/[µμ]/g, "u")
+    .replace(/°/g, " deg")
+    .replace(/±/g, "+/-")
+    .replace(/≥/g, ">=")
+    .replace(/≤/g, "<=")
+    .replace(/→/g, "->")
+    .replace(/–/g, "-");
+const formatDate = (value) => {
   try {
-    const d = new Date(dateVal);
-    if (isNaN(d.getTime())) return safeString(dateVal);
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime())
+      ? safe(value)
+      : date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
   } catch {
-    return safeString(dateVal);
+    return safe(value);
   }
 };
-
-// Helper: split by sentence
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+const humanize = (value) =>
+  String(value || "")
+    .replace(/_/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
+const splitComma = (text) => {
+  const rows = [];
+  let current = "";
+  let depth = 0;
+  for (const char of String(text || "")) {
+    if (char === "(") {
+      depth += 1;
+      current += char;
+    } else if (char === ")") {
+      depth = Math.max(0, depth - 1);
+      current += char;
+    } else if (char === "," && depth === 0) {
+      if (current.trim()) rows.push(current.trim());
+      current = "";
+    } else current += char;
+  }
+  if (current.trim()) rows.push(current.trim());
+  return rows.length ? rows : [String(text || "")];
 };
-
-// Helper: check if value exists
-const hasValue = (val) => {
-  if (val === null || val === undefined) return false;
-  if (typeof val === 'string') return val.trim().length > 0;
-  if (Array.isArray(val)) return val.length > 0;
-  if (typeof val === 'object') return Object.keys(val).length > 0;
-  return true;
+const parseLabel = (text) => {
+  const match = String(text || "").match(
+    /^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/,
+  );
+  return match
+    ? { label: match[1].trim(), value: match[2].trim() }
+    : { label: "", value: String(text || "") };
 };
-
-// Helper: humanize a dynamic object key (e.g. "auditScore" -> "Audit Score")
-const humanizeKey = (k) => k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
-
-// Helper: flatten a dynamic-key object (results) one level deep -> { label, value } leaves. No [object Object].
-const flattenObject = (obj) => {
-  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return [];
-  const items = [];
-  Object.entries(obj).forEach(([key, value]) => {
-    if (value === null || value === undefined || value === '') return;
-    const label = humanizeKey(key);
-    if (typeof value === 'boolean') {
-      items.push({ key, label, value: value ? 'Yes' : 'No' });
-    } else if (Array.isArray(value)) {
-      items.push({ key, label, value: value.map(v => (v && typeof v === 'object') ? Object.values(v).join(' ') : String(v)).join(', ') });
-    } else if (typeof value === 'object') {
-      Object.entries(value).forEach(([subKey, subValue]) => {
-        if (subValue !== null && subValue !== undefined && subValue !== '') {
-          items.push({ key: `${key}.${subKey}`, label: `${label} - ${humanizeKey(subKey)}`, value: (subValue && typeof subValue === 'object') ? Object.values(subValue).join(' ') : String(subValue) });
-        }
-      });
-    } else {
-      items.push({ key, label, value: String(value) });
-    }
+const splitTokens = (text) => {
+  const source = String(text || "");
+  const regex =
+    /(?:;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/g;
+  const tokens = [];
+  let start = 0;
+  let match;
+  while ((match = regex.exec(source))) {
+    const value = source.slice(start, match.index).trim();
+    if (value) tokens.push(value);
+    start = match.index + match[0].length;
+  }
+  const tail = source
+    .slice(start)
+    .replace(/[.;]\s*$/, "")
+    .trim();
+  if (tail) tokens.push(tail);
+  return tokens.length ? tokens : [source.trim()];
+};
+const scalarRows = (path, value) => {
+  const display = isDate(value)
+    ? formatDate(value)
+    : typeof value === "boolean"
+      ? value
+        ? "Yes"
+        : "No"
+      : safe(value);
+  if (
+    /^-?\d+(?:\.\d+)?(?:\s*\/\s*\d+(?:\.\d+)?|\s*-\s*\d+(?:\.\d+)?)?[\s\S]*$/.test(
+      display,
+    )
+  ) {
+    return [{ label: "", text: display }];
+  }
+  return splitTokens(display).flatMap((token) => {
+    const parsed = parseLabel(token);
+    const values = COMMA_ARRAY_FIELDS.includes(path)
+      ? splitComma(parsed.value)
+      : [parsed.value];
+    return values.map((text, index) => ({
+      label: index === 0 ? parsed.label : "",
+      text,
+    }));
   });
-  return items;
 };
-
-// recommendations subfield order ({recommendation, date} objects or plain strings)
-const RECOMMENDATION_SUBFIELDS = [
-  { key: 'recommendation', label: 'Recommendation' },
-  { key: 'date', label: 'Date', isDate: true },
-];
+const unwrap = (input) => {
+  if (!input) return [];
+  return (Array.isArray(input) ? input : [input])
+    .flatMap((item) => {
+      if (item?.substance_use_assessment)
+        return Array.isArray(item.substance_use_assessment)
+          ? item.substance_use_assessment
+          : [item.substance_use_assessment];
+      if (item?.documentData?.substance_use_assessment)
+        return Array.isArray(item.documentData.substance_use_assessment)
+          ? item.documentData.substance_use_assessment
+          : [item.documentData.substance_use_assessment];
+      if (item?.documentData)
+        return Array.isArray(item.documentData)
+          ? item.documentData
+          : [item.documentData];
+      if (item?.document)
+        return Array.isArray(item.document) ? item.document : [item.document];
+      return [item];
+    })
+    .filter((record) => record && typeof record === "object");
+};
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
+    padding: 36,
+    fontFamily: "Helvetica",
+    color: "#000000",
     fontSize: 14,
-    backgroundColor: '#ffffff',
-    color: '#000000',
   },
   documentTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 20,
-    color: '#000000',
-    textAlign: 'center',
+    fontSize: 26,
+    fontFamily: "Helvetica-Bold",
+    textAlign: "center",
+    marginBottom: 18,
+    paddingBottom: 7,
+    borderBottomWidth: 2,
+    borderBottomColor: "#000000",
   },
-  recordContainer: {
-    marginBottom: 24,
-    paddingBottom: 16,
-  },
-  recordTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 12,
-    color: '#000000',
-  },
-  recordMeta: {
-    fontSize: 12,
-    color: '#666666',
-    marginBottom: 16,
-  },
-  section: {
-    marginBottom: 16,
-  },
+  record: { marginBottom: 20 },
+  recordTitle: { fontSize: 19, fontFamily: "Helvetica-Bold", marginBottom: 12 },
+  section: { marginBottom: 12 },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
-    color: '#000000',
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 7,
+    paddingBottom: 3,
     borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-    paddingBottom: 4,
+    borderBottomColor: "#000000",
   },
-  fieldBlock: {
-    marginBottom: 8,
-    marginLeft: 12,
-  },
+  fieldBlock: { marginLeft: 10, marginBottom: 7 },
   fieldLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 2,
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 3,
+    paddingBottom: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#999999",
   },
-  fieldValue: {
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 1.4,
-  },
-  listItem: {
-    fontSize: 14,
-    color: '#000000',
-    marginBottom: 4,
-    marginLeft: 12,
-  },
-  groupBlock: {
-    marginBottom: 12,
-    marginLeft: 12,
-    paddingLeft: 8,
-    borderLeftWidth: 2,
-    borderLeftColor: '#000000',
-  },
-  groupTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
-  },
-  groupDetail: {
-    fontSize: 12,
-    color: '#666666',
-    marginLeft: 8,
-    marginBottom: 2,
-  },
+  fieldValue: { fontSize: 14, lineHeight: 1.35, marginBottom: 2 },
 });
 
-const SubstanceUseAssessmentDocumentPDFTemplate = ({ document, data }) => {
-  const templateData = document || data;
+const scalarBlocks = (path, value, label = "") =>
+  scalarRows(path, value).map((row, index) => (
+    <View key={`${path}-${index}`} style={styles.fieldBlock} wrap={false}>
+      {index === 0 && label ? (
+        <Text style={styles.fieldLabel}>{safe(label)}</Text>
+      ) : null}
+      {row.label ? (
+        <Text style={styles.fieldLabel}>{safe(row.label)}</Text>
+      ) : null}
+      <Text style={styles.fieldValue}>{`${index + 1}. ${safe(row.text)}`}</Text>
+    </View>
+  ));
 
-  // Unwrap data
-  const unwrapData = (input) => {
-    if (!input) return [];
-    if (Array.isArray(input)) {
-      return input.flatMap(item => {
-        if (item?.document) return Array.isArray(item.document) ? item.document : [item.document];
-        if (item?.data) return Array.isArray(item.data) ? item.data : [item.data];
-        return [item];
-      });
+const nodeBlocks = (path, value, label = "") => {
+  if (empty(value)) return [];
+  if (isDate(value) || typeof value !== "object")
+    return scalarBlocks(path, value, label);
+  if (Array.isArray(value)) {
+    const items = value
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => !empty(item));
+    if (items.every(({ item }) => isDate(item) || typeof item !== "object")) {
+      return items.flatMap(({ item, index }) =>
+        scalarBlocks(`${path}.${index}`, item, index === 0 ? label : ""),
+      );
     }
-    if (input.document) return Array.isArray(input.document) ? input.document : [input.document];
-    if (input.data) return Array.isArray(input.data) ? input.data : [input.data];
-    return [input];
-  };
-
-  const records = unwrapData(templateData);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <Text style={styles.documentTitle}>Substance Use Assessment</Text>
-          <Text style={{ textAlign: 'center', color: '#666666' }}>No records available</Text>
-        </Page>
-      </Document>
-    );
+    return items.flatMap(({ item, index }) => {
+      const itemLabel =
+        item?.substance || item?.type || `${label || "Item"} ${index + 1}`;
+      const heading = (
+        <View
+          key={`${path}.${index}-heading`}
+          style={styles.fieldBlock}
+          wrap={false}
+        >
+          <Text style={styles.fieldLabel}>{safe(itemLabel)}</Text>
+        </View>
+      );
+      return [
+        heading,
+        ...Object.entries(item)
+          .filter(([, child]) => !empty(child))
+          .flatMap(([key, child]) =>
+            nodeBlocks(`${path}.${index}.${key}`, child, humanize(key)),
+          ),
+      ];
+    });
   }
+  return Object.entries(value)
+    .filter(([, child]) => !empty(child))
+    .flatMap(([key, child]) =>
+      nodeBlocks(`${path}.${key}`, child, humanize(key)),
+    );
+};
 
+const recommendationBlocks = (value) => {
+  const groups = new Map();
+  value.forEach((item, index) => {
+    const date = item?.date || "";
+    const key = date ? String(date?.$date || date).slice(0, 10) : "no-date";
+    if (!groups.has(key)) groups.set(key, { date, items: [] });
+    groups.get(key).items.push({ item, index });
+  });
+  return [...groups.entries()].flatMap(([key, group]) => {
+    const blocks = [];
+    if (key !== "no-date")
+      blocks.push(
+        <View key={`${key}-date`} style={styles.fieldBlock} wrap={false}>
+          <Text style={styles.fieldLabel}>Date</Text>
+          <Text style={styles.fieldValue}>{formatDate(group.date)}</Text>
+        </View>,
+      );
+    let rowNumber = 1;
+    group.items.forEach(({ item, index }) => {
+      const text = typeof item === "object" ? item.recommendation : item;
+      scalarRows(`recommendations.${index}.recommendation`, text).forEach(
+        (row) => {
+          blocks.push(
+            <View
+              key={`${key}-${index}-${rowNumber}`}
+              style={styles.fieldBlock}
+              wrap={false}
+            >
+              {row.label ? (
+                <Text style={styles.fieldLabel}>{safe(row.label)}</Text>
+              ) : null}
+              <Text
+                style={styles.fieldValue}
+              >{`${rowNumber}. ${safe(row.text)}`}</Text>
+            </View>,
+          );
+          rowNumber += 1;
+        },
+      );
+    });
+    return blocks;
+  });
+};
+
+const sectionBlocks = (record, section) =>
+  section.fields.flatMap((field) => {
+    const value = record[field];
+    if (empty(value)) return [];
+    if (field === "recommendations" && Array.isArray(value))
+      return recommendationBlocks(value);
+    const label =
+      (LABELS[field] || humanize(field)).toLowerCase() ===
+      section.title.toLowerCase()
+        ? ""
+        : LABELS[field] || humanize(field);
+    return nodeBlocks(field, value, label);
+  });
+
+const SubstanceUseAssessmentDocumentPDFTemplate = ({
+  document,
+  data,
+  templateData,
+}) => {
+  const records = unwrap(templateData || document || data);
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Substance Use Assessment</Text>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            {/* Record Header */}
-            <Text style={styles.recordTitle}>
-              {safeString(`Substance Use Assessment ${idx + 1}`)}
-            </Text>
-            <Text style={styles.recordMeta}>
-              {hasValue(record.date) && `Date: ${formatDate(record.date)}`}
-              {record.provider && ` | Provider: ${safeString(record.provider)}`}
-              {record.facility && ` | Facility: ${safeString(record.facility)}`}
-            </Text>
-
-            {/* Current Use - Pattern 2: Title + First Item Together */}
-            {hasValue(record.currentUse) && (() => {
-              const items = record.currentUse;
-              const firstItem = items[0];
-              const restItems = items.slice(1);
-              return (
-                <View style={styles.section}>
-                  {/* Title + first item wrapped together */}
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Current Substance Use</Text>
-                    <View style={styles.groupBlock}>
-                      <Text style={styles.groupTitle}>
-                        1. {safeString(firstItem.substance || 'Unknown Substance')}
-                      </Text>
-                      {hasValue(firstItem.frequency) && (
-                        <Text style={styles.groupDetail}>Frequency: {safeString(firstItem.frequency)}</Text>
-                      )}
-                      {hasValue(firstItem.amount) && (
-                        <Text style={styles.groupDetail}>Amount: {safeString(firstItem.amount)}</Text>
-                      )}
-                      {hasValue(firstItem.lastUse) && (
-                        <Text style={styles.groupDetail}>Last Use: {safeString(firstItem.lastUse)}</Text>
-                      )}
-                      {hasValue(firstItem.route) && (
-                        <Text style={styles.groupDetail}>Route: {safeString(firstItem.route)}</Text>
-                      )}
+      {records.length ? (
+        records.map((record, recordIndex) => (
+          <Page size="A4" style={styles.page} key={recordIndex}>
+            <Text style={styles.documentTitle}>Substance Use Assessment</Text>
+            <View style={styles.record}>
+              <Text
+                style={styles.recordTitle}
+              >{`Substance Use Assessment ${recordIndex + 1}`}</Text>
+              {SECTIONS.map((section) => {
+                const blocks = sectionBlocks(record, section);
+                if (!blocks.length) return null;
+                return (
+                  <View style={styles.section} key={section.title}>
+                    <View wrap={false}>
+                      <Text style={styles.sectionTitle}>{section.title}</Text>
+                      {blocks[0]}
                     </View>
+                    {blocks.slice(1)}
                   </View>
-                  {/* Rest flows naturally */}
-                  {restItems.map((item, i) => (
-                    <View key={i + 1} style={styles.groupBlock} wrap={false}>
-                      <Text style={styles.groupTitle}>
-                        {i + 2}. {safeString(item.substance || 'Unknown Substance')}
-                      </Text>
-                      {hasValue(item.frequency) && (
-                        <Text style={styles.groupDetail}>Frequency: {safeString(item.frequency)}</Text>
-                      )}
-                      {hasValue(item.amount) && (
-                        <Text style={styles.groupDetail}>Amount: {safeString(item.amount)}</Text>
-                      )}
-                      {hasValue(item.lastUse) && (
-                        <Text style={styles.groupDetail}>Last Use: {safeString(item.lastUse)}</Text>
-                      )}
-                      {hasValue(item.route) && (
-                        <Text style={styles.groupDetail}>Route: {safeString(item.route)}</Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Past Use - Pattern 2: Title + First Item Together */}
-            {hasValue(record.pastUse) && (() => {
-              const items = record.pastUse;
-              const firstItem = items[0];
-              const restItems = items.slice(1);
-              return (
-                <View style={styles.section}>
-                  {/* Title + first item wrapped together */}
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Past Substance Use</Text>
-                    <View style={styles.groupBlock}>
-                      <Text style={styles.groupTitle}>
-                        1. {safeString(firstItem.substance || 'Unknown Substance')}
-                      </Text>
-                      {hasValue(firstItem.ageStarted) && (
-                        <Text style={styles.groupDetail}>Age Started: {safeString(firstItem.ageStarted)}</Text>
-                      )}
-                      {hasValue(firstItem.duration) && (
-                        <Text style={styles.groupDetail}>Duration: {safeString(firstItem.duration)}</Text>
-                      )}
-                    </View>
-                  </View>
-                  {/* Rest flows naturally */}
-                  {restItems.map((item, i) => (
-                    <View key={i + 1} style={styles.groupBlock} wrap={false}>
-                      <Text style={styles.groupTitle}>
-                        {i + 2}. {safeString(item.substance || 'Unknown Substance')}
-                      </Text>
-                      {hasValue(item.ageStarted) && (
-                        <Text style={styles.groupDetail}>Age Started: {safeString(item.ageStarted)}</Text>
-                      )}
-                      {hasValue(item.duration) && (
-                        <Text style={styles.groupDetail}>Duration: {safeString(item.duration)}</Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Withdrawal Symptoms - Pattern 2: Title + First Item Together */}
-            {hasValue(record.withdrawalSymptoms) && (() => {
-              const items = record.withdrawalSymptoms;
-              const firstItem = items[0];
-              const restItems = items.slice(1);
-              return (
-                <View style={styles.section}>
-                  {/* Title + first item wrapped together */}
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Withdrawal Symptoms</Text>
-                    <Text style={styles.listItem}>1. {safeString(firstItem)}</Text>
-                  </View>
-                  {/* Rest flows naturally */}
-                  {restItems.map((symptom, i) => (
-                    <Text key={i + 1} style={styles.listItem} wrap={false}>
-                      {i + 2}. {safeString(symptom)}
-                    </Text>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Treatment History - Pattern 2: Title + First Item Together */}
-            {hasValue(record.treatmentHistory) && (() => {
-              const items = record.treatmentHistory;
-              const firstItem = items[0];
-              const restItems = items.slice(1);
-              return (
-                <View style={styles.section}>
-                  {/* Title + first item wrapped together */}
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Treatment History</Text>
-                    <View style={styles.groupBlock}>
-                      <Text style={styles.groupTitle}>
-                        1. {safeString(firstItem.type || 'Treatment')}
-                      </Text>
-                      {hasValue(firstItem.facility) && (
-                        <Text style={styles.groupDetail}>Facility: {safeString(firstItem.facility)}</Text>
-                      )}
-                      {hasValue(firstItem.dates) && (
-                        <Text style={styles.groupDetail}>Dates: {safeString(firstItem.dates)}</Text>
-                      )}
-                      {hasValue(firstItem.outcome) && (
-                        <Text style={styles.groupDetail}>Outcome: {safeString(firstItem.outcome)}</Text>
-                      )}
-                    </View>
-                  </View>
-                  {/* Rest flows naturally */}
-                  {restItems.map((item, i) => (
-                    <View key={i + 1} style={styles.groupBlock} wrap={false}>
-                      <Text style={styles.groupTitle}>
-                        {i + 2}. {safeString(item.type || 'Treatment')}
-                      </Text>
-                      {hasValue(item.facility) && (
-                        <Text style={styles.groupDetail}>Facility: {safeString(item.facility)}</Text>
-                      )}
-                      {hasValue(item.dates) && (
-                        <Text style={styles.groupDetail}>Dates: {safeString(item.dates)}</Text>
-                      )}
-                      {hasValue(item.outcome) && (
-                        <Text style={styles.groupDetail}>Outcome: {safeString(item.outcome)}</Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Screening */}
-            {(record.duidHistory !== undefined || record.cageScore !== undefined) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Screening</Text>
-                {record.duidHistory !== undefined && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>DUID History:</Text>
-                    <Text style={styles.fieldValue}>{record.duidHistory ? 'Yes' : 'No'}</Text>
-                  </View>
-                )}
-                {record.cageScore !== undefined && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>CAGE Score:</Text>
-                    <Text style={styles.fieldValue}>{String(record.cageScore)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Findings - Pattern 2: Title + First Item Together */}
-            {hasValue(record.findings) && (() => {
-              const items = splitBySentence(record.findings);
-              if (items.length === 0) return null;
-              const firstItem = items[0];
-              const restItems = items.slice(1);
-              return (
-                <View style={styles.section}>
-                  {/* Title + first item wrapped together */}
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Findings</Text>
-                    <Text style={styles.listItem}>1. {safeString(firstItem)}</Text>
-                  </View>
-                  {/* Rest flows naturally */}
-                  {restItems.map((sentence, i) => (
-                    <Text key={i + 1} style={styles.listItem} wrap={false}>
-                      {i + 2}. {safeString(sentence)}
-                    </Text>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Assessment - Pattern 2: Title + First Item Together */}
-            {hasValue(record.assessment) && (() => {
-              const items = splitBySentence(record.assessment);
-              if (items.length === 0) return null;
-              const firstItem = items[0];
-              const restItems = items.slice(1);
-              return (
-                <View style={styles.section}>
-                  {/* Title + first item wrapped together */}
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Assessment</Text>
-                    <Text style={styles.listItem}>1. {safeString(firstItem)}</Text>
-                  </View>
-                  {/* Rest flows naturally */}
-                  {restItems.map((sentence, i) => (
-                    <Text key={i + 1} style={styles.listItem} wrap={false}>
-                      {i + 2}. {safeString(sentence)}
-                    </Text>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Plan - Pattern 2: Title + First Item Together */}
-            {hasValue(record.plan) && (() => {
-              const items = splitBySentence(record.plan);
-              if (items.length === 0) return null;
-              const firstItem = items[0];
-              const restItems = items.slice(1);
-              return (
-                <View style={styles.section}>
-                  {/* Title + first item wrapped together */}
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Plan</Text>
-                    <Text style={styles.listItem}>1. {safeString(firstItem)}</Text>
-                  </View>
-                  {/* Rest flows naturally */}
-                  {restItems.map((sentence, i) => (
-                    <Text key={i + 1} style={styles.listItem} wrap={false}>
-                      {i + 2}. {safeString(sentence)}
-                    </Text>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Recommendations - object-array {recommendation, date} or plain strings; flatten readable */}
-            {hasValue(record.recommendations) && (() => {
-              const items = (record.recommendations || []).filter(it => it !== null && it !== undefined && it !== '');
-              if (items.length === 0) return null;
-              const knownKeys = RECOMMENDATION_SUBFIELDS.map(sf => sf.key);
-              return (
-                <View style={styles.section} wrap={items.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Recommendations</Text>
-                  {items.map((item, i) => {
-                    if (typeof item !== 'object' || item === null) {
-                      return <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>;
-                    }
-                    const allDefs = [...RECOMMENDATION_SUBFIELDS, ...Object.keys(item).filter(k => !knownKeys.includes(k)).map(k => ({ key: k, label: humanizeKey(k) }))];
-                    const parts = allDefs
-                      .filter(sf => hasValue(item[sf.key]))
-                      .map(sf => `${sf.label}: ${sf.isDate ? formatDate(item[sf.key]) : safeString(item[sf.key])}`);
-                    return <Text key={i} style={styles.listItem}>{i + 1}. {parts.join(' | ')}</Text>;
-                  })}
-                </View>
-              );
-            })()}
-
-            {/* Results - dynamic-key object -> humanized label + value per leaf; no [object Object] */}
-            {hasValue(record.results) && (() => {
-              const items = flattenObject(record.results);
-              if (items.length === 0) return null;
-              return (
-                <View style={styles.section} wrap={items.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Results</Text>
-                  {items.map((item, i) => (
-                    <View key={i} style={styles.fieldBlock}>
-                      <Text style={styles.fieldLabel}>{safeString(item.label)}:</Text>
-                      <Text style={styles.fieldValue}>{safeString(item.value)}</Text>
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-
-            {/* Status */}
-            {hasValue(record.status) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Status</Text>
-                <Text style={styles.fieldValue}>{safeString(record.status)}</Text>
-              </View>
-            )}
-
-            {/* Notes */}
-            {hasValue(record.notes) && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Notes</Text>
-                <Text style={styles.fieldValue}>{safeString(record.notes)}</Text>
-              </View>
-            )}
-          </View>
-        ))}
-      </Page>
+                );
+              })}
+            </View>
+          </Page>
+        ))
+      ) : (
+        <Page size="A4" style={styles.page}>
+          <Text style={styles.documentTitle}>Substance Use Assessment</Text>
+          <Text style={styles.fieldValue}>No records available</Text>
+        </Page>
+      )}
     </Document>
   );
 };

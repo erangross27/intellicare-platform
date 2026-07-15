@@ -99,6 +99,7 @@ import StiScreeningPanelDocumentPDFTemplate from './StiScreeningPanelDocumentPDF
 import StressManagementReferralsDocumentPDFTemplate from './StressManagementReferralsDocumentPDFTemplate';
 import StressTestReportsDocumentPDFTemplate from './StressTestReportsDocumentPDFTemplate';
 import StrokeAssessmentDocumentPDFTemplate from './StrokeAssessmentDocumentPDFTemplate';
+import SubstanceUseAssessmentDocumentPDFTemplate from './SubstanceUseAssessmentDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -187,6 +188,7 @@ const templateRegistry = {
   'stress_management_referrals': StressManagementReferralsDocumentPDFTemplate,
   'stress_test_reports': StressTestReportsDocumentPDFTemplate,
   'stroke_assessment': StrokeAssessmentDocumentPDFTemplate,
+  'substance_use_assessment': SubstanceUseAssessmentDocumentPDFTemplate,
 };
 
 /**

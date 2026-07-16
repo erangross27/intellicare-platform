@@ -142,6 +142,7 @@ import UrologyConsultationsDocumentPDFTemplate from './UrologyConsultationsDocum
 import VaccinationRecordsDocumentPDFTemplate from './VaccinationRecordsDocumentPDFTemplate';
 import VariantInterpretationGuidelinesDocumentPDFTemplate from './VariantInterpretationGuidelinesDocumentPDFTemplate';
 import VascularBypassSurgeryDocumentPDFTemplate from './VascularBypassSurgeryDocumentPDFTemplate';
+import VascularSurgeryAssessmentDocumentPDFTemplate from './VascularSurgeryAssessmentDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -273,6 +274,7 @@ const templateRegistry = {
   'vaccination_records': VaccinationRecordsDocumentPDFTemplate,
   'variant_interpretation_guidelines': VariantInterpretationGuidelinesDocumentPDFTemplate,
   'vascular_bypass_surgery': VascularBypassSurgeryDocumentPDFTemplate,
+  'vascular_surgery_assessment': VascularSurgeryAssessmentDocumentPDFTemplate,
 };
 
 /**

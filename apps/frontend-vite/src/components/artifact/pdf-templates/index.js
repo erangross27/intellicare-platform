@@ -102,6 +102,7 @@ import TraumaFlowSheetsDocumentPDFTemplate from './TraumaFlowSheetsDocumentPDFTe
 import TraumaScoringDocumentPDFTemplate from './TraumaScoringDocumentPDFTemplate';
 import TravelHealthCertificatesDocumentPDFTemplate from './TravelHealthCertificatesDocumentPDFTemplate';
 import TravelMedicineAssessmentDocumentPDFTemplate from './TravelMedicineAssessmentDocumentPDFTemplate';
+import TravelVaccinationRecordsDocumentPDFTemplate from './TravelVaccinationRecordsDocumentPDFTemplate';
 import StiScreeningPanelDocumentPDFTemplate from './StiScreeningPanelDocumentPDFTemplate';
 import StressManagementReferralsDocumentPDFTemplate from './StressManagementReferralsDocumentPDFTemplate';
 import StressTestReportsDocumentPDFTemplate from './StressTestReportsDocumentPDFTemplate';
@@ -217,6 +218,7 @@ const templateRegistry = {
   'trauma_scoring': TraumaScoringDocumentPDFTemplate,
   'travel_health_certificates': TravelHealthCertificatesDocumentPDFTemplate,
   'travel_medicine_assessment': TravelMedicineAssessmentDocumentPDFTemplate,
+  'travel_vaccination_records': TravelVaccinationRecordsDocumentPDFTemplate,
   'sti_screening_panel': StiScreeningPanelDocumentPDFTemplate,
   'stress_management_referrals': StressManagementReferralsDocumentPDFTemplate,
   'stress_test_reports': StressTestReportsDocumentPDFTemplate,

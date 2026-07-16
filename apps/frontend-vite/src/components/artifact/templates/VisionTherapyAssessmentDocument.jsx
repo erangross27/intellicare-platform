@@ -105,7 +105,8 @@ const NUMBER_FIELDS = [
   'convergenceInsufficiencySymptomScore',
   'visualMotorIntegrationPercentile', 'visualPerceptionPercentile',
 ];
-const NON_EDITABLE_FIELDS = ['createdAt'];
+const SCORE_RATIO_FIELDS = ['patientVisualAcuityOD', 'patientVisualAcuityOS'];
+const COMMA_ARRAY_FIELDS = ['saccadicFixationAbility'];
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -130,9 +131,19 @@ const splitByComma = (text) => {
   return result.length > 0 ? result : [text];
 };
 
-const formatDate = (dateValue) => {
-  if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
+const splitScoreRatio = (value) => {
+  const source = String(value || '');
+  const match = source.match(/^(\s*)(-?\d+(?:\.\d+)?)(\s*\/\s*(\d+(?:\.\d+)?)[\s\S]*)$/);
+  if (!match) return null;
+  const decimals = (match[2].split('.')[1] || '').length;
+  return {
+    prefix: match[1],
+    number: match[2],
+    suffix: match[3],
+    denominator: Number(match[4]),
+    step: decimals ? Number(`0.${'0'.repeat(decimals - 1)}1`) : 1,
+    decimals,
+  };
 };
 
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
@@ -151,7 +162,7 @@ const writeDrafts = (store) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
+const VisionTherapyAssessmentDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -170,15 +181,18 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? data ?? templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.vision_therapy_assessment) return Array.isArray(r.vision_therapy_assessment) ? r.vision_therapy_assessment : [r.vision_therapy_assessment];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.vision_therapy_assessment) return Array.isArray(dd.vision_therapy_assessment) ? dd.vision_therapy_assessment : [dd.vision_therapy_assessment]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   // Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF).
   useEffect(() => {
@@ -209,7 +223,7 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -226,6 +240,17 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
     if (localEdits[k] !== undefined) return localEdits[k];
     return record[fn];
   }, [localEdits]);
+
+  const numberShows = useCallback((record, fn, idx) => {
+    const value = getFieldValue(record, fn, idx);
+    if (value === null || value === undefined || value === '') return false;
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return false;
+    if (numericValue !== 0) return true;
+    const editKey = `${fn}-${idx}`;
+    const doctorEdited = Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(fn);
+    return Boolean(editedFields[editKey]) || doctorEdited;
+  }, [getFieldValue, editedFields]);
 
   const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -455,6 +480,16 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
     return lines;
   }, [splitBySentence]);
 
+  const fieldRows = useCallback((fn, value) => {
+    const text = fmtVal(value);
+    if (!STRING_FIELDS.includes(fn)) return [text];
+    return splitBySentence(text).flatMap(clause => {
+      const parsed = parseLabel(clause);
+      const values = COMMA_ARRAY_FIELDS.includes(fn) ? splitByComma(parsed.value) : [parsed.value];
+      return values.map(item => parsed.isLabeled ? `${parsed.label}: ${item}` : item);
+    }).filter(Boolean);
+  }, [fmtVal, splitBySentence]);
+
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
     let text = `${title}\n${'='.repeat(40)}\n\n`;
@@ -462,25 +497,14 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
-      if (!hasVal(val)) return;
-      if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}\n${val}\n\n`;
-      } else if (LONG_STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
-      } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
-      }
+      const visible = NUMBER_FIELDS.includes(f) ? numberShows(record, f, idx) : hasVal(val);
+      if (!visible) return;
+      text += `${label}\n${'-'.repeat(40)}\n`;
+      fieldRows(f, val).forEach((row, rowIndex) => { text += `${rowIndex + 1}. ${row}\n`; });
+      text += '\n';
     });
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+  }, [getFieldValue, numberShows, hasVal, fieldRows]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== VISION THERAPY ASSESSMENT ===\n\n';
@@ -497,40 +521,111 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
 
   /* ═══════ RENDER: NUMBER FIELD ═══════ */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    if (!numberShows(record, fn, idx)) return null;
+    const val = getFieldValue(record, fn, idx);
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
+    const displayVal = String(val);
     const isModified = editedFields[editKey];
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
+    const saveNumeric = () => {
+      const numericValue = Number(editValue);
+      if (!Number.isFinite(numericValue)) { setSaveError('Please enter a valid number'); return; }
+      handleSaveField(record, fn, idx, sid, null, numericValue);
+    };
+
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(val)); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <input type="number" step="any" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { e.stopPropagation(); const numVal = parseFloat(editValue); if (editValue.trim() === '' || isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (editValue.trim() === '' || isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+        <div data-edit-field={fn}>
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
+            {isEditing ? (
+              <div className="edit-field-container">
+                <div className="number-edit-row">
+                  <button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={event => { setEditValue(event.target.value); setSaveError(null); }} autoFocus />
+                  <button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button>
+                </div>
+                {saveError && <div className="save-error">{saveError}</div>}
+                <div className="edit-actions">
+                  <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); saveNumeric(); }}>{saving ? 'Saving...' : 'Save'}</button>
+                  <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(fmtVal(val))}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${val}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
+            ) : (
+              <>
+                <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+                <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              </>
+            )}
+          </div>
+          {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
         </div>
-        {isModified && <span className={`modified-badge ${isModified === 'added' ? 'added' : ''}`}>{isModified === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
+      </div>
+    );
+  };
+
+  const renderScoreRatioField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx);
+    const ratio = splitScoreRatio(value);
+    if (!ratio) return renderStringField(record, fn, idx, sid);
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const isModified = editedFields[editKey];
+    const label = FIELD_LABELS[fn] || fn;
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    const changeNumerator = delta => {
+      const current = Number(editValue);
+      const next = Math.max(0, Math.min(ratio.denominator, (Number.isFinite(current) ? current : 0) + delta));
+      setEditValue(next.toFixed(ratio.decimals));
+      setSaveError(null);
+    };
+    const saveRatio = () => {
+      const numerator = Number(editValue);
+      if (!Number.isFinite(numerator) || numerator < 0 || numerator > ratio.denominator) {
+        setSaveError(`Enter a value from 0 to ${ratio.denominator}`);
+        return;
+      }
+      handleSaveField(record, fn, idx, sid, null, `${ratio.prefix}${Number(editValue).toFixed(ratio.decimals)}${ratio.suffix}`);
+    };
+
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div data-edit-field={fn}>
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(ratio.number); setSaveError(null); } }}>
+            {isEditing ? (
+              <div className="edit-field-container">
+                <div className="number-edit-row score-ratio-editor">
+                  <button type="button" className="num-step" onClick={event => { event.stopPropagation(); changeNumerator(-ratio.step); }}>−</button>
+                  <input type="text" inputMode="decimal" className="edit-number" min="0" max={ratio.denominator} step={ratio.step} value={editValue} onClick={event => event.stopPropagation()} onChange={event => { setEditValue(event.target.value); setSaveError(null); }} autoFocus />
+                  <button type="button" className="num-step" onClick={event => { event.stopPropagation(); changeNumerator(ratio.step); }}>+</button>
+                  <span className="number-edit-unit">{ratio.suffix}</span>
+                </div>
+                {saveError && <div className="save-error">{saveError}</div>}
+                <div className="edit-actions">
+                  <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); saveRatio(); }}>{saving ? 'Saving...' : 'Save'}</button>
+                  <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="row-content"><span className="content-value">{highlightText(String(value))}</span><span className="edit-indicator">&#9998;</span></div>
+                <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${value}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              </>
+            )}
+          </div>
+          {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
 
   /* ═══════ RENDER: STRING FIELD with splitBySentence ═══════ */
-  const renderStringField = (record, fn, idx, sid) => {
+  const renderStringFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const isLong = LONG_STRING_FIELDS.includes(fn);
@@ -656,6 +751,70 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
     );
   };
 
+  const renderStringField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx);
+    if (!hasVal(value)) return null;
+    const label = FIELD_LABELS[fn] || fn;
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+
+    const sourceRows = splitBySentence(fmtVal(value)).flatMap(clause => {
+      const parsed = parseLabel(clause);
+      const values = COMMA_ARRAY_FIELDS.includes(fn) ? splitByComma(parsed.value) : [parsed.value];
+      return values.map(item => ({ isLabeled: parsed.isLabeled, label: parsed.label, value: item }));
+    });
+    const groups = [];
+    sourceRows.forEach((row, rowIndex) => {
+      const next = { ...row, rowIndex };
+      const groupLabel = row.isLabeled ? row.label : '';
+      const previous = groups[groups.length - 1];
+      if (previous && previous.label === groupLabel) previous.rows.push(next);
+      else groups.push({ label: groupLabel, rows: [next] });
+    });
+
+    const saveRow = row => {
+      const updatedRows = sourceRows.map(item => item.isLabeled ? `${item.label}: ${item.value}` : item.value);
+      updatedRows[row.rowIndex] = row.isLabeled ? `${row.label}: ${editValue.trim()}` : editValue.trim();
+      handleSaveField(record, fn, idx, sid, null, updatedRows.join('; '), `${fn}-${idx}-r${row.rowIndex}`);
+    };
+
+    return (
+      <div key={fn} className="rec-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        {groups.map((group, groupIndex) => (
+          <div key={`${group.label}-${groupIndex}`} className="nested-mini-card">
+            {group.label && <div className="nested-subtitle sub-label">{highlightText(group.label)}</div>}
+            {group.rows.map(row => {
+              const editKey = `${fn}-${idx}-r${row.rowIndex}`;
+              const isEditing = editingField === editKey;
+              const isModified = editedFields[editKey];
+              return (
+                <div key={editKey} data-edit-field={fn}>
+                  <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(row.value); setSaveError(null); } }}>
+                    {isEditing ? (
+                      <div className="edit-field-container">
+                        <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />
+                        <div className="edit-actions">
+                          <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); saveRow(row); }}>{saving ? 'Saving...' : 'Save'}</button>
+                          <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="row-content"><span className="content-value">{highlightText(row.value)}</span><span className="edit-indicator">&#9998;</span></div>
+                        <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(row.value, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                      </>
+                    )}
+                  </div>
+                  {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -664,7 +823,7 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
-      return hasVal(val);
+      return NUMBER_FIELDS.includes(f) ? numberShows(record, f, idx) : hasVal(val);
     });
     if (!hasAnyVal) return null;
 
@@ -680,6 +839,7 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
+            if (SCORE_RATIO_FIELDS.includes(f)) return renderScoreRatioField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
           })}
@@ -704,7 +864,7 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
         <h2 className="document-title">Vision Therapy Assessment</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<VisionTherapyAssessmentDocumentPDFTemplate document={pdfData} />} fileName={`vision-therapy-assessment-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<VisionTherapyAssessmentDocumentPDFTemplate document={pdfData} />} fileName="Vision_Therapy_Assessment.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -717,11 +877,6 @@ const VisionTherapyAssessmentDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.createdAt)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Vision Therapy Assessment ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'visual-acuity')}

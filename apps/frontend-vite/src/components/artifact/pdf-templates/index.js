@@ -148,6 +148,7 @@ import VenousInsufficiencyAssessmentDocumentPDFTemplate from './VenousInsufficie
 import VenousThromboembolismRiskDocumentPDFTemplate from './VenousThromboembolismRiskDocumentPDFTemplate';
 import VentilatorSettingsDocumentPDFTemplate from './VentilatorSettingsDocumentPDFTemplate';
 import VentilatorWeaningProtocolDocumentPDFTemplate from './VentilatorWeaningProtocolDocumentPDFTemplate';
+import VisionTherapyAssessmentDocumentPDFTemplate from './VisionTherapyAssessmentDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -285,6 +286,7 @@ const templateRegistry = {
   'venous_thromboembolism_risk': VenousThromboembolismRiskDocumentPDFTemplate,
   'ventilator_settings': VentilatorSettingsDocumentPDFTemplate,
   'ventilator_weaning_protocol': VentilatorWeaningProtocolDocumentPDFTemplate,
+  'vision_therapy_assessment': VisionTherapyAssessmentDocumentPDFTemplate,
 };
 
 /**

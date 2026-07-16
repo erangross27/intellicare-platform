@@ -9,21 +9,22 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, paddingBottom: 64, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 18 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 8, marginBottom: 5, paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 6 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 2, marginBottom: 2, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.4, color: '#000000', paddingLeft: 8 },
+  listItem: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#333333', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 14, color: '#333333', textAlign: 'center', marginTop: 40 },
+  footer: { position: 'absolute', bottom: 24, left: 40, right: 40, fontSize: 9, color: '#666666', textAlign: 'center', borderTopWidth: 0.5, borderTopColor: '#cccccc', paddingTop: 6 },
 });
 
 /* ======= UTILS ======= */
@@ -63,7 +64,7 @@ const numberShowsPDF = (record, key) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -99,7 +100,7 @@ const renderFieldRow = (label, value) => {
 };
 
 /* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
+const renderSentenceSection = (label, text, commaSplit = false) => {
   if (!hasVal(text)) return null;
   const sentences = splitBySentence(fmtVal(text));
   if (sentences.length === 0) return null;
@@ -109,20 +110,22 @@ const renderSentenceSection = (label, text) => {
   sentences.forEach(s => {
     const parsed = parseLabel(s);
     if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
+      const commaItems = commaSplit ? splitByComma(parsed.value) : [parsed.value];
       if (commaItems.length >= 2) {
         rows.push({ type: 'subtitle', text: safeString(parsed.label) });
         commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
       } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
+        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
+        rows.push({ type: 'item', text: safeString(parsed.value), num: n++ });
       }
     } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
+      const values = commaSplit ? splitByComma(s) : [s];
+      values.forEach(value => { rows.push({ type: 'item', text: safeString(value), num: n++ }); });
     }
   });
 
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {rows.map((row, i) => {
         if (row.type === 'subtitle') {
@@ -170,8 +173,8 @@ const SECTION_CONFIGS = [
     fields: [
       { key: 'cuffLeakTestResult', label: 'Cuff Leak Test Result', isBoolean: true },
       { key: 'cuffLeakVolume', label: 'Cuff Leak Volume', isNumber: true },
-      { key: 'coughStrengthAssessment', label: 'Cough Strength Assessment', isSentence: true },
-      { key: 'secretionBurden', label: 'Secretion Burden', isSentence: true },
+      { key: 'coughStrengthAssessment', label: 'Cough Strength Assessment', isSentence: true, commaSplit: true },
+      { key: 'secretionBurden', label: 'Secretion Burden', isSentence: true, commaSplit: true },
     ],
   },
   {
@@ -193,7 +196,7 @@ const SECTION_CONFIGS = [
     title: 'Extubation Outcome',
     fields: [
       { key: 'extubationOutcome', label: 'Extubation Outcome', isSentence: true },
-      { key: 'postExtubationRespiratorySupport', label: 'Post-Extubation Respiratory Support', isSentence: true },
+      { key: 'postExtubationRespiratorySupport', label: 'Post-Extubation Respiratory Support', isSentence: true, commaSplit: true },
     ],
   },
 ];
@@ -207,22 +210,25 @@ const fieldPresent = (record, field) => {
 
 const renderField = (record, field, key) => {
   const val = record[field.key];
-  if (field.isSentence) return <View key={key}>{renderSentenceSection(field.label, val)}</View>;
+  if (field.isSentence) return <View key={key}>{renderSentenceSection(field.label, val, field.commaSplit)}</View>;
   return <View key={key}>{renderFieldRow(field.label, val)}</View>;
 };
 
 /* ======= COMPONENT ======= */
-const VentilatorWeaningProtocolDocumentPDFTemplate = ({ document: data }) => {
+const VentilatorWeaningProtocolDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const source = documentProp ?? data ?? templateData;
   const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.ventilator_weaning_protocol) return Array.isArray(r.ventilator_weaning_protocol) ? r.ventilator_weaning_protocol : [r.ventilator_weaning_protocol];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.ventilator_weaning_protocol) return Array.isArray(dd.ventilator_weaning_protocol) ? dd.ventilator_weaning_protocol : [dd.ventilator_weaning_protocol]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [source]);
 
   if (!records || records.length === 0) {
     return (
@@ -232,6 +238,7 @@ const VentilatorWeaningProtocolDocumentPDFTemplate = ({ document: data }) => {
             <Text style={styles.documentTitle}>Ventilator Weaning Protocol</Text>
           </View>
           <Text style={styles.noDataText}>No data available</Text>
+          <Text fixed style={styles.footer}>Ventilator Weaning Protocol</Text>
         </Page>
       </Document>
     );
@@ -262,7 +269,7 @@ const VentilatorWeaningProtocolDocumentPDFTemplate = ({ document: data }) => {
               if (presentFields.length === 0) return null;
 
               return (
-                <View key={sIdx} style={styles.section} wrap={presentFields.length > 8 ? undefined : false}>
+                <View key={sIdx} style={styles.section} wrap={presentFields.length > 8}>
                   <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
                   {presentFields.map((field, fIdx) =>
                     renderField(record, field, fIdx)
@@ -272,6 +279,7 @@ const VentilatorWeaningProtocolDocumentPDFTemplate = ({ document: data }) => {
             })}
           </View>
         ))}
+        <Text fixed style={styles.footer}>Ventilator Weaning Protocol</Text>
       </Page>
     </Document>
   );

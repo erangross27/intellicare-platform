@@ -15,6 +15,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import VentilatorWeaningProtocolDocumentPDFTemplate from '../pdf-templates/VentilatorWeaningProtocolDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './VentilatorWeaningProtocolDocument.css';
 
@@ -70,6 +71,7 @@ const SECTION_FIELDS = {
 const NUMBER_FIELDS = ['weaningReadinessScore', 'rapidShallowBreathingIndex', 'maximalInspiratoryPressure', 'airwayOcclusionPressure', 'integratedWeaningIndex', 'spontaneousBreathingTrialDuration', 'peepLevelPreWeaning', 'fio2PreWeaning', 'paoToFio2Ratio', 'staticCompliance', 'diaphragmUltrasoundThickening', 'cuffLeakVolume', 'glasgowComaScaleScore', 'richmondAgitationSedationScale', 'apacheIiScoreAtWeaningStart', 'ventilatorDaysPreWeaning'];
 const BOOLEAN_FIELDS = ['cuffLeakTestResult', 'vasopressorRequirement', 'dailySedationInterruption'];
 const STRING_FIELDS = ['spontaneousBreathingTrialMethod', 'weaningProtocolType', 'coughStrengthAssessment', 'secretionBurden', 'extubationOutcome', 'postExtubationRespiratorySupport'];
+const COMMA_ARRAY_FIELDS = ['coughStrengthAssessment', 'secretionBurden', 'postExtubationRespiratorySupport'];
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -110,7 +112,7 @@ const writeDrafts = (store) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
+const VentilatorWeaningProtocolDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -129,15 +131,18 @@ const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? data ?? templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.ventilator_weaning_protocol) return Array.isArray(r.ventilator_weaning_protocol) ? r.ventilator_weaning_protocol : [r.ventilator_weaning_protocol];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.ventilator_weaning_protocol) return Array.isArray(dd.ventilator_weaning_protocol) ? dd.ventilator_weaning_protocol : [dd.ventilator_weaning_protocol]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
@@ -460,7 +465,7 @@ const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
     return lines;
   }, [splitBySentence]);
 
-  const buildSectionCopyText = useCallback((record, idx, sid) => {
+  const buildSectionCopyTextLegacy = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
     let text = `${title}\n${'='.repeat(40)}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
@@ -495,6 +500,17 @@ const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
     return text;
   }, [getFieldValue, hasVal, fmtVal, numberShows, splitBySentence, formatSentenceFieldLines]);
 
+  const fieldRows = useCallback((fn, value) => {
+    const text = fmtVal(value); if (!STRING_FIELDS.includes(fn)) return [text];
+    return splitBySentence(text).flatMap(clause => { const parsed = parseLabel(clause); const values = COMMA_ARRAY_FIELDS.includes(fn) ? splitByComma(parsed.value) : [parsed.value]; return values.map(item => parsed.isLabeled ? `${parsed.label}: ${item}` : item); }).filter(Boolean);
+  }, [fmtVal, splitBySentence]);
+
+  const buildSectionCopyText = useCallback((record, idx, sid) => {
+    let text = `${SECTION_TITLES[sid]}\n${'='.repeat(40)}\n\n`;
+    (SECTION_FIELDS[sid] || []).forEach(fn => { const value = getFieldValue(record, fn, idx); const visible = NUMBER_FIELDS.includes(fn) ? numberShows(record, fn, idx) : hasVal(value); if (!visible) return; const rows = fieldRows(fn, value); text += `${FIELD_LABELS[fn] || fn}\n${'-'.repeat(40)}\n`; rows.forEach((row, rowIndex) => { text += `${rowIndex + 1}. ${row}\n`; }); text += '\n'; });
+    return text;
+  }, [getFieldValue, numberShows, hasVal, fieldRows]);
+
   const copyAllText = useCallback(async () => {
     let text = '=== VENTILATOR WEANING PROTOCOL ===\n\n';
     pdfData.forEach((r, idx) => {
@@ -509,7 +525,7 @@ const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
   /* ═══════ RENDER: NUMBER FIELD (hide-zero) ═══════ */
-  const renderNumberField = (record, fn, idx, sid) => {
+  const renderNumberFieldLegacy = (record, fn, idx, sid) => {
     if (!numberShows(record, fn, idx)) return null;
     const val = getFieldValue(record, fn, idx);
     const editKey = `${fn}-${idx}`;
@@ -525,7 +541,7 @@ const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <input type="text" inputMode="decimal" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -545,7 +561,7 @@ const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: BOOLEAN FIELD (Yes/No dropdown) ═══════ */
-  const renderBooleanField = (record, fn, idx, sid) => {
+  const renderBooleanFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
     if (typeof val !== 'boolean') return null;
     const editKey = `${fn}-${idx}`;
@@ -561,10 +577,7 @@ const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'true' : 'false'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['true', 'false']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue === 'true'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -584,7 +597,7 @@ const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: STRING FIELD with splitBySentence ═══════ */
-  const renderStringField = (record, fn, idx, sid) => {
+  const renderStringFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
@@ -709,6 +722,24 @@ const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
     );
   };
 
+  const renderNumberField = (record, fn, idx, sid) => {
+    if (!numberShows(record, fn, idx)) return null; const val = getFieldValue(record, fn, idx); const editKey = `${fn}-${idx}`; const isEditing = editingField === editKey; const label = FIELD_LABELS[fn] || fn; const displayVal = String(val); const isModified = editedFields[editKey]; if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const saveNumeric = () => { const parsed = Number(editValue); if (!Number.isFinite(parsed)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, parsed); };
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); } }}>{isEditing ? <div className="edit-field-container"><div className="number-edit-row"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button></div>{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveNumeric(); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderBooleanField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (typeof val !== 'boolean') return null; const editKey = `${fn}-${idx}`; const isEditing = editingField === editKey; const label = FIELD_LABELS[fn] || fn; const displayVal = val ? 'Yes' : 'No'; const isModified = editedFields[editKey]; if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); } }}>{isEditing ? <div className="edit-field-container"><BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue === 'Yes'); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderStringField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null; const label = FIELD_LABELS[fn] || fn; const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase(); if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const sourceRows = splitBySentence(fmtVal(val)).flatMap(clause => { const parsed = parseLabel(clause); const values = COMMA_ARRAY_FIELDS.includes(fn) ? splitByComma(parsed.value) : [parsed.value]; return values.map(item => ({ isLabeled: parsed.isLabeled, label: parsed.label, value: item })); }); const groups = []; sourceRows.forEach((row, rowIndex) => { const next = { ...row, rowIndex }; const groupLabel = row.isLabeled ? row.label : ''; const last = groups[groups.length - 1]; if (last && last.label === groupLabel) last.rows.push(next); else groups.push({ label: groupLabel, rows: [next] }); });
+    const saveRow = row => { const values = sourceRows.map(item => item.isLabeled ? `${item.label}: ${item.value}` : item.value); values[row.rowIndex] = row.isLabeled ? `${row.label}: ${editValue.trim()}` : editValue.trim(); handleSaveField(record, fn, idx, sid, null, values.join('; '), `${fn}-${idx}-r${row.rowIndex}`); };
+    return <div key={fn} className="rec-mini-card">{showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}{groups.map((group, groupIndex) => <div key={`${group.label}-${groupIndex}`} className="nested-mini-card">{group.label && <div className="nested-subtitle sub-label">{highlightText(group.label)}</div>}{group.rows.map(row => { const editKey = `${fn}-${idx}-r${row.rowIndex}`; const isEditing = editingField === editKey; const isModified = editedFields[editKey]; return <div key={editKey} data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(row.value); } }}>{isEditing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveRow(row); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(row.value)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(row.value, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div>; })}</div>)}</div>;
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -759,7 +790,7 @@ const VentilatorWeaningProtocolDocument = ({ document: docProp }) => {
         <h2 className="document-title">Ventilator Weaning Protocol</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<VentilatorWeaningProtocolDocumentPDFTemplate document={pdfData} />} fileName={`ventilator-weaning-protocol-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<VentilatorWeaningProtocolDocumentPDFTemplate document={pdfData} />} fileName="Ventilator_Weaning_Protocol.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

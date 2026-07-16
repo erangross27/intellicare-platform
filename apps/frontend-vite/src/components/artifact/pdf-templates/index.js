@@ -99,6 +99,7 @@ import TransplantAssessmentDocumentPDFTemplate from './TransplantAssessmentDocum
 import TransplantEvaluationsDocumentPDFTemplate from './TransplantEvaluationsDocumentPDFTemplate';
 import TraumaAssessmentDocumentPDFTemplate from './TraumaAssessmentDocumentPDFTemplate';
 import TraumaFlowSheetsDocumentPDFTemplate from './TraumaFlowSheetsDocumentPDFTemplate';
+import TraumaScoringDocumentPDFTemplate from './TraumaScoringDocumentPDFTemplate';
 import StiScreeningPanelDocumentPDFTemplate from './StiScreeningPanelDocumentPDFTemplate';
 import StressManagementReferralsDocumentPDFTemplate from './StressManagementReferralsDocumentPDFTemplate';
 import StressTestReportsDocumentPDFTemplate from './StressTestReportsDocumentPDFTemplate';
@@ -211,6 +212,7 @@ const templateRegistry = {
   'transplant_evaluations': TransplantEvaluationsDocumentPDFTemplate,
   'trauma_assessment': TraumaAssessmentDocumentPDFTemplate,
   'trauma_flow_sheets': TraumaFlowSheetsDocumentPDFTemplate,
+  'trauma_scoring': TraumaScoringDocumentPDFTemplate,
   'sti_screening_panel': StiScreeningPanelDocumentPDFTemplate,
   'stress_management_referrals': StressManagementReferralsDocumentPDFTemplate,
   'stress_test_reports': StressTestReportsDocumentPDFTemplate,

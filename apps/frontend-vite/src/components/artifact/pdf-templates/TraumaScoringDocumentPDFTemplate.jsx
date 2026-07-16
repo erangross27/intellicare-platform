@@ -1,416 +1,134 @@
-/**
- * TraumaScoringDocumentPDFTemplate.jsx
- * June 2026 — Helvetica — LETTER size — trauma scoring
- * Collection: trauma_scoring
- */
+/** Trauma Scoring — canonical box-free PDF, collection trauma_scoring. */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordStatus: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 3, marginTop: 9, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 1, marginTop: 4, marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 4, marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.4, marginBottom: 1, paddingLeft: 8 },
+  noDataText: { fontSize: 14, marginTop: 40 },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
+const SECTION_TITLES = {
+  'glasgow-coma-scale': 'Glasgow Coma Scale',
+  'trauma-scores': 'Trauma Scores',
+  'vital-signs': 'Vital Signs',
+  'mechanism-activation': 'Mechanism & Activation',
+  'injury-distribution': 'Injury Distribution',
+  'clinical-flags': 'Clinical Flags',
+  'timing-disposition': 'Timing & Disposition',
 };
 
-/* formatDateTime: datetime fields render date + time (4-AREA RULE — matches JSX fmtFieldVal) */
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return `${date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
-  } catch { return String(dateStr); }
+const FIELD_LABELS = {
+  glasgowComaScore: 'GCS Total',
+  glasgowEyeResponse: 'Eye Response (E)',
+  glasgowVerbalResponse: 'Verbal Response (V)',
+  glasgowMotorResponse: 'Motor Response (M)',
+  injurySeverityScore: 'Injury Severity Score (ISS)',
+  revisedTraumaScore: 'Revised Trauma Score (RTS)',
+  trissScore: 'TRISS Probability of Survival',
+  systolicBloodPressure: 'Systolic BP (mmHg)',
+  heartRate: 'Heart Rate (bpm)',
+  respiratoryRate: 'Respiratory Rate',
+  oxygenSaturation: 'Oxygen Saturation (%)',
+  date: 'Date',
+  mechanismOfInjury: 'Mechanism of Injury',
+  traumaActivationLevel: 'Trauma Activation Level',
+  penetratingTrauma: 'Penetrating Trauma',
+  bluntTrauma: 'Blunt Trauma',
+  bodyRegionsInjured: 'Body Regions Injured',
+  aisScores: 'AIS Scores',
+  prehospitalIntubation: 'Prehospital Intubation',
+  transfusionRequired: 'Transfusion Required',
+  emergentSurgeryRequired: 'Emergent Surgery Required',
+  fastExamResult: 'FAST Exam Result',
+  hemodynamicStability: 'Hemodynamic Stability',
+  traumaBayArrivalTime: 'Trauma Bay Arrival Time',
+  timeFromInjury: 'Time From Injury (minutes)',
+  dispositionFromTraumaBay: 'Disposition From Trauma Bay',
 };
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+const SECTION_FIELDS = {
+  'glasgow-coma-scale': ['glasgowComaScore', 'glasgowEyeResponse', 'glasgowVerbalResponse', 'glasgowMotorResponse'],
+  'trauma-scores': ['injurySeverityScore', 'revisedTraumaScore', 'trissScore'],
+  'vital-signs': ['systolicBloodPressure', 'heartRate', 'respiratoryRate', 'oxygenSaturation'],
+  'mechanism-activation': ['date', 'mechanismOfInjury', 'traumaActivationLevel', 'penetratingTrauma', 'bluntTrauma'],
+  'injury-distribution': ['bodyRegionsInjured', 'aisScores'],
+  'clinical-flags': ['prehospitalIntubation', 'transfusionRequired', 'emergentSurgeryRequired', 'fastExamResult', 'hemodynamicStability'],
+  'timing-disposition': ['traumaBayArrivalTime', 'timeFromInjury', 'dispositionFromTraumaBay'],
 };
 
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
-};
+const SENTENCE_FIELDS = new Set(['mechanismOfInjury', 'hemodynamicStability']);
+const NUMBER_FIELDS = new Set(['glasgowComaScore', 'glasgowEyeResponse', 'glasgowVerbalResponse', 'glasgowMotorResponse', 'injurySeverityScore', 'revisedTraumaScore', 'trissScore', 'systolicBloodPressure', 'heartRate', 'respiratoryRate', 'oxygenSaturation', 'timeFromInjury']);
+const HIDE_ZERO_FIELDS = new Set(['glasgowComaScore', 'glasgowEyeResponse', 'glasgowVerbalResponse', 'glasgowMotorResponse', 'revisedTraumaScore', 'trissScore', 'systolicBloodPressure', 'heartRate', 'respiratoryRate', 'oxygenSaturation', 'timeFromInjury']);
+const BOOLEAN_FIELDS = new Set(['penetratingTrauma', 'bluntTrauma', 'prehospitalIntubation', 'transfusionRequired', 'emergentSurgeryRequired']);
+const ARRAY_FIELDS = new Set(['bodyRegionsInjured', 'aisScores']);
+const DATE_FIELDS = new Set(['date']);
+const DATETIME_FIELDS = new Set(['traumaBayArrivalTime']);
+const COMMA_ARRAY_FIELDS = new Set(['mechanismOfInjury', 'hemodynamicStability']);
 
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  const s = String(v || '');
-  return s.replace(/(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(:\d{2})?/g, '$1 $2');
-};
+const safeString = value => String(value ?? '').replace(/×/g, 'x').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
+const hasVal = value => value !== null && value !== undefined && value !== '' && (typeof value !== 'string' || value.trim() !== '') && (!Array.isArray(value) || value.length > 0);
+const formatDate = value => { try { const date = new Date(value?.$date || value); if (isNaN(date.getTime())) return safeString(value); return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); } catch { return safeString(value); } };
+const formatDateTime = value => { try { const date = new Date(value?.$date || value); if (isNaN(date.getTime())) return safeString(value); const d = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); const t = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }); return `${d}, ${t}`; } catch { return safeString(value); } };
+const parseLabel = text => { const match = safeString(text).match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{0,60}?):\s+([\s\S]+)/); return match ? { isLabeled: true, label: match[1].trim(), value: match[2].trim() } : { isLabeled: false, label: '', value: safeString(text) }; };
+const splitByComma = text => { const source = safeString(text); const out = []; let current = ''; let depth = 0; for (let index = 0; index < source.length; index += 1) { const ch = source[index]; if (ch === '(') { depth += 1; current += ch; } else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; } else if (ch === ',' && depth === 0) { const rest = source.slice(index + 1).trimStart(); if (/^\d{4}\b/.test(rest)) current += ch; else { if (current.trim()) out.push(current.trim()); current = ''; } } else current += ch; } if (current.trim()) out.push(current.trim()); return out.length ? out : [source]; };
+const splitBySentence = text => { const source = safeString(text); const out = []; let current = ''; let depth = 0; const push = () => { if (current.trim()) out.push(current.trim()); current = ''; }; for (let index = 0; index < source.length; index += 1) { const ch = source[index]; if (ch === '(') depth += 1; if (ch === ')') depth = Math.max(0, depth - 1); const next = source[index + 1] || ''; const word = current.trim().match(/([A-Za-z]+)$/)?.[1] || ''; const period = ch === '.' && depth === 0 && /\s/.test(next) && !['Mr', 'Mrs', 'Ms', 'Dr', 'St', 'Jr', 'Sr', 'Prof', 'Rev', 'Gen', 'Col', 'Sgt', 'vs', 'etc'].includes(word) && !/\b[A-Z]$/.test(current) && !/\d$/.test(current); const semicolon = ch === ';' && depth === 0; if (period || semicolon) { push(); while (/\s/.test(source[index + 1] || '')) index += 1; } else current += ch; } push(); return out.length ? out : [source]; };
 
-/* arrItemText: same array-item stringification as JSX (4-AREA RULE) */
-const arrItemText = (item) => {
-  if (item === null || item === undefined) return '';
-  if (typeof item === 'object') return Object.values(item).filter(x => x !== null && x !== undefined && x !== '').map(String).join(' — ');
-  return String(item);
-};
+const unwrapRecords = data => (Array.isArray(data) ? data : data ? [data] : []).flatMap(record => record?.trauma_scoring ? (Array.isArray(record.trauma_scoring) ? record.trauma_scoring : [record.trauma_scoring]) : record?.documentData ? (Array.isArray(record.documentData) ? record.documentData : record.documentData?.trauma_scoring ? (Array.isArray(record.documentData.trauma_scoring) ? record.documentData.trauma_scoring : [record.documentData.trauma_scoring]) : [record.documentData]) : [record]).filter(record => record && typeof record === 'object');
 
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
-};
-
-const splitBySemicolon = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/;\s*/).map(s => s.trim()).filter(Boolean);
-};
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#:'"-]{1,80}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
-};
-
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) {
-      const rest = text.slice(i + 1).trimStart();
-      if (/^\d{4}\b/.test(rest)) { current += ch; }
-      else { const t = current.trim(); if (t) result.push(t); current = ''; }
-    }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
-};
-
-/* renderGroupedRows: render subtitle/item rows as groups so a subtitle (or the
-   field label) can never be orphaned from its content rows at a page break.
-   - group with <=6 content rows: whole group stays together (wrap={false})
-   - group with >6 content rows: subtitle + first row kept together, rest follow */
-const renderGroupedRows = (rows, label, showLabel) => {
-  const groups = [];
-  rows.forEach(row => {
-    if (row.type === 'subtitle') {
-      groups.push({ subtitle: row.text, items: [] });
-    } else {
-      if (groups.length === 0) groups.push({ subtitle: null, items: [] });
-      groups[groups.length - 1].items.push(row);
-    }
-  });
-
-  const itemRow = (row, key) => (
-    <Text key={key} style={styles.listItem}>{row.num}. {row.text}</Text>
-  );
-
-  return groups.map((group, gi) => {
-    const head = (
-      <>
-        {gi === 0 && showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
-        {group.subtitle !== null && <Text style={styles.nestedSubtitle}>{group.subtitle}</Text>}
-      </>
-    );
-    if (group.items.length <= 6) {
-      return (
-        <View key={gi} wrap={false}>
-          {head}
-          {group.items.map((row, i) => itemRow(row, i))}
-        </View>
-      );
-    }
-    return (
-      <View key={gi}>
-        <View wrap={false}>
-          {head}
-          {itemRow(group.items[0], 'first')}
-        </View>
-        {group.items.slice(1).map((row, i) => itemRow(row, i))}
-      </View>
-    );
-  });
-};
-
-/* renderFieldRow: label + value inside fieldBox (simple fields, booleans render Yes/No via fmtVal) — unconditional wrap={false} */
-const renderFieldRow = (label, value, showLabel) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox} wrap={false}>
-      {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceField: period-first splitting with semicolon fallback */
-const renderSentenceField = (label, text, showLabel) => {
-  if (!hasVal(text)) return null;
-  const strVal = fmtVal(text);
-
-  const periodItems = splitBySentence(strVal);
-  const isSemicolon = periodItems.length < 2;
-  const sentences = isSemicolon ? splitBySemicolon(strVal) : periodItems;
-
-  if (sentences.length < 2) {
-    /* Single-value: try comma splitting */
-    const commaItems = splitByComma(strVal);
-    const hasOxfordComma = commaItems.some(ci => ci.trim().toLowerCase().startsWith('and '));
-    if (commaItems.length >= 2 && !hasOxfordComma) {
-      return (
-        <View style={styles.fieldBox} wrap={commaItems.length > 8 ? undefined : false}>
-          <View wrap={false}>
-            {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
-            <Text style={styles.listItem}>1. {safeString(commaItems[0])}</Text>
-          </View>
-          {commaItems.slice(1).map((ci, i) => (
-            <Text key={i} style={styles.listItem}>{i + 2}. {safeString(ci)}</Text>
-          ))}
-        </View>
-      );
-    }
-    return (
-      <View style={styles.fieldBox} wrap={false}>
-        {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
-        <Text style={styles.fieldValue}>{safeString(strVal)}</Text>
-      </View>
-    );
-  }
-
-  const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const semiSub = splitBySemicolon(parsed.value);
-      const commaItems = semiSub.length >= 2 ? semiSub : splitByComma(parsed.value);
-      const hasOxfordComma = commaItems.some(ci => ci.trim().toLowerCase().startsWith('and '));
-      if (commaItems.length >= 2 && !hasOxfordComma) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
-    }
-  });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      {renderGroupedRows(rows, label, showLabel)}
-    </View>
-  );
-};
-
-/* renderArrayField (array of strings or objects — items render VERBATIM, never split) */
-const renderArrayFieldPDF = (label, items, showLabel) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.map(arrItemText).filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      <View wrap={false}>
-        {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
-        <Text style={styles.listItem}>1. {safeItems[0]}</Text>
-      </View>
-      {safeItems.slice(1).map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 2}. {item}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* SECTION CONFIGS — mirror JSX sections exactly (4-AREA RULE).
-   hideZero mirrors JSX HIDE_ZERO_FIELDS: GCS components min 1; timeFromInjury 0 = unknown; trissScore 0 = not computed. */
-const SECTION_CONFIGS = [
-  {
-    title: 'Glasgow Coma Scale',
-    fields: [
-      { key: 'glasgowComaScore', label: 'GCS Total', hideZero: true },
-      { key: 'glasgowEyeResponse', label: 'Eye Response (E)', hideZero: true },
-      { key: 'glasgowVerbalResponse', label: 'Verbal Response (V)', hideZero: true },
-      { key: 'glasgowMotorResponse', label: 'Motor Response (M)', hideZero: true },
-    ],
-  },
-  {
-    title: 'Trauma Scores',
-    fields: [
-      { key: 'injurySeverityScore', label: 'Injury Severity Score (ISS)' },
-      { key: 'revisedTraumaScore', label: 'Revised Trauma Score (RTS)', hideZero: true },
-      { key: 'trissScore', label: 'TRISS Probability of Survival', hideZero: true },
-    ],
-  },
-  {
-    title: 'Vital Signs',
-    fields: [
-      { key: 'systolicBloodPressure', label: 'Systolic BP (mmHg)', hideZero: true },
-      { key: 'heartRate', label: 'Heart Rate (bpm)', hideZero: true },
-      { key: 'respiratoryRate', label: 'Respiratory Rate', hideZero: true },
-      { key: 'oxygenSaturation', label: 'Oxygen Saturation (%)', hideZero: true },
-    ],
-  },
-  {
-    title: 'Mechanism & Activation',
-    fields: [
-      { key: 'date', label: 'Date', isDate: true },
-      { key: 'mechanismOfInjury', label: 'Mechanism of Injury', isSentence: true },
-      { key: 'traumaActivationLevel', label: 'Trauma Activation Level' },
-      { key: 'penetratingTrauma', label: 'Penetrating Trauma' },
-      { key: 'bluntTrauma', label: 'Blunt Trauma' },
-    ],
-  },
-  {
-    title: 'Injury Distribution',
-    fields: [
-      { key: 'bodyRegionsInjured', label: 'Body Regions Injured', isArray: true },
-      { key: 'aisScores', label: 'AIS Scores', isArray: true },
-    ],
-  },
-  {
-    title: 'Clinical Flags',
-    fields: [
-      { key: 'prehospitalIntubation', label: 'Prehospital Intubation' },
-      { key: 'transfusionRequired', label: 'Transfusion Required' },
-      { key: 'emergentSurgeryRequired', label: 'Emergent Surgery Required' },
-      { key: 'fastExamResult', label: 'FAST Exam Result' },
-      { key: 'hemodynamicStability', label: 'Hemodynamic Stability', isSentence: true },
-    ],
-  },
-  {
-    title: 'Timing & Disposition',
-    fields: [
-      { key: 'traumaBayArrivalTime', label: 'Trauma Bay Arrival Time', isDateTime: true },
-      { key: 'timeFromInjury', label: 'Time From Injury (minutes)', hideZero: true },
-      { key: 'dispositionFromTraumaBay', label: 'Disposition From Trauma Bay' },
-    ],
-  },
-];
-
-const fieldHasVal = (record, f) => {
-  const v = record[f.key];
-  if (f.hideZero && v === 0) return false;
-  if (f.isArray) {
-    return Array.isArray(v) && v.some(item => arrItemText(item));
-  }
-  return hasVal(v);
-};
-
-/* ======= COMPONENT ======= */
 const TraumaScoringDocumentPDFTemplate = ({ document: data }) => {
-  const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.trauma_scoring) return Array.isArray(r.trauma_scoring) ? r.trauma_scoring : [r.trauma_scoring];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.trauma_scoring) return Array.isArray(dd.trauma_scoring) ? dd.trauma_scoring : [dd.trauma_scoring]; return [dd]; }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  const records = unwrapRecords(data);
 
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Trauma Scoring</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
-  }
+  const fieldBody = (record, fieldName) => {
+    const value = record[fieldName];
+    if (!hasVal(value) || (HIDE_ZERO_FIELDS.has(fieldName) && value === 0)) return [];
+    const label = FIELD_LABELS[fieldName] || fieldName;
+    let rows = []; let rowNumber = 1;
+    if (DATE_FIELDS.has(fieldName)) rows.push(<Text key={fieldName} style={styles.listItem}>1. {formatDate(value)}</Text>);
+    else if (DATETIME_FIELDS.has(fieldName)) rows.push(<Text key={fieldName} style={styles.listItem}>1. {formatDateTime(value)}</Text>);
+    else if (NUMBER_FIELDS.has(fieldName)) rows.push(<Text key={fieldName} style={styles.listItem}>1. {safeString(value)}</Text>);
+    else if (BOOLEAN_FIELDS.has(fieldName)) rows.push(<Text key={fieldName} style={styles.listItem}>1. {value ? 'Yes' : 'No'}</Text>);
+    else if (ARRAY_FIELDS.has(fieldName)) (Array.isArray(value) ? value : [value]).filter(hasVal).forEach((item, index) => rows.push(<Text key={index} style={styles.listItem}>{rowNumber++}. {safeString(item)}</Text>));
+    else if (SENTENCE_FIELDS.has(fieldName)) splitBySentence(value).forEach((clause, clauseIndex) => {
+      const parsed = parseLabel(clause);
+      const source = parsed.isLabeled ? parsed.value : clause;
+      const items = COMMA_ARRAY_FIELDS.has(fieldName) ? splitByComma(source) : [source];
+      const itemRows = items.map((item, itemIndex) => <Text key={`${clauseIndex}-${itemIndex}`} style={styles.listItem}>{rowNumber++}. {safeString(item)}</Text>);
+      if (parsed.isLabeled) rows.push(<View key={`${clauseIndex}-group`} wrap={false}><Text style={styles.subLabel}>{parsed.label}</Text>{itemRows[0]}</View>, ...itemRows.slice(1));
+      else rows.push(...itemRows);
+    });
+    else rows.push(<Text key={fieldName} style={styles.listItem}>1. {safeString(value)}</Text>);
+
+    if (rows.length <= 6) return [<View key={`${fieldName}-field`} wrap={false}><Text style={styles.fieldLabel}>{label}</Text>{rows}</View>];
+    const [first, ...rest] = rows;
+    return [<View key={`${fieldName}-field`} wrap={false}><Text style={styles.fieldLabel}>{label}</Text>{first}</View>, ...rest];
+  };
+
+  const renderSection = (record, sectionId) => {
+    let body = [];
+    SECTION_FIELDS[sectionId].forEach(fieldName => { body = body.concat(fieldBody(record, fieldName)); });
+    if (!body.length) return null;
+    body = body.map((element, index) => React.cloneElement(element, { key: `${sectionId}-${index}` }));
+    const [first, ...rest] = body;
+    return <View key={sectionId}><View wrap={false}><Text style={styles.sectionTitle}>{SECTION_TITLES[sectionId]}</Text>{first}</View>{rest}</View>;
+  };
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Trauma Scoring</Text>
-        </View>
-
-        {records.map((record, index) => {
-          const recordNum = (record._originalIdx ?? index) + 1;
-          return (
-            <View key={index} style={styles.recordContainer}>
-              {index > 0 && <View style={styles.separator} />}
-
-              {/* Record Header — date left, status right */}
-              <View style={styles.recordHeader} wrap={false}>
-                <View style={styles.recordDateRow}>
-                  <Text style={styles.recordDate}>{record.date ? formatDate(record.date) : ''}</Text>
-                  <Text style={styles.recordStatus}>{hasVal(record.status) ? fmtVal(record.status) : ''}</Text>
-                </View>
-                <Text style={styles.recordTitle}>
-                  {`Trauma Scoring ${recordNum}`}
-                </Text>
-              </View>
-
-              {/* Sections */}
-              {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-                const presentFields = sectionConfig.fields.filter(f => fieldHasVal(record, f));
-                if (presentFields.length === 0) return null;
-
-                const renderField = (field) => {
-                  const val = record[field.key];
-                  const showLabel = field.label.toLowerCase() !== sectionConfig.title.toLowerCase();
-                  if (field.isArray) return renderArrayFieldPDF(field.label, val, showLabel);
-                  if (field.isSentence) return renderSentenceField(field.label, val, showLabel);
-                  if (field.isDateTime) return renderFieldRow(field.label, val ? formatDateTime(val) : val, showLabel);
-                  if (field.isDate) return renderFieldRow(field.label, val ? formatDate(val) : val, showLabel);
-                  return renderFieldRow(field.label, val, showLabel);
-                };
-
-                return (
-                  <View key={sIdx} style={styles.section}>
-                    {/* Title + first field together — prevents orphaned titles */}
-                    <View style={styles.fieldBox} wrap={false}>
-                      <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                      {renderField(presentFields[0])}
-                    </View>
-                    {/* Remaining fields */}
-                    {presentFields.slice(1).map((field, fIdx) => (
-                      <View key={fIdx}>{renderField(field)}</View>
-                    ))}
-                  </View>
-                );
-              })}
-            </View>
-          );
-        })}
+        <Text style={styles.documentTitle}>Trauma Scoring</Text>
+        {records.length === 0 && <Text style={styles.noDataText}>No trauma scoring records available</Text>}
+        {records.map((record, index) => (
+          <View key={index} break={index > 0}>
+            <Text style={styles.recordTitle}>{`Trauma Scoring ${index + 1}`}</Text>
+            {Object.keys(SECTION_FIELDS).map(sectionId => renderSection(record, sectionId))}
+          </View>
+        ))}
       </Page>
     </Document>
   );

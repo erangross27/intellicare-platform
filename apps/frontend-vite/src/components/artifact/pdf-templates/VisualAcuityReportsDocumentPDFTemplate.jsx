@@ -7,23 +7,22 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, paddingBottom: 64, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 18 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 8, marginBottom: 5, paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 6 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 2, marginBottom: 2, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.4, color: '#000000', paddingLeft: 8 },
+  listItem: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 14, color: '#333333', textAlign: 'center', marginTop: 40 },
+  footer: { position: 'absolute', bottom: 24, left: 40, right: 40, fontSize: 9, color: '#666666', textAlign: 'center', borderTopWidth: 0.5, borderTopColor: '#cccccc', paddingTop: 6 },
 });
 
 /* ======= UTILS ======= */
@@ -63,7 +62,15 @@ const fmtVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const numberShowsPDF = (record, key) => {
+  const value = record[key];
+  if (value === null || value === undefined || value === '') return false;
+  const number = Number(value); if (!Number.isFinite(number)) return false;
+  if (number !== 0) return true;
+  return Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(key);
 };
 
 const parseLabel = (text) => {
@@ -121,10 +128,8 @@ const renderSentenceSection = (label, text) => {
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {rows.map((row, i) => {
         if (row.type === 'subtitle') {
@@ -142,11 +147,16 @@ const renderArrayFieldPDF = (label, items) => {
   const safeItems = items.filter(Boolean);
   if (safeItems.length === 0) return null;
 
+  let rowNumber = 1;
+  const groups = safeItems.map(item => {
+    const parsed = parseLabel(safeString(item));
+    return { label: parsed.isLabeled ? parsed.label : '', rows: splitByComma(parsed.value).map(value => ({ value, number: rowNumber++ })) };
+  });
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
+      {groups.map((group, groupIndex) => (
+        <View key={groupIndex}>{group.label && <Text style={styles.nestedSubtitle}>{group.label}</Text>}{group.rows.map(row => <Text key={row.number} style={styles.listItem}>{row.number}. {safeString(row.value)}</Text>)}</View>
       ))}
     </View>
   );
@@ -182,10 +192,10 @@ const SECTION_CONFIGS = [
   {
     title: 'LogMAR & ETDRS Scores',
     fields: [
-      { key: 'logmarRightEye', label: 'LogMAR - Right Eye (OD)' },
-      { key: 'logmarLeftEye', label: 'LogMAR - Left Eye (OS)' },
-      { key: 'etdrsLetterScoreRightEye', label: 'ETDRS Letter Score - Right Eye (OD)' },
-      { key: 'etdrsLetterScoreLeftEye', label: 'ETDRS Letter Score - Left Eye (OS)' },
+      { key: 'logmarRightEye', label: 'LogMAR - Right Eye (OD)', isNumber: true },
+      { key: 'logmarLeftEye', label: 'LogMAR - Left Eye (OS)', isNumber: true },
+      { key: 'etdrsLetterScoreRightEye', label: 'ETDRS Letter Score - Right Eye (OD)', isNumber: true },
+      { key: 'etdrsLetterScoreLeftEye', label: 'ETDRS Letter Score - Left Eye (OS)', isNumber: true },
     ],
   },
   {
@@ -216,17 +226,22 @@ const SECTION_CONFIGS = [
 ];
 
 /* ======= COMPONENT ======= */
-const VisualAcuityReportsDocumentPDFTemplate = ({ document: data }) => {
+const fieldPresent = (record, field) => field.isNumber ? numberShowsPDF(record, field.key) : hasVal(record[field.key]);
+
+const VisualAcuityReportsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const source = documentProp ?? data ?? templateData;
   const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.visual_acuity_reports) return Array.isArray(r.visual_acuity_reports) ? r.visual_acuity_reports : [r.visual_acuity_reports];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.visual_acuity_reports) return Array.isArray(dd.visual_acuity_reports) ? dd.visual_acuity_reports : [dd.visual_acuity_reports]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [source]);
 
   if (!records || records.length === 0) {
     return (
@@ -236,6 +251,7 @@ const VisualAcuityReportsDocumentPDFTemplate = ({ document: data }) => {
             <Text style={styles.documentTitle}>Visual Acuity Reports</Text>
           </View>
           <Text style={styles.noDataText}>No data available</Text>
+          <Text fixed style={styles.footer}>Visual Acuity Reports</Text>
         </Page>
       </Document>
     );
@@ -255,11 +271,6 @@ const VisualAcuityReportsDocumentPDFTemplate = ({ document: data }) => {
 
             {/* Record Header */}
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.createdAt && (
-                  <Text style={styles.recordDate}>{formatDate(record.createdAt)}</Text>
-                )}
-              </View>
               <Text style={styles.recordTitle}>
                 {`Visual Acuity Report ${index + 1}`}
               </Text>
@@ -267,16 +278,14 @@ const VisualAcuityReportsDocumentPDFTemplate = ({ document: data }) => {
 
             {/* Sections */}
             {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const hasAnyVal = sectionConfig.fields.some(f => hasVal(record[f.key]));
-              if (!hasAnyVal) return null;
+              const presentFields = sectionConfig.fields.filter(field => fieldPresent(record, field));
+              if (!presentFields.length) return null;
 
               return (
-                <View key={sIdx} style={styles.section}>
+                <View key={sIdx} style={styles.section} wrap={presentFields.length > 8}>
                   <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
+                  {presentFields.map((field, fIdx) => {
                     const val = record[field.key];
-                    if (!hasVal(val)) return null;
-
                     if (field.isDate) return <View key={fIdx}>{renderFieldRow(field.label, formatDate(val))}</View>;
                     if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val)}</View>;
                     if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
@@ -287,6 +296,7 @@ const VisualAcuityReportsDocumentPDFTemplate = ({ document: data }) => {
             })}
           </View>
         ))}
+        <Text fixed style={styles.footer}>Visual Acuity Reports</Text>
       </Page>
     </Document>
   );

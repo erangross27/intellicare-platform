@@ -15,6 +15,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import VisualAcuityReportsDocumentPDFTemplate from '../pdf-templates/VisualAcuityReportsDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './VisualAcuityReportsDocument.css';
 
@@ -85,6 +86,13 @@ const BOOLEAN_FIELDS = ['pupillaryDefectRightEye', 'pupillaryDefectLeftEye'];
 const NUMBER_FIELDS = ['logmarRightEye', 'logmarLeftEye', 'etdrsLetterScoreRightEye', 'etdrsLetterScoreLeftEye'];
 const DATE_FIELDS = [];
 const ARRAY_FIELDS = ['visualFieldDefects'];
+const SCORE_RATIO_FIELDS = [
+  'snellenChartRightEye', 'snellenChartLeftEye',
+  'correctedVisionRightEye', 'correctedVisionLeftEye',
+  'uncorrectedVisionRightEye', 'uncorrectedVisionLeftEye',
+  'pinholeAcuityRightEye', 'pinholeAcuityLeftEye',
+];
+const COMMA_ARRAY_FIELDS = Array.of('visualFieldDefects');
 const STRING_FIELDS = [
   'snellenChartRightEye', 'snellenChartLeftEye',
   'correctedVisionRightEye', 'correctedVisionLeftEye',
@@ -129,8 +137,16 @@ const toInputDate = (dateValue) => {
   try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
 
+const splitScoreRatio = value => {
+  const source = String(value || '');
+  const match = source.match(/^(\s*)(-?\d+(?:\.\d+)?)(\s*\/\s*(\d+(?:\.\d+)?)[\s\S]*)$/);
+  if (!match) return null;
+  const decimals = (match[2].split('.')[1] || '').length;
+  return { prefix: match[1], number: match[2], suffix: match[3], denominator: Number(match[4]), step: decimals ? Number(`0.${'0'.repeat(decimals - 1)}1`) : 1, decimals };
+};
+
 /* ═══════ COMPONENT ═══════ */
-const VisualAcuityReportsDocument = ({ document: docProp }) => {
+const VisualAcuityReportsDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -149,15 +165,18 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? data ?? templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.visual_acuity_reports) return Array.isArray(r.visual_acuity_reports) ? r.visual_acuity_reports : [r.visual_acuity_reports];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.visual_acuity_reports) return Array.isArray(dd.visual_acuity_reports) ? dd.visual_acuity_reports : [dd.visual_acuity_reports]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   const recordId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -209,7 +228,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -226,6 +245,16 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
     if (localEdits[k] !== undefined) return localEdits[k];
     return record[fn];
   }, [localEdits]);
+
+  const numberShows = useCallback((record, fn, idx) => {
+    const value = getFieldValue(record, fn, idx);
+    if (value === null || value === undefined || value === '') return false;
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return false;
+    if (numericValue !== 0) return true;
+    const doctorEdited = Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(fn);
+    return Boolean(editedFields[`${fn}-${idx}`]) || doctorEdited;
+  }, [getFieldValue, editedFields]);
 
   const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -400,8 +429,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
         const isArrayItem = dotIdx !== -1 && /^\d+$/.test(lastSeg);
         const baseField = isArrayItem ? fieldPart.slice(0, fieldPart.lastIndexOf('.')) : fieldPart;
         if (!fields.includes(baseField)) continue; // only this section's fields
-        const payload = { field: baseField, value };
-        if (isArrayItem) payload.arrayIndex = parseInt(lastSeg, 10);
+        const payload = { field: fieldPart, value };
         const resp = await secureApiClient.put(`/api/edit/visual_acuity_reports/${id}/edit`, payload);
         if (resp && resp.success === false) throw new Error(resp.error || 'save failed');
         committedLocalKeys.push(`${baseField}-${idx}`);
@@ -459,32 +487,17 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
-      if (!hasVal(val)) return;
-      if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
-      } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
-      } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
-      } else if (ARRAY_FIELDS.includes(f)) {
-        const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
-      } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
-      } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
-      }
+      const visible = NUMBER_FIELDS.includes(f) ? numberShows(record, f, idx) : hasVal(val);
+      if (!visible) return;
+      let rows;
+      if (ARRAY_FIELDS.includes(f)) rows = (Array.isArray(val) ? val : [val]).flatMap(item => { const parsed = parseLabel(String(item)); return splitByComma(parsed.value); });
+      else rows = splitBySentence(fmtVal(val)).map(item => { const parsed = parseLabel(item); return parsed.isLabeled ? `${parsed.label}: ${parsed.value}` : parsed.value; });
+      text += `${label}\n${'-'.repeat(40)}\n`;
+      rows.filter(Boolean).forEach((row, rowIndex) => { text += `${rowIndex + 1}. ${row}\n`; });
+      text += '\n';
     });
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+  }, [getFieldValue, numberShows, hasVal, fmtVal, splitBySentence]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== VISUAL ACUITY REPORTS ===\n\n';
@@ -515,7 +528,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <input type="text" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -535,7 +548,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: BOOLEAN FIELD — select Yes/No, convert to boolean on save ═══════ */
-  const renderBooleanField = (record, fn, idx, sid) => {
+  const renderBooleanFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
@@ -550,10 +563,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -573,7 +583,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: NUMBER FIELD — validate numeric on save ═══════ */
-  const renderNumberField = (record, fn, idx, sid) => {
+  const renderNumberFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
@@ -588,7 +598,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} style={{ minHeight: 'auto', padding: '10px' }} />
+              <input type="text" inputMode="decimal" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} style={{ minHeight: 'auto', padding: '10px' }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (editValue.trim() === '' || isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -608,7 +618,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: ARRAY FIELD (per-item editing with dot-path keys) ═══════ */
-  const renderArrayField = (record, fn, idx, sid) => {
+  const renderArrayFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
     const items = Array.isArray(val) ? val.filter(Boolean) : [];
     if (items.length === 0) return null;
@@ -658,7 +668,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: STRING FIELD with splitBySentence ═══════ */
-  const renderStringField = (record, fn, idx, sid, title) => {
+  const renderStringFieldLegacy = (record, fn, idx, sid, title) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
@@ -783,6 +793,46 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
     );
   };
 
+  const renderBooleanField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (typeof value !== 'boolean') return null;
+    const editKey = `${fn}-${idx}`, isEditing = editingField === editKey, label = FIELD_LABELS[fn] || fn, displayValue = value ? 'Yes' : 'No', isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayValue); } }}>{isEditing ? <div className="edit-field-container"><BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue === 'Yes'); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayValue}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderNumberField = (record, fn, idx, sid) => {
+    if (!numberShows(record, fn, idx)) return null;
+    const value = getFieldValue(record, fn, idx), editKey = `${fn}-${idx}`, isEditing = editingField === editKey, label = FIELD_LABELS[fn] || fn, displayValue = String(value), isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const saveNumber = () => { const parsed = Number(editValue); if (!Number.isFinite(parsed)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, parsed); };
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayValue); } }}>{isEditing ? <div className="edit-field-container"><div className="number-edit-row"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button></div>{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveNumber(); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayValue}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderScoreRatioField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (!hasVal(value)) return null;
+    const ratio = splitScoreRatio(value); if (!ratio) return renderStringField(record, fn, idx, sid);
+    const editKey = `${fn}-${idx}`, isEditing = editingField === editKey, label = FIELD_LABELS[fn] || fn, isModified = editedFields[editKey];
+    const change = delta => { const current = Number(editValue); const next = Math.max(0, Math.min(ratio.denominator, (Number.isFinite(current) ? current : 0) + delta)); setEditValue(next.toFixed(ratio.decimals)); };
+    const save = () => { const number = Number(editValue); if (!Number.isFinite(number) || number < 0 || number > ratio.denominator) { setSaveError(`Enter a value from 0 to ${ratio.denominator}`); return; } handleSaveField(record, fn, idx, sid, null, `${ratio.prefix}${number.toFixed(ratio.decimals)}${ratio.suffix}`); };
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(ratio.number); } }}>{isEditing ? <div className="edit-field-container"><div className="number-edit-row score-ratio-editor"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); change(-ratio.step); }}>−</button><input type="text" inputMode="decimal" min="0" max={ratio.denominator} step={ratio.step} className="edit-number" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><button type="button" className="num-step" onClick={event => { event.stopPropagation(); change(ratio.step); }}>+</button><span className="number-edit-unit">{ratio.suffix}</span></div>{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); save(); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(String(value))}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${value}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderStringField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (!hasVal(value)) return null;
+    const label = FIELD_LABELS[fn] || fn; if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const rows = splitBySentence(fmtVal(value)).map((row, rowIndex) => ({ value: parseLabel(row).value, label: parseLabel(row).isLabeled ? parseLabel(row).label : '', rowIndex }));
+    const groups = []; rows.forEach(row => { const previous = groups[groups.length - 1]; if (previous && previous.label === row.label) previous.rows.push(row); else groups.push({ label: row.label, rows: [row] }); });
+    const saveRow = row => { const updated = rows.map(item => item.label ? `${item.label}: ${item.value}` : item.value); updated[row.rowIndex] = row.label ? `${row.label}: ${editValue.trim()}` : editValue.trim(); handleSaveField(record, fn, idx, sid, null, updated.join('; '), `${fn}-${idx}-r${row.rowIndex}`); };
+    return <div key={fn} className="rec-mini-card"><div className="nested-subtitle">{highlightText(label)}</div>{groups.map((group, groupIndex) => <div key={`${group.label}-${groupIndex}`} className="nested-mini-card">{group.label && <div className="nested-subtitle sub-label">{highlightText(group.label)}</div>}{group.rows.map(row => { const editKey = `${fn}-${idx}-r${row.rowIndex}`, isEditing = editingField === editKey, isModified = editedFields[editKey]; return <div key={editKey} data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(row.value); } }}>{isEditing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveRow(row); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(row.value)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(row.value, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div>; })}</div>)}</div>;
+  };
+
+  const renderArrayField = (record, fn, idx, sid) => {
+    const sourceItems = getFieldValue(record, fn, idx); if (!Array.isArray(sourceItems) || !sourceItems.some(Boolean)) return null;
+    const label = FIELD_LABELS[fn] || fn;
+    const saveClause = (itemIndex, clauseIndex, parsed, clauses) => { const nextClauses = [...clauses]; nextClauses[clauseIndex] = editValue.trim(); const reconstructed = parsed.isLabeled ? `${parsed.label}: ${nextClauses.join(', ')}` : nextClauses.join(', '); const id = safeId(record); if (!id) return; const array = [...sourceItems]; array[itemIndex] = reconstructed; setLocalEdits(previous => ({ ...previous, [`${fn}-${idx}`]: array })); setPendingEdits(previous => ({ ...previous, [`${fn}-${idx}`]: true })); setEditedFields(previous => ({ ...previous, [`${fn}.${itemIndex}.clause${clauseIndex}-${idx}`]: 'edited' })); const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][`${fn}.${itemIndex}`] = reconstructed; writeDrafts(store); setEditingField(null); setEditValue(''); };
+    return <div key={fn} className="rec-mini-card"><div className="nested-subtitle">{highlightText(label)}</div>{sourceItems.map((item, itemIndex) => { if (!item) return null; const parsed = parseLabel(String(item)); const clauses = COMMA_ARRAY_FIELDS.includes(fn) ? splitByComma(parsed.value) : [parsed.value]; return <div key={itemIndex} className="nested-mini-card">{parsed.isLabeled && <div className="nested-subtitle sub-label">{highlightText(parsed.label)}</div>}{clauses.map((clause, clauseIndex) => { const editKey = `${fn}.${itemIndex}-r${clauseIndex}-${idx}`, trackingKey = `${fn}.${itemIndex}.clause${clauseIndex}-${idx}`, isEditing = editingField === editKey, isModified = editedFields[trackingKey]; return <div key={editKey} data-edit-field={`${fn}.${itemIndex}`}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(clause); } }}>{isEditing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveClause(itemIndex, clauseIndex, parsed, clauses); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(clause)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(clause, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div>; })}</div>; })}</div>;
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -791,7 +841,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
-      return hasVal(val);
+      return NUMBER_FIELDS.includes(f) ? numberShows(record, f, idx) : hasVal(val);
     });
     if (!hasAnyVal) return null;
 
@@ -807,7 +857,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
-            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
+            if (SCORE_RATIO_FIELDS.includes(f)) return renderScoreRatioField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
@@ -834,7 +884,7 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Visual Acuity Reports</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<VisualAcuityReportsDocumentPDFTemplate document={pdfData} />} fileName={`visual-acuity-reports-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<VisualAcuityReportsDocumentPDFTemplate document={pdfData} />} fileName="Visual_Acuity_Reports.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -847,11 +897,6 @@ const VisualAcuityReportsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.createdAt)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Visual Acuity Report ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'snellen-chart')}

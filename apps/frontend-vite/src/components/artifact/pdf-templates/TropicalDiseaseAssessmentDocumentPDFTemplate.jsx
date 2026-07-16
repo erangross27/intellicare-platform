@@ -1,211 +1,156 @@
-/**
- * TropicalDiseaseAssessmentDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt -- LETTER size -- US medical platform
- * Collection: tropical_disease_assessment
- */
+/** Tropical Disease Assessment - canonical box-free PDF. */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, backgroundColor: '#f5f5f5', padding: 12, borderWidth: 2, borderColor: '#000000', borderLeftWidth: 5, borderLeftColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 11, color: '#333333', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, marginBottom: 2 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  page: { padding: 36, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, marginBottom: 16, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 3, marginTop: 6, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 1, marginTop: 2, marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  listItem: { fontSize: 14, lineHeight: 1.35, marginBottom: 0, paddingLeft: 8 },
+  noDataText: { fontSize: 14, marginTop: 40 },
 });
 
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; return true; };
-// peakTemperature 0 (non-physiological) is a sentinel => hide. parasitemia 0% is meaningful => show.
-const isSentinelTemp = (v) => v === 0 || v === null || v === undefined;
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\bvs)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
-const parseLabel = (s) => { const m = s.replace(/[;.]+$/, '').trim().match(/^([A-Za-z][A-Za-z0-9 /()-]{1,40}):\s*(.+)$/s); return m ? { label: m[1].trim(), value: m[2].trim() } : { label: null, value: s }; };
-const renderFieldRow = (label, value) => { if (!hasVal(value)) return null; return (<View style={{ marginBottom: 4 }}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{String(value)}</Text></View>); };
-
-const renderSentenceField = (label, text, sectionTitle) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(String(text));
-  if (sentences.length === 0) return null;
-  let totalItems = sentences.length;
-  sentences.forEach(s => { const p = parseLabel(s); const rv = p.label ? p.value : s; const ci = rv.split(/,\s+/).filter(x => x.trim()); if (ci.length > 1) totalItems += ci.length - 1; });
-  return (<View style={styles.fieldBox} wrap={totalItems > 8 ? undefined : false}>
-    {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-    <Text style={styles.fieldLabel}>{label}</Text>
-    {sentences.map((s, i) => {
-      const p = parseLabel(s);
-      const rawVal = p.label ? p.value : s.replace(/[;.]+$/, '').trim();
-      const cItems = rawVal.split(/,\s+/).filter(x => x.trim());
-      return (<View key={i} style={{ marginBottom: 3, marginLeft: 8 }}>
-        {p.label && <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 1 }}>{p.label}</Text>}
-        {cItems.length > 1 ? cItems.map((item, ci) => <Text key={ci} style={styles.listItem}>{ci + 1}. {item.trim()}</Text>) : <Text style={styles.listItem}>1. {rawVal}</Text>}
-      </View>);
-    })}
-  </View>);
+const SECTION_TITLES = {
+  'travel-history': 'Travel History',
+  'vector-exposure': 'Vector and Prophylaxis',
+  'fever-presentation': 'Fever Presentation',
+  parasitology: 'Parasitology',
+  serology: 'Serology',
+  'clinical-findings': 'Clinical Findings',
+  treatment: 'Treatment',
+  complications: 'Complications',
+  'public-health': 'Public Health',
 };
 
-const TropicalDiseaseAssessmentDocumentPDFTemplate = ({ document: data }) => {
-  // Handle data unwrapping
-  let records = [];
-  if (Array.isArray(data)) {
-    records = data;
-  } else if (data?.tropical_disease_assessment && Array.isArray(data.tropical_disease_assessment)) {
-    records = data.tropical_disease_assessment;
-  } else if (data?.documentData) {
-    const docData = data.documentData;
-    if (Array.isArray(docData)) {
-      records = docData;
-    } else if (docData?.tropical_disease_assessment) {
-      records = docData.tropical_disease_assessment;
-    } else if (docData && typeof docData === 'object') {
-      records = [docData];
-    }
-  } else if (data && typeof data === 'object') {
-    records = [data];
-  }
+const FIELD_LABELS = {
+  date: 'Assessment Date',
+  travelHistoryCountries: 'Travel History Countries',
+  travelStartDate: 'Travel Start Date',
+  travelReturnDate: 'Travel Return Date',
+  exposureHistory: 'Exposure History',
+  vectorExposure: 'Vector Exposure',
+  prophylaxisCompliance: 'Prophylaxis Compliance',
+  vaccinationStatus: 'Vaccination Status',
+  feverOnsetDate: 'Fever Onset Date',
+  feverPattern: 'Fever Pattern',
+  peakTemperature: 'Peak Temperature',
+  suspectedPathogen: 'Suspected Pathogen',
+  parasitologyResults: 'Parasitology Results',
+  malariaSpecies: 'Malaria Species',
+  parasitemia: 'Parasitemia',
+  rapidDiagnosticTest: 'Rapid Diagnostic Test',
+  serologyResults: 'Serology Results',
+  hepatosplenomegaly: 'Hepatosplenomegaly',
+  rashCharacteristics: 'Rash Characteristics',
+  neurologicSymptoms: 'Neurologic Symptoms',
+  hemorrhagicManifestations: 'Hemorrhagic Manifestations',
+  antimicrobialTherapy: 'Antimicrobial Therapy',
+  treatmentResponse: 'Treatment Response',
+  complicationsDeveloped: 'Complications Developed',
+  isolationRequired: 'Isolation Required',
+  publicHealthNotification: 'Public Health Notification',
+};
 
-  if (!records || records.length === 0) {
-    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Tropical Disease Assessment</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+const SECTION_FIELDS = {
+  'travel-history': ['date', 'travelHistoryCountries', 'travelStartDate', 'travelReturnDate', 'exposureHistory'],
+  'vector-exposure': ['vectorExposure', 'prophylaxisCompliance', 'vaccinationStatus'],
+  'fever-presentation': ['feverOnsetDate', 'feverPattern', 'peakTemperature', 'suspectedPathogen'],
+  parasitology: ['parasitologyResults', 'malariaSpecies', 'parasitemia', 'rapidDiagnosticTest'],
+  serology: ['serologyResults'],
+  'clinical-findings': ['hepatosplenomegaly', 'rashCharacteristics', 'neurologicSymptoms', 'hemorrhagicManifestations'],
+  treatment: ['antimicrobialTherapy', 'treatmentResponse'],
+  complications: ['complicationsDeveloped'],
+  'public-health': ['isolationRequired', 'publicHealthNotification'],
+};
+
+const DATE_FIELDS = new Set(['date', 'travelStartDate', 'travelReturnDate', 'feverOnsetDate']);
+const NUMBER_FIELDS = new Set(['peakTemperature', 'parasitemia']);
+const BOOLEAN_FIELDS = new Set(['hepatosplenomegaly', 'hemorrhagicManifestations', 'isolationRequired', 'publicHealthNotification']);
+const ARRAY_FIELDS = new Set(['travelHistoryCountries', 'vectorExposure', 'neurologicSymptoms', 'complicationsDeveloped']);
+const COMMA_SPLIT_FIELDS = new Set(['exposureHistory', 'vaccinationStatus', 'suspectedPathogen', 'malariaSpecies']);
+const MEANINGFUL_ZERO_FIELDS = new Set(['parasitemia']);
+
+const safeString = value => String(value ?? '').replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...');
+const hasVal = value => value !== null && value !== undefined && value !== '' && (typeof value !== 'string' || value.trim() !== '') && (!Array.isArray(value) || value.some(hasVal));
+const formatDate = value => { try { const date = new Date(value?.$date || value); if (isNaN(date.getTime())) return safeString(value); return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); } catch { return safeString(value); } };
+
+const splitTopLevelCommas = text => {
+  const source = safeString(text);
+  const parts = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(' || char === '[' || char === '{') depth += 1;
+    else if (char === ')' || char === ']' || char === '}') depth = Math.max(0, depth - 1);
+    if (char === ',' && depth === 0) { if (current.trim()) parts.push(current.trim()); current = ''; }
+    else current += char;
   }
+  if (current.trim()) parts.push(current.trim());
+  return parts;
+};
+
+const splitBySentence = (text, field = '') => {
+  const clauses = safeString(text).split(/(?<!\b[A-Z])(?<!\d)\.(?:\s+)|;\s+/).map(part => part.trim()).filter(Boolean);
+  if (!COMMA_SPLIT_FIELDS.has(field)) return clauses;
+  return clauses.flatMap(splitTopLevelCommas).filter(Boolean);
+};
+
+const unwrapRecords = data => (Array.isArray(data) ? data : data ? [data] : []).flatMap(record =>
+  record?.tropical_disease_assessment
+    ? (Array.isArray(record.tropical_disease_assessment) ? record.tropical_disease_assessment : [record.tropical_disease_assessment])
+    : record?.documentData
+      ? (Array.isArray(record.documentData) ? record.documentData : record.documentData?.tropical_disease_assessment ? (Array.isArray(record.documentData.tropical_disease_assessment) ? record.documentData.tropical_disease_assessment : [record.documentData.tropical_disease_assessment]) : [record.documentData])
+      : [record]
+).filter(record => record && typeof record === 'object');
+
+const TropicalDiseaseAssessmentDocumentPDFTemplate = ({ document: data }) => {
+  const records = unwrapRecords(data);
+
+  const rowsForField = (record, field) => {
+    const value = record[field];
+    if (!hasVal(value)) return [];
+    if (DATE_FIELDS.has(field)) return [formatDate(value)];
+    if (NUMBER_FIELDS.has(field)) {
+      if (!Number.isFinite(Number(value))) return [];
+      const doctorEdited = Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(field);
+      return Number(value) !== 0 || MEANINGFUL_ZERO_FIELDS.has(field) || doctorEdited ? [safeString(value)] : [];
+    }
+    if (BOOLEAN_FIELDS.has(field)) return typeof value === 'boolean' ? [value ? 'Yes' : 'No'] : [];
+    if (ARRAY_FIELDS.has(field)) return (Array.isArray(value) ? value : [value]).filter(hasVal).map(safeString);
+    return splitBySentence(value, field);
+  };
+
+  const fieldBody = (record, field) => {
+    const values = rowsForField(record, field);
+    if (!values.length) return [];
+    const label = FIELD_LABELS[field] || field;
+    const rows = values.map((value, index) => <Text key={`${field}-${index}`} style={styles.listItem}>{index + 1}. {safeString(value)}</Text>);
+    if (rows.length <= 6) return [<View key={`${field}-field`} wrap={false}><Text style={styles.fieldLabel}>{label}</Text>{rows}</View>];
+    const [first, ...rest] = rows;
+    return [<View key={`${field}-field`} wrap={false}><Text style={styles.fieldLabel}>{label}</Text>{first}</View>, ...rest];
+  };
+
+  const renderSection = (record, sectionId) => {
+    let body = [];
+    SECTION_FIELDS[sectionId].forEach(field => { body = body.concat(fieldBody(record, field)); });
+    if (!body.length) return null;
+    body = body.map((element, index) => React.cloneElement(element, { key: `${sectionId}-${index}` }));
+    const [first, ...rest] = body;
+    return <View key={sectionId}><View wrap={false}><Text style={styles.sectionTitle}>{SECTION_TITLES[sectionId]}</Text>{first}</View>{rest}</View>;
+  };
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Tropical Disease Assessment</Text></View>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>{`Tropical Disease Assessment ${idx + 1}`}</Text>
-              {record.date && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
-            </View>
-
-            {/* 1. Travel History */}
-            {(hasVal(record.travelHistoryCountries) || hasVal(record.travelStartDate) || hasVal(record.travelReturnDate) || hasVal(record.exposureHistory)) && (
-              <View style={styles.section}>
-                {Array.isArray(record.travelHistoryCountries) && record.travelHistoryCountries.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.travelHistoryCountries.length > 8 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>Travel History</Text>
-                    <Text style={styles.fieldLabel}>Travel History Countries</Text>
-                    {record.travelHistoryCountries.map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {hasVal(record.travelStartDate) && (
-                  <View style={styles.fieldBox} wrap={false}>
-                    {!(Array.isArray(record.travelHistoryCountries) && record.travelHistoryCountries.length > 0) && <Text style={styles.sectionTitle}>Travel History</Text>}
-                    {renderFieldRow('Travel Start Date', formatDate(record.travelStartDate))}
-                  </View>
-                )}
-                {hasVal(record.travelReturnDate) && renderFieldRow('Travel Return Date', formatDate(record.travelReturnDate))}
-                {hasVal(record.exposureHistory) && renderSentenceField('Exposure History', record.exposureHistory, !(hasVal(record.travelHistoryCountries) || hasVal(record.travelStartDate)) ? 'Travel History' : null)}
-              </View>
-            )}
-
-            {/* 2. Vector & Prophylaxis */}
-            {(hasVal(record.vectorExposure) || hasVal(record.prophylaxisCompliance) || hasVal(record.vaccinationStatus)) && (
-              <View style={styles.section}>
-                {Array.isArray(record.vectorExposure) && record.vectorExposure.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.vectorExposure.length > 8 ? undefined : false}>
-                    <Text style={styles.sectionTitle}>Vector & Prophylaxis</Text>
-                    <Text style={styles.fieldLabel}>Vector Exposure</Text>
-                    {record.vectorExposure.map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-                {hasVal(record.prophylaxisCompliance) && renderSentenceField('Prophylaxis Compliance', record.prophylaxisCompliance, !(Array.isArray(record.vectorExposure) && record.vectorExposure.length > 0) ? 'Vector & Prophylaxis' : null)}
-                {hasVal(record.vaccinationStatus) && renderSentenceField('Vaccination Status', record.vaccinationStatus)}
-              </View>
-            )}
-
-            {/* 3. Fever Presentation */}
-            {(hasVal(record.feverOnsetDate) || hasVal(record.feverPattern) || !isSentinelTemp(record.peakTemperature) || hasVal(record.suspectedPathogen)) && (
-              <View style={styles.section}>
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Fever Presentation</Text>
-                  {hasVal(record.feverOnsetDate) && renderFieldRow('Fever Onset Date', formatDate(record.feverOnsetDate))}
-                  {!isSentinelTemp(record.peakTemperature) && renderFieldRow('Peak Temperature', record.peakTemperature)}
-                </View>
-                {hasVal(record.feverPattern) && renderSentenceField('Fever Pattern', record.feverPattern)}
-                {hasVal(record.suspectedPathogen) && renderSentenceField('Suspected Pathogen', record.suspectedPathogen)}
-              </View>
-            )}
-
-            {/* 4. Parasitology */}
-            {(hasVal(record.parasitologyResults) || hasVal(record.malariaSpecies) || hasVal(record.parasitemia) || hasVal(record.rapidDiagnosticTest)) && (
-              <View style={styles.section}>
-                {hasVal(record.parasitologyResults) && renderSentenceField('Parasitology Results', record.parasitologyResults, 'Parasitology')}
-                {hasVal(record.malariaSpecies) && renderFieldRow('Malaria Species', record.malariaSpecies)}
-                {hasVal(record.parasitemia) && renderFieldRow('Parasitemia', record.parasitemia)}
-                {hasVal(record.rapidDiagnosticTest) && renderSentenceField('Rapid Diagnostic Test', record.rapidDiagnosticTest, !hasVal(record.parasitologyResults) ? 'Parasitology' : null)}
-              </View>
-            )}
-
-            {/* 5. Serology */}
-            {hasVal(record.serologyResults) && (
-              <View style={styles.section}>
-                {renderSentenceField('Serology Results', record.serologyResults, 'Serology')}
-              </View>
-            )}
-
-            {/* 6. Clinical Findings */}
-            {(hasVal(record.hepatosplenomegaly) || hasVal(record.rashCharacteristics) || hasVal(record.neurologicSymptoms) || hasVal(record.hemorrhagicManifestations)) && (
-              <View style={styles.section}>
-                <View style={styles.fieldBox} wrap={false}>
-                  <Text style={styles.sectionTitle}>Clinical Findings</Text>
-                  {hasVal(record.hepatosplenomegaly) && renderFieldRow('Hepatosplenomegaly', record.hepatosplenomegaly ? 'Yes' : 'No')}
-                  {hasVal(record.hemorrhagicManifestations) && renderFieldRow('Hemorrhagic Manifestations', record.hemorrhagicManifestations ? 'Yes' : 'No')}
-                </View>
-                {hasVal(record.rashCharacteristics) && renderSentenceField('Rash Characteristics', record.rashCharacteristics)}
-                {Array.isArray(record.neurologicSymptoms) && record.neurologicSymptoms.length > 0 && (
-                  <View style={styles.fieldBox} wrap={record.neurologicSymptoms.length > 8 ? undefined : false}>
-                    <Text style={styles.fieldLabel}>Neurologic Symptoms</Text>
-                    {record.neurologicSymptoms.map((item, i) => (
-                      <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* 7. Treatment */}
-            {(hasVal(record.antimicrobialTherapy) || hasVal(record.treatmentResponse)) && (
-              <View style={styles.section}>
-                {hasVal(record.antimicrobialTherapy) && renderSentenceField('Antimicrobial Therapy', record.antimicrobialTherapy, 'Treatment')}
-                {hasVal(record.treatmentResponse) && renderSentenceField('Treatment Response', record.treatmentResponse, !hasVal(record.antimicrobialTherapy) ? 'Treatment' : null)}
-              </View>
-            )}
-
-            {/* 8. Complications */}
-            {Array.isArray(record.complicationsDeveloped) && record.complicationsDeveloped.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.fieldBox} wrap={record.complicationsDeveloped.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>Complications</Text>
-                  <Text style={styles.fieldLabel}>Complications Developed</Text>
-                  {record.complicationsDeveloped.map((item, i) => (
-                    <Text key={i} style={styles.listItem}>{i + 1}. {String(item)}</Text>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* 9. Public Health */}
-            {(hasVal(record.isolationRequired) || hasVal(record.publicHealthNotification)) && (
-              <View style={styles.fieldBox} wrap={false}>
-                <Text style={styles.sectionTitle}>Public Health</Text>
-                {hasVal(record.isolationRequired) && renderFieldRow('Isolation Required', record.isolationRequired ? 'Yes' : 'No')}
-                {hasVal(record.publicHealthNotification) && renderFieldRow('Public Health Notification', record.publicHealthNotification ? 'Yes' : 'No')}
-              </View>
-            )}
+        <Text style={styles.documentTitle}>Tropical Disease Assessment</Text>
+        {records.length === 0 && <Text style={styles.noDataText}>No tropical disease assessment records available</Text>}
+        {records.map((record, index) => (
+          <View key={index} break={index > 0}>
+            <Text style={styles.recordTitle}>{`Tropical Disease Assessment ${index + 1}`}</Text>
+            {Object.keys(SECTION_FIELDS).map(sectionId => renderSection(record, sectionId))}
           </View>
         ))}
       </Page>

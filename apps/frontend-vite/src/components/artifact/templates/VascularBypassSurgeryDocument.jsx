@@ -14,6 +14,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import VascularBypassSurgeryDocumentPDFTemplate from '../pdf-templates/VascularBypassSurgeryDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './VascularBypassSurgeryDocument.css';
 
@@ -82,16 +83,23 @@ const SECTION_FIELDS = {
 };
 
 const SENTENCE_FIELDS = ['anticoagulationProtocol', 'completionAngiogramResult', 'graftPatencyStatus', 'bypassGraftType'];
-const SIMPLE_FIELDS = ['proximalAnastomosisLocation', 'distalAnastomosisLocation', 'graftDiameterMillimeters', 'graftLengthCentimeters', 'saphenousVeinDiameter', 'rutherfordClassification', 'wifiScore', 'tasciilClassification', 'runoffScore', 'glasgowAneurysmScore', 'preoperativeAnkleBrachialIndex', 'postoperativeAnkleBrachialIndex', 'toeBrachialIndex', 'transcutaneousOxygenPressure', 'intraoperativeGraftFlowRate', 'peakSystolicVelocityGraft', 'velocityRatioVr', 'clampTimeMinutes', 'estimatedBloodLossMilliliters'];
 const BOOLEAN_FIELDS = ['limbSalvageStatus'];
+const NUMBER_FIELDS = [
+  'graftDiameterMillimeters', 'graftLengthCentimeters', 'saphenousVeinDiameter',
+  'runoffScore', 'glasgowAneurysmScore', 'preoperativeAnkleBrachialIndex',
+  'postoperativeAnkleBrachialIndex', 'toeBrachialIndex', 'transcutaneousOxygenPressure',
+  'intraoperativeGraftFlowRate', 'peakSystolicVelocityGraft', 'velocityRatioVr',
+  'clampTimeMinutes', 'estimatedBloodLossMilliliters',
+];
+/* Delimiter inventory: only this real-record field contains a safe top-level comma list. */
+const COMMA_ARRAY_FIELDS = new Set(['anticoagulationProtocol']);
 /* Provider metadata — NOT in the edit route's ALLOWED_FIELDS (24 schema fields only), so rendered without inline editing */
 const READONLY_FIELDS = ['date', 'provider', 'facility'];
 /* Date-typed fields rendered with formatDate */
 const DATE_FIELDS = ['date'];
-/* Numeric fields where 0 means "not measured" — hidden when exactly 0 (4-AREA RULE: JSX, Copy Section, Copy All, PDF).
-   preoperativeAnkleBrachialIndex 0 (absent flow), toeBrachialIndex 0, runoffScore 0 and
-   estimatedBloodLossMilliliters 0 are clinically meaningful zeros and STAY VISIBLE. */
-const HIDE_ZERO_FIELDS = ['postoperativeAnkleBrachialIndex', 'transcutaneousOxygenPressure', 'graftDiameterMillimeters', 'graftLengthCentimeters', 'intraoperativeGraftFlowRate', 'peakSystolicVelocityGraft', 'velocityRatioVr', 'clampTimeMinutes', 'glasgowAneurysmScore', 'saphenousVeinDiameter'];
+/* In this extractor-backed collection, numeric 0 is the documented missing-measurement sentinel.
+   Hide it consistently in JSX, Copy Section, Copy All, and PDF. */
+const HIDE_ZERO_FIELDS = NUMBER_FIELDS;
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -147,10 +155,12 @@ const VascularBypassSurgeryDocument = ({ document: docProp, data, templateData }
 
   /* ═══════ DATA UNWRAP — all formats (document / data / templateData) ═══════ */
   const records = useMemo(() => {
-    const source = docProp || data || templateData;
+    const source = docProp ?? data ?? templateData;
     if (!source) return [];
     let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.vascular_bypass_surgery) return Array.isArray(r.vascular_bypass_surgery) ? r.vascular_bypass_surgery : [r.vascular_bypass_surgery];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.vascular_bypass_surgery) return Array.isArray(dd.vascular_bypass_surgery) ? dd.vascular_bypass_surgery : [dd.vascular_bypass_surgery]; return [dd]; }
       return [r];
@@ -203,25 +213,8 @@ const VascularBypassSurgeryDocument = ({ document: docProp, data, templateData }
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
-
-  const splitBySemicolon = useCallback((text) => {
-    if (!text || typeof text !== 'string') return [];
-    return text.split(/;\s*/).map(s => s.trim()).filter(Boolean);
-  }, []);
-
-  /* reconstructFullText: restores periods on ALL sentences (semicolon narratives rejoin with '; ') —
-     shared by BOTH the Save button and Ctrl+Enter save paths */
-  function reconstructFullText(sentences, isSemicolon) {
-    if (!sentences || sentences.length === 0) return '';
-    if (isSemicolon) return sentences.join('; ');
-    return sentences.map((s, i) => {
-      let c = s.replace(/[;.]+$/, '').trim();
-      if (i < sentences.length - 1) c += '.';
-      return c;
-    }).join(' ');
-  }
 
   const getFieldValue = useCallback((record, fn, idx) => {
     const k = `${fn}-${idx}`;
@@ -353,132 +346,6 @@ const VascularBypassSurgeryDocument = ({ document: docProp, data, templateData }
     setEditingField(null); setEditValue('');
   }, [editValue, safeId]);
 
-  function saveSentence(record, fn, idx, sid, sentenceIdx) {
-    const id = safeId(record); if (!id) return;
-    const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const periodItems = splitBySentence(currentVal);
-    const isSemicolon = periodItems.length < 2;
-    const sentences = isSemicolon ? splitBySemicolon(currentVal) : periodItems;
-    const editedVal = editValue.trim();
-    const stageDraft = (fullText) => {
-      const ek = `${fn}-${idx}`;
-      setLocalEdits(prev => ({ ...prev, [ek]: fullText }));
-      setPendingEdits(prev => ({ ...prev, [ek]: true }));
-      setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-      const store = readDrafts();
-      if (!store[id]) store[id] = {};
-      store[id][fn] = fullText;
-      writeDrafts(store);
-      setEditingField(null); setEditValue('');
-    };
-    if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
-      const updated = [...sentences]; updated.splice(sentenceIdx, 1);
-      const fullText = reconstructFullText(updated, isSemicolon);
-      setEditedSentences(prev => ({ ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }));
-      stageDraft(fullText);
-      return;
-    }
-    const newPeriodItems = splitBySentence(editedVal);
-    const newSentences = newPeriodItems.length >= 2 ? newPeriodItems : (isSemicolon ? splitBySemicolon(editedVal) : newPeriodItems);
-    const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
-    const fullText = reconstructFullText(updated, isSemicolon);
-    const orig = sentences[sentenceIdx] || '';
-    const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
-    setEditedSentences(prev => {
-      const n = { ...prev };
-      if (changed) n[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
-      const extra = newSentences.length - 1;
-      for (let ei = 0; ei < extra; ei++) n[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added';
-      return n;
-    });
-    stageDraft(fullText);
-  }
-
-  /* saveLabeledSentence: rebuilds a "Label: value" sentence then reconstructs the full text —
-     shared by BOTH the Save button and Ctrl+Enter save paths */
-  function saveLabeledSentence(record, fn, idx, sid, sIdx, parsedLabel, isSemicolon) {
-    const id = safeId(record); if (!id) return;
-    const sentenceKey = `${fn}-${idx}-s${sIdx}`;
-    const trimmed = editValue.trim();
-    const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp);
-    const newValue = subParts.join(', ');
-    const reconstructed = `${parsedLabel}: ${newValue}`;
-    const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const currentSentences = isSemicolon ? splitBySemicolon(currentVal) : splitBySentence(currentVal);
-    currentSentences[sIdx] = reconstructed;
-    const fullText = reconstructFullText(currentSentences, isSemicolon);
-    setSaveError(null);
-    const ek = `${fn}-${idx}`;
-    setLocalEdits(prev => ({ ...prev, [ek]: fullText }));
-    setPendingEdits(prev => ({ ...prev, [ek]: true }));
-    const marks = { [sentenceKey]: 'edited' };
-    for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added';
-    setEditedSentences(prev => ({ ...prev, ...marks }));
-    setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-    const store = readDrafts();
-    if (!store[id]) store[id] = {};
-    store[id][fn] = fullText;
-    writeDrafts(store);
-    setEditingField(null); setEditValue('');
-  }
-
-  function saveCommaItem(record, fn, idx, sid, sIdx, ciIdx) {
-    const id = safeId(record); if (!id) return;
-    const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const periodItems = splitBySentence(currentVal);
-    const isSemicolon = periodItems.length < 2;
-    const sentences = isSemicolon ? splitBySemicolon(currentVal) : periodItems;
-    const s = sentences[sIdx] || '';
-    const p = parseLabel(s);
-    if (!p.isLabeled) return;
-    const semiSub = splitBySemicolon(p.value);
-    const useSemicolon = semiSub.length >= 2;
-    const items = useSemicolon ? semiSub : splitByComma(p.value);
-    const trimmed = editValue.trim();
-    const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp);
-    if (subParts.length > 1) { items.splice(ciIdx, 1, ...subParts); } else { items[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); }
-    const joiner = useSemicolon ? '; ' : ', ';
-    const rebuilt = `${p.label}: ${items.join(joiner)}.`;
-    const allS = [...sentences]; allS[sIdx] = rebuilt;
-    const fullText = reconstructFullText(allS, isSemicolon);
-    setSaveError(null);
-    const ek = `${fn}-${idx}`;
-    setLocalEdits(prev => ({ ...prev, [ek]: fullText }));
-    setPendingEdits(prev => ({ ...prev, [ek]: true }));
-    const sentenceKey = `${fn}-${idx}-s${sIdx}`;
-    const commaKey = `${sentenceKey}-c${ciIdx}`;
-    const marks = { [commaKey]: 'edited' };
-    for (let ei = 1; ei < subParts.length; ei++) marks[`${sentenceKey}-c${ciIdx + ei}`] = 'added';
-    setEditedSentences(prev => ({ ...prev, ...marks }));
-    setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-    const store = readDrafts();
-    if (!store[id]) store[id] = {};
-    store[id][fn] = fullText;
-    writeDrafts(store);
-    setEditingField(null); setEditValue('');
-  }
-
-  /* saveSingleCommaItem: edits one comma item of a single-sentence value —
-     shared by BOTH the Save button and Ctrl+Enter save paths */
-  function saveSingleCommaItem(record, fn, idx, sid, ciIdx, labelPrefix) {
-    const id = safeId(record); if (!id) return;
-    const allItems = splitByComma(String(getFieldValue(record, fn, idx) || ''));
-    allItems[ciIdx] = labelPrefix ? `${labelPrefix}: ${editValue.trim()}` : editValue.trim();
-    const fullText = allItems.join(', ');
-    const commaKey = `${fn}-${idx}-s0-c${ciIdx}`;
-    setSaveError(null);
-    const ek = `${fn}-${idx}`;
-    setLocalEdits(prev => ({ ...prev, [ek]: fullText }));
-    setPendingEdits(prev => ({ ...prev, [ek]: true }));
-    setEditedSentences(prev => ({ ...prev, [commaKey]: 'edited' }));
-    setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-    const store = readDrafts();
-    if (!store[id]) store[id] = {};
-    store[id][fn] = fullText;
-    writeDrafts(store);
-    setEditingField(null); setEditValue('');
-  }
-
   /* ═══════ APPROVE ═══════ */
   const sectionHasEdits = useCallback((idx, sid) => {
     const fields = SECTION_FIELDS[sid] || [];
@@ -539,23 +406,15 @@ const VascularBypassSurgeryDocument = ({ document: docProp, data, templateData }
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatSentenceFieldLines = useCallback((text) => {
-    const sentences = splitBySentence(text);
-    const lines = []; let n = 1;
-    sentences.forEach(s => {
-      const parsed = parseLabel(s);
-      if (parsed.isLabeled) {
-        const semiItems = splitBySemicolon(parsed.value);
-        const parts = semiItems.length >= 2 ? semiItems : splitByComma(parsed.value);
-        const hasOxford = parts.some(ci => ci.trim().toLowerCase().startsWith('and '));
-        if (parts.length >= 2 && !hasOxford) {
-          lines.push(parsed.label + ':');
-          parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
-        } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
-      } else { lines.push(`${n++}. ${s}`); }
-    });
-    return lines;
-  }, [splitBySentence, splitBySemicolon]);
+  const fieldRows = useCallback((fn, value) => {
+    const text = fmtFieldVal(fn, value);
+    if (!SENTENCE_FIELDS.includes(fn)) return [text];
+    return splitBySentence(text).flatMap((clause) => {
+      const parsed = parseLabel(clause);
+      const values = COMMA_ARRAY_FIELDS.has(fn) ? splitByComma(parsed.value) : [parsed.value];
+      return values.map(item => parsed.isLabeled ? `${parsed.label}: ${item}` : item);
+    }).filter(Boolean);
+  }, [fmtFieldVal, splitBySentence]);
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -565,42 +424,12 @@ const VascularBypassSurgeryDocument = ({ document: docProp, data, templateData }
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasFieldVal(f, val)) return;
-      const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
-      if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
-      } else if (SENTENCE_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const periodItems = splitBySentence(strVal);
-        const isSemicolon = periodItems.length < 2;
-        if (!isSemicolon) {
-          if (showLabel) text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          const semiItems = splitBySemicolon(strVal);
-          if (semiItems.length >= 2) {
-            if (showLabel) text += `${label}\n`;
-            semiItems.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
-            text += '\n';
-          } else {
-            const commaItems = splitByComma(strVal);
-            const hasOxfordCopy = commaItems.some(ci => ci.trim().toLowerCase().startsWith('and '));
-            if (commaItems.length >= 2 && !hasOxfordCopy) {
-              if (showLabel) text += `${label}\n`;
-              commaItems.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
-              text += '\n';
-            } else {
-              if (showLabel) text += `${label}\n`;
-              text += `${strVal}\n\n`;
-            }
-          }
-        }
-      } else {
-        text += `${label}: ${fmtFieldVal(f, val)}\n\n`;
-      }
+      text += `${label}\n${'-'.repeat(40)}\n`;
+      fieldRows(f, val).forEach((row, rowIndex) => { text += `${rowIndex + 1}. ${row}\n`; });
+      text += '\n';
     });
     return text;
-  }, [getFieldValue, hasFieldVal, fmtVal, fmtFieldVal, splitBySentence, splitBySemicolon, formatSentenceFieldLines]);
+  }, [getFieldValue, hasFieldVal, fieldRows]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== VASCULAR BYPASS SURGERY ===\n\n';
@@ -626,11 +455,11 @@ const VascularBypassSurgeryDocument = ({ document: docProp, data, templateData }
     if (searchTerm.trim() && !shouldShowRow(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className="numbered-row">
           <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span></div>
-          <button className={`copy-btn ${copiedItems[copyKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, copyKey); }}>{copiedItems[copyKey] ? 'Copied!' : 'Copy'}</button>
+          <button className={`copy-btn ${copiedItems[copyKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, copyKey); }}>{copiedItems[copyKey] ? 'Copied!' : 'Copy'}</button>
         </div>
       </div>
     );
@@ -645,29 +474,38 @@ const VascularBypassSurgeryDocument = ({ document: docProp, data, templateData }
     const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     const displayVal = fmtFieldVal(fn, val);
     const isModified = editedFields[editKey];
+    const isNumber = NUMBER_FIELDS.includes(fn);
+    const saveSimple = () => {
+      if (!isNumber) { handleSaveField(record, fn, idx, sid, null, editValue); return; }
+      const number = Number(editValue);
+      if (!Number.isFinite(number)) { setSaveError('Please enter a valid number'); return; }
+      handleSaveField(record, fn, idx, sid, null, number);
+    };
     if (searchTerm.trim() && !shouldShowRow(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <textarea ref={textareaRef} className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { handleSaveField(record, fn, idx, sid, null, editValue); } }} />
+              {isNumber ? <div className="number-edit-row"><button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveSimple(); } }} /><button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button></div> : <textarea ref={textareaRef} className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveSimple(); } }} />}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSimple(); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
@@ -684,15 +522,13 @@ const VascularBypassSurgeryDocument = ({ document: docProp, data, templateData }
     if (searchTerm.trim() && !shouldShowRow(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -702,216 +538,57 @@ const VascularBypassSurgeryDocument = ({ document: docProp, data, templateData }
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
 
-  /* ═══════ RENDER: SENTENCE FIELD with splitBySentence / splitBySemicolon ═══════ */
+  /* ═══════ RENDER: SENTENCE FIELD — semicolon/period clauses and explicit comma fields ═══════ */
   const renderSentenceEditableField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
-    const strVal = fmtVal(val);
-    const periodItems = splitBySentence(strVal);
-    const isSemicolon = periodItems.length < 2;
-    const sentences = isSemicolon ? splitBySemicolon(strVal) : periodItems;
     const label = FIELD_LABELS[fn] || fn;
     const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !shouldShowRow(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    /* Multi-sentence: render with period-first splitting, parseLabel for subtitles */
-    if (sentences.length > 1) {
-      const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
-      const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-
-      return (
-        <div key={fn}>
-          <div className="rec-mini-card">
-            {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-            {sentences.map((sentence, sIdx) => {
-              const sentenceKey = `${fn}-${idx}-s${sIdx}`;
-              const isEditing = editingField === sentenceKey;
-              const badge = editedSentences[sentenceKey];
-              const sentenceMatches = phraseMatch || labelMatch || (searchTerm.trim() && sentence.toLowerCase().includes(searchTerm.toLowerCase().trim()));
-              if (!sentenceMatches && searchTerm.trim()) return null;
-
-              const parsed = parseLabel(sentence);
-              if (parsed.isLabeled) {
-                const semiItems2 = splitBySemicolon(parsed.value);
-                const commaItems = semiItems2.length >= 2 ? semiItems2 : splitByComma(parsed.value);
-                const hasOxfordComma = commaItems.some(ci => ci.trim().toLowerCase().startsWith('and '));
-                const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-                if (commaItems.length >= 2 && !hasOxfordComma) {
-                  return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                      <div className="nested-subtitle">{highlightText(parsed.label)}</div>
-                      {commaItems.map((ci, ciIdx) => {
-                        const commaKey = `${sentenceKey}-c${ciIdx}`;
-                        const ciEditing = editingField === commaKey;
-                        const ciBadge = editedSentences[commaKey];
-                        const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
-                        if (!ciMatches && searchTerm.trim()) return null;
-                        return (
-                          <div key={ciIdx}>
-                            <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
-                              {ciEditing ? (
-                                <div className="edit-field-container">
-                                  <textarea ref={textareaRef} className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { saveCommaItem(record, fn, idx, sid, sIdx, ciIdx); } }} />
-                                  {saveError && <div className="save-error">{saveError}</div>}
-                                  <div className="edit-actions">
-                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveCommaItem(record, fn, idx, sid, sIdx, ciIdx); }}>{saving ? 'Saving...' : 'Save'}</button>
-                                    <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="row-content"><span className="content-value">{highlightText(ci)}</span><span className="edit-indicator">&#9998;</span></div>
-                                  <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(ci, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                                </>
-                              )}
-                            </div>
-                            {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                }
-              }
-
-              /* Regular sentence row */
-              return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
-                  {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
-                  <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
-                    {isEditing ? (
-                      <div className="edit-field-container">
-                        <textarea ref={textareaRef} className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { if (parsed.isLabeled) { saveLabeledSentence(record, fn, idx, sid, sIdx, parsed.label, isSemicolon); } else { saveSentence(record, fn, idx, sid, sIdx); } } }} />
-                        {saveError && <div className="save-error">{saveError}</div>}
-                        <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { saveLabeledSentence(record, fn, idx, sid, sIdx, parsed.label, isSemicolon); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
-                          <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="row-content"><span className="content-value">{highlightText(parsed.isLabeled ? parsed.value : sentence)}</span><span className="edit-indicator">&#9998;</span></div>
-                        <button className={`copy-btn ${copiedItems[sentenceKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(sentence, sentenceKey); }}>{copiedItems[sentenceKey] ? 'Copied!' : 'Copy'}</button>
-                      </>
-                    )}
-                  </div>
-                  {badge && <span className={`modified-badge ${badge === 'added' ? 'added' : ''}`}>{badge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    /* Single-value: split comma items into separate rows (labeled or not) */
-    const singleCommaItems = splitByComma(strVal);
-    const hasOxfordComma = singleCommaItems.some(ci => ci.trim().toLowerCase().startsWith('and '));
-
-    if (singleCommaItems.length >= 2 && !hasOxfordComma) {
-      const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
-      const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-
-      return (
-        <div key={fn}>
-          <div className="rec-mini-card">
-            {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-            {singleCommaItems.map((ci, ciIdx) => {
-              const ciParsed = parseLabel(ci);
-              const commaKey = `${fn}-${idx}-s0-c${ciIdx}`;
-              const ciEditing = editingField === commaKey;
-              const ciBadge = editedSentences[commaKey];
-              const ciMatches = phraseMatch || labelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
-              if (!ciMatches && searchTerm.trim()) return null;
-
-              if (ciParsed.isLabeled) {
-                return (
-                  <div key={ciIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                    <div className="nested-subtitle">{highlightText(ciParsed.label)}</div>
-                    <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ciParsed.value); setSaveError(null); } }}>
-                      {ciEditing ? (
-                        <div className="edit-field-container">
-                          <textarea ref={textareaRef} className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { saveSingleCommaItem(record, fn, idx, sid, ciIdx, ciParsed.label); } }} />
-                          {saveError && <div className="save-error">{saveError}</div>}
-                          <div className="edit-actions">
-                            <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSingleCommaItem(record, fn, idx, sid, ciIdx, ciParsed.label); }}>{saving ? 'Saving...' : 'Save'}</button>
-                            <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="row-content"><span className="content-value">{highlightText(ciParsed.value)}</span><span className="edit-indicator">&#9998;</span></div>
-                          <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${ciParsed.label}: ${ciParsed.value}`, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                        </>
-                      )}
-                    </div>
-                    {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added' : 'edited'} - click Pending Approve to save</span>}
-                  </div>
-                );
-              }
-
-              return (
-                <div key={ciIdx}>
-                  <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
-                    {ciEditing ? (
-                      <div className="edit-field-container">
-                        <textarea ref={textareaRef} className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { saveSingleCommaItem(record, fn, idx, sid, ciIdx, null); } }} />
-                        {saveError && <div className="save-error">{saveError}</div>}
-                        <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSingleCommaItem(record, fn, idx, sid, ciIdx, null); }}>{saving ? 'Saving...' : 'Save'}</button>
-                          <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="row-content"><span className="content-value">{highlightText(ci)}</span><span className="edit-indicator">&#9998;</span></div>
-                        <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(ci, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                      </>
-                    )}
-                  </div>
-                  {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added' : 'edited'} - click Pending Approve to save</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    /* Single-value string (no comma items): saveSentence editable */
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const isModified = editedFields[editKey] || editedSentences[`${fn}-${idx}-s0`];
-
+    const rows = fieldRows(fn, val).map((raw, rowIndex) => ({ ...parseLabel(raw), raw, rowIndex }));
+    const groups = [];
+    rows.forEach(row => {
+      const groupLabel = row.isLabeled ? row.label : '';
+      const last = groups[groups.length - 1];
+      if (last && last.label === groupLabel) last.rows.push(row);
+      else groups.push({ label: groupLabel, rows: [row] });
+    });
+    const saveRow = (row) => {
+      const nextRows = rows.map(item => item.raw);
+      nextRows[row.rowIndex] = row.isLabeled ? `${row.label}: ${editValue.trim()}` : editValue.trim();
+      handleSaveField(record, fn, idx, sid, null, nextRows.join('; '), `${fn}-${idx}-r${row.rowIndex}`);
+    };
     return (
       <div key={fn} className="rec-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <textarea ref={textareaRef} className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { saveSentence(record, fn, idx, sid, 0); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSentence(record, fn, idx, sid, 0); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(strVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${strVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {editedSentences[`${fn}-${idx}-s0`] && <span className={`modified-badge ${editedSentences[`${fn}-${idx}-s0`] === 'added' ? 'added' : ''}`}>{editedSentences[`${fn}-${idx}-s0`] === 'added' ? 'added' : 'edited'} - click Pending Approve to save</span>}
+        {groups.map((group, groupIndex) => (
+          <div key={`${group.label}-${groupIndex}`} className="nested-mini-card">
+            {group.label && <div className="nested-subtitle sub-label">{highlightText(group.label)}</div>}
+            {group.rows.map(row => {
+              const editKey = `${fn}-${idx}-r${row.rowIndex}`;
+              const isEditing = editingField === editKey;
+              const isModified = editedFields[editKey];
+              const displayValue = row.isLabeled ? row.value : row.raw;
+              return (
+                <div key={editKey} data-edit-field={fn}>
+                  <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayValue); setSaveError(null); } }}>
+                    {isEditing ? <div className="edit-field-container"><textarea ref={textareaRef} className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus onKeyDown={event => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); saveRow(row); } }} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); saveRow(row); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${group.label ? `${group.label}\n` : ''}${displayValue}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}
+                  </div>
+                  {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     );
   };
@@ -963,7 +640,7 @@ const VascularBypassSurgeryDocument = ({ document: docProp, data, templateData }
         <h2 className="document-title">Vascular Bypass Surgery</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<VascularBypassSurgeryDocumentPDFTemplate document={pdfData} />} fileName={`vascular-bypass-surgery-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<VascularBypassSurgeryDocumentPDFTemplate document={pdfData} />} fileName="Vascular_Bypass_Surgery.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

@@ -1,5 +1,6 @@
 /* VascularBypassSurgeryDocument.css — June 2026 Blue glow editing theme */
-.vascular-bypass-surgery-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.vascular-bypass-surgery-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; }
+.vascular-bypass-surgery-document * { direction: ltr; }
 .vascular-bypass-surgery-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .vascular-bypass-surgery-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .vascular-bypass-surgery-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -8,7 +9,6 @@
 .vascular-bypass-surgery-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .vascular-bypass-surgery-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
 .vascular-bypass-surgery-document .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
-.vascular-bypass-surgery-document .date-badge { background: rgba(37, 99, 235, 0.2); color: #60a5fa; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600; }
 .vascular-bypass-surgery-document .status-badge { background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600; text-transform: capitalize; margin-left: auto; }
 .vascular-bypass-surgery-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .vascular-bypass-surgery-document .section { margin-top: 16px; }
@@ -17,6 +17,8 @@
 .vascular-bypass-surgery-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
 .vascular-bypass-surgery-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
 .vascular-bypass-surgery-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.vascular-bypass-surgery-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.vascular-bypass-surgery-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
 .vascular-bypass-surgery-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
 .vascular-bypass-surgery-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
 .vascular-bypass-surgery-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
@@ -34,9 +36,10 @@
 .vascular-bypass-surgery-document .modified-badge.added { color: #4ade80; }
 .vascular-bypass-surgery-document .edit-field-container { width: 100%; }
 .vascular-bypass-surgery-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.vascular-bypass-surgery-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
-.vascular-bypass-surgery-document .edit-select option { background: #0F1B33; color: #ececf1; }
-.vascular-bypass-surgery-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.vascular-bypass-surgery-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.vascular-bypass-surgery-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.vascular-bypass-surgery-document .num-step { width: 36px; height: 36px; border: 1px solid rgba(96, 165, 250, 0.55); border-radius: 6px; background: rgba(96, 165, 250, 0.16); color: #ececf1; font-size: 20px; cursor: pointer; }
+.vascular-bypass-surgery-document .edit-actions { display: flex; justify-content: flex-start; gap: 8px; margin-top: 8px; }
 .vascular-bypass-surgery-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .vascular-bypass-surgery-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .vascular-bypass-surgery-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }

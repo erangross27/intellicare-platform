@@ -13,6 +13,7 @@ import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import TumorMarkerPanelsDocumentPDFTemplate from '../pdf-templates/TumorMarkerPanelsDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
+import BlueDatePicker from '../components/BlueDatePicker';
 import './TumorMarkerPanelsDocument.css';
 
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
@@ -76,6 +77,7 @@ const NUMBER_FIELDS = ['afpLevel', 'ceaLevel', 'ca125Level', 'ca199Level', 'ca15
 const DATE_FIELDS = ['collectionDateTime'];
 const ARRAY_FIELDS = ['abnormalMarkers'];
 const STRING_FIELDS = ['panelIndication', 'specimenType', 'clinicalContext', 'previousMarkerComparison'];
+const COMMA_SPLIT_FIELDS = new Set(['clinicalContext']);
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -109,9 +111,10 @@ const toInputDate = (dateValue) => {
   if (!dateValue) return '';
   try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
 };
+const stepFor = (value) => { const text = String(value ?? ''); const decimals = text.includes('.') ? text.split('.')[1].length : 0; return decimals ? 10 ** -decimals : 1; };
 
 /* ═══════ COMPONENT ═══════ */
-const TumorMarkerPanelsDocument = ({ document: docProp }) => {
+const TumorMarkerPanelsDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -130,15 +133,20 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? data ?? templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (!r || typeof r !== 'object') return [r];
+      if (Array.isArray(r.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r.records || r._records)) return r.records || r._records;
       if (r?.tumor_marker_panels) return Array.isArray(r.tumor_marker_panels) ? r.tumor_marker_panels : [r.tumor_marker_panels];
+      if (r?.data?.tumor_marker_panels) return Array.isArray(r.data.tumor_marker_panels) ? r.data.tumor_marker_panels : [r.data.tumor_marker_panels];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.tumor_marker_panels) return Array.isArray(dd.tumor_marker_panels) ? dd.tumor_marker_panels : [dd.tumor_marker_panels]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
@@ -167,25 +175,36 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
   const hasVal = useCallback((v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; }, []);
   const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
 
-  const splitBySentence = useCallback((text) => {
+  const splitBySentence = useCallback((text, field = '') => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    const clauses = text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\d)\.(?:\s+)|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return COMMA_SPLIT_FIELDS.has(field) ? clauses.flatMap(splitByComma) : clauses;
   }, []);
 
-  function reconstructFullText(sentences) {
+  function reconstructFullText(sentences, field = '', originalText = '') {
     if (!sentences || sentences.length === 0) return '';
-    return sentences.map((s, i) => {
-      let c = s.replace(/[;.]+$/, '').trim();
-      if (i < sentences.length - 1) c += '.';
-      return c;
-    }).join(' ');
+    const clean = sentences.map(s => s.replace(/[;.,]+$/, '').trim()).filter(Boolean);
+    const delimiter = COMMA_SPLIT_FIELDS.has(field) ? ', ' : String(originalText).includes(';') ? '; ' : '. ';
+    return clean.join(delimiter);
   }
 
   const getFieldValue = useCallback((record, fn, idx) => {
     const k = `${fn}-${idx}`;
     if (localEdits[k] !== undefined) return localEdits[k];
+    if (Array.isArray(record[fn])) {
+      const merged = [...record[fn]]; let changed = false;
+      Object.entries(localEdits).forEach(([key, value]) => { const match = key.match(new RegExp(`^${fn}\\.(\\d+)-${idx}$`)); if (match) { merged[Number(match[1])] = value; changed = true; } });
+      if (changed) return merged;
+    }
     return record[fn];
   }, [localEdits]);
+
+  const numberShows = useCallback((record, fn, idx) => {
+    const value = getFieldValue(record, fn, idx);
+    if (value === null || value === undefined || value === '' || Number.isNaN(Number(value))) return false;
+    if (Number(value) !== 0) return true;
+    return localEdits[`${fn}-${idx}`] !== undefined || editedFields[`${fn}-${idx}`] || (Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(fn));
+  }, [getFieldValue, localEdits, editedFields]);
 
   const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -263,9 +282,12 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
         if (pendingEdits[key]) return; // pending drafts stay OUT of the PDF/Copy All until approved
         const m = key.match(/^(.+)-(\d+)$/);
         if (m && parseInt(m[2]) === idx) {
-          merged[m[1]] = localEdits[key];
+          const fieldPart = m[1]; const arrayLeaf = fieldPart.match(/^(.+)\.(\d+)$/);
+          if (arrayLeaf && Array.isArray(merged[arrayLeaf[1]])) { merged[arrayLeaf[1]] = [...merged[arrayLeaf[1]]]; merged[arrayLeaf[1]][Number(arrayLeaf[2])] = localEdits[key]; }
+          else merged[fieldPart] = localEdits[key];
         }
       });
+      merged._showZeroFields = NUMBER_FIELDS.filter(field => Number(merged[field]) === 0 && (localEdits[`${field}-${idx}`] !== undefined || (Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(field))));
       return merged;
     });
   }, [filteredRecords, localEdits, pendingEdits]);
@@ -308,21 +330,19 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
   function saveSentence(record, fn, idx, sid, sentenceIdx) {
     const id = safeId(record); if (!id) return;
     const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const sentences = splitBySentence(currentVal);
+    const sentences = splitBySentence(currentVal, fn);
     const editedVal = editValue.trim();
     if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
       const updated = [...sentences]; updated.splice(sentenceIdx, 1);
-      const fullText = reconstructFullText(updated);
+      const fullText = reconstructFullText(updated, fn, currentVal);
       stageSentenceDraft(record, fn, idx, sid, fullText, (n) => { n[`${fn}-${idx}-s${sentenceIdx}`] = 'edited'; return n; });
       return;
     }
-    const newSentences = splitBySentence(editedVal);
+    const newSentences = splitBySentence(editedVal, fn);
     const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
-    const fullText = reconstructFullText(updated);
-    const orig = sentences[sentenceIdx] || '';
-    const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
+    const fullText = reconstructFullText(updated, fn, currentVal);
     stageSentenceDraft(record, fn, idx, sid, fullText, (n) => {
-      if (changed) n[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
+      n[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
       const extra = newSentences.length - 1;
       for (let ei = 0; ei < extra; ei++) n[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added';
       return n;
@@ -346,17 +366,11 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
     // Collect this record's pending edits that belong to this section.
     // localEdits keys are `${field}-${idx}`; fieldPart is the segment before the trailing "-<idx>".
     const suffix = `-${idx}`;
-    const toCommit = Object.keys(localEdits).filter(k => pendingEdits[k] && k.endsWith(suffix) && fields.includes(k.slice(0, -suffix.length)));
+    const toCommit = Object.keys(localEdits).filter(k => pendingEdits[k] && k.endsWith(suffix) && fields.includes(k.slice(0, -suffix.length).split('.')[0]));
     try {
       for (const editKey of toCommit) {
         const fieldPart = editKey.slice(0, -suffix.length); // "field" or "field.arrayIndex"
-        const lastDot = fieldPart.lastIndexOf('.');
         const payload = { field: fieldPart, value: localEdits[editKey] };
-        // Treat a dot-suffix as arrayIndex ONLY when the segment after the LAST dot is purely numeric.
-        if (lastDot !== -1 && /^\d+$/.test(fieldPart.slice(lastDot + 1))) {
-          payload.field = fieldPart.slice(0, lastDot);
-          payload.arrayIndex = parseInt(fieldPart.slice(lastDot + 1), 10);
-        }
         const resp = await secureApiClient.put(`/api/edit/tumor_marker_panels/${id}/edit`, payload);
         if (resp && resp.success === false) throw new Error(resp.error || 'save failed');
       }
@@ -365,7 +379,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
       setPendingEdits(prev => { const n = { ...prev }; toCommit.forEach(k => delete n[k]); return n; });
       // Drop this record's drafts from localStorage (now committed)
       const store = readDrafts();
-      if (store[id]) { const recDrafts = { ...store[id] }; fields.forEach(f => delete recDrafts[f]); if (Object.keys(recDrafts).length > 0) store[id] = recDrafts; else delete store[id]; writeDrafts(store); }
+      if (store[id]) { const recDrafts = { ...store[id] }; Object.keys(recDrafts).forEach(key => { if (fields.includes(key.split('.')[0])) delete recDrafts[key]; }); if (Object.keys(recDrafts).length > 0) store[id] = recDrafts; else delete store[id]; writeDrafts(store); }
       setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
       setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) delete n[k]; }); }); return n; });
       setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
@@ -386,17 +400,17 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatSentenceFieldLines = useCallback((text) => {
-    const sentences = splitBySentence(text);
+  const formatSentenceFieldLines = useCallback((text, field) => {
+    const sentences = splitBySentence(text, field);
     const lines = []; let n = 1;
     sentences.forEach(s => {
       const parsed = parseLabel(s);
       if (parsed.isLabeled) {
         const parts = splitByComma(parsed.value);
         if (parts.length >= 2) {
-          lines.push(parsed.label + ':');
-          parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
-        } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
+          lines.push(parsed.label); lines.push('-'.repeat(40));
+          parts.forEach(item => { lines.push(`${n++}. ${item}`); });
+        } else { lines.push(parsed.label); lines.push('-'.repeat(40)); lines.push(`${n++}. ${parsed.value}`); }
       } else { lines.push(`${n++}. ${s}`); }
     });
     return lines;
@@ -409,30 +423,30 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
-      if (!hasVal(val)) return;
+      if (!hasVal(val) || (NUMBER_FIELDS.includes(f) && !numberShows(record, f, idx))) return;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${label}\n1. ${formatDate(val)}\n\n`;
       } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
+        text += `${label}\n1. ${val}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
         text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
+        const sentences = splitBySentence(strVal, f);
         if (sentences.length > 1) {
           text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
+          formatSentenceFieldLines(strVal, f).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${label}\n1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${label}\n1. ${fmtVal(val)}\n\n`;
       }
     });
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines, numberShows]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== TUMOR MARKER PANELS ===\n\n';
@@ -458,12 +472,12 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="nested-mini-card rec-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -484,7 +498,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
 
   /* ═══════ RENDER: NUMBER FIELD ═══════ */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const val = getFieldValue(record, fn, idx); if (!numberShows(record, fn, idx)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
@@ -493,12 +507,16 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="nested-mini-card rec-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="num-stepper-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const current = Number(editValue); const base = Number.isFinite(current) ? current : Number(val) || 0; setEditValue(String(base - stepFor(base))); }}>−</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); const current = Number(editValue); const base = Number.isFinite(current) ? current : Number(val) || 0; setEditValue(String(base + stepFor(base))); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const num = parseFloat(editValue); if (isNaN(num)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, num); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -508,7 +526,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
@@ -526,7 +544,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="nested-mini-card rec-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
@@ -541,14 +559,14 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} data-edit-field={`${fn}.${itemIdx}`}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                     {saveError && <div className="save-error">{saveError}</div>}
                     <div className="edit-actions">
-                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])]; currentArr[itemIdx] = editValue; const lk = `${fn}-${idx}`; setLocalEdits(prev => ({ ...prev, [lk]: currentArr })); setPendingEdits(prev => ({ ...prev, [lk]: true })); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { const k = `${sid}-${idx}`; if (!prev[k]) return prev; const n = { ...prev }; delete n[k]; return n; }); const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fn] = currentArr; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(null); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const leafKey = `${fn}.${itemIdx}-${idx}`; setLocalEdits(prev => ({ ...prev, [leafKey]: editValue })); setPendingEdits(prev => ({ ...prev, [leafKey]: true })); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { const k = `${sid}-${idx}`; if (!prev[k]) return prev; const n = { ...prev }; delete n[k]; return n; }); const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][`${fn}.${itemIdx}`] = editValue; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(null); }}>{saving ? 'Saving...' : 'Save'}</button>
                       <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                     </div>
                   </div>
@@ -571,7 +589,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
   const renderStringField = (record, fn, idx, sid, title) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
-    const sentences = splitBySentence(strVal);
+    const sentences = splitBySentence(strVal, fn);
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
@@ -581,8 +599,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
       return (
-        <div key={fn}>
-          <div className="rec-mini-card">
+        <div key={fn} className="nested-mini-card rec-mini-card">
             <div className="nested-subtitle">{highlightText(label)}</div>
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -597,7 +614,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
                 if (commaItems.length >= 2) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} className="nested-mini-card rec-mini-card" style={{ marginTop: 8 }}>
                       <div className="nested-subtitle">{highlightText(parsed.label)}</div>
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
@@ -606,7 +623,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -635,7 +652,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} className={parsed.isLabeled ? 'nested-mini-card rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined} data-edit-field={fn}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -658,7 +675,6 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
                 </div>
               );
             })}
-          </div>
         </div>
       );
     }
@@ -669,7 +685,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="nested-mini-card rec-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
@@ -701,7 +717,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
-      return hasVal(val);
+      return NUMBER_FIELDS.includes(f) ? numberShows(record, f, idx) : hasVal(val);
     });
     if (!hasAnyVal) return null;
 
@@ -743,7 +759,7 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Tumor Marker Panels</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<TumorMarkerPanelsDocumentPDFTemplate document={pdfData} />} fileName={`tumor-marker-panels-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<TumorMarkerPanelsDocumentPDFTemplate document={pdfData} />} fileName="Tumor_Marker_Panels.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -756,11 +772,6 @@ const TumorMarkerPanelsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.collectionDateTime) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.collectionDateTime)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(record.panelIndication || `Tumor Marker Panel ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'panel-info')}

@@ -108,6 +108,7 @@ import TravelHealthCertificatesDocumentPDFTemplate from './TravelHealthCertifica
 import TravelMedicineAssessmentDocumentPDFTemplate from './TravelMedicineAssessmentDocumentPDFTemplate';
 import TravelVaccinationRecordsDocumentPDFTemplate from './TravelVaccinationRecordsDocumentPDFTemplate';
 import TropicalDiseaseAssessmentDocumentPDFTemplate from './TropicalDiseaseAssessmentDocumentPDFTemplate';
+import TubeFeedingOrderDocumentPDFTemplate from './TubeFeedingOrderDocumentPDFTemplate';
 import StiScreeningPanelDocumentPDFTemplate from './StiScreeningPanelDocumentPDFTemplate';
 import StressManagementReferralsDocumentPDFTemplate from './StressManagementReferralsDocumentPDFTemplate';
 import StressTestReportsDocumentPDFTemplate from './StressTestReportsDocumentPDFTemplate';
@@ -229,6 +230,7 @@ const templateRegistry = {
   'travel_medicine_assessment': TravelMedicineAssessmentDocumentPDFTemplate,
   'travel_vaccination_records': TravelVaccinationRecordsDocumentPDFTemplate,
   'tropical_disease_assessment': TropicalDiseaseAssessmentDocumentPDFTemplate,
+  'tube_feeding_order': TubeFeedingOrderDocumentPDFTemplate,
   'sti_screening_panel': StiScreeningPanelDocumentPDFTemplate,
   'stress_management_referrals': StressManagementReferralsDocumentPDFTemplate,
   'stress_test_reports': StressTestReportsDocumentPDFTemplate,

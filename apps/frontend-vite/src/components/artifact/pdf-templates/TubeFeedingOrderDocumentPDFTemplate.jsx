@@ -1,317 +1,157 @@
-/**
- * TubeFeedingOrderDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — tube feeding orders — NO BLUE
- * Collection: tube_feeding_order
- */
+/** Tube Feeding Order - canonical box-free PDF. */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: { padding: 36, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, marginBottom: 16, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 3, marginTop: 6, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 1, marginTop: 2, marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  listItem: { fontSize: 14, lineHeight: 1.35, marginBottom: 0, paddingLeft: 8 },
+  noDataText: { fontSize: 14, marginTop: 40 },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
+const SECTION_TITLES = {
+  'formula-info': 'Formula Information',
+  'feeding-route-method': 'Feeding Route and Method',
+  'rate-advancement': 'Rate and Advancement',
+  'caloric-protein-goals': 'Caloric and Protein Goals',
+  'water-flush-protocol': 'Water Flush Protocol',
+  'gastric-monitoring': 'Gastric Monitoring',
+  'safety-positioning': 'Safety and Positioning',
+  'cyclic-bolus-feeding': 'Cyclic and Bolus Feeding',
+  'supplements-patency': 'Supplements and Patency',
+  'risk-glycemic': 'Risk and Glycemic Control',
 };
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+const FIELD_LABELS = {
+  formulaName: 'Formula Name',
+  formulaCaloriesDensity: 'Formula Calorie Density (kcal/mL)',
+  proteinContentPerLiter: 'Protein Content (g/L)',
+  feedingRouteType: 'Feeding Route Type',
+  feedingTubeSize: 'Feeding Tube Size (Fr)',
+  feedingMethodType: 'Feeding Method Type',
+  initialInfusionRate: 'Initial Infusion Rate (mL/hr)',
+  goalInfusionRate: 'Goal Infusion Rate (mL/hr)',
+  rateAdvancementSchedule: 'Rate Advancement Schedule',
+  dailyCaloricGoal: 'Daily Caloric Goal (kcal/day)',
+  dailyProteinGoal: 'Daily Protein Goal (g/day)',
+  freeWaterFlushVolume: 'Free Water Flush Volume (mL)',
+  freeWaterFlushFrequency: 'Free Water Flush Frequency',
+  gastricResidualVolumeThreshold: 'Gastric Residual Threshold (mL)',
+  gastricResidualCheckFrequency: 'Gastric Residual Check Frequency',
+  headOfBedElevation: 'Head of Bed Elevation (degrees)',
+  prokineticsOrdered: 'Prokinetics Ordered',
+  cyclicFeedingStartTime: 'Cyclic Feeding Start Time',
+  cyclicFeedingDurationHours: 'Cyclic Feeding Duration (hours)',
+  bolusVolume: 'Bolus Volume (mL)',
+  bolusFrequency: 'Bolus Frequency',
+  modularsSupplements: 'Modulars and Supplements',
+  tubePatencyFlushSolution: 'Tube Patency Flush Solution',
+  refeedingSyndromeRisk: 'Refeeding Syndrome Risk',
+  glycemicControlProtocol: 'Glycemic Control Protocol',
 };
 
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
+const SECTION_FIELDS = {
+  'formula-info': ['formulaName', 'formulaCaloriesDensity', 'proteinContentPerLiter'],
+  'feeding-route-method': ['feedingRouteType', 'feedingTubeSize', 'feedingMethodType'],
+  'rate-advancement': ['initialInfusionRate', 'goalInfusionRate', 'rateAdvancementSchedule'],
+  'caloric-protein-goals': ['dailyCaloricGoal', 'dailyProteinGoal'],
+  'water-flush-protocol': ['freeWaterFlushVolume', 'freeWaterFlushFrequency'],
+  'gastric-monitoring': ['gastricResidualVolumeThreshold', 'gastricResidualCheckFrequency'],
+  'safety-positioning': ['headOfBedElevation', 'prokineticsOrdered'],
+  'cyclic-bolus-feeding': ['cyclicFeedingStartTime', 'cyclicFeedingDurationHours', 'bolusVolume', 'bolusFrequency'],
+  'supplements-patency': ['modularsSupplements', 'tubePatencyFlushSolution'],
+  'risk-glycemic': ['refeedingSyndromeRisk', 'glycemicControlProtocol'],
 };
 
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
-};
+const TIME_FIELDS = new Set(['cyclicFeedingStartTime']);
+const NUMBER_FIELDS = new Set(['formulaCaloriesDensity', 'proteinContentPerLiter', 'feedingTubeSize', 'initialInfusionRate', 'goalInfusionRate', 'dailyCaloricGoal', 'dailyProteinGoal', 'freeWaterFlushVolume', 'gastricResidualVolumeThreshold', 'headOfBedElevation', 'cyclicFeedingDurationHours', 'bolusVolume']);
+const BOOLEAN_FIELDS = new Set(['prokineticsOrdered', 'refeedingSyndromeRisk']);
+const ARRAY_FIELDS = new Set(['modularsSupplements']);
+const COMMA_SPLIT_FIELDS = new Set(['glycemicControlProtocol']);
+const MEANINGFUL_ZERO_FIELDS = new Set();
 
-/* For tube-feeding quantities, 0 is a sentinel ("not ordered / not applicable"), never a
-   meaningful value — mirror the UI's hide-zero behavior so the PDF doesn't print "0" for
-   N/A fields (e.g. bolusVolume:0 on a continuous feed, gastricResidualVolumeThreshold:0 on
-   a post-pyloric tube). No tube-feeding numeric has a meaningful zero. */
-const MEANINGFUL_ZERO_FIELDS = [];
-const isHiddenZero = (key, val, isNumber) => isNumber && val === 0 && !MEANINGFUL_ZERO_FIELDS.includes(key);
+const safeString = value => String(value ?? '').replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...');
+const hasVal = value => value !== null && value !== undefined && value !== '' && (typeof value !== 'string' || value.trim() !== '') && (!Array.isArray(value) || value.some(hasVal));
+const formatDate = value => { try { const date = new Date(value?.$date || value); if (isNaN(date.getTime())) return safeString(value); return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); } catch { return safeString(value); } };
 
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
-};
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
-};
-
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
+const splitTopLevelCommas = text => {
+  const source = safeString(text);
+  const parts = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(' || char === '[' || char === '{') depth += 1;
+    else if (char === ')' || char === ']' || char === '}') depth = Math.max(0, depth - 1);
+    if (char === ',' && depth === 0) { if (current.trim()) parts.push(current.trim()); current = ''; }
+    else current += char;
   }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
+  if (current.trim()) parts.push(current.trim());
+  return parts;
 };
 
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value, showLabel = true) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
+const splitBySentence = (text, field = '') => {
+  const clauses = safeString(text).split(/(?<!\b[A-Z])(?<!\d)\.(?:\s+)|;\s+/).map(part => part.trim()).filter(Boolean);
+  if (!COMMA_SPLIT_FIELDS.has(field)) return clauses;
+  return clauses.flatMap(splitTopLevelCommas).filter(Boolean);
 };
 
-/* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text, showLabel = true) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
+const unwrapRecords = data => (Array.isArray(data) ? data : data ? [data] : []).flatMap(record =>
+  record?.tube_feeding_order
+    ? (Array.isArray(record.tube_feeding_order) ? record.tube_feeding_order : [record.tube_feeding_order])
+    : record?.documentData
+      ? (Array.isArray(record.documentData) ? record.documentData : record.documentData?.tube_feeding_order ? (Array.isArray(record.documentData.tube_feeding_order) ? record.documentData.tube_feeding_order : [record.documentData.tube_feeding_order]) : [record.documentData])
+      : [record]
+).filter(record => record && typeof record === 'object');
 
-  const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
-    }
-  });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
-};
-
-/* renderArrayField */
-const renderArrayFieldPDF = (label, items, showLabel = true) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* SECTION CONFIGS */
-const SECTION_CONFIGS = [
-  {
-    title: 'Formula Information',
-    fields: [
-      { key: 'formulaName', label: 'Formula Name', isSentence: true },
-      { key: 'formulaCaloriesDensity', label: 'Formula Calories Density', isNumber: true },
-      { key: 'proteinContentPerLiter', label: 'Protein Content Per Liter', isNumber: true },
-    ],
-  },
-  {
-    title: 'Feeding Route & Method',
-    fields: [
-      { key: 'feedingRouteType', label: 'Feeding Route Type', isSentence: true },
-      { key: 'feedingTubeSize', label: 'Feeding Tube Size', isNumber: true },
-      { key: 'feedingMethodType', label: 'Feeding Method Type', isSentence: true },
-    ],
-  },
-  {
-    title: 'Rate & Advancement',
-    fields: [
-      { key: 'initialInfusionRate', label: 'Initial Infusion Rate', isNumber: true },
-      { key: 'goalInfusionRate', label: 'Goal Infusion Rate', isNumber: true },
-      { key: 'rateAdvancementSchedule', label: 'Rate Advancement Schedule', isSentence: true },
-    ],
-  },
-  {
-    title: 'Caloric & Protein Goals',
-    fields: [
-      { key: 'dailyCaloricGoal', label: 'Daily Caloric Goal', isNumber: true },
-      { key: 'dailyProteinGoal', label: 'Daily Protein Goal', isNumber: true },
-    ],
-  },
-  {
-    title: 'Water Flush Protocol',
-    fields: [
-      { key: 'freeWaterFlushVolume', label: 'Free Water Flush Volume', isNumber: true },
-      { key: 'freeWaterFlushFrequency', label: 'Free Water Flush Frequency', isSentence: true },
-    ],
-  },
-  {
-    title: 'Gastric Monitoring',
-    fields: [
-      { key: 'gastricResidualVolumeThreshold', label: 'Gastric Residual Volume Threshold', isNumber: true },
-      { key: 'gastricResidualCheckFrequency', label: 'Gastric Residual Check Frequency', isSentence: true },
-    ],
-  },
-  {
-    title: 'Safety & Positioning',
-    fields: [
-      { key: 'headOfBedElevation', label: 'Head of Bed Elevation', isNumber: true },
-      { key: 'prokineticsOrdered', label: 'Prokinetics Ordered', isBoolean: true },
-    ],
-  },
-  {
-    title: 'Cyclic & Bolus Feeding',
-    fields: [
-      { key: 'cyclicFeedingStartTime', label: 'Cyclic Feeding Start Time', isSentence: true },
-      { key: 'cyclicFeedingDurationHours', label: 'Cyclic Feeding Duration (Hours)', isNumber: true },
-      { key: 'bolusVolume', label: 'Bolus Volume', isNumber: true },
-      { key: 'bolusFrequency', label: 'Bolus Frequency', isSentence: true },
-    ],
-  },
-  {
-    title: 'Supplements & Patency',
-    fields: [
-      { key: 'modularsSupplements', label: 'Modulars / Supplements', isArray: true },
-      { key: 'tubePatencyFlushSolution', label: 'Tube Patency Flush Solution', isSentence: true },
-    ],
-  },
-  {
-    title: 'Risk & Glycemic',
-    fields: [
-      { key: 'refeedingSyndromeRisk', label: 'Refeeding Syndrome Risk', isBoolean: true },
-      { key: 'glycemicControlProtocol', label: 'Glycemic Control Protocol', isSentence: true },
-    ],
-  },
-];
-
-/* ======= COMPONENT ======= */
 const TubeFeedingOrderDocumentPDFTemplate = ({ document: data }) => {
-  const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.tube_feeding_order) return Array.isArray(r.tube_feeding_order) ? r.tube_feeding_order : [r.tube_feeding_order];
-      if (r?.tube_feeding_orders) return Array.isArray(r.tube_feeding_orders) ? r.tube_feeding_orders : [r.tube_feeding_orders];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.tube_feeding_order) return Array.isArray(dd.tube_feeding_order) ? dd.tube_feeding_order : [dd.tube_feeding_order]; if (dd?.tube_feeding_orders) return Array.isArray(dd.tube_feeding_orders) ? dd.tube_feeding_orders : [dd.tube_feeding_orders]; return [dd]; }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  const records = unwrapRecords(data);
 
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Tube Feeding Orders</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
-  }
+  const rowsForField = (record, field) => {
+    const value = record[field];
+    if (!hasVal(value)) return [];
+    if (TIME_FIELDS.has(field)) return [safeString(value)];
+    if (NUMBER_FIELDS.has(field)) {
+      if (!Number.isFinite(Number(value))) return [];
+      const doctorEdited = Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(field);
+      return Number(value) !== 0 || MEANINGFUL_ZERO_FIELDS.has(field) || doctorEdited ? [safeString(value)] : [];
+    }
+    if (BOOLEAN_FIELDS.has(field)) return typeof value === 'boolean' ? [value ? 'Yes' : 'No'] : [];
+    if (ARRAY_FIELDS.has(field)) return (Array.isArray(value) ? value : [value]).filter(hasVal).map(safeString);
+    return splitBySentence(value, field);
+  };
+
+  const fieldBody = (record, field) => {
+    const values = rowsForField(record, field);
+    if (!values.length) return [];
+    const label = FIELD_LABELS[field] || field;
+    const rows = values.map((value, index) => <Text key={`${field}-${index}`} style={styles.listItem}>{index + 1}. {safeString(value)}</Text>);
+    if (rows.length <= 6) return [<View key={`${field}-field`} wrap={false}><Text style={styles.fieldLabel}>{label}</Text>{rows}</View>];
+    const [first, ...rest] = rows;
+    return [<View key={`${field}-field`} wrap={false}><Text style={styles.fieldLabel}>{label}</Text>{first}</View>, ...rest];
+  };
+
+  const renderSection = (record, sectionId) => {
+    let body = [];
+    SECTION_FIELDS[sectionId].forEach(field => { body = body.concat(fieldBody(record, field)); });
+    if (!body.length) return null;
+    body = body.map((element, index) => React.cloneElement(element, { key: `${sectionId}-${index}` }));
+    const [first, ...rest] = body;
+    return <View key={sectionId}><View wrap={false}><Text style={styles.sectionTitle}>{SECTION_TITLES[sectionId]}</Text>{first}</View>{rest}</View>;
+  };
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Tube Feeding Orders</Text>
-        </View>
-
+        <Text style={styles.documentTitle}>Tube Feeding Order</Text>
+        {records.length === 0 && <Text style={styles.noDataText}>No tube feeding order records available</Text>}
         {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {`Tube Feeding Order ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const hasAnyVal = sectionConfig.fields.some(f => hasVal(record[f.key]) && !isHiddenZero(f.key, record[f.key], f.isNumber));
-              if (!hasAnyVal) return null;
-
-              return (
-                <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = record[field.key];
-                    if (!hasVal(val)) return null;
-                    if (isHiddenZero(field.key, val, field.isNumber)) return null;
-                    const showFieldLabel = field.label.toLowerCase() !== (sectionConfig.title || '').toLowerCase();
-
-                    if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val, showFieldLabel)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val, showFieldLabel)}</View>;
-                    if (field.isBoolean) return <View key={fIdx}>{renderFieldRow(field.label, val, showFieldLabel)}</View>;
-                    if (field.isNumber) return <View key={fIdx}>{renderFieldRow(field.label, val, showFieldLabel)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val, showFieldLabel)}</View>;
-                  })}
-                </View>
-              );
-            })}
+          <View key={index} break={index > 0}>
+            <Text style={styles.recordTitle}>{`Tube Feeding Order ${index + 1}`}</Text>
+            {Object.keys(SECTION_FIELDS).map(sectionId => renderSection(record, sectionId))}
           </View>
         ))}
       </Page>

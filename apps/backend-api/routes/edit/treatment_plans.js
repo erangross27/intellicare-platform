@@ -45,8 +45,10 @@ function toObjectId(str) {
 
 // Allowed editable fields
 const ALLOWED_FIELDS = [
+  'date',
   'provider',
   'specialty',
+  'immediateInterventions',
   'pendingProcedures',
   'rehabilitationReferrals',
   'longTermGoals',
@@ -116,7 +118,7 @@ router.put('/:id/approve', async (req, res) => {
     const sda = getSecureDataAccess();
     const context = buildContext(req, 'write');
 
-    await sda.update('treatment_plans', { _id: objectId }, {
+    const result = await sda.update('treatment_plans', { _id: objectId }, {
       $set: {
         'doctorEdits.approvedAt': new Date(),
         'doctorEdits.approvedBy': req.user?.id,
@@ -124,6 +126,7 @@ router.put('/:id/approve', async (req, res) => {
       },
     }, context);
 
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Record not found in database' });
     return res.json({ success: true, recordId: id, status: 'approved' });
   } catch (err) {
     console.error('[TreatmentPlans] PUT /:id/approve error:', err.message);

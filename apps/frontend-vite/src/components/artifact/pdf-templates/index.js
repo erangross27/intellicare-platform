@@ -16,6 +16,7 @@ import CareCoordinationNotesTemplate from './CareCoordinationNotesTemplate';
 import AssessmentPlansTemplate from './AssessmentPlansPDFTemplate';
 import TreatmentCoursesDocumentPDFTemplate from './TreatmentCoursesDocumentPDFTemplate';
 import TreatmentGoalsDocumentPDFTemplate from './TreatmentGoalsDocumentPDFTemplate';
+import TreatmentPlansDocumentPDFTemplate from './TreatmentPlansDocumentPDFTemplate';
 import CareCoordinationTemplate from './CareCoordinationTemplate';
 import MonitoringPlanTemplate from './MonitoringPlanTemplate';
 import PatientEducationRecordsTemplate from './PatientEducationRecordsTemplate';
@@ -144,6 +145,7 @@ const templateRegistry = {
   'assessment_plans': AssessmentPlansTemplate,
   'treatment_courses': TreatmentCoursesDocumentPDFTemplate,
   'treatment_goals': TreatmentGoalsDocumentPDFTemplate,
+  'treatment_plans': TreatmentPlansDocumentPDFTemplate,
   'care_coordination': CareCoordinationTemplate,
   'monitoring_plan': MonitoringPlanTemplate,
   'patient_education_records': PatientEducationRecordsTemplate,

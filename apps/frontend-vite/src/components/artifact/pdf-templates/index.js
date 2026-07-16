@@ -143,6 +143,7 @@ import VaccinationRecordsDocumentPDFTemplate from './VaccinationRecordsDocumentP
 import VariantInterpretationGuidelinesDocumentPDFTemplate from './VariantInterpretationGuidelinesDocumentPDFTemplate';
 import VascularBypassSurgeryDocumentPDFTemplate from './VascularBypassSurgeryDocumentPDFTemplate';
 import VascularSurgeryAssessmentDocumentPDFTemplate from './VascularSurgeryAssessmentDocumentPDFTemplate';
+import VasculitisAssessmentDocumentPDFTemplate from './VasculitisAssessmentDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -275,6 +276,7 @@ const templateRegistry = {
   'variant_interpretation_guidelines': VariantInterpretationGuidelinesDocumentPDFTemplate,
   'vascular_bypass_surgery': VascularBypassSurgeryDocumentPDFTemplate,
   'vascular_surgery_assessment': VascularSurgeryAssessmentDocumentPDFTemplate,
+  'vasculitis_assessment': VasculitisAssessmentDocumentPDFTemplate,
 };
 
 /**

@@ -8,7 +8,7 @@
  * Field types:
  *  - simple/narrative strings (per-sentence editing, split on '. ' and '; ')
  *  - DATE fields (formatDate/toInputDate + input type=date)
- *  - BOOLEAN fields (Yes/No <select>; false renders "No", NOT hidden)
+ *  - BOOLEAN fields (Yes/No BlueSelect; false renders "No", NOT hidden)
  *  - ARRAY-of-string fields (numbered editable rows)
  *
  * Booleans save as booleans. Copied state BLUE (not green). Hide empty strings/null
@@ -17,6 +17,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import TravelHealthCertificatesDocumentPDFTemplate from '../pdf-templates/TravelHealthCertificatesDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './TravelHealthCertificatesDocument.css';
 
@@ -79,8 +81,61 @@ const SECTION_ORDER = ['certificate-details', 'vaccinations', 'prophylaxis-safet
 
 const DATE_FIELDS = ['travelDeparturDate', 'yellowFeverVaccinationDate', 'meningococcalVaccinationDate', 'hepatitisAVaccinationDate', 'hepatitisBVaccinationDate', 'typhoidVaccinationDate', 'japaneseEncephalitisVaccinationDate', 'poliomyelitisBoosterDate', 'cholerapVaccinationDate', 'tdapVaccinationDate'];
 const BOOLEAN_FIELDS = ['rabiesPreExposureProphylaxis', 'travelMedicalInsurance', 'fitToTravelDeclaration'];
-const STRING_ARRAY_FIELDS = ['contraindications', 'chronicMedications', 'allergicReactions'];
+const STRING_ARRAY_FIELDS = ['contraindications', 'chronicMedications'];
+const COMMA_ARRAY_FIELDS = new Set(['contraindications']);
 /* everything else is a narrative/simple string */
+
+const splitByComma = (text) => {
+  if (!text || typeof text !== 'string') return [text || ''];
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '(') { depth += 1; current += character; }
+    else if (character === ')') { depth = Math.max(0, depth - 1); current += character; }
+    else if (character === ',' && depth === 0) {
+      const before = current.trim();
+      const after = text.slice(index + 1).trimStart();
+      if (/\d$/.test(before) || /^\d/.test(after)) current += character;
+      else { if (before) result.push(before); current = ''; }
+    } else current += character;
+  }
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [text];
+};
+
+const splitEditableClauses = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  const clauses = [];
+  let current = '';
+  let depth = 0;
+  const push = delimiter => {
+    if (current.trim()) clauses.push({ text: current.trim(), delimiter });
+    current = '';
+  };
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    const next = text[index + 1] || '';
+    const previousWord = current.trim().match(/([A-Za-z]+)$/)?.[1] || '';
+    const safePeriod = character === '.' && depth === 0 && /\s/.test(next) && !['Mr', 'Mrs', 'Ms', 'Dr', 'St', 'Jr', 'Sr', 'Prof', 'Rev', 'Gen', 'Col', 'Sgt', 'vs', 'etc'].includes(previousWord) && !/\b[A-Z]$/.test(current) && !/\d$/.test(current);
+    const safeSemicolon = character === ';' && depth === 0;
+    if (safePeriod || safeSemicolon) {
+      push(character);
+      while (/\s/.test(text[index + 1] || '')) index += 1;
+    } else current += character;
+  }
+  push('');
+  return clauses;
+};
+
+const reconstructClauses = clauses => clauses.map(clause => `${clause.text}${clause.delimiter || ''}`).join(' ').trim();
+const splitArrayItemRows = (field, text) => splitEditableClauses(text).flatMap((clause, clauseIndex) => {
+  const items = COMMA_ARRAY_FIELDS.has(field) ? splitByComma(clause.text) : [clause.text];
+  return items.map((item, commaIndex) => ({ text: item, clauseIndex, commaIndex }));
+});
 
 /* ═══════ VALUE HELPERS ═══════ */
 const isEmptyDeep = (v) => {
@@ -171,12 +226,13 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    if (!/[()]/.test(text)) return text.split(/;\s+/).flatMap(part => splitEditableClauses(part).map(clause => clause.text));
+    return splitEditableClauses(text).map(clause => clause.text);
   }, []);
 
   function reconstructFullText(sentences) {
     if (!sentences || sentences.length === 0) return '';
-    return sentences.map((s, i) => { let c = s.replace(/[;.]+$/, '').trim(); if (i < sentences.length - 1) c += '.'; return c; }).join(' ');
+    return sentences.map((sentence, index) => `${sentence.text}${sentence.delimiter || (index < sentences.length - 1 ? '.' : '')}`).join(' ').trim();
   }
 
   const getFieldValue = useCallback((record, fn, idx) => {
@@ -286,7 +342,7 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
     const id = safeId(record); if (!id) return;
     const editKey = `${fn}-${idx}`;
     const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const sentences = splitBySentence(currentVal);
+    const sentences = splitEditableClauses(currentVal);
     const editedVal = editValue.trim();
     const stageDraft = (fullText) => {
       const store = readDrafts();
@@ -305,13 +361,15 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
       setEditingField(null); setEditValue(''); setSaveError(null);
       return;
     }
-    const newSentences = splitBySentence(editedVal);
+    const newSentences = splitEditableClauses(editedVal);
+    const originalDelimiter = sentences[sentenceIdx]?.delimiter || '';
+    if (newSentences.length > 0 && !newSentences[newSentences.length - 1].delimiter) newSentences[newSentences.length - 1].delimiter = originalDelimiter;
     const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
     const fullText = reconstructFullText(updated);
     setLocalEdits(prev => ({ ...prev, [editKey]: fullText }));
     setPendingEdits(prev => ({ ...prev, [editKey]: true }));
-    const orig = sentences[sentenceIdx] || '';
-    const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
+    const orig = sentences[sentenceIdx]?.text || '';
+    const changed = (newSentences[0]?.text || '').trim() !== orig.trim();
     setEditedSentences(prev => {
       const n = { ...prev };
       if (changed) n[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
@@ -408,7 +466,8 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
       if (STRING_ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val.filter(x => !isEmptyDeep(x)) : [];
         if (!sameAsTitle) text += `${label}\n`;
-        items.forEach((it, i) => { text += `${i + 1}. ${fmtVal(it)}\n`; });
+        let rowNumber = 1;
+        items.forEach(it => { splitArrayItemRows(f, fmtVal(it)).forEach(row => { text += `${rowNumber++}. ${row.text}\n`; }); });
         text += '\n';
       } else if (DATE_FIELDS.includes(f)) {
         text += sameAsTitle ? `${formatDate(val)}\n\n` : `${label}\n${formatDate(val)}\n\n`;
@@ -450,12 +509,13 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -470,6 +530,7 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
@@ -487,15 +548,13 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'true' : 'false'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
+              <BlueSelect value={editValue === 'true' ? 'Yes' : 'No'} options={['Yes', 'No']} onChange={value => setEditValue(value === 'Yes' ? 'true' : 'false')} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, editValue === 'true'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -510,6 +569,7 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
@@ -527,7 +587,7 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
       return (
-        <div key={fn} className="rec-mini-card">
+        <div key={fn} className="rec-mini-card nested-mini-card">
           {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
           {sentences.map((sentence, sIdx) => {
             const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -536,7 +596,7 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
             const sentenceMatches = phraseMatch || labelMatch || (searchTerm.trim() && sentence.toLowerCase().includes(searchTerm.toLowerCase().trim()));
             if (!sentenceMatches && searchTerm.trim()) return null;
             return (
-              <div key={sIdx}>
+              <div key={sIdx} data-edit-field={fn}>
                 <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                   {isEditing ? (
                     <div className="edit-field-container">
@@ -567,8 +627,9 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
     const isEditing = editingField === editKey;
     const isModified = editedFields[editKey];
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -587,6 +648,7 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
@@ -605,54 +667,49 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
     const indexed = []; items.forEach((it, oi) => { if (!isEmptyDeep(it)) indexed.push([oi, it]); });
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        {indexed.map(([oi, item]) => {
-          const itemKey = `${fn}-${idx}-a${oi}`;
-          const isEditing = editingField === itemKey;
-          const badge = editedFields[itemKey];
+        {indexed.flatMap(([oi, item]) => {
           const itemStr = fmtVal(item);
           const itemMatches = phraseMatch || labelMatch || !searchTerm.trim() || itemStr.toLowerCase().includes(searchTerm.toLowerCase().trim());
-          if (!itemMatches && searchTerm.trim()) return null;
-          return (
-            <div key={oi}>
-              <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(itemKey); setEditValue(itemStr); setSaveError(null); } }}>
-                {isEditing ? (
-                  <div className="edit-field-container">
-                    <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                    {saveError && <div className="save-error">{saveError}</div>}
-                    <div className="edit-actions">
-                      <button className="save-btn" disabled={saving} onClick={e => {
-                        e.stopPropagation();
-                        const id2 = safeId(record); if (!id2) return;
-                        const currentArr = Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [];
-                        const trimmed = editValue.trim();
-                        const newArr = currentArr.map((it, i) => i === oi ? trimmed : it).filter(it => !isEmptyDeep(it));
-                        // Stage a DRAFT locally + localStorage; NO DB write until Approve.
-                        const editKey = `${fn}-${idx}`;
-                        setLocalEdits(prev => ({ ...prev, [editKey]: newArr }));
-                        setPendingEdits(prev => ({ ...prev, [editKey]: true }));
-                        setEditedFields(prev => ({ ...prev, [itemKey]: 'edited' }));
-                        setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-                        const store = readDrafts();
-                        if (!store[id2]) store[id2] = {};
-                        store[id2][fn] = newArr;
-                        writeDrafts(store);
-                        setEditingField(null); setEditValue(''); setSaveError(null);
-                      }}>{saving ? 'Saving...' : 'Save'}</button>
-                      <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+          if (!itemMatches && searchTerm.trim()) return [];
+          return splitArrayItemRows(fn, itemStr).map(row => {
+            const itemKey = `${fn}-${idx}-a${oi}-s${row.clauseIndex}-c${row.commaIndex}`;
+            const isEditing = editingField === itemKey;
+            const badge = editedFields[itemKey];
+            const saveArrayRow = () => {
+              const currentArr = Array.isArray(getFieldValue(record, fn, idx)) ? [...getFieldValue(record, fn, idx)] : [];
+              const clauses = splitEditableClauses(String(currentArr[oi] || ''));
+              if (!clauses[row.clauseIndex]) return;
+              const commaItems = COMMA_ARRAY_FIELDS.has(fn) ? splitByComma(clauses[row.clauseIndex].text) : [clauses[row.clauseIndex].text];
+              commaItems[row.commaIndex] = editValue.trim();
+              clauses[row.clauseIndex].text = COMMA_ARRAY_FIELDS.has(fn) ? commaItems.join(', ') : commaItems[0];
+              currentArr[oi] = reconstructClauses(clauses);
+              handleSaveField(record, fn, idx, sid, currentArr, itemKey);
+            };
+            return (
+              <div key={`${oi}-${row.clauseIndex}-${row.commaIndex}`} data-edit-field={fn}>
+                <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(itemKey); setEditValue(row.text); setSaveError(null); } }}>
+                  {isEditing ? (
+                    <div className="edit-field-container">
+                      <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveArrayRow(); }} />
+                      {saveError && <div className="save-error">{saveError}</div>}
+                      <div className="edit-actions">
+                        <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveArrayRow(); }}>{saving ? 'Saving...' : 'Save'}</button>
+                        <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="row-content"><span className="content-value">{highlightText(itemStr)}</span><span className="edit-indicator">&#9998;</span></div>
-                    <button className={`copy-btn ${copiedItems[itemKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(itemStr, itemKey); }}>{copiedItems[itemKey] ? 'Copied!' : 'Copy'}</button>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(row.text)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[itemKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(row.text, itemKey); }}>{copiedItems[itemKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+                {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
               </div>
-              {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
-            </div>
-          );
+            );
+          });
         })}
       </div>
     );
@@ -706,7 +763,7 @@ const TravelHealthCertificatesDocument = ({ document: docProp, data, templateDat
         <h2 className="document-title">Travel Health Certificates</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<TravelHealthCertificatesDocumentPDFTemplate document={pdfData} />} fileName={`travel-health-certificates-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<TravelHealthCertificatesDocumentPDFTemplate document={pdfData} />} fileName="Travel_Health_Certificates.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

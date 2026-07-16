@@ -18,6 +18,7 @@ import TreatmentCoursesDocumentPDFTemplate from './TreatmentCoursesDocumentPDFTe
 import TreatmentGoalsDocumentPDFTemplate from './TreatmentGoalsDocumentPDFTemplate';
 import TreatmentPlansDocumentPDFTemplate from './TreatmentPlansDocumentPDFTemplate';
 import TreatmentSummaryDocumentPDFTemplate from './TreatmentSummaryDocumentPDFTemplate';
+import TrendAnalysisDocumentPDFTemplate from './TrendAnalysisDocumentPDFTemplate';
 import CareCoordinationTemplate from './CareCoordinationTemplate';
 import MonitoringPlanTemplate from './MonitoringPlanTemplate';
 import PatientEducationRecordsTemplate from './PatientEducationRecordsTemplate';
@@ -148,6 +149,7 @@ const templateRegistry = {
   'treatment_goals': TreatmentGoalsDocumentPDFTemplate,
   'treatment_plans': TreatmentPlansDocumentPDFTemplate,
   'treatment_summary': TreatmentSummaryDocumentPDFTemplate,
+  'trend_analysis': TrendAnalysisDocumentPDFTemplate,
   'care_coordination': CareCoordinationTemplate,
   'monitoring_plan': MonitoringPlanTemplate,
   'patient_education_records': PatientEducationRecordsTemplate,

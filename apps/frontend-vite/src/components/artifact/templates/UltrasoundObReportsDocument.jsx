@@ -4,8 +4,8 @@
  * Collection: obstetric_ultrasound_reports (a.k.a. ultrasound_ob_reports)
  *
  * 5 Sections:
- *   1. scan-info: date (rendered in the record header via BlueDatePicker), gestationalAge,
- *      ultrasoundType, fetalNumber, fetalPresentation, fetalHeartRate, sonographer, facility
+ *   1. scan-info: date, gestationalAge, ultrasoundType, fetalNumber, fetalPresentation,
+ *      fetalViability, fetalHeartRate, sonographer, facility
  *   2. biometry: biometry (nested object — bpd, hc, ac, fl, efw — each leaf a labeled sub-field)
  *   3. anatomy: fetalAnatomy, abnormalities
  *   4. placenta-fluid: placentalLocation, amnioticFluidVolume, cervicalLength, dopplerStudies
@@ -52,10 +52,12 @@ const FIELD_LABELS = {
   ultrasoundType: 'Ultrasound Type',
   fetalNumber: 'Fetal Number',
   fetalPresentation: 'Fetal Presentation',
+  fetalViability: 'Fetal Viability',
   fetalHeartRate: 'Fetal Heart Rate',
   biometry: 'Biometry',
   placentalLocation: 'Placental Location',
   amnioticFluidVolume: 'Amniotic Fluid Volume',
+  amnioticFluid: 'Amniotic Fluid',
   cervicalLength: 'Cervical Length',
   dopplerStudies: 'Doppler Studies',
   fetalAnatomy: 'Fetal Anatomy',
@@ -78,17 +80,30 @@ const BIOMETRY_LABELS = {
 };
 
 const SECTION_FIELDS = {
-  'scan-info': ['date', 'gestationalAge', 'ultrasoundType', 'fetalNumber', 'fetalPresentation', 'fetalHeartRate', 'sonographer', 'facility'],
+  'scan-info': ['date', 'gestationalAge', 'ultrasoundType', 'fetalNumber', 'fetalPresentation', 'fetalViability', 'fetalHeartRate', 'sonographer', 'facility'],
   'biometry': ['biometry'],
   'anatomy': ['fetalAnatomy', 'abnormalities'],
-  'placenta-fluid': ['placentalLocation', 'amnioticFluidVolume', 'cervicalLength', 'dopplerStudies'],
+  'placenta-fluid': ['placentalLocation', 'amnioticFluidVolume', 'amnioticFluid', 'cervicalLength', 'dopplerStudies'],
   'impression-plan': ['impression', 'recommendations', 'notes'],
 };
 
 const NUMBER_FIELDS = [];
 const OBJECT_FIELDS = ['biometry'];
 const DATE_FIELDS = ['date'];
-const STRING_FIELDS = ['facility', 'sonographer', 'gestationalAge', 'ultrasoundType', 'fetalNumber', 'fetalPresentation', 'fetalHeartRate', 'placentalLocation', 'amnioticFluidVolume', 'cervicalLength', 'dopplerStudies', 'fetalAnatomy', 'abnormalities', 'impression', 'recommendations', 'notes'];
+const STRING_FIELDS = ['facility', 'sonographer', 'gestationalAge', 'ultrasoundType', 'fetalNumber', 'fetalPresentation', 'fetalViability', 'fetalHeartRate', 'placentalLocation', 'amnioticFluidVolume', 'amnioticFluid', 'cervicalLength', 'dopplerStudies', 'fetalAnatomy', 'abnormalities', 'impression', 'recommendations', 'notes'];
+const MEASUREMENT_FIELDS = new Set(['fetalHeartRate', 'cervicalLength']);
+
+const splitMeasurement = value => {
+  const match = String(value || '').match(/^\s*(-?\d+(?:\.\d+)?)([\s\S]*)$/);
+  return match ? { numericText: match[1], number: Number(match[1]), suffix: match[2] } : null;
+};
+const stepFor = value => { const text = String(value ?? ''); const decimals = text.includes('.') ? text.split('.')[1].length : 0; return decimals ? 10 ** -decimals : 1; };
+const getAtPath = (source, path) => String(path).split('.').reduce((value, part) => value?.[part], source);
+const setAtPath = (source, path, value) => {
+  const parts = String(path).split('.'); const root = { ...(source || {}) }; let cursor = root;
+  parts.forEach((part, index) => { if (index === parts.length - 1) cursor[part] = value; else { cursor[part] = { ...(cursor[part] || {}) }; cursor = cursor[part]; } });
+  return root;
+};
 
 /* parseLabel: detect "Label: value" patterns (skip subordinate-clause openers) */
 const CLAUSE_OPENER = /^(if|when|while|unless|although|though|because|since|after|before|once|given|whether|should|as|until|provided|assuming|in case)\b/i;
@@ -125,7 +140,7 @@ const toInputDate = (dateValue) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const UltrasoundObReportsDocument = ({ document: docProp }) => {
+const UltrasoundObReportsDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -144,16 +159,19 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? data ?? templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.obstetric_ultrasound_reports) return Array.isArray(r.obstetric_ultrasound_reports) ? r.obstetric_ultrasound_reports : [r.obstetric_ultrasound_reports];
       if (r?.ultrasound_ob_reports) return Array.isArray(r.ultrasound_ob_reports) ? r.ultrasound_ob_reports : [r.ultrasound_ob_reports];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.obstetric_ultrasound_reports) return Array.isArray(dd.obstetric_ultrasound_reports) ? dd.obstetric_ultrasound_reports : [dd.obstetric_ultrasound_reports]; if (dd?.ultrasound_ob_reports) return Array.isArray(dd.ultrasound_ob_reports) ? dd.ultrasound_ob_reports : [dd.ultrasound_ob_reports]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   /* ═══════ SAFE ID ═══════ */
   const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
@@ -202,7 +220,12 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
   const getFieldValue = useCallback((record, fn, idx) => {
     const k = `${fn}-${idx}`;
     if (localEdits[k] !== undefined) return localEdits[k];
-    return record[fn];
+    let value = getAtPath(record, fn);
+    Object.entries(localEdits).forEach(([key, edit]) => {
+      const match = key.match(new RegExp(`^${fn}\\.(.+)-${idx}$`));
+      if (match) value = setAtPath(value, match[1], edit);
+    });
+    return value;
   }, [localEdits]);
 
   const highlightText = useCallback((text) => {
@@ -359,11 +382,9 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
     const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
     const fullText = reconstructFullText(updated);
     stageDraft(fullText, () => {
-      const orig = sentences[sentenceIdx] || '';
-      const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
       setEditedSentences(prev => {
         const n = { ...prev };
-        if (changed) n[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
+        n[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
         const extra = newSentences.length - 1;
         for (let ei = 0; ei < extra; ei++) n[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added';
         return n;
@@ -466,12 +487,12 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
       if (DATE_FIELDS.includes(f)) {
-        text += `${label}\n${formatDate(val)}\n\n`;
+        text += `${label}\n1. ${formatDate(val)}\n\n`;
       } else if (OBJECT_FIELDS.includes(f)) {
         if (typeof val === 'object' && val !== null && Object.keys(val).length > 0) {
           text += `${label}\n`;
           Object.entries(val).forEach(([k, v]) => {
-            if (hasVal(v)) text += `  ${BIOMETRY_LABELS[k] || k}: ${String(v)}\n`;
+            if (hasVal(v)) text += `${BIOMETRY_LABELS[k] || k}\n1. ${String(v)}\n`;
           });
           text += '\n';
         }
@@ -483,10 +504,10 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
           formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         } else {
-          text += `${label}\n${strVal}\n\n`;
+          text += `${label}\n1. ${strVal}\n\n`;
         }
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        text += `${label}\n1. ${fmtVal(val)}\n\n`;
       }
     });
     return text;
@@ -505,8 +526,8 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
   }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
-  /* ═══════ RENDER: HEADER DATE (real record date, editable via BlueDatePicker — never createdAt) ═══════ */
-  const renderHeaderDate = (record, idx) => {
+  /* ═══════ RENDER: DATE FIELD (real record date, never createdAt) ═══════ */
+  const renderDateField = (record, idx, sid) => {
     const fn = 'date';
     const val = getFieldValue(record, fn, idx);
     if (!hasVal(val)) return null;
@@ -515,21 +536,15 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey];
     const displayVal = formatDate(val);
     return (
-      <div className="record-meta-row">
-        {isEditing ? (
-          <div className="edit-field-container">
-            <BlueDatePicker value={editValue} onSelect={iso => setEditValue(iso)} />
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        <div className="nested-subtitle">Date</div>
+        <div className={`numbered-row editable-row ${isModified ? 'modified' : ''}`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
+          {isEditing ? <div className="edit-field-container">
+            <BlueDatePicker value={editValue} onSelect={setEditValue} />
             {saveError && <div className="save-error">{saveError}</div>}
-            <div className="edit-actions">
-              <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, 'scan-info', null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
-              <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-            </div>
-          </div>
-        ) : (
-          <span className={`record-date editable-row ${isModified ? 'modified' : ''}`} title="Record date" onClick={() => { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); }}>
-            {highlightText(displayVal)}<span className="edit-indicator">&#9998;</span>
-          </span>
-        )}
+            <div className="edit-actions"><button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, `${editValue}T00:00:00.000Z`); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div>
+          </div> : <><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`Date\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}
+        </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
@@ -587,35 +602,29 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
     const showLabel = label.toLowerCase() !== sectionTitle.toLowerCase();
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        {entries.map(([subKey, subVal]) => {
+        {entries.map(([subKey, initialValue]) => {
           const dotKey = `${fn}.${subKey}`;
           const editKey = `${dotKey}-${idx}`;
           const isEditing = editingField === editKey;
           const isModified = editedFields[editKey];
+          const staged = getFieldValue(record, dotKey, idx);
+          const subVal = staged !== undefined ? staged : initialValue;
           const displayVal = typeof subVal === 'object' ? JSON.stringify(subVal) : fmtVal(subVal);
           const subLabel = BIOMETRY_LABELS[subKey] || subKey;
-
+          const measurement = splitMeasurement(displayVal);
+          const numeric = Number(editValue);
+          const stepValue = Number.isFinite(numeric) ? numeric : measurement?.number;
           return (
-            <div key={subKey}>
-              <div className="nested-sub-label">{highlightText(subLabel)}</div>
-              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
-                {isEditing ? (
-                  <div className="edit-field-container">
-                    <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                    {saveError && <div className="save-error">{saveError}</div>}
-                    <div className="edit-actions">
-                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, dotKey, idx, sid, null, editValue, editKey); }}>{saving ? 'Saving...' : 'Save'}</button>
-                      <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${subLabel}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-                  </>
-                )}
+            <div key={subKey} data-edit-field={dotKey}>
+              <div className="nested-subtitle field-label">{highlightText(subLabel)}</div>
+              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(measurement ? measurement.numericText : displayVal); setSaveError(null); } }}>
+                {isEditing ? <div className="edit-field-container">
+                  {measurement ? <div className="num-stepper-row"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String(stepValue - stepFor(stepValue))); }}>−</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus/><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String(stepValue + stepFor(stepValue))); }}>+</button><span className="number-edit-unit">{measurement.suffix}</span></div> : <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus onKeyDown={event => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
+                  {saveError && <div className="save-error">{saveError}</div>}
+                  <div className="edit-actions"><button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); if (measurement && !Number.isFinite(Number(editValue))) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, dotKey, idx, sid, null, measurement ? `${editValue}${measurement.suffix}` : editValue, editKey); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div>
+                </div> : <><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${subLabel}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}
               </div>
               {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
             </div>
@@ -633,6 +642,23 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
     const label = FIELD_LABELS[fn] || fn;
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
+    const measurement = MEASUREMENT_FIELDS.has(fn) ? splitMeasurement(strVal) : null;
+    if (measurement && sentences.length === 1) {
+      const editKey = `${fn}-${idx}`;
+      const isEditing = editingField === editKey;
+      const isModified = editedFields[editKey];
+      const numeric = Number(editValue);
+      const stepValue = Number.isFinite(numeric) ? numeric : measurement.number;
+      return <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(measurement.numericText); setSaveError(null); } }}>
+          {isEditing ? <div className="edit-field-container"><div className="num-stepper-row"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String(stepValue - stepFor(stepValue))); }}>−</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus/><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String(stepValue + stepFor(stepValue))); }}>+</button><span className="number-edit-unit">{measurement.suffix}</span></div>{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); if (!Number.isFinite(Number(editValue))) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, `${editValue}${measurement.suffix}`); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div>
+            : <><div className="row-content"><span className="content-value">{highlightText(strVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${strVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>;
+    }
+
     /* Multi-sentence OR a single labeled "Label: v1, v2…" sentence: decompose (never side-by-side) */
     if (sentences.length > 1 || (sentences.length === 1 && parseLabel(sentences[0]).isLabeled)) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
@@ -640,7 +666,7 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
+          <div className="rec-mini-card nested-mini-card">
             <div className="nested-subtitle">{highlightText(label)}</div>
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -655,7 +681,7 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
                 if (commaItems.length >= 2) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} className="rec-mini-card nested-mini-card" style={{ marginTop: 8 }}>
                       <div className="nested-subtitle">{highlightText(parsed.label)}</div>
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
@@ -665,7 +691,7 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
                         if (!ciMatches && searchTerm.trim()) return null;
                         const ciParsed = parseLabel(ci);
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             {ciParsed.isLabeled && <div className="nested-subtitle">{highlightText(ciParsed.label)}</div>}
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
@@ -695,7 +721,7 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
 
               /* Regular sentence row */
               return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined} data-edit-field={fn}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
@@ -729,7 +755,7 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         <div className="nested-subtitle">{highlightText(label)}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
@@ -759,8 +785,7 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
     if (!shouldShowSection(record, sid)) return null;
     const fields = SECTION_FIELDS[sid] || [];
 
-    // date renders in the record header, not in the section body
-    const bodyFields = fields.filter(f => !DATE_FIELDS.includes(f));
+    const bodyFields = fields;
     const hasAnyVal = bodyFields.some(f => hasVal(getFieldValue(record, f, idx)));
     if (!hasAnyVal) return null;
 
@@ -776,6 +801,7 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
             </div>
           </div>
           {bodyFields.map(f => {
+            if (DATE_FIELDS.includes(f)) return renderDateField(record, idx, sid);
             if (OBJECT_FIELDS.includes(f)) return renderObjectField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid, title);
@@ -814,7 +840,6 @@ const UltrasoundObReportsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {renderHeaderDate(record, idx)}
               <h3 className="record-name">{highlightText(`Obstetric Ultrasound Report ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'scan-info')}

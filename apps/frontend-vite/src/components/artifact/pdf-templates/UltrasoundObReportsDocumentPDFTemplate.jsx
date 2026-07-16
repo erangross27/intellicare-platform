@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   noData: { fontSize: 14, textAlign: 'center', marginTop: 40, color: '#666666' },
 });
 
-/* CONFIG (mirrors the JSX; scan-info omits `date` - it renders in the record header) */
+/* CONFIG (mirrors the JSX) */
 const SECTION_ORDER = ['scan-info', 'biometry', 'anatomy', 'placenta-fluid', 'impression-plan'];
 
 const SECTION_TITLES = {
@@ -42,10 +42,12 @@ const FIELD_LABELS = {
   ultrasoundType: 'Ultrasound Type',
   fetalNumber: 'Fetal Number',
   fetalPresentation: 'Fetal Presentation',
+  fetalViability: 'Fetal Viability',
   fetalHeartRate: 'Fetal Heart Rate',
   biometry: 'Biometry',
   placentalLocation: 'Placental Location',
   amnioticFluidVolume: 'Amniotic Fluid Volume',
+  amnioticFluid: 'Amniotic Fluid',
   cervicalLength: 'Cervical Length',
   dopplerStudies: 'Doppler Studies',
   fetalAnatomy: 'Fetal Anatomy',
@@ -56,10 +58,10 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
-  'scan-info': ['gestationalAge', 'ultrasoundType', 'fetalNumber', 'fetalPresentation', 'fetalHeartRate', 'sonographer', 'facility'],
+  'scan-info': ['date', 'gestationalAge', 'ultrasoundType', 'fetalNumber', 'fetalPresentation', 'fetalViability', 'fetalHeartRate', 'sonographer', 'facility'],
   'biometry': ['biometry'],
   'anatomy': ['fetalAnatomy', 'abnormalities'],
-  'placenta-fluid': ['placentalLocation', 'amnioticFluidVolume', 'cervicalLength', 'dopplerStudies'],
+  'placenta-fluid': ['placentalLocation', 'amnioticFluidVolume', 'amnioticFluid', 'cervicalLength', 'dopplerStudies'],
   'impression-plan': ['impression', 'recommendations', 'notes'],
 };
 
@@ -174,13 +176,13 @@ const sentenceRows = (text) => {
   return rows;
 };
 
-/* Recursively flatten a nested object into box-free rows (scalars inline "Key: value") */
+/* Recursively flatten a nested object into stacked label/value rows. */
 const objectRows = (obj, kp) => {
   const out = [];
   Object.entries(obj).filter(([, v]) => !isEmptyDeep(v)).forEach(([k, v], i) => {
     const key = `${kp}.${k}.${i}`;
     if (isScalar(v)) {
-      out.push(<Text key={key} style={styles.value}>{humanizeKey(k)}: {safeString(fmtScalar(v))}</Text>);
+      out.push(<View key={key} wrap={false}><Text style={styles.fieldLabel}>{safeString(humanizeKey(k))}</Text><Text style={styles.value}>1. {safeString(fmtScalar(v))}</Text></View>);
     } else if (Array.isArray(v)) {
       out.push(<Text key={key + 'h'} style={styles.subLabel}>{safeString(humanizeKey(k))}</Text>);
       v.filter(x => !isEmptyDeep(x)).forEach((it, j) => {
@@ -197,13 +199,14 @@ const objectRows = (obj, kp) => {
 
 const fieldBody = (record, f) => {
   const v = resolvePath(record, f);
-  if (DATE_FIELDS.includes(f)) return [<Text key="v" style={styles.value}>{safeString(formatDate(v))}</Text>];
+  if (DATE_FIELDS.includes(f)) return [<Text key="v" style={styles.value}>1. {safeString(formatDate(v))}</Text>];
   if (OBJECT_FIELDS.includes(f) && v && typeof v === 'object' && !Array.isArray(v)) return objectRows(v, f);
   const rows = sentenceRows(String(v));
-  if (rows.length === 0) return [<Text key="v" style={styles.value}>{safeString(String(v))}</Text>];
+  if (rows.length === 0) return [<Text key="v" style={styles.value}>1. {safeString(String(v))}</Text>];
+  let rowNumber = 0;
   return rows.map((r, i) => r.type === 'sub'
     ? <Text key={i} style={styles.subLabel}>{safeString(r.text)}</Text>
-    : <Text key={i} style={styles.value}>{strip(r.text)}</Text>);
+    : <Text key={i} style={styles.value}>{++rowNumber}. {strip(r.text)}</Text>);
 };
 
 const renderSection = (record, sid) => {
@@ -224,17 +227,17 @@ const renderSection = (record, sid) => {
   });
 };
 
-const UltrasoundObReportsDocumentPDFTemplate = ({ document: docProp, data = docProp }) => {
-  let records = [];
-  const src = data;
-  if (Array.isArray(src)) records = src;
-  else if (src && typeof src === 'object') {
-    if (src.obstetric_ultrasound_reports) records = Array.isArray(src.obstetric_ultrasound_reports) ? src.obstetric_ultrasound_reports : [src.obstetric_ultrasound_reports];
-    else if (src.ultrasound_ob_reports) records = Array.isArray(src.ultrasound_ob_reports) ? src.ultrasound_ob_reports : [src.ultrasound_ob_reports];
-    else if (src.documentData) { const dd = src.documentData; if (Array.isArray(dd)) records = dd; else if (dd?.obstetric_ultrasound_reports) records = Array.isArray(dd.obstetric_ultrasound_reports) ? dd.obstetric_ultrasound_reports : [dd.obstetric_ultrasound_reports]; else if (dd?.ultrasound_ob_reports) records = Array.isArray(dd.ultrasound_ob_reports) ? dd.ultrasound_ob_reports : [dd.ultrasound_ob_reports]; else if (dd && typeof dd === 'object') records = [dd]; }
-    else records = [src];
-  }
-  records = records.filter(r => r && typeof r === 'object');
+const unwrapRecords = source => (Array.isArray(source) ? source : source ? [source] : []).flatMap(record => {
+  if (Array.isArray(record?.wrapRecordsIntoSingleDocument)) return record.wrapRecordsIntoSingleDocument;
+  if (Array.isArray(record?.records || record?._records)) return record.records || record._records;
+  if (record?.obstetric_ultrasound_reports) return Array.isArray(record.obstetric_ultrasound_reports) ? record.obstetric_ultrasound_reports : [record.obstetric_ultrasound_reports];
+  if (record?.ultrasound_ob_reports) return Array.isArray(record.ultrasound_ob_reports) ? record.ultrasound_ob_reports : [record.ultrasound_ob_reports];
+  if (record?.documentData) { const data = record.documentData; if (Array.isArray(data)) return data; if (data?.obstetric_ultrasound_reports) return Array.isArray(data.obstetric_ultrasound_reports) ? data.obstetric_ultrasound_reports : [data.obstetric_ultrasound_reports]; if (data?.ultrasound_ob_reports) return Array.isArray(data.ultrasound_ob_reports) ? data.ultrasound_ob_reports : [data.ultrasound_ob_reports]; return [data]; }
+  return [record];
+}).filter(record => record && typeof record === 'object');
+
+const UltrasoundObReportsDocumentPDFTemplate = ({ document: docProp, data, templateData }) => {
+  const records = unwrapRecords(docProp ?? data ?? templateData);
 
   if (records.length === 0) {
     return (
@@ -254,12 +257,6 @@ const UltrasoundObReportsDocumentPDFTemplate = ({ document: docProp, data = docP
         {records.map((record, rIdx) => (
           <View key={rIdx}>
             <Text style={styles.recordTitle} break={rIdx > 0}>{safeString(`Obstetric Ultrasound Report ${rIdx + 1}`)}</Text>
-            {hasVal(record.date) && (
-              <View style={styles.fieldWrap} wrap={false}>
-                <Text style={styles.fieldLabel}>{safeString(FIELD_LABELS.date)}</Text>
-                <Text style={styles.value}>{safeString(formatDate(record.date))}</Text>
-              </View>
-            )}
             {SECTION_ORDER.map(sid => renderSection(record, sid))}
           </View>
         ))}

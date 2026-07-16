@@ -8,11 +8,6 @@
 .ultrasound-ob-reports-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
 .ultrasound-ob-reports-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .ultrasound-ob-reports-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
-.ultrasound-ob-reports-document .record-meta-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.ultrasound-ob-reports-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; }
-.ultrasound-ob-reports-document .record-date.editable-row { cursor: pointer; }
-.ultrasound-ob-reports-document .record-date.editable-row:hover .edit-indicator { opacity: 1; }
-.ultrasound-ob-reports-document .record-date.modified { box-shadow: 0 0 8px rgba(96, 165, 250, 0.35); }
 .ultrasound-ob-reports-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .ultrasound-ob-reports-document .section { margin-top: 16px; }
 .ultrasound-ob-reports-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
@@ -42,6 +37,7 @@
 .ultrasound-ob-reports-document .num-step { width: 44px; flex-shrink: 0; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; font-family: 'Comfortaa', sans-serif; display: flex; align-items: center; justify-content: center; }
 .ultrasound-ob-reports-document .num-step:disabled { opacity: 0.5; cursor: not-allowed; }
 .ultrasound-ob-reports-document .edit-number { flex: 1; width: auto; min-width: 0; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; text-align: center; }
+.ultrasound-ob-reports-document .number-edit-unit { color: #bfdbfe; font-size: 14px; white-space: pre-wrap; align-self: center; }
 .ultrasound-ob-reports-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
 .ultrasound-ob-reports-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .ultrasound-ob-reports-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }

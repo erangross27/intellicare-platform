@@ -6,7 +6,7 @@
  * string-array numbered editable rows, blue-glow CSS, single-name-skip showSubLabel,
  * Copy/Approve/search) + StemCellTransplantAssessment helpers:
  *   - numberShows (hide-zero numeric, edit via number input) for tripDurationDays
- *   - renderBooleanField (Yes/No <select>, saves actual boolean) for the boolean fields.
+ *   - renderBooleanField (custom Yes/No dropdown, saves actual boolean) for boolean fields.
  *
  * Field classification (see SECTION_FIELDS):
  *   DATE: date, departureDate, returnDate
@@ -24,6 +24,8 @@ import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import TravelMedicineAssessmentDocumentPDFTemplate from '../pdf-templates/TravelMedicineAssessmentDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import './TravelMedicineAssessmentDocument.css';
 
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
@@ -66,7 +68,7 @@ const FIELD_LABELS = {
   travelersDiarrheaProphylaxis: "Traveler's Diarrhea Prophylaxis",
   altitudeSicknessRisk: 'Altitude Sickness Risk',
   insectBorneDiseasePrecautions: 'Insect-Borne Disease Precautions',
-  foodWaterSafetyEducation: 'Food & Water Safety Education',
+  foodWaterSafetyEducation: 'Food and Water Safety Education',
   preExistingConditions: 'Pre-Existing Conditions',
   immunocompromisedStatus: 'Immunocompromised Status',
   pregnancyStatus: 'Pregnancy Status',
@@ -89,6 +91,9 @@ const DATE_FIELDS = ['date', 'departureDate', 'returnDate'];
 const NUMBER_FIELDS = ['tripDurationDays'];
 const BOOLEAN_FIELDS = ['ruralExposure', 'yellowFeverVaccineGiven', 'certificateOfVaccinationIssued', 'altitudeSicknessRisk', 'foodWaterSafetyEducation', 'immunocompromisedStatus'];
 const STRING_ARRAY_FIELDS = ['destinationCountries', 'vaccinesAdministered', 'preExistingConditions', 'exposureRisks'];
+const COMMA_SPLIT_FIELDS = new Set(['accommodationType', 'malariaProphylaxisPrescribed', 'insectBorneDiseasePrecautions']);
+const SEMICOLON_SPLIT_FIELDS = new Set(['travelersDiarrheaProphylaxis', 'previousTravelHistory']);
+const MALARIA_RISK_OPTIONS = ['None', 'Low', 'Moderate', 'High'];
 /* everything else is a per-sentence narrative string */
 
 /* ═══════ VALUE HELPERS ═══════ */
@@ -157,8 +162,12 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
         const editKey = `${fieldPart}-${idx}`;
         nLocal[editKey] = value;
         nPending[editKey] = true;
-        nFields[editKey] = 'edited';
-        nSentences[`${fieldPart}-${idx}-s0`] = 'edited';
+        const arrayLeaf = fieldPart.match(/^(.+)\.(\d+)$/);
+        if (arrayLeaf) nFields[`${arrayLeaf[1]}-${idx}-a${arrayLeaf[2]}`] = 'edited';
+        else {
+          nFields[editKey] = 'edited';
+          nSentences[`${fieldPart}-${idx}-s0`] = 'edited';
+        }
       });
     });
     if (Object.keys(nLocal).length === 0) return;
@@ -172,19 +181,45 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
   const hasVal = useCallback((v) => !isEmptyDeep(v), []);
   const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
 
-  const splitBySentence = useCallback((text) => {
+  const splitBySentence = useCallback((text, field = '') => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    const clauses = text.split(/(?<!\d)\.(?:\s+)|;\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    if (!COMMA_SPLIT_FIELDS.has(field)) return clauses;
+    return clauses.flatMap((clause) => {
+      const parts = [];
+      let depth = 0;
+      let start = 0;
+      for (let i = 0; i < clause.length; i += 1) {
+        if (clause[i] === '(' || clause[i] === '[' || clause[i] === '{') depth += 1;
+        else if (clause[i] === ')' || clause[i] === ']' || clause[i] === '}') depth = Math.max(0, depth - 1);
+        else if (clause[i] === ',' && depth === 0) {
+          parts.push(clause.slice(start, i).trim());
+          start = i + 1;
+        }
+      }
+      parts.push(clause.slice(start).trim());
+      return parts.filter(Boolean);
+    });
   }, []);
 
-  function reconstructFullText(sentences) {
+  function reconstructFullText(sentences, field) {
     if (!sentences || sentences.length === 0) return '';
-    return sentences.map((s, i) => { let c = s.replace(/[;.]+$/, '').trim(); if (i < sentences.length - 1) c += '.'; return c; }).join(' ');
+    const delimiter = COMMA_SPLIT_FIELDS.has(field) ? ', ' : SEMICOLON_SPLIT_FIELDS.has(field) ? '; ' : '. ';
+    return sentences.map(s => s.replace(/[;.,]+$/, '').trim()).join(delimiter);
   }
 
   const getFieldValue = useCallback((record, fn, idx) => {
     const k = `${fn}-${idx}`;
     if (localEdits[k] !== undefined) return localEdits[k];
+    if (Array.isArray(record[fn])) {
+      const merged = [...record[fn]];
+      let changed = false;
+      Object.entries(localEdits).forEach(([key, value]) => {
+        const match = key.match(new RegExp(`^${fn}\\.(\\d+)-${idx}$`));
+        if (match) { merged[Number(match[1])] = value; changed = true; }
+      });
+      if (changed) return merged;
+    }
     return record[fn];
   }, [localEdits]);
 
@@ -272,7 +307,20 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
   /* ═══════ PDF DATA ═══════ */
   const pdfData = useMemo(() => filteredRecords.map((record, idx) => {
     const merged = { ...record };
-    Object.keys(localEdits).forEach(key => { if (pendingEdits[key]) return; const m = key.match(/^(.+)-(\d+)$/); if (m && parseInt(m[2]) === idx) merged[m[1]] = localEdits[key]; });
+    Object.keys(localEdits).forEach(key => {
+      if (pendingEdits[key]) return;
+      const m = key.match(/^(.+)-(\d+)$/);
+      if (!m || parseInt(m[2], 10) !== idx) return;
+      const fieldPart = m[1];
+      const arrayMatch = fieldPart.match(/^(.+)\.(\d+)$/);
+      if (arrayMatch) {
+        const base = arrayMatch[1];
+        const arrayIndex = Number(arrayMatch[2]);
+        const values = Array.isArray(merged[base]) ? [...merged[base]] : [];
+        values[arrayIndex] = localEdits[key];
+        merged[base] = values;
+      } else merged[fieldPart] = localEdits[key];
+    });
     return merged;
   }), [filteredRecords, localEdits, pendingEdits]);
 
@@ -301,13 +349,13 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
   function saveSentence(record, fn, idx, sid, sentenceIdx) {
     const id = safeId(record); if (!id) return;
     const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const sentences = splitBySentence(currentVal);
+    const sentences = splitBySentence(currentVal, fn);
     const editedVal = editValue.trim();
     const stageDraft = (fullText) => { const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fn] = fullText; writeDrafts(store); };
     setSaveError(null);
     if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
       const updated = [...sentences]; updated.splice(sentenceIdx, 1);
-      const fullText = reconstructFullText(updated);
+      const fullText = reconstructFullText(updated, fn);
       setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullText }));
       setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true }));
       setEditedSentences(prev => ({ ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }));
@@ -316,9 +364,9 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
       setEditingField(null); setEditValue('');
       return;
     }
-    const newSentences = splitBySentence(editedVal);
+    const newSentences = splitBySentence(editedVal, fn);
     const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
-    const fullText = reconstructFullText(updated);
+    const fullText = reconstructFullText(updated, fn);
     setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullText }));
     setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true }));
     const orig = sentences[sentenceIdx] || '';
@@ -362,20 +410,18 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
       });
       for (const editKey of toCommit) {
         const fieldPart = editKey.slice(0, -suffix.length);
-        const lastDot = fieldPart.lastIndexOf('.');
-        const isArrayIdx = lastDot !== -1 && /^\d+$/.test(fieldPart.slice(lastDot + 1));
-        const payload = { field: isArrayIdx ? fieldPart.slice(0, lastDot) : fieldPart, value: localEdits[editKey] };
-        if (isArrayIdx) payload.arrayIndex = parseInt(fieldPart.slice(lastDot + 1), 10);
+        const payload = { field: fieldPart, value: localEdits[editKey] };
         const resp = await secureApiClient.put(`/api/edit/travel_medicine_assessment/${id}/edit`, payload);
         if (resp && resp.success === false) throw new Error(resp.error || 'save failed');
       }
-      await secureApiClient.put(`/api/edit/travel_medicine_assessment/${id}/approve`, { sectionId: sid, approved: true });
+      const approveResp = await secureApiClient.put(`/api/edit/travel_medicine_assessment/${id}/approve`, { sectionId: sid, approved: true });
+      if (approveResp && approveResp.success === false) throw new Error(approveResp.error || 'approve failed');
       // Clear pending → committed edits now flow into pdfData/PDF
       setPendingEdits(prev => { const n = { ...prev }; toCommit.forEach(k => delete n[k]); return n; });
       // Drop this record's drafts from localStorage (now committed)
       const store = readDrafts();
       if (store[id]) {
-        fields.forEach(f => { delete store[id][f]; });
+        fields.forEach(f => { Object.keys(store[id]).forEach(key => { if (key === f || key.startsWith(`${f}.`)) delete store[id][key]; }); });
         if (Object.keys(store[id]).length === 0) delete store[id];
         writeDrafts(store);
       }
@@ -389,7 +435,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
   const renderApproveButton = useCallback((record, sid, idx) => {
     const hasEdits = sectionHasEdits(idx, sid);
     const isApproved = approvedSections[`${sid}-${idx}`];
-    if (hasEdits) return (<button className="approve-btn pending" onClick={e => { e.stopPropagation(); handleApproveSection(record, sid, idx); }}>Pending Approve</button>);
+    if (hasEdits) return (<button className="approve-btn pending" disabled={saving} onClick={e => { e.stopPropagation(); handleApproveSection(record, sid, idx); }}>{saving ? 'Approving...' : 'Pending Approve'}</button>);
     if (isApproved) return <span className="approve-btn approved">Approved</span>;
     return null;
   }, [sectionHasEdits, approvedSections, handleApproveSection]);
@@ -427,7 +473,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
         text += sameAsTitle ? `${formatDate(val)}\n\n` : `${label}\n${formatDate(val)}\n\n`;
       } else {
         const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
+        const sentences = splitBySentence(strVal, f);
         if (sentences.length > 1) {
           if (!sameAsTitle) text += `${label}\n`;
           sentences.forEach((s, i) => { text += `${i + 1}. ${s}\n`; });
@@ -463,12 +509,13 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={iso => setEditValue(iso)} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -483,6 +530,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
@@ -500,15 +548,20 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="num-stepper-row">
+                <button type="button" className="num-step" disabled={saving} onClick={e => { e.stopPropagation(); setEditValue(String(Math.max(0, (parseFloat(editValue) || 0) - 1))); }}>&minus;</button>
+                <input type="text" inputMode="numeric" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Enter') { const numVal = parseInt(editValue, 10); if (!Number.isNaN(numVal) && numVal >= 0) handleSaveField(record, fn, idx, sid, numVal); } if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <button type="button" className="num-step" disabled={saving} onClick={e => { e.stopPropagation(); setEditValue(String(Math.max(0, (parseFloat(editValue) || 0) + 1))); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseInt(editValue, 10); if (Number.isNaN(numVal) || numVal < 0) { setSaveError('Please enter a nonnegative whole number'); return; } handleSaveField(record, fn, idx, sid, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -520,11 +573,12 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
 
-  /* ═══════ RENDER: BOOLEAN FIELD (Yes/No <select>, saves boolean; renders false as "No") ═══════ */
+  /* ═══════ RENDER: BOOLEAN FIELD (custom Yes/No dropdown, saves boolean; renders false as "No") ═══════ */
   const renderBooleanField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
     if (typeof val !== 'boolean') return null;
@@ -537,18 +591,16 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'true' : 'false'); setSaveError(null); } }}>
+        <div data-edit-field={fn}>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, editValue === 'true'); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, editValue === 'Yes'); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -560,6 +612,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
@@ -578,7 +631,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
     const indexed = []; items.forEach((it, oi) => { if (!isEmptyDeep(it)) indexed.push([oi, it]); });
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         {indexed.map(([oi, item]) => {
           const itemKey = `${fn}-${idx}-a${oi}`;
@@ -588,7 +641,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
           const itemMatches = phraseMatch || labelMatch || !searchTerm.trim() || itemStr.toLowerCase().includes(searchTerm.toLowerCase().trim());
           if (!itemMatches && searchTerm.trim()) return null;
           return (
-            <div key={oi}>
+            <div key={oi} data-edit-field={`${fn}.${oi}`}>
               <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(itemKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
@@ -598,18 +651,17 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
                       <button className="save-btn" disabled={saving} onClick={e => {
                         e.stopPropagation();
                         const id2 = safeId(record); if (!id2) return;
-                        const currentArr = Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [];
                         const trimmed = editValue.trim();
-                        const newArr = currentArr.map((it, i) => i === oi ? trimmed : it).filter(it => !isEmptyDeep(it));
                         setSaveError(null);
-                        // Stage as a DRAFT (no DB write). localStorage keeps it across refresh; Approve commits it.
-                        setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: newArr }));
-                        setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true }));
+                        const leafKey = `${fn}.${oi}-${idx}`;
+                        // Stage the exact indexed leaf so Pending Approve persists field + arrayIndex.
+                        setLocalEdits(prev => ({ ...prev, [leafKey]: trimmed }));
+                        setPendingEdits(prev => ({ ...prev, [leafKey]: true }));
                         setEditedFields(prev => ({ ...prev, [itemKey]: 'edited' }));
                         setApprovedSections(prev => { const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
                         const store = readDrafts();
                         if (!store[id2]) store[id2] = {};
-                        store[id2][fn] = newArr;
+                        store[id2][`${fn}.${oi}`] = trimmed;
                         writeDrafts(store);
                         setEditingField(null); setEditValue('');
                       }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -635,7 +687,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
   const renderStringField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
-    const sentences = splitBySentence(strVal);
+    const sentences = splitBySentence(strVal, fn);
     const label = FIELD_LABELS[fn] || fn;
     const showSubLabel = label.trim().toLowerCase() !== (SECTION_TITLES[sid] || '').trim().toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
@@ -644,7 +696,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
       return (
-        <div key={fn} className="rec-mini-card">
+        <div key={fn} className="rec-mini-card nested-mini-card">
           {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
           {sentences.map((sentence, sIdx) => {
             const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -653,7 +705,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
             const sentenceMatches = phraseMatch || labelMatch || (searchTerm.trim() && sentence.toLowerCase().includes(searchTerm.toLowerCase().trim()));
             if (!sentenceMatches && searchTerm.trim()) return null;
             return (
-              <div key={sIdx}>
+              <div key={sIdx} data-edit-field={fn}>
                 <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                   {isEditing ? (
                     <div className="edit-field-container">
@@ -684,15 +736,24 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
     const isEditing = editingField === editKey;
     const isModified = editedFields[editKey];
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); handleSaveField(record, fn, idx, sid); } }} />
+              {fn === 'malariaRiskLevel' ? (
+                <BlueSelect
+                  value={MALARIA_RISK_OPTIONS.find(option => option.toLowerCase() === String(editValue).toLowerCase()) || editValue}
+                  options={MALARIA_RISK_OPTIONS.some(option => option.toLowerCase() === String(strVal).toLowerCase()) ? MALARIA_RISK_OPTIONS : [...MALARIA_RISK_OPTIONS, strVal]}
+                  onChange={setEditValue}
+                />
+              ) : (
+                <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); handleSaveField(record, fn, idx, sid); } }} />
+              )}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const selected = MALARIA_RISK_OPTIONS.find(option => option.toLowerCase() === String(editValue).toLowerCase()); handleSaveField(record, fn, idx, sid, fn === 'malariaRiskLevel' && selected ? selected.toLowerCase() : editValue); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -704,6 +765,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
       </div>
     );
   };
@@ -758,7 +820,7 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
         <h2 className="document-title">Travel Medicine Assessment</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<TravelMedicineAssessmentDocumentPDFTemplate document={pdfData} />} fileName={`travel-medicine-assessment-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<TravelMedicineAssessmentDocumentPDFTemplate document={pdfData} />} fileName="Travel_Medicine_Assessment.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -771,7 +833,6 @@ const TravelMedicineAssessmentDocument = ({ document: docProp, data, templateDat
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (<div className="record-meta-row"><span className="record-date">{formatDate(record.date)}</span></div>)}
               <h3 className="record-name">{highlightText(`Travel Medicine Assessment ${idx + 1}`)}</h3>
             </div>
             {SECTION_ORDER.map(sid => renderSection(record, idx, sid))}

@@ -1,226 +1,72 @@
+/** Transfer Summaries — canonical box-free PDF, collection transfer_summaries. */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-// June 2026 PDF Standards - Helvetica font, BLACK & WHITE only (no color), numbered lists, fieldBox
 const styles = StyleSheet.create({
-  page: {
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    padding: 40,
-    lineHeight: 1.6,
-    backgroundColor: '#ffffff',
-  },
-  header: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#000000',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    borderBottomStyle: 'solid',
-    paddingBottom: 12,
-  },
-  recordContainer: {
-    marginBottom: 24,
-  },
-  recordHeader: {
-    paddingBottom: 8,
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-    borderBottomStyle: 'solid',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  recordDate: {
-    fontSize: 11,
-    color: '#666666',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  sectionContent: {
-  },
-  miniCard: {
-    marginBottom: 8,
-    paddingBottom: 4,
-  },
-  miniCardLabel: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-  },
-  miniCardValue: {
-    fontSize: 12,
-    color: '#333333',
-    lineHeight: 1.5,
-  },
-  pageNumber: {
-    position: 'absolute',
-    bottom: 20,
-    right: 40,
-    fontSize: 10,
-    color: '#9ca3af',
-  },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 5, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, marginTop: 9, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 1, marginTop: 4, marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 1, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
-// Format date helper
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return String(dateStr);
-  }
-};
-
-// Split text into sentences — splits on BOTH period and semicolon, with title protection
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text
-    .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;](?:\s+)/)
-    .map(s => s.replace(/[;.]+$/, '').trim())
-    .filter(s => s && !/^[;.,!?]+$/.test(s));
-};
-
-// Constants
 const SECTION_TITLES = {
   'report-info': 'Report Information',
   'clinical-indication': 'Clinical Indication',
   'findings-urgency': 'Findings & Urgency',
   'followup-recs': 'Follow-Up & Recommendations',
 };
-
 const FIELD_LABELS = {
-  reportDate: 'Report Date',
-  reportType: 'Report Type',
-  clinicalIndication: 'Clinical Indication',
-  findings: 'Findings',
-  urgency: 'Urgency',
-  followUp: 'Follow-Up',
-  recommendations: 'Recommendations',
+  reportDate: 'Report Date', reportType: 'Report Type', urgency: 'Urgency', clinicalIndication: 'Clinical Indication',
+  findings: 'Findings', followUp: 'Follow-Up', recommendations: 'Recommendations',
 };
-
 const SECTION_FIELDS = {
   'report-info': ['reportDate', 'reportType'],
   'clinical-indication': ['clinicalIndication'],
   'findings-urgency': ['findings', 'urgency'],
   'followup-recs': ['followUp', 'recommendations'],
 };
-
-const DATE_FIELDS = ['reportDate'];
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'string') return v.trim() !== '';
-  return true;
+const DATE_FIELDS = new Set(['reportDate']);
+const PERIOD_SPLIT_FIELDS = new Set(['clinicalIndication', 'findings', 'recommendations']);
+const COMMA_ARRAY_FIELDS = new Set(['findings', 'urgency']);
+const safeString = value => String(value ?? '').replace(/×/g, 'x').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
+const hasVal = value => value !== null && value !== undefined && value !== '' && (typeof value !== 'string' || value.trim() !== '');
+const sameAsTitle = (label, sid) => label.trim().toLowerCase() === SECTION_TITLES[sid].trim().toLowerCase();
+const formatDate = value => { try { const date = new Date(value?.$date || value); return Number.isNaN(date.getTime()) ? safeString(value) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return safeString(value); } };
+const parseLabel = text => { const match = String(text || '').match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]+)/); return match ? { isLabeled: true, label: match[1].trim(), value: match[2].trim() } : { isLabeled: false, label: '', value: String(text || '') }; };
+const splitEditableClauses = (value, fieldPath) => {
+  const source = String(value ?? ''); const out = []; let current = ''; let depth = 0; const push = () => { if (current.trim()) out.push(current.trim()); current = ''; };
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index]; if (character === '(') depth += 1; if (character === ')') depth = Math.max(0, depth - 1);
+    const next = source[index + 1] || ''; const previousWord = current.trim().match(/([A-Za-z]+)$/)?.[1] || '';
+    const safePeriod = character === '.' && PERIOD_SPLIT_FIELDS.has(fieldPath) && depth === 0 && /\s/.test(next) && !['Mr', 'Mrs', 'Ms', 'Dr', 'St', 'Jr', 'Sr', 'Prof', 'Rev', 'Gen', 'Col', 'Sgt', 'vs', 'etc'].includes(previousWord) && !/\b[A-Z]$/.test(current) && !/\d$/.test(current);
+    const safeSemicolon = character === ';' && PERIOD_SPLIT_FIELDS.has(fieldPath) && depth === 0;
+    const safeComma = character === ',' && COMMA_ARRAY_FIELDS.has(fieldPath) && depth === 0;
+    if (safePeriod || safeSemicolon || safeComma) { push(); while (/\s/.test(source[index + 1] || '')) index += 1; } else current += character;
+  }
+  push(); return out.length ? out : [source];
 };
+const unwrapRecords = data => (Array.isArray(data) ? data : data ? [data] : []).flatMap(record => {
+  if (record?.transfer_summaries) return Array.isArray(record.transfer_summaries) ? record.transfer_summaries : [record.transfer_summaries];
+  if (record?.documentData) { const inner = record.documentData; if (Array.isArray(inner)) return inner; if (inner?.transfer_summaries) return Array.isArray(inner.transfer_summaries) ? inner.transfer_summaries : [inner.transfer_summaries]; return [inner]; }
+  return [record];
+}).filter(record => record && typeof record === 'object');
 
 const TransferSummariesDocumentPDFTemplate = ({ document: data }) => {
-  // Data unwrapping for wrapped collections
-  const unwrapData = (inputData) => {
-    if (!inputData) return [];
-    if (Array.isArray(inputData)) {
-      if (inputData.length === 1 && inputData[0]?.transfer_summaries) {
-        return inputData[0].transfer_summaries;
-      }
-      return inputData;
-    }
-    if (inputData.transfer_summaries) {
-      return inputData.transfer_summaries;
-    }
-    return [inputData];
+  const records = unwrapRecords(data);
+  const fieldBody = (record, fn, sid) => {
+    const value = record[fn]; if (!hasVal(value)) return [];
+    const label = FIELD_LABELS[fn] || fn; const elements = [];
+    if (DATE_FIELDS.has(fn)) elements.push(<Text key={`${fn}-date`} style={styles.listItem}>1. {formatDate(value)}</Text>);
+    else { let rowNumber = 1; splitEditableClauses(value, fn).forEach((clause, clauseIndex) => { const parsed = parseLabel(clause); if (parsed.isLabeled) elements.push(<Text key={`${fn}-${clauseIndex}-label`} style={styles.subLabel}>{safeString(parsed.label)}</Text>); elements.push(<Text key={`${fn}-${clauseIndex}`} style={styles.listItem}>{rowNumber++}. {safeString(parsed.isLabeled ? parsed.value : clause)}</Text>); }); }
+    if (!sameAsTitle(label, sid) && elements.length) { const [first, ...rest] = elements; return [<View key={`${fn}-head`} wrap={false}><Text style={styles.fieldLabel}>{safeString(label)}</Text>{first}</View>, ...rest]; }
+    return elements;
   };
-
-  const records = unwrapData(data);
-
-  // Render a single field's rows (mini-cards), with the section title as first child when fIdx===0
-  const renderField = (record, field, idx, sectionTitle, fIdx) => {
-    const val = record[field];
-    if (!hasVal(val)) return null;
-    const label = FIELD_LABELS[field] || field;
-    // SINGLE-NAME SKIP: omit the field label when it equals the section title
-    const showLabel = label.trim().toLowerCase() !== (sectionTitle || '').trim().toLowerCase();
-
-    let rows;
-    if (DATE_FIELDS.includes(field)) {
-      rows = [formatDate(val)];
-    } else {
-      const sentences = splitBySentence(String(val));
-      rows = sentences.length > 0 ? sentences : [String(val)];
-    }
-
-    return (
-      <View key={field} style={styles.miniCard}>
-        {showLabel && <Text style={styles.miniCardLabel}>{label}</Text>}
-        {rows.map((row, rIdx) => (
-          <Text key={rIdx} style={styles.miniCardValue}>{rows.length > 1 ? `${rIdx + 1}. ` : ''}{row}</Text>
-        ))}
-      </View>
-    );
-  };
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.header}>Transfer Summaries</Text>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>
-                {String(record._recordNumber || idx + 1)}. Transfer Summary
-              </Text>
-              {record.reportDate && (
-                <Text style={styles.recordDate}>{formatDate(record.reportDate)}</Text>
-              )}
-            </View>
-
-            {/* Sections — Rule #74: each section = ONE wrap-gated View, sectionTitle FIRST CHILD */}
-            {Object.keys(SECTION_FIELDS).map(sid => {
-              const fields = SECTION_FIELDS[sid];
-              const sectionTitle = SECTION_TITLES[sid];
-              const presentFields = fields.filter(f => hasVal(record[f]));
-              if (presentFields.length === 0) return null;
-
-              return (
-                <View key={sid} style={styles.section} wrap={presentFields.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>{sectionTitle}</Text>
-                  <View style={styles.sectionContent}>
-                    {presentFields.map((field, fIdx) => renderField(record, field, idx, sectionTitle, fIdx))}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        ))}
-
-        <Text
-          style={styles.pageNumber}
-          render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-          fixed
-        />
-      </Page>
-    </Document>
-  );
+  const renderSection = (record, sid) => { let body = []; SECTION_FIELDS[sid].forEach(fn => { body = body.concat(fieldBody(record, fn, sid)); }); if (!body.length) return null; body = body.map((element, index) => React.cloneElement(element, { key: `${sid}-${index}` })); const [first, ...rest] = body; return <View key={sid}><View wrap={false}><Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>{first}</View>{rest}</View>; };
+  return <Document><Page size="LETTER" style={styles.page}><Text style={styles.documentTitle}>Transfer Summaries</Text>{records.length === 0 && <Text style={styles.noDataText}>No transfer summaries records available</Text>}{records.map((record, index) => <View key={index} break={index > 0}><Text style={styles.recordTitle}>{`Transfer Summary ${index + 1}`}</Text>{Object.keys(SECTION_FIELDS).map(sid => renderSection(record, sid))}</View>)}</Page></Document>;
 };
 
 export default TransferSummariesDocumentPDFTemplate;

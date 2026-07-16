@@ -1,5 +1,6 @@
-/* TransferSummariesDocument.css — June 2026 Blue glow editing theme */
-.transfer-summaries-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+/* TransferSummariesDocument.css — March 2026 Blue glow editing theme */
+.transfer-summaries-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; text-align: left; }
+.transfer-summaries-document * { direction: ltr; text-align: left; }
 .transfer-summaries-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .transfer-summaries-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .transfer-summaries-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -7,15 +8,16 @@
 .transfer-summaries-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
 .transfer-summaries-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .transfer-summaries-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
-.transfer-summaries-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.transfer-summaries-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
 .transfer-summaries-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .transfer-summaries-document .section { margin-top: 16px; }
-.transfer-summaries-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
+.transfer-summaries-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 24px 18px 18px 18px; background: rgba(37, 99, 235, 0.05); }
 .transfer-summaries-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
 .transfer-summaries-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
 .transfer-summaries-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
 .transfer-summaries-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.transfer-summaries-document .nested-mini-card { background: rgba(96, 165, 250, 0.06); border: 1px solid rgba(96, 165, 250, 0.28); border-radius: 8px; padding: 10px; margin-top: 8px; }
+.transfer-summaries-document .nested-mini-card > .nested-mini-card { background: rgba(15, 27, 51, 0.45); }
+.transfer-summaries-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 8px; }
 .transfer-summaries-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
 .transfer-summaries-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
 .transfer-summaries-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
@@ -31,15 +33,14 @@
 .transfer-summaries-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
 .transfer-summaries-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
 .transfer-summaries-document .modified-badge.added { color: #4ade80; }
-.transfer-summaries-document .edit-field-container { width: 100%; }
+.transfer-summaries-document .edit-field-container { flex: 1 1 100%; width: 100%; }
 .transfer-summaries-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.transfer-summaries-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.transfer-summaries-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-.transfer-summaries-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.transfer-summaries-document .edit-actions { display: flex; justify-content: flex-start; align-items: center; gap: 8px; margin-top: 8px; }
 .transfer-summaries-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .transfer-summaries-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .transfer-summaries-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
-.transfer-summaries-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.transfer-summaries-document .approve-btn { text-transform: capitalize !important; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.transfer-summaries-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; cursor: pointer; }
 .transfer-summaries-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .transfer-summaries-document .search-container { margin-bottom: 20px; }
 .transfer-summaries-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }

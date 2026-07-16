@@ -1001,7 +1001,10 @@ const DocumentDetailView = ({ patientId, category, documentId, documentData, onB
                 if (gridData.artifactPanels) {
                   const panel = gridData.artifactPanels.find(p => p.category === category);
                   if (panel) {
-                    panel.data = [{ wrapRecordsIntoSingleDocument: records }];
+                    // Store a category-keyed wrapper that AIDocumentRenderer can unwrap directly.
+                    // Older sessions may still contain wrapRecordsIntoSingleDocument; the shared
+                    // renderer and collection templates retain a defensive legacy fallback.
+                    panel.data = [{ [category]: records }];
                     localStorage.setItem('artifactGridData', JSON.stringify(gridData));
                     console.log(`[DocumentDetailView] Updated artifactGridData with fresh ${category} data`);
                   }

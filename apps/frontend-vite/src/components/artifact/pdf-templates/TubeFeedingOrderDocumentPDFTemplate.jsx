@@ -100,8 +100,14 @@ const splitBySentence = (text, field = '') => {
 };
 
 const unwrapRecords = data => (Array.isArray(data) ? data : data ? [data] : []).flatMap(record =>
-  record?.tube_feeding_order
+  Array.isArray(record?.wrapRecordsIntoSingleDocument)
+    ? record.wrapRecordsIntoSingleDocument
+    : Array.isArray(record?.records || record?._records)
+      ? (record.records || record._records)
+      : record?.tube_feeding_order
     ? (Array.isArray(record.tube_feeding_order) ? record.tube_feeding_order : [record.tube_feeding_order])
+    : record?.data?.tube_feeding_order
+      ? (Array.isArray(record.data.tube_feeding_order) ? record.data.tube_feeding_order : [record.data.tube_feeding_order])
     : record?.documentData
       ? (Array.isArray(record.documentData) ? record.documentData : record.documentData?.tube_feeding_order ? (Array.isArray(record.documentData.tube_feeding_order) ? record.documentData.tube_feeding_order : [record.documentData.tube_feeding_order]) : [record.documentData])
       : [record]

@@ -11340,7 +11340,7 @@ const AIDocumentRenderer = ({ document, category, onSave }) => {
     // CRITICAL: For collection-specific wrapped responses from agent
     // Backend wraps single collection responses: { _id: "..._all", collection_name: [{...}] }
     // Extract the actual data array from collection-specific field
-    let dataToPass = document.documentData || document.data || document;
+    let dataToPass = document.documentData || document.data || document.wrapRecordsIntoSingleDocument || document;
 
     // Check if document has a collection-specific array field (e.g., patient_education_records)
     // This handles wrapped responses from WRAP_ALL_RECORDS_COLLECTIONS
@@ -11381,10 +11381,10 @@ const AIDocumentRenderer = ({ document, category, onSave }) => {
         }
         // Sub-case A2: Candidate is a wrapRecordsIntoSingleDocument wrapper (has records/_records)
         else {
-          const recordsArr = candidate.records || candidate._records;
+          const recordsArr = candidate.records || candidate._records || candidate.wrapRecordsIntoSingleDocument;
           const hasRecordArray = recordsArr && Array.isArray(recordsArr) && recordsArr.length > 0;
           const isWrapped = String(candidate._id || '').startsWith('wrapped_');
-          const hasWrapperMarkers = isWrapped || candidate._recordCount || candidate._collectionName || candidate._documentTitle;
+          const hasWrapperMarkers = isWrapped || candidate._recordCount || candidate._collectionName || candidate._documentTitle || candidate.wrapRecordsIntoSingleDocument;
           if (hasRecordArray && hasWrapperMarkers) {
             console.log(`[AIDocumentRenderer] 📦 Unwrapping wrapRecordsIntoSingleDocument: ${recordsArr.length} records`);
             dataToPass = recordsArr;
@@ -11403,10 +11403,10 @@ const AIDocumentRenderer = ({ document, category, onSave }) => {
         }
         // Sub-case B2: Object is a wrapRecordsIntoSingleDocument wrapper
         else {
-          const recordsArr = dataToPass.records || dataToPass._records;
+          const recordsArr = dataToPass.records || dataToPass._records || dataToPass.wrapRecordsIntoSingleDocument;
           const hasRecordArray = recordsArr && Array.isArray(recordsArr) && recordsArr.length > 0;
           const isWrapped = String(dataToPass._id || '').startsWith('wrapped_');
-          const hasWrapperMarkers = isWrapped || dataToPass._recordCount || dataToPass._collectionName;
+          const hasWrapperMarkers = isWrapped || dataToPass._recordCount || dataToPass._collectionName || dataToPass.wrapRecordsIntoSingleDocument;
           if (hasRecordArray && hasWrapperMarkers) {
             console.log(`[AIDocumentRenderer] 📦 Unwrapping direct wrapper object: ${recordsArr.length} records`);
             dataToPass = recordsArr;

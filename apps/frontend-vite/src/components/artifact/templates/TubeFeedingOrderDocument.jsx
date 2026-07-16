@@ -144,7 +144,11 @@ const TubeFeedingOrderDocument = ({ document: docProp, data, templateData }) => 
     let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
       if (!r || typeof r !== 'object') return [r];
+      if (Array.isArray(r.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      const wrappedRecords = r.records || r._records;
+      if (Array.isArray(wrappedRecords)) return wrappedRecords;
       if (r.tube_feeding_order) return Array.isArray(r.tube_feeding_order) ? r.tube_feeding_order : [r.tube_feeding_order];
+      if (r.data?.tube_feeding_order) return Array.isArray(r.data.tube_feeding_order) ? r.data.tube_feeding_order : [r.data.tube_feeding_order];
       if (r.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.tube_feeding_order) return Array.isArray(dd.tube_feeding_order) ? dd.tube_feeding_order : [dd.tube_feeding_order]; return [dd]; }
       return [r];
     });

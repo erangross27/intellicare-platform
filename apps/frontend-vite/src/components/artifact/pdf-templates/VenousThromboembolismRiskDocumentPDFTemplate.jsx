@@ -7,22 +7,22 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, paddingBottom: 64, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 18 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordDate: { fontSize: 11, color: '#333333', marginTop: 2 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  recordHeader: { marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 8, marginBottom: 5, paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 6 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 2, marginBottom: 2, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.4, color: '#000000', paddingLeft: 8 },
+  listItem: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  footer: { position: 'absolute', bottom: 24, left: 40, right: 40, fontSize: 9, color: '#666666', textAlign: 'center', borderTopWidth: 0.5, borderTopColor: '#cccccc', paddingTop: 6 },
 });
 
 /* ======= UTILS ======= */
@@ -70,7 +70,7 @@ const arrItemText = (item) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const splitBySemicolon = (text) => {
@@ -171,11 +171,11 @@ const renderSentenceField = (label, text, showLabel) => {
 
   if (sentences.length < 2) {
     /* Single-value: try comma splitting */
-    const commaItems = splitByComma(strVal);
+    const commaItems = [strVal];
     const hasOxfordComma = commaItems.some(ci => ci.trim().toLowerCase().startsWith('and '));
     if (commaItems.length >= 2 && !hasOxfordComma) {
       return (
-        <View style={styles.fieldBox} wrap={commaItems.length > 8 ? undefined : false}>
+        <View style={styles.fieldBox} wrap={commaItems.length > 8}>
           <View wrap={false}>
             {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
             <Text style={styles.listItem}>1. {safeString(commaItems[0])}</Text>
@@ -200,20 +200,21 @@ const renderSentenceField = (label, text, showLabel) => {
     const parsed = parseLabel(s);
     if (parsed.isLabeled) {
       const semiSub = splitBySemicolon(parsed.value);
-      const commaItems = semiSub.length >= 2 ? semiSub : splitByComma(parsed.value);
+      const commaItems = semiSub.length >= 2 ? semiSub : [parsed.value];
       const hasOxfordComma = commaItems.some(ci => ci.trim().toLowerCase().startsWith('and '));
       if (commaItems.length >= 2 && !hasOxfordComma) {
         rows.push({ type: 'subtitle', text: safeString(parsed.label) });
         commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
       } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
+        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
+        rows.push({ type: 'item', text: safeString(parsed.value), num: n++ });
       }
     } else {
       rows.push({ type: 'item', text: safeString(s), num: n++ });
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
+  const wrapProp = rows.length > 8;
 
   return (
     <View style={styles.fieldBox} wrap={wrapProp}>
@@ -229,7 +230,7 @@ const renderArrayFieldPDF = (label, items, showLabel) => {
   if (safeItems.length === 0) return null;
 
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={safeItems.length > 8}>
       <View wrap={false}>
         {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
         <Text style={styles.listItem}>1. {safeItems[0]}</Text>
@@ -246,6 +247,10 @@ const renderArrayFieldPDF = (label, items, showLabel) => {
    not calculated in the source document (Wells/Padua apply to different patient contexts).
    Real decimals (e.g. obesityBmiValue 28.4, ddimerLevel 0.4) still display. */
 const SECTION_CONFIGS = [
+  {
+    title: 'Record Information',
+    fields: [{ key: 'date', label: 'Date', isDate: true }],
+  },
   {
     title: 'Risk Scores',
     fields: [
@@ -286,7 +291,7 @@ const SECTION_CONFIGS = [
       { key: 'prophylaxisRecommended', label: 'Prophylaxis Recommended', isSentence: true },
       { key: 'mechanicalProphylaxisType', label: 'Mechanical Prophylaxis', isSentence: true },
       { key: 'pharmacologicAgentPrescribed', label: 'Pharmacologic Agent', isSentence: true },
-      { key: 'prophylaxisDosage', label: 'Dosage & Duration', isSentence: true },
+      { key: 'prophylaxisDosage', label: 'Dosage and Duration', isSentence: true },
     ],
   },
   {
@@ -307,17 +312,20 @@ const fieldHasVal = (record, f) => {
 };
 
 /* ======= COMPONENT ======= */
-const VenousThromboembolismRiskDocumentPDFTemplate = ({ document: data }) => {
+const VenousThromboembolismRiskDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const source = documentProp ?? data ?? templateData;
   const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.venous_thromboembolism_risk) return Array.isArray(r.venous_thromboembolism_risk) ? r.venous_thromboembolism_risk : [r.venous_thromboembolism_risk];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.venous_thromboembolism_risk) return Array.isArray(dd.venous_thromboembolism_risk) ? dd.venous_thromboembolism_risk : [dd.venous_thromboembolism_risk]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [source]);
 
   if (!records || records.length === 0) {
     return (
@@ -327,6 +335,7 @@ const VenousThromboembolismRiskDocumentPDFTemplate = ({ document: data }) => {
             <Text style={styles.documentTitle}>Venous Thromboembolism Risk</Text>
           </View>
           <Text style={styles.noDataText}>No data available</Text>
+          <Text fixed style={styles.footer}>Venous Thromboembolism Risk</Text>
         </Page>
       </Document>
     );
@@ -346,12 +355,10 @@ const VenousThromboembolismRiskDocumentPDFTemplate = ({ document: data }) => {
             <View key={index} style={styles.recordContainer}>
               {index > 0 && <View style={styles.separator} />}
 
-              {/* Record Header — date field is header-only in this schema: date line under the numbered record title */}
               <View style={styles.recordHeader} wrap={false}>
                 <Text style={styles.recordTitle}>
                   {`Venous Thromboembolism Risk ${recordNum}`}
                 </Text>
-                {hasVal(record.date) && <Text style={styles.recordDate}>{formatDate(record.date)}</Text>}
               </View>
 
               {/* Sections */}
@@ -364,6 +371,7 @@ const VenousThromboembolismRiskDocumentPDFTemplate = ({ document: data }) => {
                   const showLabel = field.label.toLowerCase() !== sectionConfig.title.toLowerCase();
                   if (field.isArray) return renderArrayFieldPDF(field.label, val, showLabel);
                   if (field.isSentence) return renderSentenceField(field.label, val, showLabel);
+                  if (field.isDate) return renderFieldRow(field.label, formatDate(val), showLabel);
                   return renderFieldRow(field.label, val, showLabel);
                 };
 
@@ -384,6 +392,7 @@ const VenousThromboembolismRiskDocumentPDFTemplate = ({ document: data }) => {
             </View>
           );
         })}
+        <Text fixed style={styles.footer}>Venous Thromboembolism Risk</Text>
       </Page>
     </Document>
   );

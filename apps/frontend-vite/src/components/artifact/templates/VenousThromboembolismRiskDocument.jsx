@@ -15,6 +15,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import VenousThromboembolismRiskDocumentPDFTemplate from '../pdf-templates/VenousThromboembolismRiskDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './VenousThromboembolismRiskDocument.css';
 
@@ -35,6 +37,7 @@ const writeDrafts = (store) => {
 
 /* ═══════ CONSTANTS ═══════ */
 const SECTION_TITLES = {
+  'record-information': 'Record Information',
   'risk-scores': 'Risk Scores',
   'risk-factors': 'Risk Factors',
   'contraindications': 'Anticoagulant Contraindications',
@@ -43,6 +46,7 @@ const SECTION_TITLES = {
 };
 
 const FIELD_LABELS = {
+  date: 'Date',
   capriniScore: 'Caprini Score',
   capriniRiskCategory: 'Caprini Risk Category',
   wellsScore: 'Wells Score',
@@ -65,11 +69,12 @@ const FIELD_LABELS = {
   prophylaxisRecommended: 'Prophylaxis Recommended',
   mechanicalProphylaxisType: 'Mechanical Prophylaxis',
   pharmacologicAgentPrescribed: 'Pharmacologic Agent',
-  prophylaxisDosage: 'Dosage & Duration',
+  prophylaxisDosage: 'Dosage and Duration',
   reassessmentInterval: 'Reassessment Interval',
 };
 
 const SECTION_FIELDS = {
+  'record-information': ['date'],
   'risk-scores': ['capriniScore', 'capriniRiskCategory', 'wellsScore', 'paduaPredictionScore', 'bleedingRiskScore', 'ddimerLevel'],
   'risk-factors': ['activeCancerPresent', 'recentSurgeryType', 'immobilizationDuration', 'priorVteHistory', 'inheritedThrombophilia', 'centralVenousCatheter', 'hormonalTherapy', 'pregnancyOrPostpartum', 'obesityBmiValue', 'varicoseVeinsPresent', 'acuteInfectionSepsis', 'respiratoryFailure'],
   'contraindications': ['anticoagulantContraindications'],
@@ -84,6 +89,7 @@ const NUMERIC_FIELDS = ['capriniScore', 'wellsScore', 'paduaPredictionScore', 'b
 const SIMPLE_FIELDS = ['capriniRiskCategory'];
 const BOOLEAN_FIELDS = ['activeCancerPresent', 'priorVteHistory', 'centralVenousCatheter', 'pregnancyOrPostpartum', 'varicoseVeinsPresent', 'acuteInfectionSepsis', 'respiratoryFailure'];
 const ARRAY_FIELDS = ['anticoagulantContraindications'];
+const DATE_FIELDS = ['date'];
 /* Numeric fields where 0 means "the score/value was not calculated in the source document" — hidden when exactly 0.
    ALL 6 numerics: Wells/Padua apply to different patient contexts and read 0 when not scored;
    a 0 bleeding-risk score / 0 D-dimer / 0 BMI means the value was never calculated.
@@ -138,10 +144,12 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
 
   /* ═══════ DATA UNWRAP — all formats (document / data / templateData) ═══════ */
   const records = useMemo(() => {
-    const source = docProp || data || templateData;
+    const source = docProp ?? data ?? templateData;
     if (!source) return [];
     let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.venous_thromboembolism_risk) return Array.isArray(r.venous_thromboembolism_risk) ? r.venous_thromboembolism_risk : [r.venous_thromboembolism_risk];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.venous_thromboembolism_risk) return Array.isArray(dd.venous_thromboembolism_risk) ? dd.venous_thromboembolism_risk : [dd.venous_thromboembolism_risk]; return [dd]; }
       return [r];
@@ -187,7 +195,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   const splitBySemicolon = useCallback((text) => {
@@ -420,10 +428,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
       for (const editKey of toCommit) {
         const fieldPart = editKey.slice(0, -suffix.length);
         // arrayIndex ONLY when the segment after the LAST dot is purely numeric (e.g. "field.2"); else field is verbatim.
-        const lastDot = fieldPart.lastIndexOf('.');
-        const tail = lastDot === -1 ? '' : fieldPart.slice(lastDot + 1);
-        const payload = { field: lastDot !== -1 && /^\d+$/.test(tail) ? fieldPart.slice(0, lastDot) : fieldPart, value: localEdits[editKey] };
-        if (lastDot !== -1 && /^\d+$/.test(tail)) payload.arrayIndex = parseInt(tail, 10);
+        const payload = { field: fieldPart, value: localEdits[editKey] };
         const resp = await secureApiClient.put(`/api/edit/venous_thromboembolism_risk/${id}/edit`, payload);
         if (resp && resp.success === false) throw new Error(resp.error || 'save failed');
       }
@@ -473,7 +478,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
     return lines;
   }, [splitBySentence, splitBySemicolon]);
 
-  const buildSectionCopyText = useCallback((record, idx, sid) => {
+  const buildSectionCopyTextLegacy = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
     let text = `${title.toUpperCase()}\n${'='.repeat(40)}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
@@ -523,12 +528,34 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
     return text;
   }, [getFieldValue, hasFieldVal, fmtVal, splitBySentence, splitBySemicolon, formatSentenceFieldLines, arrItemText]);
 
+  const fieldRows = useCallback((fn, value) => {
+    if (DATE_FIELDS.includes(fn)) return [fmtDate(value)];
+    if (ARRAY_FIELDS.includes(fn)) return (Array.isArray(value) ? value : [value]).map(arrItemText).filter(Boolean);
+    const text = fmtVal(value);
+    if (!SENTENCE_FIELDS.includes(fn)) return [text];
+    return splitBySentence(text).map(clause => { const parsed = parseLabel(clause); return parsed.isLabeled ? parsed.value : clause; }).filter(Boolean);
+  }, [fmtDate, fmtVal, splitBySentence, arrItemText]);
+
+  const buildSectionCopyText = useCallback((record, idx, sid) => {
+    const title = SECTION_TITLES[sid];
+    let text = `${title.toUpperCase()}\n${'='.repeat(40)}\n\n`;
+    (SECTION_FIELDS[sid] || []).forEach(fn => {
+      const value = getFieldValue(record, fn, idx);
+      if (!hasFieldVal(fn, value)) return;
+      const rows = fieldRows(fn, value);
+      if (!rows.length) return;
+      text += `${FIELD_LABELS[fn] || fn}\n${'-'.repeat(40)}\n`;
+      rows.forEach((row, rowIndex) => { text += `${rowIndex + 1}. ${row}\n`; });
+      text += '\n';
+    });
+    return text;
+  }, [getFieldValue, hasFieldVal, fieldRows]);
+
   const copyAllText = useCallback(async () => {
     let text = '=== VENOUS THROMBOEMBOLISM RISK ===\n\n';
     pdfData.forEach((r) => {
       const oi = r._originalIdx ?? 0;
       text += `Venous Thromboembolism Risk ${oi + 1}\n${'='.repeat(40)}\n\n`;
-      if (hasVal(r.date)) text += `Date: ${fmtDate(r.date)}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, oi, sid);
       });
@@ -536,10 +563,10 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
     });
     const ok = await copyToClipboard(text);
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
-  }, [pdfData, copyToClipboard, buildSectionCopyText, hasVal, fmtDate]);
+  }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
   /* ═══════ RENDER: NUMERIC FIELD (TYPED number input — parseFloat+isNaN; 0 = MEANINGFUL low-risk, never saved as string) ═══════ */
-  const renderNumericField = (record, fn, idx, sid) => {
+  const renderNumericFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
@@ -557,7 +584,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { saveNumeric(); } }} />
+              <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { saveNumeric(); } }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveNumeric(); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -577,7 +604,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
   };
 
   /* ═══════ RENDER: SIMPLE FIELD (no splitting — risk category text) ═══════ */
-  const renderSimpleField = (record, fn, idx, sid) => {
+  const renderSimpleFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
@@ -613,7 +640,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
   };
 
   /* ═══════ RENDER: BOOLEAN FIELD (Yes/No select — saves REAL booleans, false still renders "No") ═══════ */
-  const renderBooleanField = (record, fn, idx, sid) => {
+  const renderBooleanFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
@@ -629,10 +656,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -652,7 +676,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
   };
 
   /* ═══════ RENDER: ARRAY FIELD (per-item editing with arrayIndex — items render VERBATIM, never split: HIT warnings are clinically critical) ═══════ */
-  const renderArrayField = (record, fn, idx, sid) => {
+  const renderArrayFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
     const items = Array.isArray(val) ? val.filter(item => arrItemText(item)) : [];
     if (items.length === 0) return null;
@@ -707,7 +731,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
   };
 
   /* ═══════ RENDER: SENTENCE FIELD with splitBySentence / splitBySemicolon ═══════ */
-  const renderSentenceField = (record, fn, idx, sid) => {
+  const renderSentenceFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
     const strVal = fmtVal(val);
     const periodItems = splitBySentence(strVal);
@@ -914,6 +938,50 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
     );
   };
 
+  const renderDateField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
+    const editKey = `${fn}-${idx}`; const isEditing = editingField === editKey; const label = FIELD_LABELS[fn] || fn; const displayVal = fmtDate(val); const isModified = editedFields[editKey];
+    const inputValue = (() => { try { const date = new Date(val?.$date || val); return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10); } catch { return ''; } })();
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(inputValue); setSaveError(null); } }}>{isEditing ? <div className="edit-field-container"><BlueDatePicker value={editValue} onSelect={setEditValue} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); if (Number.isNaN(new Date(editValue).getTime())) { setSaveError('Please select a valid date'); return; } handleSaveField(record, fn, idx, sid, null, `${editValue}T00:00:00.000Z`); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderNumericField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
+    const editKey = `${fn}-${idx}`; const isEditing = editingField === editKey; const label = FIELD_LABELS[fn] || fn; const displayVal = fmtVal(val); const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const saveNumeric = () => { const parsed = Number(editValue); if (!Number.isFinite(parsed)) { setSaveError('Enter a valid number.'); return; } handleSaveField(record, fn, idx, sid, null, parsed); };
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>{isEditing ? <div className="edit-field-container"><div className="number-edit-row"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus onKeyDown={event => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (event.key === 'Enter') { event.preventDefault(); saveNumeric(); } }} /><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button></div>{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); saveNumeric(); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderSimpleField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
+    const editKey = `${fn}-${idx}`; const isEditing = editingField === editKey; const label = FIELD_LABELS[fn] || fn; const displayVal = fmtVal(val); const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>{isEditing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus onKeyDown={event => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); handleSaveField(record, fn, idx, sid, null, editValue); } }} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderBooleanField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
+    const editKey = `${fn}-${idx}`; const isEditing = editingField === editKey; const label = FIELD_LABELS[fn] || fn; const displayVal = val ? 'Yes' : 'No'; const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>{isEditing ? <div className="edit-field-container"><BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue === 'Yes'); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderArrayField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); const entries = (Array.isArray(value) ? value : []).map((item, itemIdx) => ({ itemIdx, text: arrItemText(item), parsed: parseLabel(arrItemText(item)) })).filter(entry => entry.text);
+    if (!entries.length) return null; const label = FIELD_LABELS[fn] || fn; const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase(); if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const groups = []; entries.forEach(entry => { const groupLabel = entry.parsed.isLabeled ? entry.parsed.label : ''; const last = groups[groups.length - 1]; if (last && last.label === groupLabel) last.entries.push(entry); else groups.push({ label: groupLabel, entries: [entry] }); });
+    const saveItem = entry => { const id = safeId(record); if (!id) return; const fieldPath = `${fn}.${entry.itemIdx}`; const editKey = `${fieldPath}-${idx}`; const nextValue = entry.parsed.isLabeled ? `${entry.parsed.label}: ${editValue.trim()}` : editValue.trim(); setLocalEdits(prev => ({ ...prev, [editKey]: nextValue })); setPendingEdits(prev => ({ ...prev, [editKey]: true })); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { const next = { ...prev }; delete next[`${sid}-${idx}`]; return next; }); const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fieldPath] = nextValue; writeDrafts(store); setEditingField(null); setEditValue(''); };
+    return <div key={fn} className="rec-mini-card">{showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}{groups.map((group, groupIndex) => <div key={`${group.label}-${groupIndex}`} className="nested-mini-card">{group.label && <div className="nested-subtitle sub-label">{highlightText(group.label)}</div>}{group.entries.map(entry => { const editKey = `${fn}.${entry.itemIdx}-${idx}`; const isEditing = editingField === editKey; const isModified = editedFields[editKey]; const staged = localEdits[editKey]; const displayValue = staged !== undefined ? String(staged).replace(group.label ? `${group.label}: ` : '', '') : (entry.parsed.isLabeled ? entry.parsed.value : entry.text); return <div key={entry.itemIdx} data-edit-field={`${fn}.${entry.itemIdx}`}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayValue); setSaveError(null); } }}>{isEditing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus onKeyDown={event => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); saveItem(entry); } }} /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveItem(entry); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(displayValue, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div>; })}</div>)}</div>;
+  };
+
+  const renderSentenceField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, value)) return null; const label = FIELD_LABELS[fn] || fn; if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const rows = splitBySentence(fmtVal(value)).map((raw, rowIndex) => ({ ...parseLabel(raw), raw, rowIndex })); const groups = []; rows.forEach(row => { const groupLabel = row.isLabeled ? row.label : ''; const last = groups[groups.length - 1]; if (last && last.label === groupLabel) last.rows.push(row); else groups.push({ label: groupLabel, rows: [row] }); });
+    const saveRow = row => { const nextRows = rows.map(item => item.raw); nextRows[row.rowIndex] = row.isLabeled ? `${row.label}: ${editValue.trim()}` : editValue.trim(); handleSaveField(record, fn, idx, sid, null, nextRows.join('; '), `${fn}-${idx}-r${row.rowIndex}`); };
+    return <div key={fn} className="rec-mini-card"><div className="nested-subtitle">{highlightText(label)}</div>{groups.map((group, groupIndex) => <div key={`${group.label}-${groupIndex}`} className="nested-mini-card">{group.label && <div className="nested-subtitle sub-label">{highlightText(group.label)}</div>}{group.rows.map(row => { const editKey = `${fn}-${idx}-r${row.rowIndex}`; const isEditing = editingField === editKey; const isModified = editedFields[editKey]; const displayValue = row.isLabeled ? row.value : row.raw; return <div key={editKey} data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayValue); setSaveError(null); } }}>{isEditing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus onKeyDown={event => { if (event.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); saveRow(row); } }} /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveRow(row); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(displayValue, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div>; })}</div>)}</div>;
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -939,6 +1007,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
             </div>
           </div>
           {fields.map(f => {
+            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (NUMERIC_FIELDS.includes(f)) return renderNumericField(record, f, idx, sid);
@@ -966,7 +1035,7 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
         <h2 className="document-title">Venous Thromboembolism Risk</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<VenousThromboembolismRiskDocumentPDFTemplate document={pdfData} />} fileName={`venous-thromboembolism-risk-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<VenousThromboembolismRiskDocumentPDFTemplate document={pdfData} />} fileName="Venous_Thromboembolism_Risk.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -980,13 +1049,10 @@ const VenousThromboembolismRiskDocument = ({ document: docProp, data, templateDa
           const origIdx = record._originalIdx ?? idx;
           return (
             <div key={safeId(record) || idx} className="record-card">
-              {/* date field is header-only in this schema — date badge above the numbered record title, never in a section */}
               <div className="record-header">
-                <div className="header-top-row">
-                  {hasVal(record.date) && <span className="date-badge">{fmtDate(record.date)}</span>}
-                </div>
                 <h3 className="record-name">{highlightText(`Venous Thromboembolism Risk ${origIdx + 1}`)}</h3>
               </div>
+              {renderSection(record, origIdx, 'record-information')}
               {renderSection(record, origIdx, 'risk-scores')}
               {renderSection(record, origIdx, 'risk-factors')}
               {renderSection(record, origIdx, 'contraindications')}

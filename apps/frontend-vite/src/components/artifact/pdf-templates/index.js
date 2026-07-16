@@ -133,6 +133,7 @@ import TherapyProgressNotesDocumentPDFTemplate from './TherapyProgressNotesDocum
 import TherapyRequestsDocumentPDFTemplate from './TherapyRequestsDocumentPDFTemplate';
 import TherapySessionNotesDocumentPDFTemplate from './TherapySessionNotesDocumentPDFTemplate';
 import ThoracicSurgeryAssessmentDocumentPDFTemplate from './ThoracicSurgeryAssessmentDocumentPDFTemplate';
+import TumorMarkersDocumentPDFTemplate from './TumorMarkersDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -255,6 +256,7 @@ const templateRegistry = {
   'therapy_requests': TherapyRequestsDocumentPDFTemplate,
   'therapy_session_notes': TherapySessionNotesDocumentPDFTemplate,
   'thoracic_surgery_assessment': ThoracicSurgeryAssessmentDocumentPDFTemplate,
+  'tumor_markers': TumorMarkersDocumentPDFTemplate,
 };
 
 /**

@@ -46,6 +46,10 @@ function requiredString(target, key) {
   if (typeof target[key] !== 'string' || !target[key].trim()) fail(`target lock requires non-empty "${key}"`);
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 const args = process.argv.slice(2);
 const templateName = args[0]?.replace(/\.jsx$/, '');
 const targetFlag = args.indexOf('--target');
@@ -77,8 +81,27 @@ if (target.pdfTemplate.replace(/\.jsx$/, '') !== expectedPdf) {
 }
 if (target.userVisibleStateChecked !== true) fail('confirm "userVisibleStateChecked": true after comparing the reported UI value with the Mongo baseline');
 if (target.pdfRegistryChecked !== true) fail('confirm "pdfRegistryChecked": true after checking the direct import and pdf-templates/index.js');
-if (!existsSync(path.join(TEMPLATES, `${templateName}.jsx`))) fail(`JSX component not found: ${templateName}.jsx`);
-if (!existsSync(path.join(PDF_TEMPLATES, `${expectedPdf}.jsx`))) fail(`PDF component not found: ${expectedPdf}.jsx`);
+const jsxFile = path.join(TEMPLATES, `${templateName}.jsx`);
+const pdfFile = path.join(PDF_TEMPLATES, `${expectedPdf}.jsx`);
+const pdfRegistryFile = path.join(PDF_TEMPLATES, 'index.js');
+if (!existsSync(jsxFile)) fail(`JSX component not found: ${templateName}.jsx`);
+if (!existsSync(pdfFile)) fail(`PDF component not found: ${expectedPdf}.jsx`);
+if (!existsSync(pdfRegistryFile)) fail('PDF registry not found: pdf-templates/index.js');
+
+const jsxSource = readFileSync(jsxFile, 'utf8');
+const registrySource = readFileSync(pdfRegistryFile, 'utf8');
+const pdfName = escapeRegExp(expectedPdf);
+const collectionName = escapeRegExp(target.collection);
+const directImport = new RegExp(`import\\s+${pdfName}\\s+from\\s+['"]\\.\\./pdf-templates/${pdfName}['"]`).test(jsxSource);
+const directRender = new RegExp(`<${pdfName}\\b`).test(jsxSource);
+if (!directImport || !directRender) {
+  fail(`direct PDF selection must import and render ${expectedPdf} from ${templateName}.jsx`);
+}
+const registryImport = new RegExp(`import\\s+${pdfName}\\s+from\\s+['"]\\./${pdfName}['"]`).test(registrySource);
+const registryEntry = new RegExp(`['"]${collectionName}['"]\\s*:\\s*${pdfName}\\b`).test(registrySource);
+if (!registryImport || !registryEntry) {
+  fail(`pdf-templates/index.js must map ${target.collection} to ${expectedPdf}`);
+}
 
 const realRecordFile = path.resolve(target.realRecordFile);
 if (!existsSync(realRecordFile)) fail(`real record fixture not found: ${realRecordFile}`);

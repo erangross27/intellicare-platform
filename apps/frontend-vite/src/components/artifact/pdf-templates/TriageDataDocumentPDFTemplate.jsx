@@ -14,19 +14,18 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 14, borderBottomWidth: 2, borderBottomColor: '#000000' },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1, color: '#000000' },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordMeta: { fontSize: 11, color: '#000000', marginTop: 3 },
-  section: { marginBottom: 16 },
-  fieldGroup: { marginBottom: 8 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 2, textTransform: 'uppercase' },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  value: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 1 },
+  page: { padding: 36, paddingBottom: 48, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000000' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 18 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid', marginBottom: 12 },
+  block: { marginBottom: 5 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid', marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  itemLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14 },
+  listItem: { fontSize: 14, paddingLeft: 10 },
   nested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', marginTop: 2 },
   recDate: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4 },
   emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#000000' },
@@ -67,6 +66,10 @@ const SECTION_ORDER = ['triage-info', 'chief-complaint', 'triage-vitals', 'triag
 const DATE_FIELDS = ['date'];
 const OBJECT_FIELDS = ['triageVitals', 'results'];
 const OBJECT_ARRAY_FIELDS = ['recommendations'];
+const ENUM_OPTIONS = {
+  esiLevel: ['ESI Level 1 - Resuscitation', 'ESI Level 2 - Emergent', 'ESI Level 3 - Urgent', 'ESI Level 4 - Less Urgent', 'ESI Level 5 - Non-Urgent'],
+  status: ['Completed', 'Active', 'Pending', 'Reviewed'],
+};
 
 const KEY_OVERRIDES = {
   bp: 'BP', hr: 'HR', rr: 'RR', spo2: 'SpO2', wbc: 'WBC', rbc: 'RBC', bmp: 'BMP', cbc: 'CBC', ecg: 'ECG', ekg: 'EKG', bun: 'BUN', inr: 'INR', crp: 'CRP', esr: 'ESR',
@@ -87,7 +90,20 @@ const hasVal = (v) => !isEmptyDeep(v);
 const isScalar = (v) => v === null || typeof v !== 'object';
 const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
 const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
+const enumCanonical = (field, current) => { const value = String(current ?? '').replace(/\s*[—–]\s*/g, ' - '); return (ENUM_OPTIONS[field] || []).find(o => o.toLowerCase() === value.toLowerCase()) || value; };
+const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?:;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/).map(s => s.replace(/[;.]+$/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
+const splitByComma = (text) => {
+  const source = String(text || ''); const parts = []; let current = ''; let depth = 0;
+  for (const char of source) { if (char === '(') { depth += 1; current += char; } else if (char === ')') { depth = Math.max(0, depth - 1); current += char; } else if (char === ',' && depth === 0) { if (current.trim()) parts.push(current.trim()); current = ''; } else current += char; }
+  if (current.trim()) parts.push(current.trim()); return parts.length ? parts : [source];
+};
+const splitFieldParts = (field, text) => {
+  const source = String(text || '').trim(); if (!source) return [];
+  if (field === 'chiefComplaint') return splitByComma(source).map(part => part.replace(/^and\s+/i, '').trim());
+  if (field === 'triageAssessment') return splitBySentence(source).flatMap(part => /^Field GCS\b/i.test(part) ? splitByComma(part) : [part]);
+  if (field === 'notes') { const match = source.match(/^(.*?)\s*\((.*)\)\.?$/); if (match) return [match[1].trim(), ...splitByComma(match[2]).map(part => part.replace(/^and\s+/i, '').trim())]; }
+  return splitBySentence(source);
+};
 
 /* recursive object node: label = bold heading; value = plain line below (NO inline "Label: value") */
 const renderObjectNode = (label, value, keyPath, depth) => {
@@ -144,7 +160,7 @@ const renderField = (record, field, sectionTitle, isFirst) => {
     const groups = [];
     recs.forEach((r) => { const d = (r?.date || '').trim(); const last = groups[groups.length - 1]; if (last && last.date === d) last.items.push(r); else groups.push({ date: d, items: [r] }); });
     return [(
-      <View key={field} style={styles.fieldGroup} wrap={recs.length > 8 ? undefined : false}>
+      <View key={field} style={styles.fieldGroup} wrap={false}>
         {titleNode}
         {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
         {groups.map((group, gIdx) => (
@@ -163,7 +179,7 @@ const renderField = (record, field, sectionTitle, isFirst) => {
     return entries.map(([k, v], i) => {
       const rows = countRows(v);
       return (
-        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
+        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={false}>
           {i === 0 ? titleNode : null}
           {i === 0 && showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
           {renderObjectNode(humanizeKey(k), v, `${field}-${k}`, 1)}
@@ -177,7 +193,7 @@ const renderField = (record, field, sectionTitle, isFirst) => {
   const sentences = splitBySentence(strVal);
   if (sentences.length > 1) {
     return [(
-      <View key={field} style={styles.fieldGroup} wrap={sentences.length > 8 ? undefined : false}>
+      <View key={field} style={styles.fieldGroup} wrap={false}>
         {titleNode}
         {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
         {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.value}>{sIdx + 1}. {s}</Text>))}
@@ -193,6 +209,44 @@ const renderField = (record, field, sectionTitle, isFirst) => {
   )];
 };
 
+const recursiveBlocks = (value, basePath) => {
+  if (!hasVal(value)) return [];
+  if (isScalar(value)) return [{ key: basePath, subLabel: humanizeKey(String(basePath).split('.').pop()), value: fmtScalar(value) }];
+  if (Array.isArray(value)) return value.filter(hasVal).flatMap((item, index) => isScalar(item)
+    ? [{ key: `${basePath}-${index}`, subLabel: index === 0 ? humanizeKey(String(basePath).split('.').pop()) : '', value: fmtScalar(item), rowNumber: index + 1 }]
+    : recursiveBlocks(item, `${basePath}.${index}`).map((block, blockIndex) => ({ ...block, itemLabel: blockIndex === 0 ? `Item ${index + 1}` : '' })));
+  return Object.entries(value).flatMap(([key, child]) => recursiveBlocks(child, `${basePath}.${key}`));
+};
+const narrativeBlocks = (field, value, title) => {
+  if (!hasVal(value)) return [];
+  const label = FIELD_LABELS[field] || humanizeKey(field);
+  const shown = ENUM_OPTIONS[field] ? enumCanonical(field, value) : fmtVal(value).replace(/[—–]/g, '-');
+  const rows = DATE_FIELDS.includes(field) ? [formatDate(value)] : splitFieldParts(field, shown);
+  return rows.map((row, index) => ({ key: `${field}-${index}`, fieldLabel: index === 0 && label.toLowerCase() !== title.toLowerCase() ? label : '', value: row, rowNumber: rows.length > 1 ? index + 1 : undefined }));
+};
+const recommendationBlocks = (items) => {
+  const groups = [];
+  (Array.isArray(items) ? items : []).forEach((item, index) => { const date = item?.date || ''; let group = groups.find(entry => entry.date === date); if (!group) { group = { date, items: [] }; groups.push(group); } group.items.push({ item, index }); });
+  return groups.flatMap(group => {
+    const blocks = group.date ? [{ key: `date-${group.date}`, subLabel: 'Recommendation Date', value: formatDate(group.date) }] : [];
+    group.items.forEach(({ item, index }, itemIndex) => { if (hasVal(item?.recommendation)) blocks.push({ key: `recommendation-${index}`, value: String(item.recommendation), rowNumber: itemIndex + 1 }); });
+    return blocks;
+  });
+};
+const sectionBlocks = (record, sid) => (SECTION_FIELDS[sid] || []).flatMap(field => {
+  const value = record[field]; if (!hasVal(value)) return [];
+  if (field === 'recommendations') return recommendationBlocks(value).map((block, index) => ({ ...block, fieldLabel: index === 0 ? FIELD_LABELS[field] : '' }));
+  if (OBJECT_FIELDS.includes(field)) return recursiveBlocks(value, field).map((block, index) => ({ ...block, fieldLabel: index === 0 && FIELD_LABELS[field] !== SECTION_TITLES[sid] ? FIELD_LABELS[field] : '' }));
+  return narrativeBlocks(field, value, SECTION_TITLES[sid]);
+});
+const renderSectionBlocks = (sid, blocks) => blocks.map((block, index) => <View key={block.key} style={styles.block} wrap={false}>
+  {index === 0 && <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>}
+  {block.fieldLabel && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+  {block.itemLabel && <Text style={styles.itemLabel}>{block.itemLabel}</Text>}
+  {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+  <Text style={block.rowNumber ? styles.listItem : styles.fieldValue}>{block.rowNumber ? `${block.rowNumber}. ${block.value}` : block.value}</Text>
+</View>);
+
 const TriageDataDocumentPDFTemplate = ({ document: data }) => {
   let records = [];
   if (Array.isArray(data)) {
@@ -204,36 +258,17 @@ const TriageDataDocumentPDFTemplate = ({ document: data }) => {
   records = (records || []).filter(r => r && typeof r === 'object');
 
   if (records.length === 0) {
-    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Triage Data</Text></View><Text style={styles.emptyState}>No data available</Text></Page></Document>);
+    return (<Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.documentTitle}>Triage Data</Text></View><Text style={styles.emptyState}>No data available</Text></Page></Document>);
   }
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Triage Data</Text></View>
+        <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Triage Data</Text></View>
         {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>{`Triage Data ${idx + 1}`}</Text>
-              {hasVal(record.date) && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
-              {hasVal(record.provider) && <Text style={styles.recordMeta}>{fmtVal(record.provider)}</Text>}
-              {hasVal(record.facility) && <Text style={styles.recordMeta}>{fmtVal(record.facility)}</Text>}
-            </View>
-
-            {/* Rule #74 (per-field gating): section View only provides spacing and always FLOWS.
-                Each field is its own wrap-gated unit (via renderField), with the sectionTitle embedded
-                INSIDE the first present field's View (anti-orphan). */}
-            {SECTION_ORDER.map((sid) => {
-              const fields = SECTION_FIELDS[sid];
-              const presentFields = fields.filter(f => hasVal(record[f]));
-              if (presentFields.length === 0) return null;
-              const title = SECTION_TITLES[sid];
-              return (
-                <View key={sid} style={styles.section}>
-                  {presentFields.flatMap((f, fi) => renderField(record, f, title, fi === 0))}
-                </View>
-              );
-            })}
+          <View key={idx} style={styles.recordContainer} break={idx > 0}>
+            <View wrap={false}><Text style={styles.recordTitle}>{`Triage Data ${idx + 1}`}</Text></View>
+            {SECTION_ORDER.flatMap(sid => renderSectionBlocks(sid, sectionBlocks(record, sid)))}
           </View>
         ))}
         <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} fixed />

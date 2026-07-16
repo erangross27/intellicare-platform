@@ -45,7 +45,7 @@ function toObjectId(str) {
 
 // Allowed editable fields for treatment_courses
 const ALLOWED_FIELDS = [
-  'type', 'provider', 'facility', 'findings', 'assessment', 'plan',
+  'date', 'type', 'provider', 'facility', 'findings', 'assessment', 'plan',
   'recommendations', 'results', 'notes', 'status', 'reportType',
   'clinicalIndication', 'urgency', 'followUp', 'reportDate',
 ];
@@ -57,14 +57,12 @@ router.put('/:id/edit', async (req, res) => {
     const { id } = req.params;
     const { field, value, arrayIndex } = req.body;
 
-    console.log('[TreatmentCourses] PUT /:id/edit called — id:', id, 'field:', field, 'value:', value, 'arrayIndex:', arrayIndex);
-    console.log('[TreatmentCourses] practiceContext:', req.practiceContext?.subdomain, 'user:', req.user?.id);
-
     if (!field || value === undefined) {
       return res.status(400).json({ success: false, error: 'field and value are required' });
     }
 
-    if (!ALLOWED_FIELDS.includes(field)) {
+    const rootField = field.split('.')[0];
+    if (!ALLOWED_FIELDS.includes(rootField)) {
       return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     }
 
@@ -75,8 +73,6 @@ router.put('/:id/edit', async (req, res) => {
 
     const sda = getSecureDataAccess();
     const context = buildContext(req, 'write');
-    console.log('[TreatmentCourses] context:', JSON.stringify(context));
-
     const fieldPath = (typeof arrayIndex === 'number') ? `${field}.${arrayIndex}` : field;
     const setFields = {
       [fieldPath]: value,
@@ -89,8 +85,6 @@ router.put('/:id/edit', async (req, res) => {
       $addToSet: { 'doctorEdits.editedFields': field },
     }, context);
 
-    console.log('[TreatmentCourses] update result:', JSON.stringify(result));
-
     if (result.matchedCount === 0) {
       console.error('[TreatmentCourses] WARNING: No documents matched _id:', id);
       return res.status(404).json({ success: false, error: 'Treatment course record not found in database' });
@@ -99,7 +93,6 @@ router.put('/:id/edit', async (req, res) => {
     return res.json({ success: true, recordId: id, editedField: field, modifiedCount: result.modifiedCount });
   } catch (err) {
     console.error('[TreatmentCourses] PUT /:id/edit error:', err.message);
-    console.error('[TreatmentCourses] Full error:', err.stack);
     return res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -118,7 +111,7 @@ router.put('/:id/approve', async (req, res) => {
     const sda = getSecureDataAccess();
     const context = buildContext(req, 'write');
 
-    await sda.update('treatment_courses', { _id: objectId }, {
+    const result = await sda.update('treatment_courses', { _id: objectId }, {
       $set: {
         'doctorEdits.approvedAt': new Date(),
         'doctorEdits.approvedBy': req.user?.id,
@@ -126,6 +119,7 @@ router.put('/:id/approve', async (req, res) => {
       },
     }, context);
 
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Treatment course record not found in database' });
     return res.json({ success: true, recordId: id, status: 'approved' });
   } catch (err) {
     console.error('[TreatmentCourses] PUT /:id/approve error:', err.message);

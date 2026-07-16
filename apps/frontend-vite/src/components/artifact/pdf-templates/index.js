@@ -135,6 +135,7 @@ import TherapySessionNotesDocumentPDFTemplate from './TherapySessionNotesDocumen
 import ThoracicSurgeryAssessmentDocumentPDFTemplate from './ThoracicSurgeryAssessmentDocumentPDFTemplate';
 import TumorMarkersDocumentPDFTemplate from './TumorMarkersDocumentPDFTemplate';
 import UltrasoundObReportsDocumentPDFTemplate from './UltrasoundObReportsDocumentPDFTemplate';
+import UmbilicalArteryDopplerDocumentPDFTemplate from './UmbilicalArteryDopplerDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -259,6 +260,7 @@ const templateRegistry = {
   'thoracic_surgery_assessment': ThoracicSurgeryAssessmentDocumentPDFTemplate,
   'tumor_markers': TumorMarkersDocumentPDFTemplate,
   'ultrasound_ob_reports': UltrasoundObReportsDocumentPDFTemplate,
+  'umbilical_artery_doppler': UmbilicalArteryDopplerDocumentPDFTemplate,
 };
 
 /**

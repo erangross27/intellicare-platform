@@ -138,6 +138,7 @@ import UltrasoundObReportsDocumentPDFTemplate from './UltrasoundObReportsDocumen
 import UmbilicalArteryDopplerDocumentPDFTemplate from './UmbilicalArteryDopplerDocumentPDFTemplate';
 import UrodynamicStudiesDocumentPDFTemplate from './UrodynamicStudiesDocumentPDFTemplate';
 import UrologyAssessmentDocumentPDFTemplate from './UrologyAssessmentDocumentPDFTemplate';
+import UrologyConsultationsDocumentPDFTemplate from './UrologyConsultationsDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -265,6 +266,7 @@ const templateRegistry = {
   'umbilical_artery_doppler': UmbilicalArteryDopplerDocumentPDFTemplate,
   'urodynamic_studies': UrodynamicStudiesDocumentPDFTemplate,
   'urology_assessment': UrologyAssessmentDocumentPDFTemplate,
+  'urology_consultations': UrologyConsultationsDocumentPDFTemplate,
 };
 
 /**

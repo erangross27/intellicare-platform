@@ -42,6 +42,7 @@ const SECTION_FIELDS = {
 const DATE_FIELDS = ['date'];
 const DATE_PATHS = ['primaryDiagnosis.dateOfDiagnosis'];
 const ENUM_FIELDS = ['status'];
+const ENUM_OPTIONS = { status: ['Completed', 'Active', 'Pending', 'Reviewed'] };
 const NUMBER_STRING_FIELDS = [];
 const OBJECT_FIELDS = ['primaryDiagnosis', 'treatmentTimeline', 'results', 'additionalData'];
 const NARRATIVE_PATHS = [
@@ -81,6 +82,17 @@ const isDateObject = (value) => Boolean(value && typeof value === 'object' && !A
 const isScalar = (value) => value === null || typeof value !== 'object' || isDateObject(value);
 const displayScalar = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
 const rootOf = (path) => String(path || '').split('.')[0];
+const enumCanonical = (field, current) => {
+  const value = String(current ?? '');
+  return (ENUM_OPTIONS[field] || []).find(o => o.toLowerCase() === value.toLowerCase()) || value;
+};
+const enumOptionsWith = (field, current) => {
+  const base = ENUM_OPTIONS[field] || [];
+  const value = String(current ?? '').trim();
+  return base.some(o => o.toLowerCase() === value.toLowerCase())
+    ? base
+    : value ? [value, ...base] : base;
+};
 const canonicalPath = (path) => String(path || '').split('.').filter((segment) => !/^\d+$/.test(segment)).join('.');
 const isNarrativePath = (path) => NARRATIVE_PATHS.includes(canonicalPath(path));
 const getAtPath = (value, path) => {
@@ -469,7 +481,9 @@ const TreatmentSummaryDocument = ({ document: docProp, data, templateData }) => 
 
   const leafProps = (record, path, recordIndex, sectionId, value, copyText) => {
     const key = recordIndex + '|' + path;
+    const root = rootOf(path);
     const date = isDatePathValue(path, value);
+    const enumField = ENUM_FIELDS.includes(root);
     const numberUnit = typeof value === 'string' ? splitNumberUnit(value) : null;
     const numberString = NUMBER_STRING_FIELDS.includes(rootOf(path)) && /^-?\d+(?:\.\d+)?$/.test(String(value).trim());
     const editorType = date ? 'date'
@@ -477,13 +491,13 @@ const TreatmentSummaryDocument = ({ document: docProp, data, templateData }) => 
         : typeof value === 'number' ? 'number'
           : numberString ? 'number-string'
           : numberUnit ? 'number-unit'
-            : ENUM_FIELDS.includes(rootOf(path)) ? 'enum'
+            : enumField ? 'enum'
               : 'text';
-    const displayValue = date ? formatDate(value) : displayScalar(value);
+    const displayValue = date ? formatDate(value) : enumField ? enumCanonical(root, value) : displayScalar(value);
     const startValue = date ? toInputDate(value)
       : editorType === 'boolean' ? (value ? 'Yes' : 'No')
         : numberUnit ? numberUnit.number
-          : displayScalar(value);
+          : enumField ? enumCanonical(root, value) : displayScalar(value);
     const save = () => {
       let nextValue = editValue.trim();
       if (editorType === 'number' || editorType === 'number-unit' || editorType === 'number-string') {
@@ -501,7 +515,7 @@ const TreatmentSummaryDocument = ({ document: docProp, data, templateData }) => 
     };
     return {
       path, value, displayValue, editorType, unit: numberUnit?.unit,
-      options: ENUM_FIELDS.includes(rootOf(path)) ? [...new Set([String(value), 'Completed', 'Active', 'Pending', 'Reviewed'])] : [],
+      options: enumField ? enumOptionsWith(root, value) : [],
       modified: Boolean(editedFields[key]), copied: Boolean(copiedItems[key]),
       editing: editingField === key, editValue, saveError, saving, highlightText,
       onStart: () => { setEditingField(key); setEditValue(startValue); setSaveError(null); },
@@ -595,7 +609,7 @@ const TreatmentSummaryDocument = ({ document: docProp, data, templateData }) => 
     const showLabel = label.toLowerCase() !== SECTION_TITLES[sectionId].toLowerCase();
     return <div key={field} className="rec-mini-card nested-mini-card">
       {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-      <EditableLeaf {...leafProps(record, field, recordIndex, sectionId, value, label + '\n' + (isDatePathValue(field, value) ? formatDate(value) : displayScalar(value)))} />
+      <EditableLeaf {...leafProps(record, field, recordIndex, sectionId, value, label + '\n' + (isDatePathValue(field, value) ? formatDate(value) : ENUM_FIELDS.includes(field) ? enumCanonical(field, value) : displayScalar(value)))} />
     </div>;
   };
 
@@ -738,6 +752,9 @@ const TreatmentSummaryDocument = ({ document: docProp, data, templateData }) => 
       } else if (DATE_FIELDS.includes(field)) {
         if (showLabel) text += label + '\n';
         text += '1. ' + formatDate(value) + '\n';
+      } else if (ENUM_FIELDS.includes(field)) {
+        if (showLabel) text += label + '\n';
+        text += '1. ' + enumCanonical(field, value) + '\n';
       } else {
         if (showLabel) text += label + '\n';
         splitFieldValue(field, value).forEach((part, index) => { text += (index + 1) + '. ' + (parseLabel(part)?.value || part) + '\n'; });

@@ -163,6 +163,27 @@ function editableTarget(container) {
   return container?.querySelector('.numbered-row.editable-row, .nested-subtitle.editable-row');
 }
 
+const selectObservations = [];
+async function inspectBlueSelect(container, label, value, flags) {
+  const trigger = container?.querySelector('.blue-select-trigger');
+  if (!trigger) return;
+  await act(async () => { trigger.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+  const optionTexts = [...(container?.querySelectorAll('.blue-select-option') || [])]
+    .map((option) => option.textContent.trim())
+    .filter(Boolean);
+  const normalized = optionTexts.map((option) => option.toLocaleLowerCase());
+  const duplicates = optionTexts.filter((option, index) => normalized.indexOf(normalized[index]) !== index);
+  if (duplicates.length) {
+    flags.push({ label, value, kind: 'enum', widget: 'BlueSelect', why: `case-insensitive duplicate option(s): ${duplicates.join(', ')}` });
+  }
+  const triggerValue = trigger.querySelector('.blue-select-value')?.textContent.trim() || '';
+  selectObservations.push({ label, triggerValue, optionTexts });
+  const matchingOptions = optionTexts.filter((option) => option.toLocaleLowerCase() === triggerValue.toLocaleLowerCase());
+  if (triggerValue && matchingOptions.length !== 1) {
+    flags.push({ label, value, kind: 'enum', widget: 'BlueSelect', why: `current value ${JSON.stringify(triggerValue)} must match exactly one option, found ${matchingOptions.length}` });
+  }
+}
+
 /* ─── run ─── */
 const { createRoot } = require('react-dom/client');
 const { act } = React;
@@ -196,7 +217,8 @@ async function main() {
     const row = card.querySelector('.numbered-row.editable-row');
     if (!row || !valEl) continue; // not an editable scalar row (may be array/section wrapper)
     await act(async () => { row.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
-    const widget = widgetOf(cards[i] === card ? card : ([...host.querySelectorAll('.rec-mini-card')][i] || card));
+    const liveCard = cards[i] === card ? card : ([...host.querySelectorAll('.rec-mini-card')][i] || card);
+    const widget = widgetOf(liveCard);
     let kind = classify(value);
     // reclassify numeric identifiers/codes so they are NOT expected to have a stepper
     if ((kind === 'number' || kind === 'number-unit') && (idLabel || isMultiItem)) kind = 'identifier/code';
@@ -208,6 +230,7 @@ async function main() {
     if (widget === 'native-date') flags.push({ label, value, kind, widget, why: 'native <input type=date> — use BlueDatePicker' });
     if (kind === 'phone' && widget !== 'BluePhonePicker') flags.push({ label, value, kind, widget, why: 'phone value not on BluePhonePicker' });
     if (widget === 'bare-number-input' && !idLabel && !isMultiItem) flags.push({ label, value, kind, widget, why: 'bare <input type=number> without −/+ stepper' });
+    if (widget === 'BlueSelect') await inspectBlueSelect(liveCard, label, value, flags);
     // cancel to restore
     const cancel = [...([...host.querySelectorAll('.rec-mini-card')][i] || card).querySelectorAll('button')].find(b => b.textContent.trim() === 'Cancel');
     if (cancel) await act(async () => { cancel.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
@@ -248,6 +271,7 @@ async function main() {
     if (widget === 'native-select') flags.push({ label, value, kind, widget, why: 'native <select> — use BlueSelect (RTL-unsafe OS chrome)' });
     if (widget === 'native-date') flags.push({ label, value, kind, widget, why: 'native <input type=date> — use BlueDatePicker' });
     if (widget === 'bare-number-input') flags.push({ label, value, kind, widget, why: 'bare <input type=number> without −/+ stepper' });
+    if (widget === 'BlueSelect') await inspectBlueSelect(liveContainer, label, value, flags);
     const cancel = [...liveContainer.querySelectorAll('button')].find(button => button.textContent.trim() === 'Cancel');
     if (cancel) await act(async () => { cancel.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
   }
@@ -299,6 +323,11 @@ async function main() {
     const bad = flags.find(f => f.label === r.label && f.value === r.value.replace(/…$/, r.value.slice(-1)));
     const mark = flags.some(f => f.label === r.label) ? '❌' : '✅';
     console.log(`  ${mark} ${r.label.padEnd(pad)}  value="${r.value}"  [${r.kind}] → ${r.widget}`);
+  }
+  if (selectObservations.length) {
+    console.log('\n=== BlueSelect option readback ===');
+    selectObservations.forEach(({ label, triggerValue, optionTexts }) =>
+      console.log(`  ${label}: current=${JSON.stringify(triggerValue)} options=${JSON.stringify(optionTexts)}`));
   }
   if (flags.length) {
     console.log(`\n⛔ ${flags.length} WIDGET MISMATCH(ES) — partial one-pass:`);

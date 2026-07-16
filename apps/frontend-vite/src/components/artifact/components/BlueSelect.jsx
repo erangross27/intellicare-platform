@@ -7,12 +7,23 @@
  * Controlled: `value` is the current string, `options` a string[], `onChange(value)` fires on pick.
  * SSR-safe (no window/Date at module load; the click-outside listener is attached only in useEffect).
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import './BlueSelect.css';
 
 const BlueSelect = ({ value, options = [], onChange, placeholder = 'Select…' }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const normalizedOptions = useMemo(() => {
+    const seen = new Set();
+    return options.filter((option) => {
+      const normalized = String(option ?? '').trim().toLocaleLowerCase();
+      if (!normalized || seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    });
+  }, [options]);
+  const canonicalValue = normalizedOptions.find((option) =>
+    String(option).toLocaleLowerCase() === String(value ?? '').toLocaleLowerCase()) ?? value;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -31,17 +42,17 @@ const BlueSelect = ({ value, options = [], onChange, placeholder = 'Select…' }
         onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
         onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}
       >
-        <span className="blue-select-value">{value || placeholder}</span>
+        <span className="blue-select-value">{canonicalValue || placeholder}</span>
         <span className="blue-select-caret">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <ul className="blue-select-list" role="listbox">
-          {options.map((opt) => (
+          {normalizedOptions.map((opt) => (
             <li
               key={opt}
               role="option"
-              aria-selected={opt === value}
-              className={`blue-select-option${opt === value ? ' selected' : ''}`}
+              aria-selected={opt === canonicalValue}
+              className={`blue-select-option${opt === canonicalValue ? ' selected' : ''}`}
               onClick={(e) => { e.stopPropagation(); pick(opt); }}
             >
               {opt}

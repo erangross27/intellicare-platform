@@ -37,6 +37,7 @@ const FIELD_LABELS = {
 };
 const DATE_FIELDS = ['date'];
 const DATE_PATHS = ['primaryDiagnosis.dateOfDiagnosis'];
+const ENUM_OPTIONS = { status: ['Completed', 'Active', 'Pending', 'Reviewed'] };
 const OBJECT_FIELDS = ['primaryDiagnosis', 'treatmentTimeline', 'results', 'additionalData'];
 const NARRATIVE_PATHS = [
   'primaryDiagnosis.site', 'primaryDiagnosis.histology', 'treatmentTimeline.response',
@@ -60,6 +61,10 @@ const hasVal = (value) => {
 const isDateObject = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && '$date' in value);
 const isScalar = (value) => value === null || typeof value !== 'object' || isDateObject(value);
 const displayScalar = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const enumCanonical = (field, current) => {
+  const value = String(current ?? '');
+  return (ENUM_OPTIONS[field] || []).find(o => o.toLowerCase() === value.toLowerCase()) || value;
+};
 const canonicalPath = (path) => String(path || '').split('.').filter((segment) => !/^\d+$/.test(segment)).join('.');
 const isNarrativePath = (path) => NARRATIVE_PATHS.includes(canonicalPath(path));
 const formatDate = (value) => {
@@ -182,7 +187,9 @@ const narrativeBlocks = (field, value, title) => {
   if (!hasVal(value)) return [];
   const label = FIELD_LABELS[field] || humanizeKey(field);
   const showFieldLabel = label.toLowerCase() !== title.toLowerCase();
-  const rows = DATE_FIELDS.includes(field) ? [formatDate(value)] : splitFieldValue(field, value);
+  const rows = DATE_FIELDS.includes(field) ? [formatDate(value)]
+    : ENUM_OPTIONS[field] ? [enumCanonical(field, value)]
+      : splitFieldValue(field, value);
   return rows.map((row, index) => {
     const parsed = parseLabel(row);
     return {

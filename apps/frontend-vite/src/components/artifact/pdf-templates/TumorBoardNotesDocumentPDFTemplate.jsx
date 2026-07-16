@@ -3,22 +3,21 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 /**
  * TumorBoardNotesDocumentPDFTemplate
- * March 2026 — Helvetica, LETTER, 20pt title / 12pt body
+ * July 2026 — canonical box-free LETTER rendering.
  */
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, backgroundColor: '#ffffff', color: '#000000', size: 'LETTER' },
-  documentTitle: { fontSize: 20, fontWeight: 'bold', fontFamily: 'Helvetica-Bold', marginBottom: 20, textAlign: 'center' },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, backgroundColor: '#ffffff', color: '#000000' },
+  documentTitle: { fontSize: 26, fontWeight: 'bold', fontFamily: 'Helvetica-Bold', marginBottom: 20, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 8 },
   recordContainer: { marginBottom: 24 },
-  recordTitle: { fontSize: 16, fontWeight: 'bold', fontFamily: 'Helvetica-Bold', marginBottom: 4, color: '#424242' },
-  recordSubtitle: { fontSize: 12, fontStyle: 'italic', marginBottom: 12, color: '#404040' },
+  recordTitle: { fontSize: 19, fontWeight: 'bold', fontFamily: 'Helvetica-Bold', marginBottom: 12, color: '#000000', borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 5 },
   section: { marginBottom: 14 },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', fontFamily: 'Helvetica-Bold', marginBottom: 6, textTransform: 'uppercase', borderBottomWidth: 1, borderBottomColor: '#d1d5db', paddingBottom: 3 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', fontFamily: 'Helvetica-Bold', marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 3 },
   fieldBlock: { marginBottom: 8, paddingLeft: 8 },
-  fieldLabel: { fontSize: 10, fontWeight: 'bold', fontFamily: 'Helvetica-Bold', color: '#555555', textTransform: 'uppercase', marginBottom: 2, letterSpacing: 0.3 },
-  fieldValue: { fontSize: 12, color: '#000000', lineHeight: 1.4 },
-  listItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 8, marginBottom: 4 },
-  textContent: { fontSize: 12, lineHeight: 1.5, paddingLeft: 8, color: '#000000' },
+  fieldLabel: { fontSize: 13, fontWeight: 'bold', fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 5, borderBottomWidth: 0.5, borderBottomColor: '#999999', paddingBottom: 2 },
+  subLabel: { fontSize: 13, fontWeight: 'bold', fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 3 },
+  fieldValue: { fontSize: 14, color: '#000000', lineHeight: 1.4 },
+  listItem: { fontSize: 14, lineHeight: 1.45, paddingLeft: 8, marginBottom: 4 },
   divider: { borderBottomWidth: 1, borderBottomColor: '#e5e7eb', marginVertical: 8 },
 });
 
@@ -86,15 +85,41 @@ const FIELD_LABELS = {
 
 const BOOLEAN_FIELDS = ['radiationEligibility', 'clinicalTrialEligibility'];
 const ARRAY_FIELDS = ['biomarkerStatus', 'metastaticSites', 'priorTreatments', 'prognosticFactors'];
+const COMMA_SPLIT_FIELDS = new Set(['histopathology', 'organFunctionStatus']);
 
-const TumorBoardNotesDocumentPDFTemplate = ({ document: docProp }) => {
-  const templateData = docProp;
+const parseLabel = (text) => {
+  const match = String(text || '').match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
+  return match ? { label: match[1].trim(), value: match[2].trim() } : null;
+};
 
-  let records = templateData;
+const splitByComma = (text) => {
+  const result = []; let current = ''; let depth = 0;
+  for (const char of String(text || '')) {
+    if (char === '(' || char === '[' || char === '{') depth += 1;
+    else if (char === ')' || char === ']' || char === '}') depth = Math.max(0, depth - 1);
+    if (char === ',' && depth === 0) { if (current.trim()) result.push(current.trim()); current = ''; }
+    else current += char;
+  }
+  if (current.trim()) result.push(current.trim());
+  return result;
+};
+
+const splitBySentence = (text, field = '') => {
+  const clauses = String(text || '').split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\d)\.(?:\s+)|;\s+/).map(value => value.trim()).filter(Boolean);
+  return COMMA_SPLIT_FIELDS.has(field) ? clauses.flatMap(splitByComma) : clauses;
+};
+
+const TumorBoardNotesDocumentPDFTemplate = ({ document: docProp, data, templateData }) => {
+  const source = docProp ?? data ?? templateData;
+
+  let records = source;
   if (!Array.isArray(records)) records = [records];
   records = records.flatMap(record => {
+    if (Array.isArray(record?.wrapRecordsIntoSingleDocument)) return record.wrapRecordsIntoSingleDocument;
+    if (Array.isArray(record?.records || record?._records)) return record.records || record._records;
     if (record?.tumor_board_notes && Array.isArray(record.tumor_board_notes)) return record.tumor_board_notes;
-    if (record?.documentData) { const dd = record.documentData; if (Array.isArray(dd)) return dd; return [dd]; }
+    if (record?.data?.tumor_board_notes) return Array.isArray(record.data.tumor_board_notes) ? record.data.tumor_board_notes : [record.data.tumor_board_notes];
+    if (record?.documentData) { const dd = record.documentData; if (Array.isArray(dd)) return dd; if (dd?.tumor_board_notes) return Array.isArray(dd.tumor_board_notes) ? dd.tumor_board_notes : [dd.tumor_board_notes]; return [dd]; }
     return [record];
   });
   records = records.filter(r => r && typeof r === 'object');
@@ -119,7 +144,7 @@ const TumorBoardNotesDocumentPDFTemplate = ({ document: docProp }) => {
       return (
         <View key={fieldName} style={styles.fieldBlock} wrap={false}>
           <Text style={styles.fieldLabel}>{label}</Text>
-          <Text style={styles.fieldValue}>{val ? 'Yes' : 'No'}</Text>
+          <Text style={styles.listItem}>1. {val ? 'Yes' : 'No'}</Text>
         </View>
       );
     }
@@ -140,10 +165,14 @@ const TumorBoardNotesDocumentPDFTemplate = ({ document: docProp }) => {
       );
     }
 
+    const rows = typeof val === 'string' ? splitBySentence(val, fieldName) : [String(val)];
     return (
-      <View key={fieldName} style={styles.fieldBlock} wrap={false}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        <Text style={styles.fieldValue}>{typeof val === 'number' ? String(val) : safeString(val)}</Text>
+      <View key={fieldName} style={styles.fieldBlock}>
+        <View wrap={false}>
+          <Text style={styles.fieldLabel}>{label}</Text>
+          {(() => { const parsed = parseLabel(rows[0]); return parsed ? <><Text style={styles.subLabel}>{safeString(parsed.label)}</Text><Text style={styles.listItem}>1. {safeString(parsed.value)}</Text></> : <Text style={styles.listItem}>1. {safeString(rows[0])}</Text>; })()}
+        </View>
+        {rows.slice(1).map((row, index) => { const parsed = parseLabel(row); return parsed ? <View key={index}><Text style={styles.subLabel}>{safeString(parsed.label)}</Text><Text style={styles.listItem}>{index + 2}. {safeString(parsed.value)}</Text></View> : <Text key={index} style={styles.listItem}>{index + 2}. {safeString(row)}</Text>; })}
       </View>
     );
   };
@@ -155,12 +184,7 @@ const TumorBoardNotesDocumentPDFTemplate = ({ document: docProp }) => {
 
         {records.map((record, idx) => (
           <View key={idx} style={styles.recordContainer}>
-            <View wrap={false}>
-              <Text style={styles.recordTitle}>Tumor Board Note {idx + 1}</Text>
-              {hasValue(record.primaryTumorSite) && (
-                <Text style={styles.recordSubtitle}>{safeString(record.primaryTumorSite)}{hasValue(record.ajccStage) ? ` - Stage ${record.ajccStage}` : ''}</Text>
-              )}
-            </View>
+            <View wrap={false}><Text style={styles.recordTitle}>Tumor Board Note {idx + 1}</Text></View>
 
             {Object.entries(SECTION_FIELDS).map(([sid, fields]) => {
               const hasAny = fields.some(f => hasValue(record[f]));

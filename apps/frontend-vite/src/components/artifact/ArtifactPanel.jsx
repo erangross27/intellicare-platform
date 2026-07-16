@@ -1345,6 +1345,7 @@ const ArtifactPanel = ({
       'admission_recommendations', // ← Admission recommendations (report date, report type, clinical indication, findings, urgency, recommendations, follow-up)
       'triage_data', // ← Triage data (arrival time, chief complaint, triage vitals, triage assessment, findings, assessment, plan, status)
       'tropical_disease_assessment', // ← Tropical disease assessment (travel history, vector exposure, fever pattern, parasitology, serology, complications, public health)
+      'tube_feeding_order', // ← Tube feeding order (formula, route, infusion rate, water flushes, monitoring, and safety)
       'ed_course', // ← ED course (event, details, findings, assessment, plan, recommendations, notes)
       'ed_disposition', // ← ED disposition (decision, admitting service/attending, bed request/assigned, transfer time, follow-up required)
       'discharge_planning', // ← Discharge planning (expected LOS, destination, follow-up, activity restrictions, warning signs, recommendations)

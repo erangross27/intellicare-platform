@@ -1,5 +1,6 @@
 /* VentilatorSettingsDocument.css — March 2026 Blue glow editing theme */
-.ventilator-settings-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.ventilator-settings-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; }
+.ventilator-settings-document * { direction: ltr; }
 .ventilator-settings-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .ventilator-settings-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .ventilator-settings-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -8,7 +9,6 @@
 .ventilator-settings-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .ventilator-settings-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
 .ventilator-settings-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.ventilator-settings-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
 .ventilator-settings-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .ventilator-settings-document .section { margin-top: 16px; }
 .ventilator-settings-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
@@ -37,7 +37,9 @@
 .ventilator-settings-document .edit-select option { background: #0F1B33; color: #ececf1; }
 .ventilator-settings-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
 .ventilator-settings-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-.ventilator-settings-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.ventilator-settings-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-start; }
+.ventilator-settings-document .num-step { border: 1px solid #60a5fa; border-radius: 6px; background: rgba(96, 165, 250, 0.16); color: #ececf1; font-size: 20px; cursor: pointer; }
+.ventilator-settings-document .approve-btn { margin-top: 4px; text-transform: capitalize; letter-spacing: 0.3px; }
 .ventilator-settings-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .ventilator-settings-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .ventilator-settings-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }

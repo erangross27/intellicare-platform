@@ -146,6 +146,7 @@ import VascularSurgeryAssessmentDocumentPDFTemplate from './VascularSurgeryAsses
 import VasculitisAssessmentDocumentPDFTemplate from './VasculitisAssessmentDocumentPDFTemplate';
 import VenousInsufficiencyAssessmentDocumentPDFTemplate from './VenousInsufficiencyAssessmentDocumentPDFTemplate';
 import VenousThromboembolismRiskDocumentPDFTemplate from './VenousThromboembolismRiskDocumentPDFTemplate';
+import VentilatorSettingsDocumentPDFTemplate from './VentilatorSettingsDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -281,6 +282,7 @@ const templateRegistry = {
   'vasculitis_assessment': VasculitisAssessmentDocumentPDFTemplate,
   'venous_insufficiency_assessment': VenousInsufficiencyAssessmentDocumentPDFTemplate,
   'venous_thromboembolism_risk': VenousThromboembolismRiskDocumentPDFTemplate,
+  'ventilator_settings': VentilatorSettingsDocumentPDFTemplate,
 };
 
 /**

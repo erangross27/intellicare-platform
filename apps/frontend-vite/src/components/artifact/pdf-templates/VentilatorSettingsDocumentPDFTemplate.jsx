@@ -7,26 +7,27 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, paddingBottom: 64, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 18 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
+  recordHeader: { marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
   recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   statusBadge: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#1f2937', textTransform: 'uppercase', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  objLeaf: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2 },
+  section: { marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 8, marginBottom: 5, paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 6 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 2, marginBottom: 2, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.4, color: '#000000', paddingLeft: 8 },
+  listItem: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  objLeaf: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 2 },
   objLeafLabel: { fontFamily: 'Helvetica-Bold' },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  footer: { position: 'absolute', bottom: 24, left: 40, right: 40, fontSize: 9, color: '#666666', textAlign: 'center', borderTopWidth: 0.5, borderTopColor: '#cccccc', paddingTop: 6 },
 });
 
 /* ======= UTILS ======= */
@@ -66,7 +67,7 @@ const fmtVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -149,12 +150,12 @@ const renderObjectFieldPDF = (label, value) => {
   const lines = flattenObjectLines(value);
   if (lines.length === 0) return null;
   return (
-    <View style={styles.fieldBox} wrap={lines.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={lines.length > 8}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {lines.map((ln, i) => (
         ln.value === null
           ? <Text key={i} style={[styles.nestedSubtitle, { marginLeft: ln.depth * 10 }]}>{ln.label}</Text>
-          : <Text key={i} style={[styles.objLeaf, { marginLeft: 8 + ln.depth * 10 }]}><Text style={styles.objLeafLabel}>{ln.label}: </Text>{ln.value}</Text>
+          : <View key={i} wrap={false}><Text style={[styles.nestedSubtitle, { marginLeft: ln.depth * 10 }]}>{ln.label}</Text><Text style={[styles.objLeaf, { marginLeft: 8 + ln.depth * 10 }]}>{ln.value}</Text></View>
       ))}
     </View>
   );
@@ -166,13 +167,13 @@ const renderRecommendationsPDF = (label, value) => {
   const recs = value.filter(r => !isEmptyDeep(r));
   if (recs.length === 0) return null;
   return (
-    <View style={styles.fieldBox} wrap={recs.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={recs.length > 8}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {recs.map((rec, i) => {
         const rt = (typeof rec === 'object' ? (rec?.recommendation || '') : String(rec ?? '')).trim();
         const rd = (typeof rec === 'object' ? (rec?.date || '') : '').trim();
         if (!rt) return null;
-        return <Text key={i} style={styles.listItem}>{i + 1}. {rt}{rd ? ` (${rd})` : ''}</Text>;
+        return <View key={i} wrap={false}>{rd && <Text style={styles.nestedSubtitle}>{formatDate(rd)}</Text>}<Text style={styles.listItem}>{i + 1}. {rt}</Text></View>;
       })}
     </View>
   );
@@ -182,7 +183,7 @@ const renderRecommendationsPDF = (label, value) => {
 const renderFieldRow = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
     </View>
@@ -193,7 +194,7 @@ const renderFieldRow = (label, value) => {
 const renderDateFieldPDF = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={styles.fieldValue}>{formatDate(value)}</Text>
     </View>
@@ -202,18 +203,18 @@ const renderDateFieldPDF = (label, value) => {
 
 /* renderNestedField */
 const renderNestedFieldPDF = (label, value) => {
-  const displayVal = formatNestedValue(value);
-  if (!displayVal) return null;
+  const entries = Object.entries(value || {}).filter(([, child]) => !isEmptyDeep(child));
+  if (!entries.length) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{displayVal}</Text>
+      {entries.map(([key, child]) => <View key={key} wrap={false}><Text style={styles.nestedSubtitle}>{humanizeKey(key)}</Text><Text style={styles.fieldValue}>{fmtScalar(child)}</Text></View>)}
     </View>
   );
 };
 
 /* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
+const renderSentenceSection = (label, text, showLabel = true) => {
   if (!hasVal(text)) return null;
   const sentences = splitBySentence(fmtVal(text));
   if (sentences.length === 0) return null;
@@ -223,23 +224,24 @@ const renderSentenceSection = (label, text) => {
   sentences.forEach(s => {
     const parsed = parseLabel(s);
     if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
+      const commaItems = [parsed.value];
       if (commaItems.length >= 2) {
         rows.push({ type: 'subtitle', text: safeString(parsed.label) });
         commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
       } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
+        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
+        rows.push({ type: 'item', text: safeString(parsed.value), num: n++ });
       }
     } else {
       rows.push({ type: 'item', text: safeString(s), num: n++ });
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
+  const wrapProp = rows.length > 8;
 
   return (
     <View style={styles.fieldBox} wrap={wrapProp}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
       {rows.map((row, i) => {
         if (row.type === 'subtitle') {
           return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
@@ -257,7 +259,7 @@ const renderArrayFieldPDF = (label, items) => {
   if (safeItems.length === 0) return null;
 
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={safeItems.length > 8}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {safeItems.map((item, i) => (
         <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
@@ -271,10 +273,10 @@ const SECTION_CONFIGS = [
   {
     title: 'General Information',
     fields: [
-      { key: 'mode', label: 'Mode', isSentence: true },
+      { key: 'mode', label: 'Mode' },
       { key: 'status', label: 'Status' },
-      { key: 'provider', label: 'Provider', isSentence: true },
-      { key: 'facility', label: 'Facility', isSentence: true },
+      { key: 'provider', label: 'Provider' },
+      { key: 'facility', label: 'Facility' },
       { key: 'date', label: 'Date', isDate: true },
     ],
   },
@@ -284,7 +286,7 @@ const SECTION_CONFIGS = [
       { key: 'tidalVolume', label: 'Tidal Volume', isNested: true },
       { key: 'respiratoryRate', label: 'Respiratory Rate', isNested: true },
       { key: 'peep', label: 'PEEP', isNested: true },
-      { key: 'fio2', label: 'FiO2', isSentence: true },
+      { key: 'fio2', label: 'FiO2' },
       { key: 'pressureSupport', label: 'Pressure Support', isNested: true },
       { key: 'peakPressure', label: 'Peak Pressure', isNested: true },
       { key: 'plateauPressure', label: 'Plateau Pressure', isNested: true },
@@ -320,17 +322,20 @@ const SECTION_CONFIGS = [
 ];
 
 /* ======= COMPONENT ======= */
-const VentilatorSettingsDocumentPDFTemplate = ({ document: data }) => {
+const VentilatorSettingsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const source = documentProp ?? data ?? templateData;
   const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.ventilator_settings) return Array.isArray(r.ventilator_settings) ? r.ventilator_settings : [r.ventilator_settings];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.ventilator_settings) return Array.isArray(dd.ventilator_settings) ? dd.ventilator_settings : [dd.ventilator_settings]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [source]);
 
   if (!records || records.length === 0) {
     return (
@@ -340,6 +345,7 @@ const VentilatorSettingsDocumentPDFTemplate = ({ document: data }) => {
             <Text style={styles.documentTitle}>Ventilator Settings</Text>
           </View>
           <Text style={styles.noDataText}>No data available</Text>
+          <Text fixed style={styles.footer}>Ventilator Settings</Text>
         </Page>
       </Document>
     );
@@ -359,17 +365,9 @@ const VentilatorSettingsDocumentPDFTemplate = ({ document: data }) => {
 
             {/* Record Header */}
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
               <Text style={styles.recordTitle}>
                 Ventilator Settings {index + 1}
               </Text>
-              {record.status && (
-                <Text style={styles.statusBadge}>Status: {record.status}</Text>
-              )}
             </View>
 
             {/* Sections */}
@@ -382,25 +380,13 @@ const VentilatorSettingsDocumentPDFTemplate = ({ document: data }) => {
               });
               if (!hasAnyVal) return null;
 
-              return (
-                <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = record[field.key];
-                    if (field.isNested) return <View key={fIdx}>{renderNestedFieldPDF(field.label, val)}</View>;
-                    if (field.isObject) return <View key={fIdx}>{renderObjectFieldPDF(field.label, val)}</View>;
-                    if (field.isObjectArray) return <View key={fIdx}>{renderRecommendationsPDF(field.label, val)}</View>;
-                    if (!hasVal(val)) return null;
-                    if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
-                    if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
-                  })}
-                </View>
-              );
+              const presentFields = sectionConfig.fields.filter(field => { if (field.isNested) return !!formatNestedValue(record[field.key]); if (field.isObject) return !isScalar(record[field.key]) && !isEmptyDeep(record[field.key]); if (field.isObjectArray) return Array.isArray(record[field.key]) && record[field.key].some(item => !isEmptyDeep(item)); return hasVal(record[field.key]); });
+              const renderField = field => { const val = record[field.key]; if (field.isNested) return renderNestedFieldPDF(field.label, val); if (field.isObject) return renderObjectFieldPDF(field.label, val); if (field.isObjectArray) return renderRecommendationsPDF(field.label, val); if (field.isDate) return renderDateFieldPDF(field.label, val); if (field.isArray) return renderArrayFieldPDF(field.label, val); if (field.isSentence) return renderSentenceSection(field.label, val, field.label.toLowerCase() !== sectionConfig.title.toLowerCase()); return renderFieldRow(field.label, val); };
+              return <View key={sIdx} style={styles.section}><View wrap={false}><Text style={styles.sectionTitle}>{sectionConfig.title}</Text>{renderField(presentFields[0])}</View>{presentFields.slice(1).map((field, fieldIndex) => <View key={fieldIndex}>{renderField(field)}</View>)}</View>;
             })}
           </View>
         ))}
+        <Text fixed style={styles.footer}>Ventilator Settings</Text>
       </Page>
     </Document>
   );

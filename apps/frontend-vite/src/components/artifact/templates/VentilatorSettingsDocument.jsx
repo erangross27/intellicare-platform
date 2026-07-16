@@ -14,6 +14,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import VentilatorSettingsDocumentPDFTemplate from '../pdf-templates/VentilatorSettingsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './VentilatorSettingsDocument.css';
 
@@ -81,6 +83,7 @@ const OBJECT_ARRAY_FIELDS = ['recommendations'];
 const OBJECT_FIELDS = ['results'];
 const NESTED_FIELDS = ['tidalVolume', 'respiratoryRate', 'peep', 'pressureSupport', 'peakPressure', 'plateauPressure', 'minuteVentilation'];
 const STRING_FIELDS = ['mode', 'status', 'provider', 'facility', 'fio2', 'findings', 'assessment', 'plan', 'notes'];
+const NARRATIVE_FIELDS = ['findings', 'assessment', 'plan', 'notes'];
 
 /* humanizeKey: object-key -> readable label */
 const humanizeKey = (key) => {
@@ -181,7 +184,7 @@ const formatNestedValue = (obj) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const VentilatorSettingsDocument = ({ document: docProp }) => {
+const VentilatorSettingsDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -200,15 +203,18 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? data ?? templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.ventilator_settings) return Array.isArray(r.ventilator_settings) ? r.ventilator_settings : [r.ventilator_settings];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.ventilator_settings) return Array.isArray(dd.ventilator_settings) ? dd.ventilator_settings : [dd.ventilator_settings]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
@@ -246,7 +252,7 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -378,14 +384,8 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
   /* ═══════ SAVE: OBJECT LEAF (dotted-path; preserves object shape) ═══════ */
   const saveLeaf = useCallback((record, rootField, path, idx, sid, leafKeyTrack, newVal) => {
     const id = safeId(record); if (!id) return;
-    // Build the updated root-object value and STAGE it as a draft (no DB write). Approve commits it
-    // by PUTting the full root field — equivalent to the old dotted-path write.
-    const cur = localEdits[`${rootField}-${idx}`] !== undefined ? localEdits[`${rootField}-${idx}`] : record[rootField];
-    const clone = JSON.parse(JSON.stringify(cur ?? {}));
-    let node = clone;
-    for (let i = 0; i < path.length - 1; i++) node = node[path[i]];
-    node[path[path.length - 1]] = newVal;
-    stageDraft(record, rootField, idx, sid, clone);
+    const fieldPath = `${rootField}.${path.join('.')}`;
+    stageDraft(record, fieldPath, idx, sid, newVal);
     setEditedFields(prev => ({ ...prev, [leafKeyTrack]: 'edited' }));
     setEditingField(null); setEditValue('');
   }, [safeId, localEdits, stageDraft]);
@@ -393,13 +393,11 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
   /* ═══════ SAVE: RECOMMENDATIONS ITEM (array of {recommendation, date} — preserves object shape) ═══════ */
   const saveRecItem = useCallback((record, fn, idx, sid, rIdx, itemKeyTrack, newVal) => {
     const id = safeId(record); if (!id) return;
-    const currentArr = Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [];
     const trimmed = newVal.trim();
-    const newArr = currentArr.map((r, i) => i === rIdx ? { ...r, recommendation: trimmed } : { ...r });
-    stageDraft(record, fn, idx, sid, newArr);
+    stageDraft(record, `${fn}.${rIdx}.recommendation`, idx, sid, trimmed);
     setEditedSentences(prev => ({ ...prev, [itemKeyTrack]: 'edited' }));
     setEditingField(null); setEditValue('');
-  }, [safeId, getFieldValue, stageDraft]);
+  }, [safeId, stageDraft]);
 
   function saveSentence(record, fn, idx, sid, sentenceIdx) {
     const id = safeId(record); if (!id) return;
@@ -447,11 +445,10 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
     try {
       const fields = SECTION_FIELDS[sid] || [];
       const suffix = `-${idx}`;
-      // localEdits keys are `${field}-${idx}` (field has no dots/dashes). Commit only this section's pending fields.
       const toCommit = Object.keys(localEdits).filter(k => {
         if (!pendingEdits[k] || !k.endsWith(suffix)) return false;
         const field = k.slice(0, -suffix.length);
-        return fields.includes(field);
+        return fields.includes(field.split('.')[0]);
       });
       for (const editKey of toCommit) {
         const field = editKey.slice(0, -suffix.length);
@@ -464,7 +461,7 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
       setPendingEdits(prev => { const n = { ...prev }; toCommit.forEach(k => delete n[k]); return n; });
       // Drop this section's committed fields from the localStorage draft store
       const store = readDrafts();
-      if (store[id]) { fields.forEach(f => { delete store[id][f]; }); if (Object.keys(store[id]).length === 0) delete store[id]; writeDrafts(store); }
+      if (store[id]) { toCommit.forEach(k => { delete store[id][k.slice(0, -suffix.length)]; }); if (Object.keys(store[id]).length === 0) delete store[id]; writeDrafts(store); }
 
       setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
       setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) delete n[k]; }); }); return n; });
@@ -502,7 +499,7 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
     return lines;
   }, [splitBySentence]);
 
-  const buildSectionCopyText = useCallback((record, idx, sid) => {
+  const buildSectionCopyTextLegacy = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
     let text = `${title}\n${'='.repeat(40)}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
@@ -554,6 +551,32 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
     return text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
 
+  const fieldRows = useCallback((fn, value) => {
+    if (DATE_FIELDS.includes(fn)) return [{ label: '', value: formatDate(value) }];
+    if (NESTED_FIELDS.includes(fn)) return Object.entries(value || {}).filter(([, child]) => !isEmptyDeep(child)).map(([key, child]) => ({ label: humanizeKey(key), value: fmtScalar(child) }));
+    if (OBJECT_ARRAY_FIELDS.includes(fn)) return (Array.isArray(value) ? value : []).flatMap(item => item && !isEmptyDeep(item) ? [{ label: item.date ? formatDate(item.date) : '', value: String(item.recommendation || item.text || '') }] : []).filter(row => row.value);
+    if (OBJECT_FIELDS.includes(fn)) {
+      const rows = [];
+      const walk = (node, path = []) => { if (isScalar(node)) { rows.push({ label: humanizeKey(path[path.length - 1]), value: fmtScalar(node) }); return; } if (Array.isArray(node)) { node.forEach((child, childIndex) => { if (!isEmptyDeep(child)) walk(child, [...path, String(childIndex)]); }); return; } Object.entries(node || {}).forEach(([key, child]) => { if (!isEmptyDeep(child)) walk(child, [...path, key]); }); };
+      walk(value); return rows;
+    }
+    const text = fmtVal(value);
+    const clauses = NARRATIVE_FIELDS.includes(fn) ? splitBySentence(text) : [text];
+    return clauses.map(clause => { const parsed = parseLabel(clause); return { label: parsed.isLabeled ? parsed.label : '', value: parsed.isLabeled ? parsed.value : clause }; }).filter(row => row.value);
+  }, [fmtVal, splitBySentence]);
+
+  const buildSectionCopyText = useCallback((record, idx, sid) => {
+    let text = `${SECTION_TITLES[sid]}\n${'='.repeat(40)}\n\n`;
+    (SECTION_FIELDS[sid] || []).forEach(fn => {
+      const value = getFieldValue(record, fn, idx); if (!hasVal(value)) return;
+      const rows = fieldRows(fn, value); if (!rows.length) return;
+      text += `${FIELD_LABELS[fn] || fn}\n${'-'.repeat(40)}\n`;
+      rows.forEach((row, rowIndex) => { if (row.label) text += `${row.label}\n`; text += `${rowIndex + 1}. ${row.value}\n`; });
+      text += '\n';
+    });
+    return text;
+  }, [getFieldValue, hasVal, fieldRows]);
+
   const copyAllText = useCallback(async () => {
     let text = '=== VENTILATOR SETTINGS ===\n\n';
     pdfData.forEach((r, idx) => {
@@ -578,12 +601,12 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
+        <div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -596,14 +619,14 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
               <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
-        </div>
+        </div></div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
   };
 
   /* ═══════ RENDER: NESTED FIELD (value+unit or set+total) ═══════ */
-  const renderNestedField = (record, fn, idx, sid) => {
+  const renderNestedFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
     const displayVal = formatNestedValue(val);
     if (!displayVal) return null;
@@ -651,18 +674,17 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
     return (
       <div key={path[path.length - 1]} className="nested-mini-card">
         <div className="nested-subtitle sub-label">{highlightText(humanizeKey(path[path.length - 1]))}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(leafKey); setEditValue(editStartValue); setSaveError(null); } }}>
+        <div data-edit-field={`${rootField}.${path.join('.')}`}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(leafKey); setEditValue(editStartValue); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
               {isBool ? (
-                <select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <BlueSelect value={editValue} options={['yes', 'no']} onChange={setEditValue} />
               ) : (ratio || nu) ? (
                 <div className="number-edit-row">
-                  <input type="number" step="any" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button>
+                  <input type="text" inputMode="decimal" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                   {ratio ? <span className="number-edit-unit">{`${ratio.sep} ${ratio.denom}`}</span> : (nu.unit && <span className="number-edit-unit">{nu.unit}</span>)}
+                  <button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button>
                 </div>
               ) : (
                 <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
@@ -696,7 +718,7 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
               <button className={`copy-btn ${copiedItems[leafKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${humanizeKey(path[path.length - 1])}\n${leafValueString}`, leafKey); }}>{copiedItems[leafKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
-        </div>
+        </div></div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
@@ -782,11 +804,14 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
         {groups.map((group, gIdx) => {
           const anyVisible = !searchTerm.trim() || phraseMatch || labelMatch || group.date.toLowerCase().includes(phrase) || group.items.some(({ rec }) => (rec?.recommendation || '').toLowerCase().includes(phrase));
           if (searchTerm.trim() && !anyVisible) return null;
+          const dateEditKey = `${fn}-${idx}-g${gIdx}-date`;
+          const isDateEditing = editingField === dateEditKey;
+          const saveGroupDate = () => { group.items.forEach(({ rIdx }) => { const fieldPath = `${fn}.${rIdx}.date`; stageDraft(record, fieldPath, idx, sid, editValue); setEditedFields(prev => ({ ...prev, [`${fieldPath}-${idx}`]: 'edited' })); }); setEditedSentences(prev => ({ ...prev, [dateEditKey]: 'edited' })); setEditingField(null); setEditValue(''); };
           return (
-            <div key={gIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-              {group.date && <div className="nested-subtitle">{highlightText(group.date)}</div>}
+            <div key={gIdx} className="nested-mini-card" style={{ marginTop: 8 }}>
+              {group.date && <div data-edit-field={`${fn}.${group.items[0].rIdx}.date`}>{isDateEditing ? <div className="nested-subtitle editable-row"><BlueDatePicker value={editValue} onSelect={setEditValue} /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveGroupDate(); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <div className="nested-subtitle editable-row" onClick={() => { setEditingField(dateEditKey); setEditValue(group.date.slice(0, 10)); }}><span className="content-value">{highlightText(formatDate(group.date))}</span></div>}</div>}
               {group.items.map(({ rec, rIdx }) => {
-                const recText = (rec?.recommendation || '').trim();
+                const recText = String(localEdits[`${fn}.${rIdx}.recommendation-${idx}`] ?? rec?.recommendation ?? '').trim();
                 const recDate = (rec?.date || '').trim();
                 if (!recText) return null;
                 const itemKey = `${fn}-${idx}-r${rIdx}`;
@@ -796,7 +821,7 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
                 if (!itemMatches && searchTerm.trim()) return null;
                 return (
                   <div key={rIdx}>
-                    <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(itemKey); setEditValue(recText); setSaveError(null); } }}>
+                    <div data-edit-field={`${fn}.${rIdx}.recommendation`}><div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(itemKey); setEditValue(recText); setSaveError(null); } }}>
                       {isEditing ? (
                         <div className="edit-field-container">
                           <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
@@ -812,7 +837,7 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
                           <button className={`copy-btn ${copiedItems[itemKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${recText}${recDate ? ` (${recDate})` : ''}`, itemKey); }}>{copiedItems[itemKey] ? 'Copied!' : 'Copy'}</button>
                         </>
                       )}
-                    </div>
+                    </div></div>
                     {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
                   </div>
                 );
@@ -825,7 +850,7 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: STRING FIELD with splitBySentence ═══════ */
-  const renderStringField = (record, fn, idx, sid) => {
+  const renderStringFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
@@ -950,6 +975,30 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
     );
   };
 
+  const renderNestedField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); const entries = Object.entries(value || {}).filter(([, child]) => !isEmptyDeep(child));
+    if (!entries.length) return null; const label = FIELD_LABELS[fn] || fn; if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const saveNestedLeaf = (key, originalValue) => {
+      const fieldPath = `${fn}.${key}`; const editKey = `${fieldPath}-${idx}`; const parsed = Number(editValue);
+      const nextValue = /^-?\d+(?:\.\d+)?$/.test(String(originalValue).trim()) ? (Number.isFinite(parsed) ? String(parsed) : null) : editValue.trim();
+      if (nextValue === null) { setSaveError('Please enter a valid number'); return; }
+      stageDraft(record, fieldPath, idx, sid, nextValue); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setEditingField(null); setEditValue('');
+    };
+    return <div key={fn} className="rec-mini-card"><div className="nested-subtitle">{highlightText(label)}</div>{entries.map(([key, originalValue]) => { const fieldPath = `${fn}.${key}`; const editKey = `${fieldPath}-${idx}`; const isEditing = editingField === editKey; const isModified = editedFields[editKey]; const displayValue = localEdits[editKey] ?? fmtScalar(originalValue); const isNumeric = /^-?\d+(?:\.\d+)?$/.test(String(originalValue).trim()); return <div key={key} className="nested-mini-card"><div className="nested-subtitle sub-label">{highlightText(humanizeKey(key))}</div><div data-edit-field={fieldPath}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(displayValue)); setSaveError(null); } }}>{isEditing ? <div className="edit-field-container">{isNumeric ? <div className="number-edit-row"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button></div> : <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />}{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveNestedLeaf(key, originalValue); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(String(displayValue))}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${humanizeKey(key)}\n${displayValue}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>; })}</div>;
+  };
+
+  const renderStringField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (!hasVal(value)) return null; const label = FIELD_LABELS[fn] || fn; const text = fmtVal(value); if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    if (fn === 'status') {
+      const editKey = `${fn}-${idx}`; const isEditing = editingField === editKey; const isModified = editedFields[editKey]; const options = [text, 'Active', 'Pending', 'Reviewed', 'Completed'].filter((option, optionIndex, all) => all.findIndex(candidate => candidate.toLowerCase() === option.toLowerCase()) === optionIndex);
+      return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(text); } }}>{isEditing ? <div className="edit-field-container"><BlueSelect value={editValue} options={options} onChange={setEditValue} /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(text)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(`${label}\n${text}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+    }
+    const rawRows = NARRATIVE_FIELDS.includes(fn) ? splitBySentence(text) : [text]; const rows = rawRows.map((raw, rowIndex) => ({ ...parseLabel(raw), raw, rowIndex })); const groups = []; rows.forEach(row => { const groupLabel = row.isLabeled ? row.label : ''; const last = groups[groups.length - 1]; if (last && last.label === groupLabel) last.rows.push(row); else groups.push({ label: groupLabel, rows: [row] }); });
+    const saveRow = row => { const nextRows = rows.map(item => item.raw); nextRows[row.rowIndex] = row.isLabeled ? `${row.label}: ${editValue.trim()}` : editValue.trim(); handleSaveField(record, fn, idx, sid, null, NARRATIVE_FIELDS.includes(fn) ? nextRows.join('; ') : nextRows[0], `${fn}-${idx}-r${row.rowIndex}`); };
+    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
+    return <div key={fn} className="rec-mini-card">{showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}{groups.map((group, groupIndex) => <div key={`${group.label}-${groupIndex}`} className="nested-mini-card">{group.label && <div className="nested-subtitle sub-label">{highlightText(group.label)}</div>}{group.rows.map(row => { const editKey = `${fn}-${idx}-r${row.rowIndex}`; const isEditing = editingField === editKey; const isModified = editedFields[editKey]; const displayValue = row.isLabeled ? row.value : row.raw; return <div key={editKey} data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayValue); } }}>{isEditing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveRow(row); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(displayValue, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div>; })}</div>)}</div>;
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -1002,7 +1051,7 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Ventilator Settings</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<VentilatorSettingsDocumentPDFTemplate document={pdfData} />} fileName={`ventilator-settings-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<VentilatorSettingsDocumentPDFTemplate document={pdfData} />} fileName="Ventilator_Settings.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1015,17 +1064,7 @@ const VentilatorSettingsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Ventilator Settings ${idx + 1}`)}</h3>
-              {record.status && (
-                <span className={`status-badge ${record.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                  {highlightText(record.status)}
-                </span>
-              )}
             </div>
             {renderSection(record, idx, 'general-info')}
             {renderSection(record, idx, 'ventilator-parameters')}

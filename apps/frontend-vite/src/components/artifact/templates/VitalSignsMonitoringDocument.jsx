@@ -21,11 +21,14 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import VitalSignsMonitoringDocumentPDFTemplate from '../pdf-templates/VitalSignsMonitoringDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './VitalSignsMonitoringDocument.css';
 
 /* ═══════ CONSTANTS ═══════ */
 const SECTION_TITLES = {
+  'context': 'Monitoring Context',
   'blood-pressure-perfusion': 'Blood Pressure & Perfusion',
   'cardiopulmonary': 'Cardiopulmonary',
   'temperature-glucose': 'Temperature & Glucose',
@@ -65,6 +68,7 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
+  'context': ['date', 'provider', 'facility'],
   'blood-pressure-perfusion': ['systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure', 'bloodPressurePosition', 'bloodPressureSite', 'capillaryRefillTime'],
   'cardiopulmonary': ['heartRate', 'pulseRhythm', 'pulseQuality', 'respiratoryRate', 'oxygenSaturation', 'supplementalOxygen', 'oxygenDeliveryMethod'],
   'temperature-glucose': ['bodyTemperature', 'temperatureUnit', 'bloodGlucoseLevel'],
@@ -81,6 +85,8 @@ const OBJECT_FIELDS = [];
 const SENTENCE_FIELDS = [];
 const SIMPLE_STRING_FIELDS = ['bloodPressurePosition', 'bloodPressureSite', 'pulseRhythm', 'pulseQuality', 'supplementalOxygen', 'oxygenDeliveryMethod', 'temperatureUnit', 'consciousnessLevel', 'pupilResponseLeft', 'pupilResponseRight', 'monitoringFrequency', 'provider', 'facility'];
 const STRING_FIELDS = [...SENTENCE_FIELDS, ...SIMPLE_STRING_FIELDS];
+const ENUM_FIELDS = { temperatureUnit: ['Fahrenheit', 'Celsius'] };
+const COMMA_SPLIT_FIELDS = ['consciousnessLevel', 'supplementalOxygen'];
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -131,7 +137,7 @@ const toInputDate = (dateValue) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const VitalSignsMonitoringDocument = ({ document: docProp }) => {
+const VitalSignsMonitoringDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -150,15 +156,17 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? data ?? templateData; if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.vital_signs_monitoring) return Array.isArray(r.vital_signs_monitoring) ? r.vital_signs_monitoring : [r.vital_signs_monitoring];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.vital_signs_monitoring) return Array.isArray(dd.vital_signs_monitoring) ? dd.vital_signs_monitoring : [dd.vital_signs_monitoring]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -193,7 +201,7 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -210,6 +218,12 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
     if (localEdits[k] !== undefined) return localEdits[k];
     return record[fn];
   }, [localEdits]);
+
+  const numberShows = useCallback((record, fn, idx) => {
+    const value = getFieldValue(record, fn, idx); if (value === null || value === undefined || value === '') return false;
+    const number = Number(value); if (!Number.isFinite(number)) return false; if (number !== 0) return true;
+    return Boolean(editedFields[`${fn}-${idx}`]) || (Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(fn));
+  }, [getFieldValue, editedFields]);
 
   const highlightText = useCallback((text) => {
     if (!searchTerm.trim() || !text) return text;
@@ -481,32 +495,10 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
-      const showLabelCopy = label.toLowerCase() !== title.toLowerCase();
       const val = getFieldValue(record, f, idx);
-      if (!hasVal(val)) return;
-      if (BOOLEAN_FIELDS.includes(f)) {
-        text += showLabelCopy ? `${label}: ${val ? 'Yes' : 'No'}\n\n` : `${val ? 'Yes' : 'No'}\n\n`;
-      } else if (NUMBER_FIELDS.includes(f)) {
-        const num = Number(val);
-        const numStr = isNaN(num) ? String(val) : String(num);
-        text += showLabelCopy ? `${label}: ${numStr}\n\n` : `${numStr}\n\n`;
-      } else if (ARRAY_FIELDS.includes(f)) {
-        const items = Array.isArray(val) ? val : [val];
-        if (showLabelCopy) text += `${label}\n`;
-        text += `${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
-      } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          if (showLabelCopy) text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += showLabelCopy ? `${label}\n${strVal}\n\n` : `${strVal}\n\n`;
-        }
-      } else {
-        text += showLabelCopy ? `${label}\n${fmtVal(val)}\n\n` : `${fmtVal(val)}\n\n`;
-      }
+      const visible = NUMBER_FIELDS.includes(f) ? numberShows(record, f, idx) : hasVal(val); if (!visible) return;
+      const rows = DATE_FIELDS.includes(f) ? [formatDate(val)] : splitBySentence(fmtVal(val)).flatMap(item => COMMA_SPLIT_FIELDS.includes(f) ? splitByComma(item) : [item]);
+      text += `${label}\n${'-'.repeat(40)}\n`; rows.forEach((row, rowIndex) => { text += `${rowIndex + 1}. ${row}\n`; }); text += '\n';
     });
     return text;
   }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
@@ -515,10 +507,6 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
     let text = '=== VITAL SIGNS MONITORING ===\n\n';
     pdfData.forEach((r, idx) => {
       text += `Vital Signs ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      if (hasVal(r.date)) text += `Date: ${formatDate(r.date)}\n`;
-      if (hasVal(r.provider)) text += `Provider: ${fmtVal(r.provider)}\n`;
-      if (hasVal(r.facility)) text += `Facility: ${fmtVal(r.facility)}\n`;
-      if (hasVal(r.date) || hasVal(r.provider) || hasVal(r.facility)) text += '\n';
       Object.keys(SECTION_FIELDS).forEach(sid => {
         text += buildSectionCopyText(r, idx, sid);
       });
@@ -539,12 +527,12 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
+        <div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={value => setEditValue(value || '')} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -557,7 +545,7 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
               <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
-        </div>
+        </div></div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
@@ -581,10 +569,7 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx, sid, null, editValue === 'Yes'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -604,7 +589,7 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: NUMBER FIELD (numeric input, hide-zero, parseFloat) ═══════ */
-  const renderNumberField = (record, fn, idx, sid) => {
+  const renderNumberFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
     /* numeric presence — never truthiness; absent/empty hidden, 0 hidden per medical convention */
     const num = (val === null || val === undefined || val === '') ? null : Number(val);
@@ -624,7 +609,7 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-input" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <input type="text" inputMode="decimal" className="edit-input" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const parsed = parseFloat(editValue); handleSaveField(record, fn, idx, sid, null, isNaN(parsed) ? editValue : parsed); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -701,7 +686,7 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: STRING FIELD with splitBySentence + showLabel ═══════ */
-  const renderStringField = (record, fn, idx, sid) => {
+  const renderStringFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
@@ -828,6 +813,24 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
     );
   };
 
+  const renderNumberField = (record, fn, idx, sid) => {
+    if (!numberShows(record, fn, idx)) return null; const value = getFieldValue(record, fn, idx), label = FIELD_LABELS[fn] || fn, editKey = `${fn}-${idx}`, isEditing = editingField === editKey, isModified = editedFields[editKey];
+    const save = () => { const number = Number(editValue); if (!Number.isFinite(number)) { setSaveError('Enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, number); };
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(value)); } }}>{isEditing ? <div className="edit-field-container"><div className="number-edit-row"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button><input type="text" inputMode="decimal" className="edit-input" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button></div>{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); save(); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{String(value)}</span><span className="edit-indicator">&#9998;</span></div><button className="copy-btn" onClick={event => { event.stopPropagation(); copyItem(String(value), editKey); }}>Copy</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderEnumField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (!hasVal(value)) return null; const label = FIELD_LABELS[fn] || fn, editKey = `${fn}-${idx}`, isEditing = editingField === editKey, isModified = editedFields[editKey];
+    return <div key={fn} className="rec-mini-card nested-mini-card"><div className="nested-subtitle">{label}</div><div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(value)); } }}>{isEditing ? <div className="edit-field-container"><BlueSelect value={editValue} options={ENUM_FIELDS[fn]} onChange={setEditValue} /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); handleSaveField(record, fn, idx, sid); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{String(value)}</span><span className="edit-indicator">&#9998;</span></div><button className="copy-btn" onClick={event => { event.stopPropagation(); copyItem(String(value), editKey); }}>Copy</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>;
+  };
+
+  const renderStringField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (!hasVal(value)) return null; const label = FIELD_LABELS[fn] || fn;
+    const rows = splitBySentence(fmtVal(value)).flatMap(item => COMMA_SPLIT_FIELDS.includes(fn) ? splitByComma(item) : [item]).map((item, rowIndex) => ({ value: item, rowIndex }));
+    const saveRow = row => { const next = rows.map(item => item.value); next[row.rowIndex] = editValue.trim(); handleSaveField(record, fn, idx, sid, null, next.join('; '), `${fn}-${idx}-r${row.rowIndex}`); };
+    return <div key={fn} className="rec-mini-card"><div className="nested-subtitle">{highlightText(label)}</div><div className="nested-mini-card">{rows.map(row => { const editKey = `${fn}-${idx}-r${row.rowIndex}`, isEditing = editingField === editKey, isModified = editedFields[editKey]; return <div key={editKey} data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(row.value); } }}>{isEditing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); saveRow(row); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(row.value)}</span><span className="edit-indicator">&#9998;</span></div><button className="copy-btn" onClick={event => { event.stopPropagation(); copyItem(row.value, editKey); }}>Copy</button></>}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div>; })}</div></div>;
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -837,7 +840,7 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
       if (NUMBER_FIELDS.includes(f)) { const n = (val === null || val === undefined || val === '') ? null : Number(val); return n !== null && !isNaN(n) && n !== 0; }
-      return hasVal(val);
+      return NUMBER_FIELDS.includes(f) ? numberShows(record, f, idx) : hasVal(val);
     });
     if (!hasAnyVal) return null;
 
@@ -854,6 +857,7 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
           </div>
           {fields.map(f => {
             if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
+            if (ENUM_FIELDS[f]) return renderEnumField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
@@ -894,7 +898,7 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
         <h2 className="document-title">Vital Signs Monitoring</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<VitalSignsMonitoringDocumentPDFTemplate document={pdfData} />} fileName={`vital-signs-monitoring-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<VitalSignsMonitoringDocumentPDFTemplate document={pdfData} />} fileName="Vital_Signs_Monitoring.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -907,15 +911,9 @@ const VitalSignsMonitoringDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {(hasVal(record.date) || hasVal(record.provider) || hasVal(record.facility)) && (
-                <div className="record-meta-row">
-                  {hasVal(record.date) && <span className="record-date">{highlightText(formatDate(record.date))}</span>}
-                  {hasVal(record.provider) && <span className="record-meta-item">{highlightText(fmtVal(record.provider))}</span>}
-                  {hasVal(record.facility) && <span className="record-meta-item">{highlightText(fmtVal(record.facility))}</span>}
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Vital Signs ${idx + 1}`)}</h3>
             </div>
+            {renderSection(record, idx, 'context')}
             {renderSection(record, idx, 'blood-pressure-perfusion')}
             {renderSection(record, idx, 'cardiopulmonary')}
             {renderSection(record, idx, 'temperature-glucose')}

@@ -8,28 +8,27 @@
  *   - Numbers (14) → numeric presence check (0/absent hidden, NEVER truthiness)
  *   - Strings (13) → short coded values inline (provider/facility in header)
  *
- * Rule #74: each section is ONE wrap-gated View, sectionTitle is the FIRST child,
- * wrap={items > 8 ? undefined : false}; only recordHeader is unconditionally wrap={false}.
+ * Rule #74: each section title is protected by a non-wrapping heading block.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, paddingBottom: 64, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, backgroundColor: '#ffffff', color: '#000000' },
+  documentHeader: { marginBottom: 18 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   recordDate: { fontSize: 11, color: '#000000', fontFamily: 'Helvetica' },
   recordMeta: { fontSize: 11, color: '#000000', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#000000', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 8, marginBottom: 5, paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 6 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 2, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.4, color: '#000000', paddingLeft: 8 },
+  listItem: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 2, paddingLeft: 8 },
   nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   noDataText: { fontSize: 12, color: '#000000', textAlign: 'center', marginTop: 40 },
@@ -37,6 +36,7 @@ const styles = StyleSheet.create({
 
 /* ======= FIELD CONFIG (mirror JSX) ======= */
 const SECTION_TITLES = {
+  'context': 'Monitoring Context',
   'blood-pressure-perfusion': 'Blood Pressure & Perfusion',
   'cardiopulmonary': 'Cardiopulmonary',
   'temperature-glucose': 'Temperature & Glucose',
@@ -45,6 +45,9 @@ const SECTION_TITLES = {
 };
 
 const FIELD_LABELS = {
+  date: 'Date',
+  provider: 'Provider',
+  facility: 'Facility',
   systolicBloodPressure: 'Systolic BP (mmHg)',
   diastolicBloodPressure: 'Diastolic BP (mmHg)',
   meanArterialPressure: 'Mean Arterial Pressure (mmHg)',
@@ -73,6 +76,7 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
+  'context': ['date', 'provider', 'facility'],
   'blood-pressure-perfusion': ['systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure', 'bloodPressurePosition', 'bloodPressureSite', 'capillaryRefillTime'],
   'cardiopulmonary': ['heartRate', 'pulseRhythm', 'pulseQuality', 'respiratoryRate', 'oxygenSaturation', 'supplementalOxygen', 'oxygenDeliveryMethod'],
   'temperature-glucose': ['bodyTemperature', 'temperatureUnit', 'bloodGlucoseLevel'],
@@ -80,12 +84,12 @@ const SECTION_FIELDS = {
   'scoring': ['earlyWarningScore', 'monitoringFrequency'],
 };
 
-const SECTION_ORDER = ['blood-pressure-perfusion', 'cardiopulmonary', 'temperature-glucose', 'neuro-pain', 'scoring'];
+const SECTION_ORDER = ['context', 'blood-pressure-perfusion', 'cardiopulmonary', 'temperature-glucose', 'neuro-pain', 'scoring'];
 
 const BOOLEAN_FIELDS = [];
 const NUMBER_FIELDS = ['systolicBloodPressure', 'diastolicBloodPressure', 'heartRate', 'respiratoryRate', 'bodyTemperature', 'oxygenSaturation', 'meanArterialPressure', 'painScore', 'glasgowComaScore', 'bloodGlucoseLevel', 'pupilSizeLeft', 'pupilSizeRight', 'earlyWarningScore', 'capillaryRefillTime'];
 const ARRAY_FIELDS = [];
-const SENTENCE_FIELDS = [];
+const SENTENCE_FIELDS = ['consciousnessLevel', 'supplementalOxygen'];
 
 /* ======= UTILS ======= */
 const formatDate = (dateStr) => {
@@ -132,7 +136,7 @@ const fieldHasVal = (fn, v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -163,6 +167,12 @@ const renderFieldChildren = (record, fn, keyBase) => {
   const label = FIELD_LABELS[fn] || fn;
   const out = [];
 
+  if (fn === 'date') {
+    out.push(<Text key={`${keyBase}-l`} style={styles.fieldLabel}>{label}</Text>);
+    out.push(<Text key={`${keyBase}-v`} style={styles.fieldValue}>{formatDate(val)}</Text>);
+    return out;
+  }
+
   if (BOOLEAN_FIELDS.includes(fn)) {
     out.push(<Text key={`${keyBase}-l`} style={styles.fieldLabel}>{label}</Text>);
     out.push(<Text key={`${keyBase}-v`} style={styles.fieldValue}>{boolDisplay(val)}</Text>);
@@ -186,7 +196,7 @@ const renderFieldChildren = (record, fn, keyBase) => {
   const strVal = safeString(val);
   if (SENTENCE_FIELDS.includes(fn)) {
     const sentences = splitBySentence(strVal);
-    if (sentences.length > 1) {
+    if (sentences.length >= 1) {
       out.push(<Text key={`${keyBase}-l`} style={styles.fieldLabel}>{label}</Text>);
       let n = 1;
       sentences.forEach((s, si) => {
@@ -199,7 +209,7 @@ const renderFieldChildren = (record, fn, keyBase) => {
             return;
           }
         }
-        out.push(<Text key={`${keyBase}-s${si}`} style={styles.listItem}>{n++}. {safeString(s).replace(/[;.]+$/, '').trim()}</Text>);
+        splitByComma(s).forEach((item, itemIndex) => out.push(<Text key={`${keyBase}-s${si}-${itemIndex}`} style={styles.listItem}>{n++}. {safeString(item).replace(/[;.]+$/, '').trim()}</Text>));
       });
       return out;
     }
@@ -226,25 +236,28 @@ const renderSection = (record, sid) => {
   const rowCount = children.length;
 
   return (
-    <View key={sid} style={styles.section} wrap={rowCount > 8 ? undefined : false}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View key={sid} style={styles.section} wrap={rowCount > 8}>
+      <View wrap={false} minPresenceAhead={100}><Text style={styles.sectionTitle}>{title}</Text></View>
       {children}
     </View>
   );
 };
 
 /* ======= MAIN COMPONENT ======= */
-const VitalSignsMonitoringDocumentPDFTemplate = ({ document: data }) => {
+const VitalSignsMonitoringDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const source = documentProp ?? data ?? templateData;
   const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.vital_signs_monitoring) return Array.isArray(r.vital_signs_monitoring) ? r.vital_signs_monitoring : [r.vital_signs_monitoring];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.vital_signs_monitoring) return Array.isArray(dd.vital_signs_monitoring) ? dd.vital_signs_monitoring : [dd.vital_signs_monitoring]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [source]);
 
   if (!records || records.length === 0) {
     return (
@@ -271,16 +284,6 @@ const VitalSignsMonitoringDocumentPDFTemplate = ({ document: data }) => {
             {index > 0 && <View style={styles.separator} />}
 
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-                {(record.provider || record.facility) && (
-                  <Text style={styles.recordMeta}>
-                    {[record.provider, record.facility].filter(Boolean).map(v => safeString(v)).join(' • ')}
-                  </Text>
-                )}
-              </View>
               <Text style={styles.recordTitle}>
                 {`Vital Signs ${index + 1}`}
               </Text>

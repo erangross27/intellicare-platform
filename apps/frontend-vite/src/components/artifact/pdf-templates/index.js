@@ -144,6 +144,7 @@ import VariantInterpretationGuidelinesDocumentPDFTemplate from './VariantInterpr
 import VascularBypassSurgeryDocumentPDFTemplate from './VascularBypassSurgeryDocumentPDFTemplate';
 import VascularSurgeryAssessmentDocumentPDFTemplate from './VascularSurgeryAssessmentDocumentPDFTemplate';
 import VasculitisAssessmentDocumentPDFTemplate from './VasculitisAssessmentDocumentPDFTemplate';
+import VenousInsufficiencyAssessmentDocumentPDFTemplate from './VenousInsufficiencyAssessmentDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -277,6 +278,7 @@ const templateRegistry = {
   'vascular_bypass_surgery': VascularBypassSurgeryDocumentPDFTemplate,
   'vascular_surgery_assessment': VascularSurgeryAssessmentDocumentPDFTemplate,
   'vasculitis_assessment': VasculitisAssessmentDocumentPDFTemplate,
+  'venous_insufficiency_assessment': VenousInsufficiencyAssessmentDocumentPDFTemplate,
 };
 
 /**

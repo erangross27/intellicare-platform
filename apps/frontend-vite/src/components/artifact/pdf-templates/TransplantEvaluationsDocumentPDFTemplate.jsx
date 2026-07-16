@@ -1,86 +1,18 @@
-/**
- * TransplantEvaluationsDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — transplant evaluations
- * Collection: transplant_evaluations
- */
+/** Transplant Evaluations — canonical box-free PDF, collection transplant_evaluations. */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 8, marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 5, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', paddingBottom: 3, marginTop: 9, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#333333', paddingBottom: 1, marginTop: 4, marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
+  listItem: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 1, paddingLeft: 8 },
+  noDataText: { fontSize: 14, color: '#000000', marginTop: 40 },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
-};
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
-};
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  return true;
-};
-
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
-};
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
-};
-
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
-};
-
-/* ======= FIELD CONFIG ======= */
 const SECTION_TITLES = {
   'transplant-info': 'Transplant Information',
   'cardiac-pulmonary': 'Cardiac & Pulmonary',
@@ -88,31 +20,17 @@ const SECTION_TITLES = {
   'functional-psychosocial': 'Functional & Psychosocial',
   'risk-factors': 'Risk Factors & Screening',
 };
-
 const FIELD_LABELS = {
-  organType: 'Organ Type',
-  transplantEligibilityStatus: 'Transplant Eligibility Status',
-  dialysisHistory: 'Dialysis History',
-  bodyMassIndex: 'Body Mass Index (BMI)',
-  leftVentricularEjectionFraction: 'Left Ventricular Ejection Fraction',
-  nyhaClassification: 'NYHA Classification',
-  coronaryAngiographyResults: 'Coronary Angiography Results',
-  pulmonaryFunctionTests: 'Pulmonary Function Tests',
-  aboBloodType: 'ABO Blood Type',
-  hlaTyping: 'HLA Typing',
-  crossmatchResults: 'Crossmatch Results',
-  panelReactiveAntibodies: 'Panel Reactive Antibodies',
-  viralSerologyPanel: 'Viral Serology Panel',
-  cancerScreeningResults: 'Cancer Screening Results',
-  functionalStatusAssessment: 'Functional Status Assessment',
-  psychosocialEvaluation: 'Psychosocial Evaluation',
-  liverBiopsy: 'Liver Biopsy',
-  contraindications: 'Contraindications',
-  vaccineStatus: 'Vaccine Status',
-  calculatedMeldScore: 'Calculated MELD Score',
-  estimatedGlomerularFiltrationRate: 'Estimated GFR (eGFR)',
+  organType: 'Organ Type', transplantEligibilityStatus: 'Transplant Eligibility Status', dialysisHistory: 'Dialysis History',
+  bodyMassIndex: 'Body Mass Index (BMI)', leftVentricularEjectionFraction: 'Left Ventricular Ejection Fraction',
+  nyhaClassification: 'NYHA Classification', coronaryAngiographyResults: 'Coronary Angiography Results',
+  pulmonaryFunctionTests: 'Pulmonary Function Tests', aboBloodType: 'ABO Blood Type', hlaTyping: 'HLA Typing',
+  crossmatchResults: 'Crossmatch Results', panelReactiveAntibodies: 'Panel Reactive Antibodies',
+  viralSerologyPanel: 'Viral Serology Panel', cancerScreeningResults: 'Cancer Screening Results',
+  functionalStatusAssessment: 'Functional Status Assessment', psychosocialEvaluation: 'Psychosocial Evaluation',
+  liverBiopsy: 'Liver Biopsy', contraindications: 'Contraindications', vaccineStatus: 'Vaccine Status',
+  calculatedMeldScore: 'Calculated MELD Score', estimatedGlomerularFiltrationRate: 'Estimated GFR (eGFR)',
 };
-
 const SECTION_FIELDS = {
   'transplant-info': ['organType', 'transplantEligibilityStatus', 'dialysisHistory', 'bodyMassIndex'],
   'cardiac-pulmonary': ['leftVentricularEjectionFraction', 'nyhaClassification', 'coronaryAngiographyResults', 'pulmonaryFunctionTests'],
@@ -120,143 +38,65 @@ const SECTION_FIELDS = {
   'functional-psychosocial': ['functionalStatusAssessment', 'psychosocialEvaluation', 'liverBiopsy'],
   'risk-factors': ['contraindications', 'vaccineStatus', 'calculatedMeldScore', 'estimatedGlomerularFiltrationRate'],
 };
-
-const ARRAY_FIELDS = ['contraindications', 'vaccineStatus'];
-
-/* ======= RENDER FIELD ======= */
-const renderField = (record, fn) => {
-  const val = record[fn];
-  if (!hasVal(val)) return null;
-  const label = FIELD_LABELS[fn] || fn;
-
-  if (ARRAY_FIELDS.includes(fn)) {
-    const items = Array.isArray(val) ? val.filter(Boolean) : [val];
-    if (items.length === 0) return null;
-    return (
-      <View key={fn} style={styles.fieldBox}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        {items.map((item, i) => (
-          <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-        ))}
-      </View>
-    );
+const NUMBER_FIELDS = new Set(['bodyMassIndex', 'leftVentricularEjectionFraction', 'panelReactiveAntibodies', 'calculatedMeldScore', 'estimatedGlomerularFiltrationRate']);
+const ARRAY_FIELDS = new Set(['contraindications', 'vaccineStatus']);
+const PERIOD_SPLIT_FIELDS = new Set(['hlaTyping', 'psychosocialEvaluation', 'cancerScreeningResults', 'functionalStatusAssessment']);
+const COMMA_ARRAY_FIELDS = new Set(['pulmonaryFunctionTests', 'hlaTyping', 'viralSerologyPanel']);
+const safeString = value => String(value ?? '').replace(/×/g, 'x').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
+const hasVal = value => value !== null && value !== undefined && value !== '' && (typeof value !== 'string' || value.trim() !== '') && (!Array.isArray(value) || value.length > 0);
+const parseLabel = text => { const match = safeString(text).match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]+)/); return match ? { isLabeled: true, label: match[1].trim(), value: match[2].trim() } : { isLabeled: false, label: '', value: safeString(text) }; };
+const splitByComma = text => {
+  const source = safeString(text); const out = []; let current = ''; let depth = 0;
+  for (const character of source) {
+    if (character === '(') { depth += 1; current += character; }
+    else if (character === ')') { depth = Math.max(0, depth - 1); current += character; }
+    else if (character === ',' && depth === 0) { if (current.trim()) out.push(current.trim()); current = ''; }
+    else current += character;
   }
-
-  const strVal = safeString(val);
-  const sentences = splitBySentence(strVal);
-
-  if (sentences.length > 1) {
-    let n = 1;
-    return (
-      <View key={fn} style={styles.fieldBox}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        {sentences.map((sentence, sIdx) => {
-          const parsed = parseLabel(sentence);
-          if (parsed.isLabeled) {
-            const commaItems = splitByComma(parsed.value);
-            if (commaItems.length >= 2) {
-              return (
-                <View key={sIdx}>
-                  <Text style={styles.nestedSubtitle}>{parsed.label}:</Text>
-                  {commaItems.map((ci, ciIdx) => (
-                    <Text key={ciIdx} style={styles.listItem}>{n++}. {ci}</Text>
-                  ))}
-                </View>
-              );
-            }
-            return (
-              <View key={sIdx}>
-                <Text style={styles.nestedSubtitle}>{parsed.label}:</Text>
-                <Text style={styles.listItem}>{n++}. {parsed.value}</Text>
-              </View>
-            );
-          }
-          return <Text key={sIdx} style={styles.listItem}>{n++}. {sentence}</Text>;
-        })}
-      </View>
-    );
+  if (current.trim()) out.push(current.trim());
+  return out.length ? out : [source];
+};
+const splitEditableClauses = (value, fieldPath) => {
+  const source = safeString(value); const out = []; let current = ''; let depth = 0; const push = () => { if (current.trim()) out.push(current.trim()); current = ''; };
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index]; if (character === '(') depth += 1; if (character === ')') depth = Math.max(0, depth - 1);
+    const next = source[index + 1] || ''; const previousWord = current.trim().match(/([A-Za-z]+)$/)?.[1] || '';
+    const safePeriod = character === '.' && PERIOD_SPLIT_FIELDS.has(fieldPath) && depth === 0 && /\s/.test(next)
+      && !['Mr', 'Mrs', 'Ms', 'Dr', 'St', 'Jr', 'Sr', 'Prof', 'Rev', 'Gen', 'Col', 'Sgt', 'vs', 'etc'].includes(previousWord) && !/\b[A-Z]$/.test(current) && !/\d$/.test(current);
+    const safeSemicolon = character === ';' && PERIOD_SPLIT_FIELDS.has(fieldPath) && depth === 0;
+    if (safePeriod || safeSemicolon) { push(); while (/\s/.test(source[index + 1] || '')) index += 1; } else current += character;
   }
-
-  return (
-    <View key={fn} style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{strVal}</Text>
-    </View>
-  );
+  push(); return out.length ? out : [source];
 };
+const unwrapRecords = data => (Array.isArray(data) ? data : data ? [data] : []).flatMap(record => {
+  if (record?.transplant_evaluations) return Array.isArray(record.transplant_evaluations) ? record.transplant_evaluations : [record.transplant_evaluations];
+  if (record?.documentData) { const inner = record.documentData; if (Array.isArray(inner)) return inner; if (inner?.transplant_evaluations) return Array.isArray(inner.transplant_evaluations) ? inner.transplant_evaluations : [inner.transplant_evaluations]; return [inner]; }
+  return [record];
+}).filter(record => record && typeof record === 'object');
 
-/* ======= RENDER SECTION ======= */
-const renderSection = (record, sid) => {
-  const title = SECTION_TITLES[sid];
-  const fields = SECTION_FIELDS[sid] || [];
-  const hasAny = fields.some(f => hasVal(record[f]));
-  if (!hasAny) return null;
-
-  return (
-    <View key={sid} style={styles.section} wrap={false}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {fields.map(f => renderField(record, f))}
-    </View>
-  );
-};
-
-/* ======= MAIN COMPONENT ======= */
-const TransplantEvaluationsDocumentPDFTemplate = ({ document: docProp }) => {
-  let records = [];
-  if (!docProp) records = [];
-  else if (Array.isArray(docProp)) {
-    records = docProp.flatMap(r => {
-      if (r?.transplant_evaluations) return Array.isArray(r.transplant_evaluations) ? r.transplant_evaluations : [r.transplant_evaluations];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; return [dd]; }
-      return [r];
+const TransplantEvaluationsDocumentPDFTemplate = ({ document: data }) => {
+  const records = unwrapRecords(data);
+  const fieldBody = (record, fn) => {
+    const value = record[fn]; if (!hasVal(value)) return [];
+    const label = FIELD_LABELS[fn] || fn; let rows = []; let rowNumber = 1;
+    if (NUMBER_FIELDS.has(fn)) rows.push(<Text key={fn} style={styles.listItem}>1. {safeString(value)}</Text>);
+    else if (ARRAY_FIELDS.has(fn)) (Array.isArray(value) ? value : [value]).filter(hasVal).forEach((item, index) => rows.push(<Text key={index} style={styles.listItem}>{rowNumber++}. {safeString(item)}</Text>));
+    else splitEditableClauses(value, fn).forEach((clause, clauseIndex) => {
+      const parsed = parseLabel(clause); const source = parsed.isLabeled ? parsed.value : clause;
+      const items = COMMA_ARRAY_FIELDS.has(fn) ? splitByComma(source) : [source];
+      const itemRows = items.map((item, itemIndex) => <Text key={`${clauseIndex}-${itemIndex}`} style={styles.listItem}>{rowNumber++}. {safeString(item)}</Text>);
+      if (parsed.isLabeled) rows.push(<View key={`${clauseIndex}-group`} wrap={false}><Text style={styles.subLabel}>{safeString(parsed.label)}</Text>{itemRows[0]}</View>, ...itemRows.slice(1));
+      else rows.push(...itemRows);
     });
-  } else {
-    records = [docProp];
-  }
-  records = records.filter(r => r && typeof r === 'object');
-
-  if (records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Transplant Evaluations</Text>
-          </View>
-          <Text style={styles.noDataText}>No transplant evaluation data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Transplant Evaluations</Text>
-        </View>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader}>
-              {hasVal(record.createdAt) && (
-                <View style={styles.recordDateRow}>
-                  <Text style={styles.recordDate}>{formatDate(record.createdAt)}</Text>
-                </View>
-              )}
-              <Text style={styles.recordTitle}>
-                {record.organType ? `${record.organType.charAt(0).toUpperCase() + record.organType.slice(1)} Transplant Evaluation` : `Transplant Evaluation ${idx + 1}`}
-              </Text>
-            </View>
-            {renderSection(record, 'transplant-info')}
-            {renderSection(record, 'cardiac-pulmonary')}
-            {renderSection(record, 'immunology-labs')}
-            {renderSection(record, 'functional-psychosocial')}
-            {renderSection(record, 'risk-factors')}
-            {idx < records.length - 1 && <View style={styles.separator} />}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+    if (rows.length <= 5) return [<View key={`${fn}-field`} wrap={false}><Text style={styles.fieldLabel}>{safeString(label)}</Text>{rows}</View>];
+    if (rows.length) { const [first, ...rest] = rows; rows = [<View key={`${fn}-field`} wrap={false}><Text style={styles.fieldLabel}>{safeString(label)}</Text>{first}</View>, ...rest]; }
+    return rows;
+  };
+  const renderSection = (record, sid) => {
+    let body = []; SECTION_FIELDS[sid].forEach(fn => { body = body.concat(fieldBody(record, fn)); }); if (!body.length) return null;
+    body = body.map((element, index) => React.cloneElement(element, { key: `${sid}-${index}` })); const [first, ...rest] = body;
+    return <View key={sid} wrap={body.length > 10 ? true : false}><View wrap={false}><Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>{first}</View>{rest}</View>;
+  };
+  return <Document><Page size="LETTER" style={styles.page}><Text style={styles.documentTitle}>Transplant Evaluations</Text>{records.length === 0 && <Text style={styles.noDataText}>No transplant evaluation records available</Text>}{records.map((record, index) => <View key={index} break={index > 0}><Text style={styles.recordTitle}>{`Transplant Evaluation ${index + 1}`}</Text>{Object.keys(SECTION_FIELDS).map(sid => renderSection(record, sid))}</View>)}</Page></Document>;
 };
-
 export default TransplantEvaluationsDocumentPDFTemplate;

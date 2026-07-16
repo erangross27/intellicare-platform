@@ -44,8 +44,9 @@ router.put('/:id/edit', async (req, res) => {
     const context = buildContext(req, 'write');
     const setFields = { [`${field}`]: value, 'doctorEdits.editedAt': new Date(), 'doctorEdits.editedBy': req.user?.id };
     if (arrayIndex !== undefined) { setFields[`${field}.${arrayIndex}`] = value; delete setFields[`${field}`]; }
-    await sda.update('treatment_goals', { _id: objectId }, { $set: setFields, $addToSet: { 'doctorEdits.editedFields': field } }, context);
-    return res.json({ success: true, id, editedField: field });
+    const result = await sda.update('treatment_goals', { _id: objectId }, { $set: setFields, $addToSet: { 'doctorEdits.editedFields': field } }, context);
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Treatment goals record not found' });
+    return res.json({ success: true, id, editedField: field, modifiedCount: result.modifiedCount });
   } catch (err) {
     console.error(`[treatment_goals] PUT /:id/edit error:`, err.message);
     return res.status(500).json({ success: false, error: err.message });
@@ -58,7 +59,8 @@ router.put('/:id/approve', async (req, res) => {
     if (!objectId) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const sda = getSecureDataAccess();
     const context = buildContext(req, 'write');
-    await sda.update('treatment_goals', { _id: objectId }, { $set: { 'doctorEdits.approvedAt': new Date(), 'doctorEdits.approvedBy': req.user?.id, 'doctorEdits.status': 'approved' } }, context);
+    const result = await sda.update('treatment_goals', { _id: objectId }, { $set: { 'doctorEdits.approvedAt': new Date(), 'doctorEdits.approvedBy': req.user?.id, 'doctorEdits.status': 'approved' } }, context);
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Treatment goals record not found' });
     return res.json({ success: true, id, status: 'approved' });
   } catch (err) {
     console.error(`[treatment_goals] PUT /:id/approve error:`, err.message);

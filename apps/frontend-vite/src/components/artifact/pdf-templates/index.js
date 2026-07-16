@@ -95,6 +95,7 @@ import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTempla
 import AcmgGuidelinesReferencePDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
 import StagingSummaryDocumentPDFTemplate from './StagingSummaryDocumentPDFTemplate';
 import StemCellTransplantAssessmentDocumentPDFTemplate from './StemCellTransplantAssessmentDocumentPDFTemplate';
+import TransplantAssessmentDocumentPDFTemplate from './TransplantAssessmentDocumentPDFTemplate';
 import StiScreeningPanelDocumentPDFTemplate from './StiScreeningPanelDocumentPDFTemplate';
 import StressManagementReferralsDocumentPDFTemplate from './StressManagementReferralsDocumentPDFTemplate';
 import StressTestReportsDocumentPDFTemplate from './StressTestReportsDocumentPDFTemplate';
@@ -203,6 +204,7 @@ const templateRegistry = {
   'chronic_pain_assessment': ChronicPainAssessmentPDFTemplate,
   'staging_summary': StagingSummaryDocumentPDFTemplate,
   'stem_cell_transplant_assessment': StemCellTransplantAssessmentDocumentPDFTemplate,
+  'transplant_assessment': TransplantAssessmentDocumentPDFTemplate,
   'sti_screening_panel': StiScreeningPanelDocumentPDFTemplate,
   'stress_management_referrals': StressManagementReferralsDocumentPDFTemplate,
   'stress_test_reports': StressTestReportsDocumentPDFTemplate,

@@ -77,9 +77,9 @@ if [[ "$TOOL_NAME" == "Edit" ]] || [[ "$TOOL_NAME" == "Write" ]] || [[ "$TOOL_NA
   if [[ "$FILE_PATH" == */components/artifact/templates/*Document.jsx ]] \
      || [[ "$FILE_PATH" == */components/artifact/templates/*Document.css ]] \
      || [[ "$FILE_PATH" == */components/artifact/pdf-templates/* ]]; then
-    MSG=$(cat <<'EOF'
+    IFS= read -r -d '' MSG <<'EOF' || true
 🧩 TEMPLATE FILE EDIT — ONE-PASS POLISH AUDIT (full memory: search "template one-pass polish audit")
-⭐ DURABLE COMPLETION GATE (July 13 2026): BLUE-BEFORE-NEXT: BEFORE resolving or locking a new tracker target, verify the immediately prior completed row A:D is solid #00B0F0 by values/styles readback. If that evidence is missing, STOP on the prior row and do not inspect, lock, or edit the next template. Only after that gate passes, lock tracker row+prompt, collection, JSX, PDF, and exact real-record reference; a target correction invalidates the old lock. Run the FULL real record AND a non-PHI shape fixture for every changed renderer branch the real record leaves empty; also reproduce the exact user-visible value when it differs from Mongo. `data-edit-field` MUST be on a wrapper CONTAINING exactly one editable row/subtitle, NEVER on the clickable row itself (the harness uses descendant querySelector). Check the direct PDF import AND pdf-templates/index.js. FINAL command: `node scripts/completeTemplateAudit.mjs <TemplateName> --target /tmp/<target-lock>.json`; without its exit-0 receipt, do not say done and do not mark Excel blue. Prefer connected Excel read→format A:D #00B0F0→readback; offline workbook editing is fallback. FINAL REPORT: always include Template, Patient, Medical collection, and the exact test line `Show me <Patient Name> <Template Name>`. Chrome/browser control is per surface/session, never assumed.
+⭐ DURABLE COMPLETION GATE (updated July 16 2026): DEFERRED-BLUE TEXT QUEUE: use the local-only text snapshot of every tracker row that was unblue when this batch began; do not modify Excel formatting. BEFORE resolving a target, require that it is the first queue row not marked FINISHED locally. Lock tracker row+prompt, collection, JSX, PDF, and exact real-record reference; a target correction invalidates the old lock. Run the FULL real record AND a non-PHI shape fixture for every changed renderer branch the real record leaves empty; also reproduce the exact user-visible value when it differs from Mongo. `data-edit-field` MUST be on a wrapper CONTAINING exactly one editable row/subtitle, NEVER on the clickable row itself (the harness uses descendant querySelector). Check the direct PDF import AND pdf-templates/index.js. FINAL command: `node scripts/completeTemplateAudit.mjs <TemplateName> --target /tmp/<target-lock>.json`; without its exit-0 receipt plus exact-path commit/push, do not say done or record FINISHED. After success, update the local checkpoint with commit and the exact testing identity, then continue immediately to the next queued row. Excel blue coloring is deferred to the user and is not a prerequisite. FINAL REPORT: always include Template, Patient, Medical collection, and the exact test line `Show me <Patient Name> <Template Name>`. Chrome/browser control is per surface/session, never assumed.
 ⭐⭐ GATE (run BEFORE declaring ANY one-pass done — the widget harness ALONE is NOT the gate): cd apps/frontend-vite && node scripts/auditTemplate.mjs <TemplateName> <record.json> → exit 0 means all 11 items are green (approve button standard, copy EQ/DASH dividers + no side-by-side, PDF box-free underline rules, titles/fileName, RTL, enum dup-guard, widgets probed>0, Copy All + PDF render clean, ⭐ Mongo/JSX/PDF FIELD PARITY — every populated JSX SECTION_FIELDS field's label actually renders in the DOM-mock-rendered PDF, catching a field present in the JSX/record but MISSING from the PDF's OWN hardcoded field-config arrays: the EdTriageAssessment 'date missing from the PDF, header showed createdAt' bug, memory 6a4bb189). ⛔ NEVER key a PDF record-date off createdAt/updatedAt (ingestion timestamps) — render the SAME record.date the JSX edits. Fetch the REAL record via the Mongo MCP to a JSON file first. Details at item VERIFY below + memory 6a4b8964.
 ⭐⭐ COMPLETE EDITABILITY + ROW-PARITY GATE (Pulmonology Consultations row 644, user-caught July 12 2026; memory 6a53c1e538ccc6e2597ad1d6): inventory EVERY populated scalar leaf from the REAL record, including bespoke objects/arrays, values hidden in subtitles, dates, and dynamic results. EVERY visible .content-value row must be an .editable-row. A card with multiple rows must give EACH leaf a stable data-edit-field so the harness re-queries every occurrence after React renders. A green "probed > 0" is NOT sufficient: auditTemplate must show (1) zero visible read-only scalar rows, (2) every multi-row leaf harness-tracked, (3) widget probe count EXACTLY equals visible scalar row count, (4) Save + Pending Approve sends every exact Mongo dot path, and (5) EVERY JSX scalar row appears separately in Copy All and PDF. ⛔ A synthetic fixture that omits a reported value is a vacuous test — preserve the FULL real field text (the shortened Emily Notes fixture hid the care-team comma split). Backend ALLOWED_FIELDS must include every nested root; approved arbitrary-depth edits must merge into JSX/Copy/PDF without mutating the source record.
 ⭐ EDIT SAVE/CANCEL = LEFT (standing user pref, memory 6a4b923a, user-caught twice): .edit-actions { justify-content: flex-start } — NEVER flex-end. flex-START = LEFT. auditTemplate.mjs fails on flex-end.
@@ -107,7 +107,6 @@ When asked to fix ONE thing in a template, proactively AUDIT + FIX ALL of these 
 VERIFY: esbuild both files + node-simulate the copy output against the REAL patient document (mongosh), not invented data. ⛔ TDZ DEP-ARRAY CRASH (DermatologyProcedureNotes, USER-HIT live, July 5 2026, memory 6a49...): a useCallback/useMemo DEPENDENCY ARRAY referencing a const declared LATER in the component body throws 'Cannot access X before initialization' on EVERY render — esbuild passes it, only rendering catches it. GREP each hook's dep array identifiers against declaration ORDER when touching a template; jsdom-render the template in the harness before shipping. If the user reports a PDF "still broken" right after a fix: PROVE the on-disk file first (render + extract fonts/page text from the bytes) — if correct, it's a STALE browser build/old download → hard refresh + check the downloaded fileName (Underscore_Name.pdf rename = freshness marker); memory 6a4626b2.
 ⛔⛔ ONE-PASS COMPLETENESS — EDIT-PROBE EVERY WIDGET BEFORE DECLARING DONE (DoctorsMedicationRecommendations July 5 2026, memory 6a4aab16): I keep shipping a PARTIAL one-pass and the user catches the skipped widgets ONE BY ONE — this session BlueDatePicker + dosage number+unit stepper + indication comma-split were EACH skipped then user-caught in 3 separate rounds. RULE: GREP the REAL record's field VALUES and wire the widget the VALUE demands, then click-probe each in the harness (assert the right widget mounted): date-shaped (ISO / 'YYYY-MM-DD' / day) → BlueDatePicker; bare-number or number+unit string ("100 mg") → −/+ stepper; fixed-choice → BlueSelect; narrative with an internal ';' or ',' → sentence→semicolon→guarded-comma LEAF split (DEFAULT SPLIT — threshold 2 for distinct clinical clauses; THIS user wants aggressive comma/semicolon splitting on narrative fields, memory 6a4a4cd5). Do NOT say "full one-pass done" until every field's widget is applied AND edit-probed. ⭐ RUN THE COMMITTED HARNESS (mechanical proof, not a promise): fetch the REAL record via the Mongo MCP → a JSON file, then `cd apps/frontend-vite && node scripts/verifyTemplateWidgets.mjs <TemplateName> <record.json>` — it renders the template, CLICKS every editable field, and EXITS 1 on any numeric-value-in-textarea / bare-number-input / native-<select> / native-<input type=date> / date-value-in-textarea mismatch. A GREEN widget run (exit 0) is NECESSARY BUT NOT SUFFICIENT — it ONLY covers item 8 (edit WIDGETS), NOT the approve button, copy dividers, PDF, or CSS. ⛔⛔ THE REAL ONE-PASS GATE IS: cd apps/frontend-vite && node scripts/auditTemplate.mjs <TemplateName> <record.json> (added July 6 2026 after EcgReports shipped a wrong "Approve" button + missing PDF underline lines + a too-narrow stepper that the widget harness could not see, and the user caught them one by one). It runs the WHOLE 11-item checklist STATICALLY (grep JSX/CSS/PDF) + DYNAMICALLY (renders Copy All + the PDF): approve-button standard (Pending Approve text / .pending yellow #eab308 / .approved green #22c55e / header-right-actions column BELOW Copy Section / text-transform capitalize / badge "edited - click Pending Approve to save"), copy EQ/DASH dividers + NO side-by-side "Label: value", PDF box-free underline rules (documentTitle 2pt / sectionTitle 1pt black / fieldLabel 0.5pt #999 borderBottom), titles/fileName Underscore_Name.pdf, RTL direction:ltr root+*, enum dup-guard (case-insensitive enumOptionsWith), and it re-runs verifyTemplateWidgets asserting >0 fields probed (catches the vacuous "0 scalar fields probed" green on Feb-2026 bespoke rows). auditTemplate.mjs exit 0 (EVERY check green) is REQUIRED before declaring a one-pass done — the widget harness is just its item-8 sub-check. enum dropdown option lists are still eyeballed (judgment calls).
 EOF
-)
     # Active detection: writing a native date input into a template is banned (July 2 2026).
     NEW_CONTENT="$(json_field tool_input.new_string toolInput.new_string)$(json_field tool_input.content toolInput.content toolInput.string_to_replace)"
     if printf '%s' "$NEW_CONTENT" | grep -q 'type="date"'; then
@@ -126,7 +125,7 @@ $MSG"
 
   # ─── intellicare-mobile app files → RELOAD-THE-APP reminder (user standing rule, July 7 2026) ───
   if [[ "$FILE_PATH" == */intellicare-mobile/* ]]; then
-    MSG=$(cat <<'EOF'
+    IFS= read -r -d '' MSG <<'EOF' || true
 📱 INTELLICARE-MOBILE EDIT — RELOAD THE APP AFTER THIS CHANGE (user standing rule, July 7 2026; MCP memory 6a4cbb91c395335e413c2a24)
 Metro's bundler cache can wedge and SILENTLY keep serving OLD JS, so a correct fix looks like it "does nothing" (backend logs show the request succeed while the UI stays stale — this cost 3 wasted round-trips on the chat-search fix). Before telling the user a mobile change works, RELOAD the running app and verify it actually took effect:
   1) Relaunch: xcrun simctl terminate <bootedId> com.intellicare.mobile && xcrun simctl launch <bootedId> com.intellicare.mobile   (booted id: xcrun simctl list devices booted)
@@ -134,12 +133,11 @@ Metro's bundler cache can wedge and SILENTLY keep serving OLD JS, so a correct f
   3) Native-module change (new expo-* package, e.g. expo-audio) → full 'npx expo run:ios' rebuild; a JS reload is NOT enough.
 Do NOT claim a mobile fix works until the running app has loaded the new code.
 EOF
-)
     emit_context "$MSG"
     exit 0
   fi
 
-  MSG=$(cat <<EOF
+  IFS= read -r -d '' MSG <<EOF || true
 ⚠️ PRE-TOOL VALIDATION - CODE MODIFICATION DETECTED
 
 You are about to modify code using the ${TOOL_NAME} tool.
@@ -171,7 +169,6 @@ Q: Did you search MCP memories before this code modification?
    → To answer "SEARCHED", you must have executed search_memories first
    → Be honest - if you didn't search, say "NO SEARCH"
 EOF
-)
   emit_context "$MSG"
   exit 0
 fi
@@ -272,7 +269,7 @@ ${F}"
         fi
       fi
     fi
-    MSG=$(cat <<'EOF'
+    IFS= read -r -d '' MSG <<'EOF' || true
 ⚠️ PRE-COMMIT VALIDATION - GIT COMMIT DETECTED
 
 You are about to create a git commit.
@@ -312,7 +309,6 @@ Q2: Did you run the autonomous memory-hygiene retrospective locally?
    → You MUST show both answers above in your response
    → Never call MCP session mutation tools merely to satisfy this commit gate.
 EOF
-)
     emit_context "$MSG"
     exit 0
   fi

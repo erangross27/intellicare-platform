@@ -122,4 +122,4 @@ console.log(`   Collection: ${target.collection}`);
 console.log(`   Component: ${templateName}`);
 console.log(`   Renderer branches: ${target.rendererBranches.length}`);
 console.log(`   Supplemental shape fixtures: ${shapeFiles.size}`);
-console.log('   Tracker A:D is eligible for blue formatting after live Excel row verification.');
+console.log('   Eligible for a local FINISHED checkpoint; Excel coloring is deferred to the user.');

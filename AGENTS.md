@@ -28,10 +28,10 @@ one-pass rules injected by `claude-hooks/user-prompt-search.sh` and
 
 1. **Lock the target before editing.** Record the tracker row and prompt, Mongo
    collection, JSX component, PDF component, and exact real-record reference.
-   Before resolving that lock, verify the immediately prior completed tracker row
-   has A:D solid `#00B0F0` by values/styles readback. If that evidence is missing,
-   stop on the prior row and do not inspect, lock, or edit the next template. If
-   the user changes the target, discard the old lock and resolve all six again.
+   The active queue is the local-only text snapshot of the tracker rows that were
+   unblue when the batch began. Resume from the first queue row that is not marked
+   `FINISHED` locally; do not infer progress from Excel colors during this batch.
+   If the user changes the target, discard the old lock and resolve all six again.
 2. **Use two kinds of evidence.** Audit the full real Mongo record. For every
    modified generic-renderer branch that record does not populate, also audit a
    minimal non-PHI shape fixture. When the user reports an exact visible value,
@@ -56,17 +56,19 @@ one-pass rules injected by `claude-hooks/user-prompt-search.sh` and
    grouped-unlabeled rule supersedes any older per-row mini-card instruction.
 6. **Run the durable completion gate.** Use
    `node scripts/completeTemplateAudit.mjs <TemplateName> --target /tmp/<lock>.json`
-   from `apps/frontend-vite`. Do not declare completion or mark the tracker blue
-   unless it exits zero. The gate runs the real record and every declared branch
-   fixture through `auditTemplate.mjs`.
+   from `apps/frontend-vite`. Do not declare completion or record a local
+   `FINISHED` checkpoint unless it exits zero. The gate runs the real record and
+   every declared branch fixture through `auditTemplate.mjs`.
 7. **Verify PDF selection, not only PDF source.** Check both the direct component
    import and `pdf-templates/index.js` for stale or legacy mappings. Render the
    selected PDF and verify the canonical 26/19/16/13/14 typography.
-8. **Tracker readback is mandatory.** Prefer the connected Excel session when it
-   is available: read the exact row, format A:D solid `#00B0F0`, then read back
-   values and styles (and an image when available). Use an offline workbook tool
-   only when no live Excel session exists. Never blue a row before the completion
-   gate succeeds, and never begin the next tracker row until this readback succeeds.
+8. **Tracker coloring is deferred; local readback is mandatory.** At batch start,
+   prefer the connected Excel session to read all currently unblue A:D rows into
+   a local-only text queue outside the repository. Do not change Excel formatting.
+   After each template passes the completion gate and its exact-path commit/push
+   succeeds, mark that row `FINISHED` in the local checkpoint with its commit and
+   testing identity, then continue to the next queued row. Excel blue coloring is
+   performed by the user later and is not a prerequisite for the next target.
 9. **Always include the testing identity in the final report.** Every completed
    template report must state the template name, patient name, medical collection,
    and the exact test line in the form `Show me <Patient Name> <Template Name>`.

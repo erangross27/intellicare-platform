@@ -19,14 +19,14 @@ echo "🎯🎯🎯 SKILL CHECK - BEFORE ANY RESPONSE 🎯🎯🎯
 - The PreToolUse hook hard-blocks CI/Pages creation and activation. If future work appears to require either, stop and obtain an explicit policy reversal before changing the guard.
 
 ⭐ DURABLE SIX-LESSON GATE (July 13 2026; supersedes weaker/older wording)
-- BLUE-BEFORE-NEXT GATE: before resolving or locking a new tracker target, verify that the immediately prior completed template row has A:D solid #00B0F0 and that its values and styles were read back. If that evidence is missing, STOP on the prior row; do not inspect, lock, or edit the next template.
+- DEFERRED-BLUE TEXT-QUEUE GATE (user override July 16 2026): read all currently unblue tracker A:D rows into a local-only text queue outside the repository. Do not change Excel formatting. Resume from the first queue row not marked FINISHED locally; after audit exit 0 plus exact-path commit/push, record FINISHED with commit and testing identity, then continue immediately to the next queued row. Excel blue coloring is deferred to the user and is not a prerequisite during this batch.
 - TARGET LOCK: before editing, bind tracker row+prompt, collection, JSX component, PDF component, and exact real-record reference. A user target correction invalidates the whole old lock.
 - TWO EVIDENCE SOURCES: run the full real record plus a non-PHI shape fixture for every changed renderer branch the real record leaves empty. Also reproduce the exact user-visible value when it differs from Mongo. Keep fixtures outside the repo.
 - STANDALONE SCORE RATIOS: inventory every standalone clinical score string shaped like numerator/denominator, optionally followed by percentile or explanatory text. Route declared score fields to a custom minus/numeric-input/plus stepper that edits ONLY the numerator. Preserve the denominator, spacing, parentheses, percentile/explanatory suffix, and stored string shape exactly. Do not apply this to ratios embedded in narrative sentences or multi-number measurements such as blood pressure unless the exact field is explicitly mapped. The widget harness must classify standalone score ratios and fail when they mount a textarea.
 - EDITABLE DOM CONTRACT: data-edit-field is on a wrapper CONTAINING exactly one editable row/subtitle, never on the clickable row itself; the harness uses descendant querySelector.
 - GROUPING SUPERSESSION: one card per labeled group; one shared subtitle-free card per consecutive unlabeled run. Any older one-card-per-row memory is obsolete.
 - PDF SELECTION: inspect the direct import AND pdf-templates/index.js, then render the selected PDF and verify 26/19/16/13/14 typography.
-- COMPLETION RECEIPT: run completeTemplateAudit.mjs and require exit 0 before saying done or marking Excel blue. Prefer live Excel read/format/readback; offline workbook editing is fallback only.
+- COMPLETION RECEIPT: run completeTemplateAudit.mjs and require exit 0 before saying done or recording FINISHED in the local checkpoint. Prefer live Excel for the initial unblue-row snapshot; do not edit tracker formatting during this batch.
 - Browser/Chrome control is surface- and session-specific; discover it in the current session before promising browser QA.
 
 BEFORE responding to the user, check if ANY installed skill applies:
@@ -260,14 +260,14 @@ CSS VALUES (Copy these EXACTLY - do NOT guess!):
 [ ] pdf-templates/index.js - no legacy or conflicting registry mapping selects a stale PDF
 
 **Durable Completion Evidence:**
-[ ] Before this target was selected: the prior completed tracker row A:D was verified solid #00B0F0 by value/style readback; otherwise STOP before target lock
+[ ] Before this target was selected: it was the first non-FINISHED row in the local-only unblue-row text queue
 [ ] Target lock matches tracker row/prompt + collection + JSX + PDF + exact real-record reference
 [ ] Full real record passed auditTemplate
 [ ] Every modified renderer branch absent from the real record passed a non-PHI shape fixture
 [ ] Exact user-visible reported value was reproduced alongside the Mongo baseline
 [ ] completeTemplateAudit.mjs exited 0 and printed a completion receipt
-[ ] Only then: exact Excel row A:D formatted solid #00B0F0 and values/styles read back
-[ ] Do not select or lock the next tracker row until the blue readback above is complete
+[ ] Only then: local checkpoint row marked FINISHED with commit plus Template/Patient/Collection/Test line
+[ ] Excel formatting remains unchanged; continue to the next queued row without waiting for blue coloring
 
 ⚠️ If ANY checkbox is unchecked, FIX IT before saying done!
 

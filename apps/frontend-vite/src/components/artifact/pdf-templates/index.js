@@ -97,6 +97,7 @@ import StagingSummaryDocumentPDFTemplate from './StagingSummaryDocumentPDFTempla
 import StemCellTransplantAssessmentDocumentPDFTemplate from './StemCellTransplantAssessmentDocumentPDFTemplate';
 import TransplantAssessmentDocumentPDFTemplate from './TransplantAssessmentDocumentPDFTemplate';
 import TransplantEvaluationsDocumentPDFTemplate from './TransplantEvaluationsDocumentPDFTemplate';
+import TraumaAssessmentDocumentPDFTemplate from './TraumaAssessmentDocumentPDFTemplate';
 import StiScreeningPanelDocumentPDFTemplate from './StiScreeningPanelDocumentPDFTemplate';
 import StressManagementReferralsDocumentPDFTemplate from './StressManagementReferralsDocumentPDFTemplate';
 import StressTestReportsDocumentPDFTemplate from './StressTestReportsDocumentPDFTemplate';
@@ -207,6 +208,7 @@ const templateRegistry = {
   'stem_cell_transplant_assessment': StemCellTransplantAssessmentDocumentPDFTemplate,
   'transplant_assessment': TransplantAssessmentDocumentPDFTemplate,
   'transplant_evaluations': TransplantEvaluationsDocumentPDFTemplate,
+  'trauma_assessment': TraumaAssessmentDocumentPDFTemplate,
   'sti_screening_panel': StiScreeningPanelDocumentPDFTemplate,
   'stress_management_referrals': StressManagementReferralsDocumentPDFTemplate,
   'stress_test_reports': StressTestReportsDocumentPDFTemplate,

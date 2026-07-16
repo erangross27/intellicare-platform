@@ -140,6 +140,7 @@ import UrodynamicStudiesDocumentPDFTemplate from './UrodynamicStudiesDocumentPDF
 import UrologyAssessmentDocumentPDFTemplate from './UrologyAssessmentDocumentPDFTemplate';
 import UrologyConsultationsDocumentPDFTemplate from './UrologyConsultationsDocumentPDFTemplate';
 import VaccinationRecordsDocumentPDFTemplate from './VaccinationRecordsDocumentPDFTemplate';
+import VariantInterpretationGuidelinesDocumentPDFTemplate from './VariantInterpretationGuidelinesDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -269,6 +270,7 @@ const templateRegistry = {
   'urology_assessment': UrologyAssessmentDocumentPDFTemplate,
   'urology_consultations': UrologyConsultationsDocumentPDFTemplate,
   'vaccination_records': VaccinationRecordsDocumentPDFTemplate,
+  'variant_interpretation_guidelines': VariantInterpretationGuidelinesDocumentPDFTemplate,
 };
 
 /**

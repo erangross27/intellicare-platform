@@ -7,20 +7,20 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12 },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, paddingBottom: 64, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.4, backgroundColor: '#ffffff', color: '#000000' },
+  documentHeader: { marginBottom: 18 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10 },
   recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   recordDate: { fontSize: 12, color: '#000000', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 15, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#000000', marginBottom: 2 },
-  fieldValue: { fontSize: 13, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 13, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  section: { marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 8, marginBottom: 5, paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 6 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 2, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.4, color: '#000000', paddingLeft: 8 },
+  listItem: { fontSize: 14, lineHeight: 1.4, color: '#000000', marginBottom: 2, paddingLeft: 8 },
   nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20 },
   noDataText: { fontSize: 12, color: '#000000', textAlign: 'center', marginTop: 40 },
@@ -63,7 +63,7 @@ const fmtVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -159,14 +159,12 @@ const renderSentenceSection = (label, text, sectionTitle) => {
         rows.push({ type: 'item', text: safeString(s), num: n++ });
       }
     } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
+      splitByComma(s).forEach(item => rows.push({ type: 'item', text: safeString(item), num: n++ }));
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View style={styles.fieldBox} wrap={false}>
       {sectionTitle ? <Text style={styles.sectionTitle}>{sectionTitle}</Text> : null}
       <Text style={styles.fieldLabel}>{label}</Text>
       {rows.map((row, i) => {
@@ -184,9 +182,8 @@ const renderObjectSection = (label, value, sectionTitle) => {
   if (!hasVal(value) || typeof value !== 'object' || Array.isArray(value)) return null;
   const entries = flattenObject(value);
   if (entries.length === 0) return null;
-  const wrapProp = entries.length > 8 ? undefined : false;
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View style={styles.fieldBox} wrap={false}>
       {sectionTitle ? <Text style={styles.sectionTitle}>{sectionTitle}</Text> : null}
       <Text style={styles.fieldLabel}>{label}</Text>
       {entries.map((entry, i) => (
@@ -217,8 +214,8 @@ const SECTION_CONFIGS = [
     title: 'Core Vitals',
     fields: [
       { key: 'bloodPressure', label: 'Blood Pressure', isSentence: true },
-      { key: 'heartRate', label: 'Heart Rate' },
-      { key: 'temperature', label: 'Temperature' },
+      { key: 'heartRate', label: 'Heart Rate', isSentence: true },
+      { key: 'temperature', label: 'Temperature', isSentence: true },
       { key: 'respiratoryRate', label: 'Respiratory Rate' },
       { key: 'oxygenSaturation', label: 'Oxygen Saturation' },
       { key: 'position', label: 'Position' },
@@ -252,17 +249,19 @@ const SECTION_CONFIGS = [
 ];
 
 /* ======= COMPONENT ======= */
-const VitalSignsDocumentPDFTemplate = ({ document: data }) => {
+const VitalSignsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const source = documentProp ?? data ?? templateData;
   const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
       if (r?.vital_signs) return Array.isArray(r.vital_signs) ? r.vital_signs : [r.vital_signs];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.vital_signs) return Array.isArray(dd.vital_signs) ? dd.vital_signs : [dd.vital_signs]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [source]);
 
   if (!records || records.length === 0) {
     return (
@@ -290,7 +289,7 @@ const VitalSignsDocumentPDFTemplate = ({ document: data }) => {
             {index > 0 && <View style={styles.separator} />}
 
             {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
+            <View style={styles.recordHeader} wrap={false} minPresenceAhead={150}>
               <View style={styles.recordDateRow}>
                 {record.date && (
                   <Text style={styles.recordDate}>{formatDate(record.date)}</Text>

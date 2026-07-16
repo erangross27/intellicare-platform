@@ -150,6 +150,7 @@ import VentilatorSettingsDocumentPDFTemplate from './VentilatorSettingsDocumentP
 import VentilatorWeaningProtocolDocumentPDFTemplate from './VentilatorWeaningProtocolDocumentPDFTemplate';
 import VisionTherapyAssessmentDocumentPDFTemplate from './VisionTherapyAssessmentDocumentPDFTemplate';
 import VisualAcuityReportsDocumentPDFTemplate from './VisualAcuityReportsDocumentPDFTemplate';
+import VitalSignsDocumentPDFTemplate from './VitalSignsDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -289,6 +290,7 @@ const templateRegistry = {
   'ventilator_weaning_protocol': VentilatorWeaningProtocolDocumentPDFTemplate,
   'vision_therapy_assessment': VisionTherapyAssessmentDocumentPDFTemplate,
   'visual_acuity_reports': VisualAcuityReportsDocumentPDFTemplate,
+  'vital_signs': VitalSignsDocumentPDFTemplate,
 };
 
 /**

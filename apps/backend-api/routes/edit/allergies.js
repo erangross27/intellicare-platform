@@ -47,6 +47,7 @@ function toObjectId(str) {
 const ALLOWED_FIELDS = [
   'allergen', 'reaction', 'severity', 'type',
   'status', 'management', 'compliance', 'notes',
+  'dateIdentified',
 ];
 
 // ─── PUT /:id/edit — Edit a single field ──────────────────────────────────────

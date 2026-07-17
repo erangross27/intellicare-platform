@@ -1,117 +1,49 @@
-/* AllergiesDocument - December 2025 Complete Rebuild
- *
- * Font Hierarchy (CRITICAL):
- * - document-title: 32px
- * - section-title: 19px (Level 1 - BIGGEST)
- * - record-title: 20px
- * - nested-subtitle: 17px (Level 2 - MEDIUM)
- * - content-value: 16px (Level 3)
- */
+/* Allergies Document Template */
+/* March 2026 - Blue theme with inline editing */
 
 .allergies-document {
-  padding: 24px;
-  background: #0F1B33;
+  font-family: 'Comfortaa', sans-serif;
   color: #ececf1;
-  font-family: 'Comfortaa', Geneva, Tahoma, sans-serif;
+  padding: 20px;
+  max-width: 100%;
+  background: #0F1B33;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  direction: ltr;
 }
 
 .allergies-document * {
-  box-sizing: border-box;
+  direction: ltr;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DOCUMENT HEADER - 3 Rows: Title, Actions, Search
-   ═══════════════════════════════════════════════════════════════ */
-
+/* Document Header */
 .allergies-document .document-header {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   padding-bottom: 16px;
-  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+  border-bottom: 1px solid #565869;
 }
 
 .allergies-document .document-title {
-  font-size: 32px;
+  font-size: 22px;
   font-weight: 700;
-  color: #ececf1;
-  margin: 0;
-  letter-spacing: -0.5px;
+  color: #f1f5f9;
+  margin: 0 0 10px 0;
+  text-transform: none !important;
 }
 
-/* Header Actions - Row Layout, Right-Aligned */
 .allergies-document .header-actions {
-  display: flex !important;
-  flex-direction: row !important;
-  gap: 12px;
-  justify-content: flex-end !important;
-  align-items: center !important;
-}
-
-.allergies-document .header-actions .copy-btn,
-.allergies-document .header-actions .pdf-btn {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex: 0 0 auto !important;
-  min-width: 120px;
-  white-space: nowrap;
-  height: 36px;
-  padding: 8px 16px;
-  box-sizing: border-box;
-  background: transparent;
-  color: #ececf1;
-  border: 1px solid #2563eb;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: 'Comfortaa', sans-serif;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.allergies-document .header-actions .copy-btn:hover,
-.allergies-document .header-actions .pdf-btn:hover {
-  background: rgba(37, 99, 235, 0.2);
-  border-color: #60a5fa;
-}
-
-.allergies-document .header-actions .copy-btn.copied {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
 /* Search Container */
 .allergies-document .search-container {
   position: relative;
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-.allergies-document .search-input {
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box;
-  padding: 12px 40px 12px 16px;
-  background: #0d1929;
-  border: 1px solid #565869;
-  border-radius: 8px;
-  color: #ececf1;
-  font-size: 15px;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-.allergies-document .search-input:focus {
-  outline: none;
-  border-color: #60a5fa;
-}
-
-.allergies-document .search-input::placeholder {
-  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .allergies-document .clear-search {
@@ -122,46 +54,99 @@
   background: none;
   border: none;
   color: #9ca3af;
-  font-size: 22px;
+  font-size: 23px;
   cursor: pointer;
-  padding: 0;
-  line-height: 1;
+  padding: 4px 8px;
 }
 
 .allergies-document .clear-search:hover {
   color: #ececf1;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SECTION - mini-cards-container with section-header INSIDE
-   ═══════════════════════════════════════════════════════════════ */
-
-.allergies-document .section {
-  margin-bottom: 24px;
+.allergies-document .search-input {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid #565869;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 16px;
+  font-family: 'Comfortaa', sans-serif;
 }
 
-/* Mini Cards Container - OUTER blue glow box */
+.allergies-document .search-input:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.allergies-document .search-input::placeholder {
+  color: #8e8ea0;
+}
+
+/* Records Container */
+.allergies-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.allergies-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid #565869;
+  border-radius: 12px;
+  padding: 20px;
+  overflow: hidden;
+}
+
+/* Record Header */
+.allergies-document .record-header {
+  margin-bottom: 20px;
+  border-bottom: 2px solid #2563eb;
+  padding-bottom: 12px;
+}
+
+.allergies-document .header-top-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.allergies-document .record-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Section */
+.allergies-document .section {
+  margin-bottom: 20px;
+}
+
+/* Mini Cards Container */
 .allergies-document .mini-cards-container {
   background: rgba(96, 165, 250, 0.08);
   border: 2px solid rgba(96, 165, 250, 0.3);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 10px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-/* Section Header - INSIDE mini-cards-container with BLUE SEPARATOR */
+/* Section Header — INSIDE mini-cards-container */
 .allergies-document .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid rgba(96, 165, 250, 0.4);
 }
 
-/* Section Title - Level 1: BIGGEST (19px) */
 .allergies-document .section-title {
   font-size: 19px;
   font-weight: 700;
@@ -171,132 +156,27 @@
   font-family: 'Comfortaa', sans-serif;
 }
 
-/* Section Header Right - Date + Severity Badge */
-.allergies-document .section-header-right {
+/* Header Right Actions — column layout (copy on top, approve below) */
+.allergies-document .header-right-actions {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
 }
 
-/* Date Text - Plain text (no badge) */
-.allergies-document .date-text {
-  color: #9ca3af;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SEVERITY BADGES - Colored badges in section header
-   ═══════════════════════════════════════════════════════════════ */
-
-.allergies-document .severity-badge {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: capitalize;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-/* Severe - RED */
-.allergies-document .severity-badge.severity-severe {
-  background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-
-/* Moderate - ORANGE */
-.allergies-document .severity-badge.severity-moderate {
-  background: rgba(251, 146, 60, 0.2);
-  color: #fb923c;
-  border: 1px solid rgba(251, 146, 60, 0.4);
-}
-
-/* Mild - GREEN */
-.allergies-document .severity-badge.severity-mild {
-  background: rgba(34, 197, 94, 0.2);
-  color: #4ade80;
-  border: 1px solid rgba(34, 197, 94, 0.4);
-}
-
-/* Other/Unknown - GRAY */
-.allergies-document .severity-badge.severity-other {
-  background: rgba(156, 163, 175, 0.2);
-  color: #9ca3af;
-  border: 1px solid rgba(156, 163, 175, 0.4);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   REC-MINI-CARD - Individual allergy card
-   ═══════════════════════════════════════════════════════════════ */
-
+/* Rec Mini Card */
 .allergies-document .rec-mini-card {
   background: rgba(96, 165, 250, 0.08);
   border: 2px solid rgba(96, 165, 250, 0.3);
   border-radius: 10px;
-  padding: 16px 20px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
-/* Header Top Row - Default (Date on RIGHT) */
-.allergies-document .header-top-row {
-  display: flex !important;
-  flex-direction: row !important;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  gap: 12px !important;
-  margin-bottom: 4px !important;
-}
-
-/* Inner Card Header - Date on LEFT, Copy Section on RIGHT */
-.allergies-document .header-top-row.inner-card-header {
-  justify-content: flex-start !important;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
-  margin-bottom: 12px !important;
-}
-
-/* Copy Section button in inner card header - always on RIGHT */
-.allergies-document .header-top-row.inner-card-header .copy-btn {
-  margin-left: auto !important;
-}
-
-/* Date Badge */
-.allergies-document .date-badge {
-  background: rgba(96, 165, 250, 0.15);
-  color: #93c5fd;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.3);
-}
-
-/* Record Title with Numbering - 20px */
-.allergies-document .record-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #ececf1;
-  margin: 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
-  font-family: 'Comfortaa', sans-serif;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   FIELD GROUP - nested-subtitle + numbered-row
-   ═══════════════════════════════════════════════════════════════ */
-
-.allergies-document .field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* Nested Subtitle - Level 2: MEDIUM (17px) - Field labels */
+/* Nested Subtitle */
 .allergies-document .nested-subtitle {
   font-size: 17px;
   font-weight: 700;
@@ -305,257 +185,64 @@
   font-family: 'Comfortaa', sans-serif;
   padding-bottom: 4px;
   border-bottom: 1px solid rgba(96, 165, 250, 0.2);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
-/* Field Card Header — field title (left) + "Copy Section" button (right) */
-.allergies-document .field-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
-  margin-bottom: 2px;
-}
-
-/* Title inside the header — its divider moves up to .field-card-header */
-.allergies-document .field-card-header .nested-subtitle {
-  border-bottom: none;
-  padding-bottom: 0;
-  margin-bottom: 0;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* Per-field "Copy Section" button (copies field title + value) — compact, sits in the title row */
-.allergies-document .section-copy-btn {
-  flex: 0 0 auto;
-  font-size: 12px;
-  padding: 5px 12px;
-}
-
-/* Note Subtitle - Embedded subtitle within Notes field */
-.allergies-document .nested-subtitle.note-subtitle {
-  font-size: 16px;
-  margin-top: 8px;
-  padding-bottom: 4px;
-}
-
-/* Nested Mini-Card - surrounds a labeled group (e.g. "Additional allergies") inside the Notes card */
-.allergies-document .nested-mini-card {
-  background: rgba(96, 165, 250, 0.05);
-  border: 1px solid rgba(96, 165, 250, 0.25);
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* Group label sits at the top of the box (no extra top margin inside the box) */
-.allergies-document .nested-mini-card .nested-subtitle.note-subtitle {
-  margin-top: 0;
-}
-
-/* Notes Container - OUTER wrapper for notes content (double nesting) */
-.allergies-document .notes-container {
-  margin-top: 8px;
-  padding: 14px;
-}
-
-/* Note Subsection - INNER rec-mini-card for "Note" subtitle group */
-.allergies-document .note-subsection {
-  margin-top: 8px;
-}
-
-.allergies-document .note-subsection .nested-subtitle {
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-
-/* Numbered Row - VERY DARK BLUE background */
+/* Numbered Row */
 .allergies-document .numbered-row {
   background: #0d1929;
   border: 1px solid rgba(96, 165, 250, 0.3);
-  border-radius: 8px;
-  padding: 12px 16px;
+  border-radius: 6px;
+  padding: 10px 14px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
 }
 
+.allergies-document .numbered-row.modified {
+  border-color: rgba(234, 179, 8, 0.5);
+  background: rgba(234, 179, 8, 0.05);
+}
+
 /* Row Content */
 .allergies-document .row-content {
   flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* Content Value - Level 3: READABLE (16px) */
-.allergies-document .content-value {
-  font-size: 16px;
-  color: #ececf1;
+  display: block !important;
   line-height: 1.6;
-  word-break: break-word;
+  word-wrap: break-word;
   overflow-wrap: break-word;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   COPY BUTTONS
-   ═══════════════════════════════════════════════════════════════ */
-
-.allergies-document .copy-btn {
-  background: transparent;
-  color: #60a5fa;
-  border: 1px solid rgba(96, 165, 250, 0.4);
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: 'Comfortaa', sans-serif;
-  white-space: nowrap;
-  flex: 0 0 auto;
-  transition: all 0.2s ease;
-}
-
-.allergies-document .copy-btn:hover {
-  background: rgba(96, 165, 250, 0.15);
-  border-color: #60a5fa;
-}
-
-/* SOLID BLUE for copied state - NOT GREEN! */
-.allergies-document .copy-btn.copied {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SEARCH HIGHLIGHT
-   ═══════════════════════════════════════════════════════════════ */
-
-.allergies-document mark {
-  background: #fbbf24;
-  color: #000000;
-  padding: 0 2px;
-  border-radius: 2px;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMPTY STATE
-   ═══════════════════════════════════════════════════════════════ */
-
-.allergies-document .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  text-align: center;
-}
-
-.allergies-document .empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.allergies-document .empty-text {
-  font-size: 18px;
-  color: #9ca3af;
-  margin: 0;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EDITING — Inline Edit UI
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Editable row content — hover effect */
 .allergies-document .row-content.editable {
   cursor: pointer;
-  position: relative;
-  border-radius: 6px;
-  transition: background 0.15s ease;
 }
 
 .allergies-document .row-content.editable:hover {
-  background: rgba(96, 165, 250, 0.06);
+  background: rgba(96, 165, 250, 0.08);
+  border-radius: 4px;
+}
+
+.allergies-document .content-value {
+  color: #ececf1;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Edit Indicator */
+.allergies-document .edit-indicator {
+  color: #60a5fa;
+  font-size: 14px;
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .allergies-document .row-content.editable:hover .edit-indicator {
   opacity: 1;
 }
 
-/* Edit indicator (pencil + tag) — appears on hover */
-.allergies-document .edit-indicator {
-  opacity: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #60a5fa;
-  margin-top: 4px;
-  transition: opacity 0.15s ease;
-}
-
-.allergies-document .edit-tag {
-  font-size: 10px;
-  font-family: 'Comfortaa', sans-serif;
-  font-weight: 600;
-  color: #60a5fa;
-  background: rgba(96, 165, 250, 0.12);
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  padding: 1px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Modified row — amber border for pending approval */
-.allergies-document .numbered-row.modified {
-  border-color: rgba(234, 179, 8, 0.4);
-  background: rgba(234, 179, 8, 0.05);
-}
-
-.allergies-document .modified-badge {
-  font-size: 11px;
-  font-family: 'Comfortaa', sans-serif;
-  font-weight: 600;
-  color: #eab308;
-  background: rgba(234, 179, 8, 0.12);
-  border: 1px solid rgba(234, 179, 8, 0.3);
-  padding: 4px 10px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-align: center;
-  margin-top: 6px;
-}
-
-/* Edited badge on section header */
-.allergies-document .edited-badge {
-  font-size: 10px;
-  font-family: 'Comfortaa', sans-serif;
-  font-weight: 600;
-  color: #60a5fa;
-  background: rgba(96, 165, 250, 0.15);
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  padding: 1px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Inline edit row */
-.allergies-document .numbered-row.edit-row {
-  flex-direction: column;
-  padding: 12px 16px;
-}
-
+/* Edit Field Container */
 .allergies-document .edit-field-container {
   display: flex;
   flex-direction: column;
@@ -566,84 +253,198 @@
 .allergies-document .edit-textarea {
   width: 100%;
   min-height: 60px;
-  background: #0d1929;
-  border: 2px solid rgba(96, 165, 250, 0.5);
-  border-radius: 8px;
+  padding: 10px 14px;
+  background: #1a1a2e;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
   color: #ececf1;
+  font-size: 16px;
   font-family: 'Comfortaa', sans-serif;
-  font-size: 15px;
   line-height: 1.6;
-  padding: 12px 14px;
   resize: vertical;
-  outline: none;
-  transition: border-color 0.2s ease;
   box-sizing: border-box;
 }
 
 .allergies-document .edit-textarea:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
 }
 
-.allergies-document .edit-textarea:disabled {
-  opacity: 0.6;
+/* Number / Date typed edit inputs */
+.allergies-document .number-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.allergies-document .edit-number,
+.allergies-document .edit-date {
+  padding: 10px 14px;
+  background: #1a1a2e;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 16px;
+  font-family: 'Comfortaa', sans-serif;
+  box-sizing: border-box;
+}
+
+.allergies-document .edit-number {
+  flex: 1;
+  min-width: 0; -moz-appearance: textfield; appearance: textfield; }
+
+.allergies-document .edit-date {
+  width: 100%;
+}
+
+/* Yes/No boolean dropdown (editable boolean field) — full row width */
+.allergies-document .edit-select {
+  width: 100%;
+  padding: 10px 14px;
+  background: #1a1a2e;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-size: 16px;
+  font-family: 'Comfortaa', sans-serif;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.allergies-document .edit-number:focus,
+.allergies-document .edit-date:focus,
+.allergies-document .edit-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.allergies-document .number-edit-unit {
+  color: #9ca3af;
+  font-size: 14px;
+  font-family: 'Comfortaa', sans-serif;
 }
 
 .allergies-document .edit-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
-.allergies-document .edit-save-btn {
-  background: linear-gradient(135deg, #667eea 0%, #2563eb 100%);
-  border: 1px solid #667eea;
+.allergies-document .edit-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #3b82f6;
   border-radius: 6px;
+  background: #0f172a;
+  color: #f8fafc;
+  font: inherit;
+}
+
+.allergies-document .num-step {
+  width: 36px;
+  min-width: 36px;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  background: rgba(37, 99, 235, 0.22);
+  color: #bfdbfe;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.allergies-document .save-error {
+  color: #fca5a5;
+  font-size: 12px;
+}
+
+.allergies-document .save-btn {
+  background: #2563eb;
   color: #ffffff;
-  padding: 7px 20px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.allergies-document .edit-save-btn:hover {
-  background: linear-gradient(135deg, #5a6fe8 0%, #1d4ed8 100%);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-}
-
-.allergies-document .edit-save-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.allergies-document .edit-cancel-btn {
-  background: transparent;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  border: none;
+  padding: 6px 16px;
   border-radius: 6px;
-  color: #94a3b8;
-  padding: 7px 16px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s;
 }
 
-.allergies-document .edit-cancel-btn:hover {
-  background: rgba(148, 163, 184, 0.1);
-  border-color: rgba(148, 163, 184, 0.5);
-  color: #cbd5e1;
+.allergies-document .save-btn:hover {
+  background: #1d4ed8;
 }
 
-.allergies-document .edit-cancel-btn:disabled {
+.allergies-document .save-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* Approve button — base (state colors come from .pending / .approved) */
+.allergies-document .cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.allergies-document .cancel-btn:hover {
+  color: #ececf1;
+  border-color: #ececf1;
+}
+
+/* Modified Badge */
+.allergies-document .modified-badge {
+  font-size: 11px;
+  color: #eab308;
+  font-style: italic;
+  padding: 2px 8px;
+  margin-top: 2px;
+}
+
+/* Copy Button */
+.allergies-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.allergies-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.allergies-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Header Copy All / Export PDF — COPIED state */
+.allergies-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Approve Button */
 .allergies-document .approve-btn {
+  margin-top: 4px;
   border-radius: 6px;
   padding: 3px 12px;
   font-family: 'Comfortaa', sans-serif;
@@ -655,7 +456,6 @@
   transition: all 0.2s ease;
 }
 
-/* Pending state — YELLOW ("Pending Approve") */
 .allergies-document .approve-btn.pending {
   background: rgba(234, 179, 8, 0.15);
   border: 1px solid rgba(234, 179, 8, 0.5);
@@ -668,7 +468,6 @@
   box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
 }
 
-/* Approved state — GREEN ("Approved") */
 .allergies-document .approve-btn.approved {
   background: rgba(34, 197, 94, 0.15);
   border: 1px solid rgba(34, 197, 94, 0.4);
@@ -681,62 +480,23 @@
   box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
 }
 
-.allergies-document .approve-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+/* Mark Element Override */
+.allergies-document mark {
+  display: inline !important;
+  background-color: yellow !important;
+  color: black !important;
+  padding: 0 2px !important;
+  margin: 0 !important;
+  border: none !important;
+  font-weight: inherit !important;
+  border-radius: 2px !important;
 }
 
-/* Header right actions — status + approve */
-.allergies-document .header-right-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
-/* Section header left — title + edited badge */
-.allergies-document .section-header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════════ */
-
-@media (max-width: 768px) {
-  .allergies-document {
-    padding: 16px;
-  }
-
-  .allergies-document .document-title {
-    font-size: 26px;
-  }
-
-  .allergies-document .section-title {
-    font-size: 17px;
-  }
-
-  .allergies-document .record-title {
-    font-size: 18px;
-  }
-
-  .allergies-document .nested-subtitle {
-    font-size: 15px;
-  }
-
-  .allergies-document .content-value {
-    font-size: 15px;
-  }
-
-  .allergies-document .header-actions {
-    flex-wrap: wrap;
-  }
-
-  .allergies-document .header-actions .copy-btn,
-  .allergies-document .header-actions .pdf-btn {
-    min-width: 100px;
-    font-size: 12px;
-  }
+/* Empty State */
+.allergies-document .empty-state,
+.allergies-document .no-results {
+  text-align: center;
+  padding: 40px;
+  color: #a1a1aa;
+  font-size: 19px;
 }

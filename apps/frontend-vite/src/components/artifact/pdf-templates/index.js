@@ -9,6 +9,7 @@ import AbnormalResultsDocumentPDFTemplate from './AbnormalResultsDocumentPDFTemp
 import AccessPlanningDocumentPDFTemplate from './AccessPlanningDocumentPDFTemplate';
 import AllergyAssessmentTemplate from './AllergyAssessmentTemplate';
 import AllergyImmunologyAssessmentTemplate from './AllergyImmunologyAssessmentPDFTemplate';
+import AllergiesDocumentPDFTemplate from './AllergiesDocumentPDFTemplate';
 import BiopsyReportsTemplate from './BiopsyReportsTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
@@ -267,6 +268,7 @@ const templateRegistry = {
   'intraoperative_monitoring': IntraoperativeMonitoringDocumentPDFTemplate,
   'imaging_reports': ImagingReportsPDFTemplate,
   'airway_management_records': AirwayManagementDocumentPDFTemplate,
+  'allergies': AllergiesDocumentPDFTemplate,
   'regional_anesthesia_records': RegionalAnesthesiaDocumentPDFTemplate,
   'rehabilitation_goals': RehabilitationGoalsDocumentPDFTemplate,
   'rehabilitation_progress_notes': RehabilitationProgressNotesDocumentPDFTemplate,

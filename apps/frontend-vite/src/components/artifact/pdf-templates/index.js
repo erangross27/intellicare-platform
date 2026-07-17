@@ -98,7 +98,7 @@ import RenalProtectionPlanDocumentPDFTemplate from './RenalProtectionPlanDocumen
 import ChronicPainAssessmentPDFTemplate from './ChronicPainAssessmentPDFTemplate';
 import AsthmaAssessmentsPDFTemplate from './AsthmaAssessmentsPDFTemplate';
 import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTemplate';
-import AcmgGuidelinesReferencePDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
+import AcmgGuidelinesReferenceDocumentPDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
 import StagingSummaryDocumentPDFTemplate from './StagingSummaryDocumentPDFTemplate';
 import StemCellTransplantAssessmentDocumentPDFTemplate from './StemCellTransplantAssessmentDocumentPDFTemplate';
 import TransplantAssessmentDocumentPDFTemplate from './TransplantAssessmentDocumentPDFTemplate';
@@ -176,7 +176,7 @@ import WoundHealingHyperbaricDocumentPDFTemplate from './WoundHealingHyperbaricD
 const templateRegistry = {
   'abnormal_results': AbnormalResultsDocumentPDFTemplate,
   'access_planning': AccessPlanningDocumentPDFTemplate,
-  'acmg_guidelines_reference': AcmgGuidelinesReferencePDFTemplate,
+  'acmg_guidelines_reference': AcmgGuidelinesReferenceDocumentPDFTemplate,
   'allergy_assessment': AllergyAssessmentTemplate,
   'allergy_immunology_assessment': AllergyImmunologyAssessmentTemplate,
   'asthma_assessments': AsthmaAssessmentsPDFTemplate,

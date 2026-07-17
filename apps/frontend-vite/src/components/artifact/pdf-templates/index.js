@@ -93,6 +93,7 @@ import DiagnosesTemplate from './DiagnosesDocumentPDFTemplate';
 import AnesthesiaRecordsDocumentPDFTemplate from './AnesthesiaRecordsDocumentPDFTemplate';
 import AnesthesiologyAssessmentDocumentPDFTemplate from './AnesthesiologyAssessmentDocumentPDFTemplate';
 import AnnualPhysicalExaminationDocumentPDFTemplate from './AnnualPhysicalExaminationDocumentPDFTemplate';
+import AntibiogramReportsDocumentPDFTemplate from './AntibiogramReportsDocumentPDFTemplate';
 import RecommendationsTemplate from './RecommendationsTemplate';
 // Single source of truth: route to the same box-free template the Document's Export button imports
 // (the legacy ./ClinicalScoresTemplate diverged — boxed, small fonts, no numbering).
@@ -277,6 +278,7 @@ const templateRegistry = {
   'anesthesia_records': AnesthesiaRecordsDocumentPDFTemplate,
   'anesthesiology_assessment': AnesthesiologyAssessmentDocumentPDFTemplate,
   'annual_physical_examination': AnnualPhysicalExaminationDocumentPDFTemplate,
+  'antibiogram_reports': AntibiogramReportsDocumentPDFTemplate,
   'recommendations': RecommendationsTemplate,
   'clinical_scores': ClinicalScoresTemplate,
   'administrative_data': AdministrativeDataDocumentPDFTemplate,

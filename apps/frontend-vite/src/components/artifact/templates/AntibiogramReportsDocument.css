@@ -1,5 +1,6 @@
 /* AntibiogramReportsDocument.css — March 2026 Blue glow editing theme */
-.antibiogram-reports-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.antibiogram-reports-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; }
+.antibiogram-reports-document * { direction: ltr; }
 .antibiogram-reports-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .antibiogram-reports-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .antibiogram-reports-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -8,7 +9,6 @@
 .antibiogram-reports-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .antibiogram-reports-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
 .antibiogram-reports-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.antibiogram-reports-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
 .antibiogram-reports-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .antibiogram-reports-document .section { margin-top: 16px; }
 .antibiogram-reports-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
@@ -41,12 +41,14 @@
 .antibiogram-reports-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
 .antibiogram-reports-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 .antibiogram-reports-document .num-unit-edit { display: flex; align-items: center; gap: 10px; width: 100%; }
+.antibiogram-reports-document .num-step { min-width: 42px; min-height: 42px; border: 2px solid #60a5fa; border-radius: 6px; background: #0F1B33; color: #ececf1; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 15px; }
 .antibiogram-reports-document .edit-number { flex: 1 1 auto; min-width: 0; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
 .antibiogram-reports-document .nu-affix { color: #93c5fd; font-size: 15px; font-weight: 600; white-space: nowrap; }
 .antibiogram-reports-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
 .antibiogram-reports-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .antibiogram-reports-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .antibiogram-reports-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.antibiogram-reports-document .approve-btn { text-transform: capitalize; }
 .antibiogram-reports-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .antibiogram-reports-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .antibiogram-reports-document .search-container { margin-bottom: 20px; }

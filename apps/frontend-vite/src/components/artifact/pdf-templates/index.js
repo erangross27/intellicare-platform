@@ -29,6 +29,7 @@ import PrognosisTemplate from './PrognosisDocumentPDFTemplate';
 import CareCoordinationNotesTemplate from './CareCoordinationNotesTemplate';
 import AssessmentPlansDocumentPDFTemplate from './AssessmentPlansDocumentPDFTemplate';
 import AssistiveDevicesDocumentPDFTemplate from './AssistiveDevicesDocumentPDFTemplate';
+import AsthmaActionPlanDocumentPDFTemplate from './AsthmaActionPlanDocumentPDFTemplate';
 import TreatmentCoursesDocumentPDFTemplate from './TreatmentCoursesDocumentPDFTemplate';
 import TreatmentGoalsDocumentPDFTemplate from './TreatmentGoalsDocumentPDFTemplate';
 import TreatmentPlansDocumentPDFTemplate from './TreatmentPlansDocumentPDFTemplate';
@@ -219,6 +220,7 @@ const templateRegistry = {
   'amniotic_fluid_index_current': AmnioticFluidIndexCurrentDocumentPDFTemplate,
   'anatomy_scan_result': AnatomyScanResultDocumentPDFTemplate,
   'anesthesia_consent': AnesthesiaConsentDocumentPDFTemplate,
+  'asthma_action_plan': AsthmaActionPlanDocumentPDFTemplate,
   'asthma_assessments': AsthmaAssessmentsPDFTemplate,
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsTemplate,

@@ -25,8 +25,10 @@ router.use(practiceAuth);
 
 const ALLOWED_FIELDS = [
   'date',
+  'type',
   'provider',
   'facility',
+  'status',
   'findings',
   'assessment',
   'plan',

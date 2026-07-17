@@ -10,6 +10,11 @@
   color: #ececf1;
   padding: 20px;
   min-height: 100%;
+  direction: ltr;
+}
+
+.asthma-action-plan-document * {
+  direction: ltr;
 }
 
 /* ========== DOCUMENT HEADER ========== */
@@ -112,31 +117,12 @@
   border-bottom: 2px solid rgba(96, 165, 250, 0.3);
 }
 
-.asthma-action-plan-document .record-meta-row {
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-  width: 100%;
-  margin-bottom: 12px;
-  gap: 10px;
-}
-
 .asthma-action-plan-document .record-name {
   font-size: 22px;
   font-weight: 700;
   color: #ececf1;
   margin: 0;
   text-transform: none !important;
-}
-
-.asthma-action-plan-document .record-date {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
 /* ========== STATUS BADGES ========== */
@@ -321,6 +307,20 @@
   border-radius: 6px;
 }
 
+.asthma-action-plan-document .header-actions .pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 8px 16px;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 6px;
+  color: #93c5fd;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .asthma-action-plan-document .header-actions .copy-btn.copied {
   background: #2563eb;
   color: #ffffff;
@@ -386,7 +386,35 @@
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
+}
+
+.asthma-action-plan-document .save-error {
+  color: #fca5a5;
+  font-size: 12px;
+}
+
+.asthma-action-plan-document .editable-date-subtitle {
+  width: 100%;
+}
+
+.asthma-action-plan-document .date-subtitle.editable-row {
+  cursor: pointer;
+}
+
+.asthma-action-plan-document .recommendation-group > [data-edit-field] + [data-edit-field],
+.asthma-action-plan-document .nested-mini-card > [data-edit-field] + [data-edit-field] {
+  margin-top: 8px;
+}
+
+.asthma-action-plan-document .nested-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.asthma-action-plan-document .field-group-title {
+  margin-top: 4px;
 }
 
 .asthma-action-plan-document .save-btn {

@@ -167,6 +167,7 @@ import WorkplaceAccommodationsDocumentPDFTemplate from './WorkplaceAccommodation
 import WorkplaceInjuryReportDocumentPDFTemplate from './WorkplaceInjuryReportDocumentPDFTemplate';
 import WoundCareAssessmentsDocumentPDFTemplate from './WoundCareAssessmentsDocumentPDFTemplate';
 import WoundCareDocumentationDocumentPDFTemplate from './WoundCareDocumentationDocumentPDFTemplate';
+import WoundCareNotesDocumentPDFTemplate from './WoundCareNotesDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -323,6 +324,7 @@ const templateRegistry = {
   'workplace_injury_report': WorkplaceInjuryReportDocumentPDFTemplate,
   'wound_care_assessments': WoundCareAssessmentsDocumentPDFTemplate,
   'wound_care_documentation': WoundCareDocumentationDocumentPDFTemplate,
+  'wound_care_notes': WoundCareNotesDocumentPDFTemplate,
 };
 
 /**

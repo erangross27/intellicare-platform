@@ -24,6 +24,7 @@ router.use(practiceModels);
 router.use(practiceAuth);
 
 const ALLOWED_FIELDS = [
+  'date',
   'testType',
   'allergensTested',
   'positiveReactions',
@@ -38,6 +39,13 @@ const ALLOWED_FIELDS = [
   'facility',
   'notes',
 ];
+const BLOCKED_PATH_PARTS = new Set(['__proto__', 'prototype', 'constructor']);
+
+function isAllowedFieldPath(field) {
+  const parts = String(field).split('.');
+  if (!ALLOWED_FIELDS.includes(parts[0]) || parts.length > 8) return false;
+  return parts.every(part => /^[A-Za-z0-9_]+$/.test(part) && !BLOCKED_PATH_PARTS.has(part));
+}
 
 function buildContext(req, operation = 'read') {
   return {
@@ -66,7 +74,7 @@ router.put('/:id/edit', async (req, res) => {
       return res.status(400).json({ success: false, error: 'field and value are required' });
     }
 
-    if (!ALLOWED_FIELDS.includes(field)) {
+    if (!isAllowedFieldPath(field)) {
       return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     }
 

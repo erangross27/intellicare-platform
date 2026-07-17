@@ -10,16 +10,16 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: 'Helvetica', fontSize: 13, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 24, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
+  documentHeader: { marginBottom: 24, paddingBottom: 12 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4, borderBottom: '2pt solid #000000', paddingBottom: 8 },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
   recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   recordDate: { fontSize: 13, color: '#333333', marginTop: 4 },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 17, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 8, borderBottom: '1pt solid #000000', paddingBottom: 4 },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
+  fieldLabel: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 4, borderBottom: '0.5pt solid #999999', paddingBottom: 2 },
   fieldValue: { fontSize: 13, lineHeight: 1.5, color: '#000000' },
   listItem: { fontSize: 13, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
   nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
@@ -84,7 +84,7 @@ const numberShowsPDF = (record, key) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
 const parseLabel = (text) => {
@@ -147,7 +147,8 @@ const sentenceUnit = (label, text) => {
         rows.push(<Text key={`r${rows.length}`} style={styles.nestedSubtitle}>{safeString(parsed.label)}</Text>);
         commaItems.forEach(ci => { rows.push(<Text key={`r${rows.length}`} style={styles.listItem}>{n++}. {safeString(ci)}</Text>); });
       } else {
-        rows.push(<Text key={`r${rows.length}`} style={styles.listItem}>{n++}. {safeString(s)}</Text>);
+        rows.push(<Text key={`r${rows.length}`} style={styles.nestedSubtitle}>{safeString(parsed.label)}</Text>);
+        rows.push(<Text key={`r${rows.length}`} style={styles.listItem}>{n++}. {safeString(parsed.value)}</Text>);
       }
     } else {
       rows.push(<Text key={`r${rows.length}`} style={styles.listItem}>{n++}. {safeString(s)}</Text>);
@@ -300,6 +301,7 @@ const AnnualPhysicalExaminationDocumentPDFTemplate = ({ document: data }) => {
     let arr = Array.isArray(data) ? data : [data];
     arr = arr.flatMap(r => {
       if (r?.annual_physical_examination) return Array.isArray(r.annual_physical_examination) ? r.annual_physical_examination : [r.annual_physical_examination];
+      if (r?.data) return Array.isArray(r.data) ? r.data : [r.data];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.annual_physical_examination) return Array.isArray(dd.annual_physical_examination) ? dd.annual_physical_examination : [dd.annual_physical_examination]; return [dd]; }
       return [r];
     });
@@ -336,10 +338,9 @@ const AnnualPhysicalExaminationDocumentPDFTemplate = ({ document: data }) => {
               <Text style={styles.recordTitle}>
                 {`Annual Physical Examination ${index + 1}`}
               </Text>
-              {hasVal(record.date) && (
-                <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-              )}
             </View>
+
+            {hasVal(record.date) && renderSectionFlow('Examination Date', [dateUnit('Date', record.date)])}
 
             {/* Sections — title-glue + flow so tall sections don't overprint (memory 6a3cda8c) */}
             {SECTION_CONFIGS.map((sectionConfig, sIdx) => {

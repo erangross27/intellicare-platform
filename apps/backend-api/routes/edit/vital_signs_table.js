@@ -23,7 +23,7 @@ function buildContext(req, operation = 'read') {
 function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
-const ALLOWED_FIELDS = ['provider', 'facility', 'systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure', 'bloodPressureSite', 'patientPosition', 'heartRate', 'pulseRhythm', 'pulseStrength', 'respiratoryRate', 'oxygenSaturation', 'supplementalOxygen', 'oxygenFlowRate', 'bodyTemperature', 'temperatureUnit', 'temperatureRoute', 'painScore', 'painLocation', 'weight', 'weightUnit', 'height', 'heightUnit', 'bodyMassIndex', 'headCircumference', 'bloodGlucose', 'glucoseMeasurementTiming'];
+const ALLOWED_FIELDS = ['date', 'provider', 'facility', 'systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure', 'bloodPressureSite', 'patientPosition', 'heartRate', 'pulseRhythm', 'pulseStrength', 'respiratoryRate', 'oxygenSaturation', 'supplementalOxygen', 'oxygenFlowRate', 'bodyTemperature', 'temperatureUnit', 'temperatureRoute', 'painScore', 'painLocation', 'weight', 'weightUnit', 'height', 'heightUnit', 'bodyMassIndex', 'headCircumference', 'bloodGlucose', 'glucoseMeasurementTiming'];
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params;

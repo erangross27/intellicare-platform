@@ -16,6 +16,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import VitalSignsTableDocumentPDFTemplate from '../pdf-templates/VitalSignsTableDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './VitalSignsTableDocument.css';
 
@@ -49,6 +51,7 @@ const SECTION_TITLES = {
 const FIELD_LABELS = {
   provider: 'Provider',
   facility: 'Facility',
+  date: 'Date',
   systolicBloodPressure: 'Systolic Blood Pressure',
   diastolicBloodPressure: 'Diastolic Blood Pressure',
   meanArterialPressure: 'Mean Arterial Pressure',
@@ -72,12 +75,12 @@ const FIELD_LABELS = {
   heightUnit: 'Height Unit',
   bodyMassIndex: 'Body Mass Index',
   headCircumference: 'Head Circumference',
-  bloodGlucose: 'Blood Glucose',
+  bloodGlucose: 'Blood Glucose Level',
   glucoseMeasurementTiming: 'Measurement Timing',
 };
 
 const SECTION_FIELDS = {
-  'provider-info': ['provider', 'facility'],
+  'provider-info': ['date', 'provider', 'facility'],
   'blood-pressure': ['systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure', 'bloodPressureSite', 'patientPosition'],
   'heart-rate': ['heartRate', 'pulseRhythm', 'pulseStrength'],
   'respiratory': ['respiratoryRate', 'oxygenSaturation', 'supplementalOxygen', 'oxygenFlowRate'],
@@ -89,85 +92,9 @@ const SECTION_FIELDS = {
 
 const NUMBER_FIELDS = ['systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure', 'heartRate', 'respiratoryRate', 'oxygenSaturation', 'oxygenFlowRate', 'bodyTemperature', 'painScore', 'weight', 'height', 'bodyMassIndex', 'headCircumference', 'bloodGlucose'];
 const BOOLEAN_FIELDS = [];
-const DATE_FIELDS = [];
+const DATE_FIELDS = ['date'];
 const STRING_FIELDS = ['provider', 'facility', 'bloodPressureSite', 'patientPosition', 'pulseRhythm', 'pulseStrength', 'supplementalOxygen', 'temperatureUnit', 'temperatureRoute', 'painLocation', 'weightUnit', 'heightUnit', 'glucoseMeasurementTiming'];
-
-/* ======= Vital Signs Reference Ranges ======= */
-const VITAL_RANGES = {
-  systolicBloodPressure:  { low: 90,   high: 140,  scale: [40, 220] },
-  diastolicBloodPressure: { low: 60,   high: 90,   scale: [30, 130] },
-  meanArterialPressure:   { low: 70,   high: 100,  scale: [30, 150] },
-  heartRate:              { low: 60,   high: 100,  scale: [20, 200] },
-  respiratoryRate:        { low: 12,   high: 20,   scale: [4, 40] },
-  oxygenSaturation:       { low: 95,   high: 101,  scale: [70, 100] },
-  bodyTemperatureF:       { low: 97.8, high: 99.1, scale: [95, 107] },
-  bodyTemperatureC:       { low: 36.5, high: 37.3, scale: [35, 42] },
-  painScore:              { low: 0,    high: 3,    scale: [0, 10] },
-  bloodGlucose:           { low: 70,   high: 200,  scale: [20, 500] },
-  bodyMassIndex:          { low: 18.5, high: 24.9, scale: [10, 50] },
-};
-
-const VITAL_INTERPRETATIONS = {
-  systolicBloodPressure:  { low: 'Hypotension',  normal: 'Normal', high: 'Hypertension' },
-  diastolicBloodPressure: { low: 'Hypotension',  normal: 'Normal', high: 'Hypertension' },
-  meanArterialPressure:   { low: 'Low MAP',       normal: 'Normal', high: 'Elevated MAP' },
-  heartRate:              { low: 'Bradycardia',   normal: 'Normal', high: 'Tachycardia' },
-  respiratoryRate:        { low: 'Bradypnea',     normal: 'Normal', high: 'Tachypnea' },
-  oxygenSaturation:       { low: 'Hypoxemia',     normal: 'Normal', high: 'Normal' },
-  bodyTemperatureF:       { low: 'Hypothermia',   normal: 'Normal', high: 'Fever' },
-  bodyTemperatureC:       { low: 'Hypothermia',   normal: 'Normal', high: 'Fever' },
-  painScore:              { low: 'No Pain',       normal: 'Mild',   high: 'Moderate-Severe' },
-  bloodGlucose:           { low: 'Hypoglycemia',  normal: 'Normal', high: 'Hyperglycemia' },
-  bodyMassIndex:          { low: 'Underweight',   normal: 'Normal', high: 'Overweight' },
-};
-
-const CHART_FIELDS = ['systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure', 'heartRate', 'respiratoryRate', 'oxygenSaturation', 'bodyTemperature', 'painScore', 'bloodGlucose', 'bodyMassIndex'];
-const CHART_UNITS = {
-  systolicBloodPressure: 'mmHg', diastolicBloodPressure: 'mmHg', meanArterialPressure: 'mmHg',
-  heartRate: 'bpm', respiratoryRate: 'breaths/min', oxygenSaturation: '%',
-  painScore: '/10', bloodGlucose: 'mg/dL', bodyMassIndex: '',
-};
-
-const getChartTestType = (fn, record) => {
-  if (fn === 'bodyTemperature') {
-    return (record.temperatureUnit || '').toLowerCase().startsWith('c') ? 'bodyTemperatureC' : 'bodyTemperatureF';
-  }
-  return fn;
-};
-
-const getChartUnit = (fn, record) => {
-  if (fn === 'bodyTemperature') {
-    return (record.temperatureUnit || '').toLowerCase().startsWith('c') ? '\u00B0C' : '\u00B0F';
-  }
-  return CHART_UNITS[fn] || '';
-};
-
-const getVitalBarColor = (value, testType) => {
-  if (value === null || value === undefined) return '#9ca3af';
-  const range = VITAL_RANGES[testType];
-  if (!range) return '#9ca3af';
-  if (value < range.low) return '#3b82f6';
-  if (value > range.high) return '#ef4444';
-  return '#22c55e';
-};
-
-const getVitalInterpretation = (value, testType) => {
-  if (value === null || value === undefined) return '';
-  const interp = VITAL_INTERPRETATIONS[testType];
-  const range = VITAL_RANGES[testType];
-  if (!interp || !range) return '';
-  if (value < range.low) return interp.low;
-  if (value > range.high) return interp.high;
-  return interp.normal;
-};
-
-const vitalToPercentage = (value, testType) => {
-  if (value === null || value === undefined) return 0;
-  const range = VITAL_RANGES[testType];
-  if (!range) return 50;
-  const [min, max] = range.scale;
-  return Math.min(100, Math.max(5, ((value - min) / (max - min)) * 100));
-};
+const ENUM_FIELDS = { temperatureUnit: ['Fahrenheit', 'Celsius'], weightUnit: ['kg', 'lb'], heightUnit: ['cm', 'in'] };
 
 /* parseLabel */
 const parseLabel = (text) => {
@@ -197,8 +124,16 @@ const formatDate = (dateValue) => {
   try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
 };
 
+const toInputDate = (dateValue) => {
+  if (!dateValue) return '';
+  try {
+    const date = new Date(dateValue.$date || dateValue);
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+  } catch { return ''; }
+};
+
 /* ======= COMPONENT ======= */
-const VitalSignsTableDocument = ({ document: docProp }) => {
+const VitalSignsTableDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -217,15 +152,17 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
 
   /* ======= DATA UNWRAP ======= */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? data ?? templateData; if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.vital_signs_table) return Array.isArray(r.vital_signs_table) ? r.vital_signs_table : [r.vital_signs_table];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.vital_signs_table) return Array.isArray(dd.vital_signs_table) ? dd.vital_signs_table : [dd.vital_signs_table]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   // Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF).
   useEffect(() => {
@@ -245,9 +182,14 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
       });
     });
     if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLocalEdits(prev => ({ ...nLocal, ...prev }));
+      setPendingEdits(prev => ({ ...nPending, ...prev }));
+      setEditedFields(prev => ({ ...nFields, ...prev }));
+    });
+    return () => { cancelled = true; };
   }, [records]);
 
   /* ======= UTILS ======= */
@@ -256,7 +198,7 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/;\s+|(?<!\d)\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -273,6 +215,8 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
     if (localEdits[k] !== undefined) return localEdits[k];
     return record[fn];
   }, [localEdits]);
+
+  const numberShows = useCallback((record, fn, idx) => { const value = getFieldValue(record, fn, idx); if (value === null || value === undefined || value === '') return false; const number = Number(value); if (!Number.isFinite(number)) return false; if (number !== 0) return true; return Boolean(editedFields[`${fn}-${idx}`]) || (Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(fn)); }, [getFieldValue, editedFields]);
 
   const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -488,6 +432,7 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
   /* ======= FORMAT HELPERS FOR COPY ======= */
+  // eslint-disable-next-line no-unused-vars -- retained for the audited delimiter-aware legacy renderer below
   const formatSentenceFieldLines = useCallback((text) => {
     const sentences = splitBySentence(text);
     const lines = []; let n = 1;
@@ -505,103 +450,105 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
   }, [splitBySentence]);
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
-    const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
-    const fields = SECTION_FIELDS[sid] || [];
-    fields.forEach(f => {
-      const label = FIELD_LABELS[f] || f;
-      const val = getFieldValue(record, f, idx);
-      if (!hasVal(val)) return;
-      if (NUMBER_FIELDS.includes(f)) {
-        const testType = getChartTestType(f, record);
-        const unit = getChartUnit(f, record);
-        const interp = getVitalInterpretation(val, testType);
-        text += `${label}\n${val} ${unit}${interp ? ` (${interp})` : ''}\n\n`;
-      } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += `${label}\n${strVal}\n\n`;
-        }
-      } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
-      }
+    let text = `${SECTION_TITLES[sid]}\n${'='.repeat(40)}\n\n`;
+    (SECTION_FIELDS[sid] || []).forEach(fn => {
+      const value = getFieldValue(record, fn, idx);
+      const visible = NUMBER_FIELDS.includes(fn) ? numberShows(record, fn, idx) : hasVal(value);
+      if (!visible) return;
+      const displayValue = DATE_FIELDS.includes(fn) ? formatDate(value) : fmtVal(value);
+      text += `${FIELD_LABELS[fn] || fn}\n${'-'.repeat(40)}\n1. ${displayValue}\n\n`;
     });
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+  }, [getFieldValue, numberShows, hasVal, fmtVal]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== VITAL SIGNS TABLE ===\n\n';
-    pdfData.forEach((r, idx) => {
+    pdfData.forEach((record, idx) => {
       text += `Vital Signs Table ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      if (hasVal(r.date || r.createdAt)) text += `Date: ${formatDate(r.date || r.createdAt)}\n\n`;
-      Object.keys(SECTION_FIELDS).forEach(sid => {
-        text += buildSectionCopyText(r, idx, sid);
-      });
+      Object.keys(SECTION_FIELDS).forEach(sid => { text += buildSectionCopyText(record, idx, sid); });
       text += '\n';
     });
     const ok = await copyToClipboard(text);
     if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
-  }, [pdfData, copyToClipboard, buildSectionCopyText, hasVal]);
+  }, [pdfData, copyToClipboard, buildSectionCopyText]);
 
-  /* ======= RENDER: NUMBER FIELD (with bar chart) ======= */
+  const cancelEdit = () => { setEditingField(null); setEditValue(''); setSaveError(null); };
+
+  /* ======= RENDER: DATE FIELD (custom date picker) ======= */
+  const renderDateField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (!hasVal(value)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const isModified = editedFields[editKey];
+    const label = FIELD_LABELS[fn] || fn;
+    const displayValue = formatDate(value);
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div data-edit-field={fn}>
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(value)); setSaveError(null); } }}>
+            {isEditing ? (
+              <div className="edit-field-container">
+                <BlueDatePicker value={editValue} onSelect={nextValue => setEditValue(nextValue || '')} />
+                {saveError && <div className="save-error">{saveError}</div>}
+                <div className="edit-actions">
+                  <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); if (!editValue || Number.isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, `${editValue}T00:00:00.000Z`); }}>{saving ? 'Saving...' : 'Save'}</button>
+                  <button className="cancel-btn" onClick={event => { event.stopPropagation(); cancelEdit(); }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div>
+                <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(displayValue, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              </>
+            )}
+          </div>
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  /* ======= RENDER: NUMBER FIELD (hide-zero custom stepper) ======= */
   const renderNumberField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx);
-    if (!hasVal(val) || (typeof val === 'number' && val === 0 && (fn === 'bodyMassIndex' || fn === 'headCircumference' || fn === 'oxygenFlowRate'))) return null;
+    if (!numberShows(record, fn, idx)) return null;
+    const value = Number(getFieldValue(record, fn, idx));
     const editKey = `${fn}-${idx}`;
     const isEditing = editingField === editKey;
     const label = FIELD_LABELS[fn] || fn;
     const isModified = editedFields[editKey];
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    const numVal = typeof val === 'number' ? val : parseFloat(val);
-    const isChartField = CHART_FIELDS.includes(fn) && !isNaN(numVal);
-    const testType = getChartTestType(fn, record);
-    const unit = getChartUnit(fn, record);
-    const displayVal = unit ? `${numVal} ${unit}` : String(numVal);
-    const interpretation = isChartField ? getVitalInterpretation(numVal, testType) : '';
-    const barColor = isChartField ? getVitalBarColor(numVal, testType) : '#9ca3af';
-    const percentage = isChartField ? vitalToPercentage(numVal, testType) : 0;
-
+    const saveNumber = () => {
+      const parsed = Number(editValue);
+      if (!Number.isFinite(parsed)) { setSaveError('Please enter a valid number'); return; }
+      handleSaveField(record, fn, idx, sid, null, parsed);
+    };
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
-        {isChartField && !isEditing && (
-          <div className="vital-chart-inline">
-            <div className="vital-chart-legend-inline">
-              <div className="legend-item"><div className="legend-color" style={{ backgroundColor: '#22c55e' }} /><span>Normal</span></div>
-              <div className="legend-item"><div className="legend-color" style={{ backgroundColor: '#3b82f6' }} /><span>Low</span></div>
-              <div className="legend-item"><div className="legend-color" style={{ backgroundColor: '#ef4444' }} /><span>High</span></div>
-            </div>
-            <div className="vital-bar-container">
-              <div className="vital-bar-background">
-                <div className="vital-bar-fill" style={{ width: `${percentage}%`, backgroundColor: barColor }} />
+        <div data-edit-field={fn}>
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(value)); setSaveError(null); } }}>
+            {isEditing ? (
+              <div className="edit-field-container">
+                <div className="number-edit-row">
+                  <button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button>
+                  <input type="text" inputMode="decimal" className="edit-input" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />
+                  <button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button>
+                </div>
+                {saveError && <div className="save-error">{saveError}</div>}
+                <div className="edit-actions">
+                  <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); saveNumber(); }}>{saving ? 'Saving...' : 'Save'}</button>
+                  <button className="cancel-btn" onClick={event => { event.stopPropagation(); cancelEdit(); }}>Cancel</button>
+                </div>
               </div>
-              <div className="vital-bar-value">{highlightText(displayVal)}</div>
-            </div>
-            {interpretation && <div className="vital-bar-interpretation" style={{ color: barColor }}>{highlightText(interpretation)}</div>}
+            ) : (
+              <>
+                <div className="row-content"><span className="content-value">{highlightText(String(value))}</span><span className="edit-indicator">&#9998;</span></div>
+                <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(String(value), editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              </>
+            )}
           </div>
-        )}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(numVal)); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <input type="number" className="edit-textarea" style={{ minHeight: 'auto', padding: '10px' }} value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus step="any" onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const parsed = parseFloat(editValue); if (isNaN(parsed)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, parsed); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}${interpretation ? ` (${interpretation})` : ''}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
@@ -609,7 +556,8 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
   };
 
   /* ======= RENDER: STRING FIELD with splitBySentence ======= */
-  const renderStringField = (record, fn, idx, sid) => {
+  // eslint-disable-next-line no-unused-vars -- retained as a delimiter-aware fallback for future narrative records
+  const renderStringFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
@@ -734,6 +682,78 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
     );
   };
 
+  /* ======= RENDER: ENUM FIELD (custom blue dropdown) ======= */
+  const renderEnumField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (!hasVal(value)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const isModified = editedFields[editKey];
+    const label = FIELD_LABELS[fn] || fn;
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div data-edit-field={fn}>
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(value)); setSaveError(null); } }}>
+            {isEditing ? (
+              <div className="edit-field-container">
+                <BlueSelect value={editValue} options={ENUM_FIELDS[fn]} onChange={setEditValue} />
+                <div className="edit-actions">
+                  <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); handleSaveField(record, fn, idx, sid); }}>{saving ? 'Saving...' : 'Save'}</button>
+                  <button className="cancel-btn" onClick={event => { event.stopPropagation(); cancelEdit(); }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="row-content"><span className="content-value">{highlightText(String(value))}</span><span className="edit-indicator">&#9998;</span></div>
+                <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(String(value), editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              </>
+            )}
+          </div>
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  /* Comma-bearing provider credentials remain one editable value. */
+  const renderStringField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (!hasVal(value)) return null;
+    const displayValue = fmtVal(value);
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const isModified = editedFields[editKey];
+    const label = FIELD_LABELS[fn] || fn;
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return (
+      <div key={fn} className="rec-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className="nested-mini-card">
+          <div data-edit-field={fn}>
+            <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayValue); setSaveError(null); } }}>
+              {isEditing ? (
+                <div className="edit-field-container">
+                  <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />
+                  {saveError && <div className="save-error">{saveError}</div>}
+                  <div className="edit-actions">
+                    <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); handleSaveField(record, fn, idx, sid); }}>{saving ? 'Saving...' : 'Save'}</button>
+                    <button className="cancel-btn" onClick={event => { event.stopPropagation(); cancelEdit(); }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div>
+                  <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(displayValue, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                </>
+              )}
+            </div>
+          </div>
+          {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
+      </div>
+    );
+  };
+
   /* ======= RENDER: GENERIC SECTION ======= */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -742,8 +762,7 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
 
     const hasAnyVal = fields.some(f => {
       const val = getFieldValue(record, f, idx);
-      if (val === 0 && (f === 'bodyMassIndex' || f === 'headCircumference' || f === 'oxygenFlowRate')) return false;
-      return hasVal(val);
+      return NUMBER_FIELDS.includes(f) ? numberShows(record, f, idx) : hasVal(val);
     });
     if (!hasAnyVal) return null;
 
@@ -759,6 +778,8 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
+            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
+            if (ENUM_FIELDS[f]) return renderEnumField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
           })}
@@ -783,7 +804,7 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
         <h2 className="document-title">Vital Signs Table</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<VitalSignsTableDocumentPDFTemplate document={pdfData} />} fileName={`vital-signs-table-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<VitalSignsTableDocumentPDFTemplate document={pdfData} />} fileName="Vital_Signs_Table.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -795,14 +816,7 @@ const VitalSignsTableDocument = ({ document: docProp }) => {
       <div className="records-container">
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
-            <div className="record-header">
-              {hasVal(record.date || record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.date || record.createdAt)}</span>
-                </div>
-              )}
-              <h3 className="record-name">{highlightText(`Vital Signs Table ${idx + 1}`)}</h3>
-            </div>
+            <div className="record-header"><h3 className="record-name">{highlightText(`Vital Signs Table ${idx + 1}`)}</h3></div>
             {renderSection(record, idx, 'provider-info')}
             {renderSection(record, idx, 'blood-pressure')}
             {renderSection(record, idx, 'heart-rate')}

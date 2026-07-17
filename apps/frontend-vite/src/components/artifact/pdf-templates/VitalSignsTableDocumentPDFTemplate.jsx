@@ -4,30 +4,30 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 /**
  * Vital Signs Table Document PDF Template - March 2026
  * Professional black & white layout with bar chart visualization
- * Helvetica font, LETTER size, 20pt title / 12pt body
+ * Helvetica font, LETTER size, canonical 26/19/16/13/14 typography
  */
 
 const styles = StyleSheet.create({
   page: {
     padding: 40,
+    paddingBottom: 64,
     fontFamily: 'Helvetica',
-    fontSize: 12,
+    fontSize: 14,
     backgroundColor: '#ffffff',
     color: '#000000',
   },
   documentHeader: {
-    marginBottom: 24,
-    borderBottomWidth: 3,
-    borderBottomColor: '#000000',
-    paddingBottom: 14,
+    marginBottom: 18,
   },
   documentTitle: {
-    fontSize: 20,
+    fontSize: 26,
     fontFamily: 'Helvetica-Bold',
     color: '#000000',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
+    marginBottom: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
   },
   documentSubtitle: {
     fontSize: 10,
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     borderLeftColor: '#000000',
   },
   recordTitle: {
-    fontSize: 16,
+    fontSize: 19,
     fontFamily: 'Helvetica-Bold',
     color: '#000000',
     textTransform: 'uppercase',
@@ -66,12 +66,12 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
     color: '#000000',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    borderBottomWidth: 2,
+    borderBottomWidth: 1,
     borderBottomColor: '#000000',
     paddingBottom: 4,
     marginBottom: 10,
@@ -85,12 +85,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fafafa',
   },
   fieldLabel: {
-    fontSize: 10,
+    fontSize: 13,
     fontFamily: 'Helvetica-Bold',
     color: '#333333',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginBottom: 6,
+    paddingBottom: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#999999',
+    borderBottomStyle: 'solid',
   },
   numberedItem: {
     flexDirection: 'row',
@@ -104,9 +108,9 @@ const styles = StyleSheet.create({
     width: 22,
   },
   itemContent: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#000000',
-    flex: 1,
+    paddingLeft: 10,
     lineHeight: 1.5,
   },
   chartContainer: {
@@ -178,6 +182,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
   },
+  separator: {
+    marginTop: 20,
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
+  },
+  trailingSpacer: { height: 1 },
   footer: {
     position: 'absolute',
     bottom: 30,
@@ -259,7 +271,7 @@ const formatDate = (dateString) => {
 
 const hasValue = (val) => {
   if (val === null || val === undefined || val === '') return false;
-  if (typeof val === 'number') return true;
+  if (typeof val === 'number') return val !== 0;
   if (typeof val === 'boolean') return true;
   if (typeof val === 'string') return val.trim() !== '';
   return true;
@@ -293,11 +305,11 @@ const getChartUnit = (fn, record) => {
 };
 
 /* ======= PDF Bar Chart Components ======= */
-const VitalBarChartPDF = ({ label, value, unit, testType }) => {
+const VitalBarChartPDF = ({ label, value, testType }) => {
   const color = getVitalBarColor(value, testType);
   const interpretation = getVitalInterpretation(value, testType);
   const barWidth = vitalToPercentage(value, testType);
-  const displayValue = unit ? `${value} ${unit}` : String(value);
+  const displayValue = String(value);
 
   return (
     <View style={styles.barChartRow}>
@@ -338,6 +350,7 @@ const SECTION_DEFS = [
     key: 'provider-info',
     title: 'Provider Information',
     getFields: (record) => [
+      hasValue(record.date) && { label: 'Date', value: formatDate(record.date) },
       hasValue(record.provider) && { label: 'Provider', value: record.provider },
       hasValue(record.facility) && { label: 'Facility', value: record.facility },
     ].filter(Boolean),
@@ -347,8 +360,8 @@ const SECTION_DEFS = [
     key: 'blood-pressure',
     title: 'Blood Pressure',
     getCharts: (record) => [
-      hasValue(record.systolicBloodPressure) && { label: 'Systolic BP', value: record.systolicBloodPressure, unit: 'mmHg', testType: 'systolicBloodPressure' },
-      hasValue(record.diastolicBloodPressure) && { label: 'Diastolic BP', value: record.diastolicBloodPressure, unit: 'mmHg', testType: 'diastolicBloodPressure' },
+      hasValue(record.systolicBloodPressure) && { label: 'Systolic Blood Pressure', value: record.systolicBloodPressure, unit: 'mmHg', testType: 'systolicBloodPressure' },
+      hasValue(record.diastolicBloodPressure) && { label: 'Diastolic Blood Pressure', value: record.diastolicBloodPressure, unit: 'mmHg', testType: 'diastolicBloodPressure' },
       hasValue(record.meanArterialPressure) && { label: 'Mean Arterial Pressure', value: record.meanArterialPressure, unit: 'mmHg', testType: 'meanArterialPressure' },
     ].filter(Boolean),
     getFields: (record) => [
@@ -376,7 +389,7 @@ const SECTION_DEFS = [
     ].filter(Boolean),
     getFields: (record) => [
       hasValue(record.supplementalOxygen) && { label: 'Supplemental Oxygen', value: record.supplementalOxygen },
-      (hasValue(record.oxygenFlowRate) && record.oxygenFlowRate !== 0) && { label: 'Oxygen Flow Rate', value: `${record.oxygenFlowRate} L/min` },
+      hasValue(record.oxygenFlowRate) && { label: 'Oxygen Flow Rate', value: record.oxygenFlowRate },
     ].filter(Boolean),
   },
   {
@@ -390,6 +403,7 @@ const SECTION_DEFS = [
       ].filter(Boolean);
     },
     getFields: (record) => [
+      hasValue(record.temperatureUnit) && { label: 'Temperature Unit', value: record.temperatureUnit },
       hasValue(record.temperatureRoute) && { label: 'Temperature Route', value: record.temperatureRoute },
     ].filter(Boolean),
   },
@@ -407,19 +421,21 @@ const SECTION_DEFS = [
     key: 'body-measurements',
     title: 'Body Measurements',
     getCharts: (record) => [
-      (hasValue(record.bodyMassIndex) && record.bodyMassIndex !== 0) && { label: 'Body Mass Index', value: record.bodyMassIndex, unit: '', testType: 'bodyMassIndex' },
+      hasValue(record.bodyMassIndex) && { label: 'Body Mass Index', value: record.bodyMassIndex, unit: '', testType: 'bodyMassIndex' },
     ].filter(Boolean),
     getFields: (record) => [
-      hasValue(record.weight) && { label: 'Weight', value: `${record.weight} ${record.weightUnit || ''}`.trim() },
-      hasValue(record.height) && { label: 'Height', value: `${record.height} ${record.heightUnit || ''}`.trim() },
-      (hasValue(record.headCircumference) && record.headCircumference !== 0) && { label: 'Head Circumference', value: `${record.headCircumference} cm` },
+      hasValue(record.weight) && { label: 'Weight', value: record.weight },
+      hasValue(record.weightUnit) && { label: 'Weight Unit', value: record.weightUnit },
+      hasValue(record.height) && { label: 'Height', value: record.height },
+      hasValue(record.heightUnit) && { label: 'Height Unit', value: record.heightUnit },
+      hasValue(record.headCircumference) && { label: 'Head Circumference', value: record.headCircumference },
     ].filter(Boolean),
   },
   {
     key: 'blood-glucose',
     title: 'Blood Glucose',
     getCharts: (record) => [
-      hasValue(record.bloodGlucose) && { label: 'Blood Glucose', value: record.bloodGlucose, unit: 'mg/dL', testType: 'bloodGlucose' },
+      hasValue(record.bloodGlucose) && { label: 'Blood Glucose Level', value: record.bloodGlucose, unit: 'mg/dL', testType: 'bloodGlucose' },
     ].filter(Boolean),
     getFields: (record) => [
       hasValue(record.glucoseMeasurementTiming) && { label: 'Measurement Timing', value: record.glucoseMeasurementTiming },
@@ -432,46 +448,47 @@ const CategorySection = ({ sectionDef, record }) => {
   const charts = sectionDef.getCharts(record);
   const fields = sectionDef.getFields(record);
   if (charts.length === 0 && fields.length === 0) return null;
-  const totalItems = charts.length + fields.length;
+  const items = [...charts, ...fields];
+  const renderItem = (item, index) => (
+    <View key={`${sectionDef.key}-${index}`} style={styles.fieldBox} wrap={false}>
+      <Text style={styles.fieldLabel}>{item.label}</Text>
+      <View style={styles.numberedItem}>
+        <Text style={styles.itemNumber}>1.</Text>
+        <Text style={styles.itemContent}>{safeString(item.value)}</Text>
+      </View>
+    </View>
+  );
 
   return (
-    <View style={styles.section} wrap={totalItems > 8 ? undefined : false}>
-      <Text style={styles.sectionTitle}>{sectionDef.title}</Text>
-      {charts.length > 0 && (
-        <View style={styles.chartContainer}>
-          <ChartLegendPDF />
-          {charts.map((c, i) => (
-            <VitalBarChartPDF key={i} label={c.label} value={c.value} unit={c.unit} testType={c.testType} />
-          ))}
-        </View>
-      )}
-      {fields.map((f, i) => (
-        <View key={i} style={styles.fieldBox}>
-          <Text style={styles.fieldLabel}>{f.label}</Text>
-          <View style={styles.numberedItem}>
-            <Text style={styles.itemNumber}>1.</Text>
-            <Text style={styles.itemContent}>{safeString(f.value)}</Text>
-          </View>
-        </View>
-      ))}
-    </View>
+    <React.Fragment>
+      <View style={styles.section} wrap={false}>
+        <Text style={styles.sectionTitle}>{sectionDef.title}</Text>
+      </View>
+      {items.map((item, index) => renderItem(item, index))}
+    </React.Fragment>
   );
 };
 
 /* ======= Main PDF Component ======= */
-const VitalSignsTableDocumentPDFTemplate = ({ document: templateData }) => {
+const VitalSignsTableDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const source = documentProp ?? data ?? templateData;
   const records = React.useMemo(() => {
-    if (Array.isArray(templateData)) return templateData;
-    if (templateData?.vital_signs_table) return templateData.vital_signs_table;
-    if (templateData?.documentData) {
-      const docData = templateData.documentData;
-      if (Array.isArray(docData)) return docData;
-      if (docData?.vital_signs_table) return docData.vital_signs_table;
-      return [docData];
-    }
-    if (templateData && typeof templateData === 'object') return [templateData];
-    return [];
-  }, [templateData]);
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
+    arr = arr.flatMap(record => {
+      if (Array.isArray(record?.wrapRecordsIntoSingleDocument)) return record.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(record?.records || record?._records)) return record.records || record._records;
+      if (record?.vital_signs_table) return Array.isArray(record.vital_signs_table) ? record.vital_signs_table : [record.vital_signs_table];
+      if (record?.documentData) {
+        const documentData = record.documentData;
+        if (Array.isArray(documentData)) return documentData;
+        if (documentData?.vital_signs_table) return Array.isArray(documentData.vital_signs_table) ? documentData.vital_signs_table : [documentData.vital_signs_table];
+        return [documentData];
+      }
+      return [record];
+    });
+    return arr.filter(record => record && typeof record === 'object');
+  }, [source]);
 
   if (!records || records.length === 0) {
     return (
@@ -488,28 +505,26 @@ const VitalSignsTableDocumentPDFTemplate = ({ document: templateData }) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Vital Signs Table</Text>
-          <Text style={styles.documentSubtitle}>Clinical Monitoring Report</Text>
-        </View>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer} minPresenceAhead={80}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>Record {idx + 1}</Text>
-              {(record.date || record.createdAt) && (
-                <Text style={styles.recordMeta}>Date: {formatDate(record.date || record.createdAt)}</Text>
-              )}
-            </View>
-            {SECTION_DEFS.map((sectionDef) => (
-              <CategorySection key={sectionDef.key} sectionDef={sectionDef} record={record} />
-            ))}
-          </View>
-        ))}
-
-        <Text style={styles.footer}>Confidential Medical Document</Text>
-      </Page>
+      {records.flatMap((record, recordIndex) => SECTION_DEFS
+        .filter(sectionDef => sectionDef.getCharts(record).length > 0 || sectionDef.getFields(record).length > 0)
+        .map((sectionDef, sectionIndex) => (
+        <Page key={`${recordIndex}-${sectionDef.key}`} size="LETTER" style={styles.page}>
+          {sectionIndex === 0 && (
+            <>
+              <View style={styles.documentHeader}>
+                <Text style={styles.documentTitle}>Vital Signs Table</Text>
+                <Text style={styles.documentSubtitle}>Clinical Monitoring Report</Text>
+              </View>
+              <View style={styles.recordHeader} wrap={false}>
+                <Text style={styles.recordTitle}>Record {recordIndex + 1}</Text>
+                {(record.date || record.createdAt) && <Text style={styles.recordMeta}>Date: {formatDate(record.date || record.createdAt)}</Text>}
+              </View>
+            </>
+          )}
+          <CategorySection sectionDef={sectionDef} record={record} />
+          <View style={styles.trailingSpacer} />
+        </Page>
+      )))}
     </Document>
   );
 };

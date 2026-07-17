@@ -152,6 +152,7 @@ import VisionTherapyAssessmentDocumentPDFTemplate from './VisionTherapyAssessmen
 import VisualAcuityReportsDocumentPDFTemplate from './VisualAcuityReportsDocumentPDFTemplate';
 import VitalSignsDocumentPDFTemplate from './VitalSignsDocumentPDFTemplate';
 import VitalSignsMonitoringDocumentPDFTemplate from './VitalSignsMonitoringDocumentPDFTemplate';
+import VitalSignsTableDocumentPDFTemplate from './VitalSignsTableDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -293,6 +294,7 @@ const templateRegistry = {
   'visual_acuity_reports': VisualAcuityReportsDocumentPDFTemplate,
   'vital_signs': VitalSignsDocumentPDFTemplate,
   'vital_signs_monitoring': VitalSignsMonitoringDocumentPDFTemplate,
+  'vital_signs_table': VitalSignsTableDocumentPDFTemplate,
 };
 
 /**

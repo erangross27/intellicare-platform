@@ -19,7 +19,7 @@ router.use(practiceModels);
 router.use(practiceAuth);
 
 const ALLOWED_FIELDS = [
-  'suspectedCondition', 'symptoms', 'physicalExam', 'serology',
+  'date', 'suspectedCondition', 'symptoms', 'physicalExam', 'serology',
   'inflammatoryMarkers', 'organInvolvement', 'imaging', 'biopsy',
   'diagnosis', 'diseaseActivity', 'treatment', 'monitoring',
   'rheumatologist', 'facility', 'notes',

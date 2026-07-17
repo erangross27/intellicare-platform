@@ -1,115 +1,158 @@
-/**
- * AutoimmuneEvaluationsDocumentPDFTemplate.jsx
- * PDFDownloadLink + pdfData memo pattern, ASCII separators, Helvetica
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'autoimmune_evaluations';
+const COMMA_SPLIT_FIELDS = ['physicalExam', 'inflammatoryMarkers'];
+const ARRAY_FIELDS = new Set(['symptoms', 'organInvolvement', 'treatment']);
+const NARRATIVE_FIELDS = new Set(['imaging', 'biopsy', 'monitoring', 'notes']);
+const LABELS = {
+  date: 'Date',
+  rheumatologist: 'Rheumatologist',
+  facility: 'Facility',
+  suspectedCondition: 'Suspected Condition',
+  diagnosis: 'Diagnosis',
+  diseaseActivity: 'Disease Activity',
+  symptoms: 'Symptoms',
+  physicalExam: 'Physical Exam',
+  serology: 'Serology',
+  inflammatoryMarkers: 'Inflammatory Markers',
+  organInvolvement: 'Organ Involvement',
+  imaging: 'Imaging',
+  biopsy: 'Biopsy',
+  treatment: 'Treatment',
+  monitoring: 'Monitoring',
+  notes: 'Notes',
+};
+const SECTIONS = [
+  { title: 'Date', fields: ['date'] },
+  { title: 'Record Information', fields: ['rheumatologist', 'facility'] },
+  { title: 'Clinical Information', fields: ['suspectedCondition', 'diagnosis', 'diseaseActivity'] },
+  { title: 'Symptoms', fields: ['symptoms'] },
+  { title: 'Physical Exam', fields: ['physicalExam'] },
+  { title: 'Serology', fields: ['serology'] },
+  { title: 'Inflammatory Markers', fields: ['inflammatoryMarkers'] },
+  { title: 'Organ Involvement', fields: ['organInvolvement'] },
+  { title: 'Imaging', fields: ['imaging'] },
+  { title: 'Biopsy', fields: ['biopsy'] },
+  { title: 'Treatment', fields: ['treatment'] },
+  { title: 'Monitoring', fields: ['monitoring'] },
+  { title: 'Notes', fields: ['notes'] },
+];
+
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 24, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  recordSection: { marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 8, backgroundColor: '#f0f0f0', padding: 8, borderWidth: 1, borderColor: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 4, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 14 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4 },
-  fieldBlock: { marginBottom: 6 },
-  fieldLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#404040', marginBottom: 1 },
-  fieldValue: { fontSize: 12, color: '#404040', lineHeight: 1.4, paddingLeft: 12 },
-  listItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 4 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
-  separator: { fontSize: 10, color: '#999999', marginBottom: 8, textAlign: 'center' },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
 
-const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const splitBySentence = (t) => { if (!t || typeof t !== 'string') return []; return t.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)\.)(?<=[.!?])\s+|(?<=;)\s+/).filter(s => { const tr = s.trim(); return tr.length > 0 && tr.replace(/[.!?;,]+/g, '').trim().length > 0; }); };
-// paren-aware comma split (digit/year/and-or guarded) for COMMA_SPLIT fields like physicalExam.
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) {
-      const prev = text[i - 1] || '', next = text[i + 1] || '';
-      const rest = text.slice(i + 1).trimStart();
-      if ((/\d/.test(prev) && /\d/.test(next)) || /^\d{4}\b/.test(rest) || /^(?:and|or)\b/i.test(rest)) { current += ch; }
-      else { const t = current.trim(); if (t) result.push(t); current = ''; }
-    }
-    else { current += ch; }
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const humanize = key => String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, character => character.toUpperCase());
+const formatDate = value => {
+  const raw = value?.$date || value;
+  const match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return String(raw || '');
+  const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+};
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const parseLabel = text => {
+  const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/);
+  return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() };
+};
+const splitClauses = (field, text, splitCommas = COMMA_SPLIT_FIELDS.includes(field)) => {
+  const source = String(text || '');
+  const output = [];
+  let current = '';
+  let depth = 0;
+  const push = () => { if (current.trim()) output.push(current.trim()); current = ''; };
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    const sentenceBreak = depth === 0 && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1]));
+    const commaBreak = depth === 0 && splitCommas && character === ',';
+    if (sentenceBreak || commaBreak) push();
+    else current += character;
   }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
+  push();
+  return output;
+};
+const nestedLeaves = (value, prefix, labelPrefix = '') => {
+  if (Array.isArray(value)) return value.flatMap((child, index) => {
+    const path = `${prefix}.${index}`;
+    if (child && typeof child === 'object' && !child.$date) return nestedLeaves(child, path, `${labelPrefix || 'Item'} ${index + 1}`);
+    return hasValue(child) ? [{ path, rowLabel: labelPrefix ? `${labelPrefix} ${index + 1}` : '', value: child }] : [];
+  });
+  return Object.entries(value || {}).flatMap(([key, child]) => {
+    const path = `${prefix}.${key}`;
+    const label = labelPrefix ? `${labelPrefix} — ${humanize(key)}` : humanize(key);
+    if (child && typeof child === 'object' && !child.$date) return nestedLeaves(child, path, label);
+    return hasValue(child) ? [{ path, rowLabel: label, value: child }] : [];
+  });
+};
+const serologyGroups = value => Object.entries(value || {}).flatMap(([key, child]) => {
+  if (!hasValue(child)) return [];
+  const path = `serology.${key}`;
+  const subtitle = humanize(key);
+  if (Array.isArray(child)) return [{ subtitle, leaves: child.flatMap((item, index) => item && typeof item === 'object' && !item.$date ? nestedLeaves(item, `${path}.${index}`, `Item ${index + 1}`) : hasValue(item) ? [{ path: `${path}.${index}`, rowLabel: '', value: item }] : []) }];
+  if (child && typeof child === 'object' && !child.$date) return [{ subtitle, leaves: nestedLeaves(child, path) }];
+  return [{ subtitle, leaves: [{ path, rowLabel: '', value: child }] }];
+});
+const unwrapRecords = source => {
+  if (!source) return [];
+  const queue = Array.isArray(source) ? [...source] : [source];
+  const records = [];
+  while (queue.length) {
+    const value = queue.shift();
+    if (!value) continue;
+    if (Array.isArray(value)) { queue.unshift(...value); continue; }
+    if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; }
+    if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; }
+    if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; }
+    if (value.records !== undefined) { queue.unshift(value.records); continue; }
+    if (typeof value === 'object') records.push(value);
+  }
+  return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field])));
+};
+const rowsFor = (record, field) => {
+  const value = record[field];
+  if (!hasValue(value)) return [];
+  if (field === 'date') return [{ subtitle: '', value: formatDate(value) }];
+  if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) }));
+  if (field === 'serology') return serologyGroups(value).flatMap(group => group.leaves.map(leaf => {
+    const rendered = /(?:^|\.)(?:date|reviewDate)$/i.test(leaf.path) ? formatDate(leaf.value) : displayValue(leaf.value);
+    return { subtitle: group.subtitle, value: leaf.rowLabel ? `${leaf.rowLabel} — ${rendered}` : rendered };
+  }));
+  if (COMMA_SPLIT_FIELDS.includes(field) || NARRATIVE_FIELDS.has(field)) return splitClauses(field, value).map(text => parseLabel(text));
+  return [{ subtitle: '', value: displayValue(value) }];
+};
+const renderSection = (record, section, key) => {
+  const fields = section.fields.filter(field => rowsFor(record, field).length);
+  if (!fields.length) return null;
+  const units = fields.flatMap(field => {
+    const rows = rowsFor(record, field);
+    const showLabel = LABELS[field] !== section.title;
+    return rows.map((row, index) => {
+      const priorSubtitle = index > 0 ? rows[index - 1].subtitle : null;
+      return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== priorSubtitle && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>;
+    });
+  });
+  const [first, ...rest] = units;
+  return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>;
 };
 
-const AutoimmuneEvaluationsDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => {
-      if (r?.autoimmune_evaluations) return Array.isArray(r.autoimmune_evaluations) ? r.autoimmune_evaluations : [r.autoimmune_evaluations];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.autoimmune_evaluations) return Array.isArray(dd.autoimmune_evaluations) ? dd.autoimmune_evaluations : [dd.autoimmune_evaluations]; return [dd]; }
-      return r;
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  // Stacked label-above-value (NEVER side-by-side "Label: value", no colon). Each field atomic.
-  const renderField = (label, value) => { if (!value || (Array.isArray(value) && value.length === 0) || String(value).trim() === '') return null; return <View style={styles.fieldBlock} wrap={false}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{String(value)}</Text></View>; };
-  // Title + numbered list as ONE page-break unit (react-pdf v4 anti-orphan, memory 6a3cda8c).
-  // <=8 rows: wrap={false} → the whole block (title + rows) moves to the next page intact → no orphan,
-  // and it always fits one page so it never compresses → no overprint.
-  // >8 rows: wrap → list flows across pages, with [title + first row] GLUED in a wrap={false} sub-View
-  // so the title can never strand alone at a page bottom; the remaining rows flow as siblings.
-  const renderTitledList = (title, items) => {
-    if (!items || items.length === 0) return null;
-    if (items.length <= 8) return <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{items.map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {String(s)}</Text>)}</View>;
-    return <View style={styles.fieldContainer} wrap><View wrap={false}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.listItem}>1. {String(items[0])}</Text></View>{items.slice(1).map((s, i) => <Text key={i + 1} style={styles.listItem}>{i + 2}. {String(s)}</Text>)}</View>;
-  };
-  const renderSentenceField = (label, value) => { if (!value || String(value).trim() === '') return null; const ss = splitBySentence(String(value)); if (ss.length <= 1) return renderField(label, value); return renderTitledList(label, ss); };
-  const renderArrayField = (label, items) => { if (!items || !Array.isArray(items) || items.length === 0) return null; return renderTitledList(label, items); };
-  // COMMA_SPLIT field (physicalExam): split into a numbered list (never side-by-side "Label: value").
-  const renderCommaField = (label, value) => { if (!value || String(value).trim() === '') return null; const items = splitByComma(String(value)); if (items.length <= 1) return renderField(label, value); return renderTitledList(label, items); };
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Autoimmune Evaluations</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Autoimmune Evaluations</Text>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordSection}>
-            <View wrap={false}><Text style={styles.recordTitle}>{`Autoimmune Evaluation ${idx + 1}`}</Text>{record.date && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}</View>
-            {idx > 0 && <Text style={styles.separator}>{'='.repeat(60)}</Text>}
-            {(record.rheumatologist || record.facility) && <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Record Information</Text>{renderField('Rheumatologist', record.rheumatologist)}{renderField('Facility', record.facility)}</View>}
-            {(record.suspectedCondition || record.diagnosis || record.diseaseActivity) && <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Clinical Information</Text>{renderField('Suspected Condition', record.suspectedCondition)}{renderField('Diagnosis', record.diagnosis)}{renderField('Disease Activity', record.diseaseActivity)}</View>}
-            {renderArrayField('Symptoms', record.symptoms)}
-            {renderCommaField('Physical Exam', record.physicalExam)}
-            {record.serology && typeof record.serology === 'object' && (() => {
-              const entries = Object.entries(record.serology).filter(([, v]) => { if (v === null || v === undefined) return false; if (Array.isArray(v)) return v.filter(x => x !== null && x !== undefined && String(x).trim() !== '').length > 0; return String(v).trim() !== ''; });
-              if (entries.length === 0) return null;
-              const rowCount = entries.reduce((n, [, v]) => n + (Array.isArray(v) ? v.length : 1), 0);
-              const renderEntry = ([k, v]) => Array.isArray(v)
-                ? <View key={k} wrap={false}><Text style={{ ...styles.fieldLabel, marginTop: 4 }}>{humanizeKey(k)}</Text>{v.map((t, i) => <Text key={i} style={styles.listItem}>{i + 1}. {String(t)}</Text>)}</View>
-                : <View key={k} style={styles.fieldBlock} wrap={false}><Text style={styles.fieldLabel}>{humanizeKey(k)}</Text><Text style={styles.fieldValue}>{String(v)}</Text></View>;
-              // <=8 rows: atomic block (no orphan). >8: flow, with [Serology title + first entry] glued so the title never strands.
-              if (rowCount <= 8) return <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Serology</Text>{entries.map(renderEntry)}</View>;
-              return <View style={styles.fieldContainer} wrap><View wrap={false}><Text style={styles.sectionTitle}>Serology</Text>{renderEntry(entries[0])}</View>{entries.slice(1).map(renderEntry)}</View>;
-            })()}
-            {renderField('Inflammatory Markers', record.inflammatoryMarkers)}
-            {renderArrayField('Organ Involvement', record.organInvolvement)}
-            {renderSentenceField('Imaging', record.imaging)}
-            {renderSentenceField('Biopsy', record.biopsy)}
-            {renderArrayField('Treatment', record.treatment)}
-            {renderSentenceField('Monitoring', record.monitoring)}
-            {renderSentenceField('Notes', record.notes)}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const AutoimmuneEvaluationsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Autoimmune Evaluations</Text><Text style={styles.noData}>No autoimmune evaluation data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Autoimmune Evaluations</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Autoimmune Evaluation {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
 
 export default AutoimmuneEvaluationsDocumentPDFTemplate;

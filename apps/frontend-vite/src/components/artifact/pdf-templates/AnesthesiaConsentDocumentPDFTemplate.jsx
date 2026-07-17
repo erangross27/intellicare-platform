@@ -1,27 +1,25 @@
 /**
  * AnesthesiaConsentDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — anesthesia consent
+ * March 2026 — Helvetica — A4 — anesthesia consent
  * Collection: anesthesia_consent
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 13, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 23, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 42, fontFamily: 'Helvetica', fontSize: 13, lineHeight: 1.35, backgroundColor: '#ffffff', color: '#111827' },
+  documentHeader: { marginBottom: 10 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#0f172a', paddingBottom: 9, borderBottom: '2pt solid #000000', marginBottom: 10 },
   recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 12, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#1e3a8a' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 13, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 13, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1d4ed8', paddingBottom: 5, borderBottom: '1pt solid #000000', marginBottom: 6 },
+  fieldBox: { marginBottom: 6 },
+  fieldLabel: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e3a8a', paddingBottom: 3, borderBottom: '0.5pt solid #999999', marginBottom: 3 },
+  fieldValue: { fontSize: 13, color: '#111827' },
+  listItem: { fontSize: 13, color: '#111827', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#334155', marginTop: 2, marginBottom: 2 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
   noDataText: { fontSize: 13, color: '#6b7280', textAlign: 'center', marginTop: 40 },
 });
@@ -61,34 +59,77 @@ const fmtVal = (v) => {
   return String(v || '');
 };
 
+const STRING_FIELDS = ['anesthesiaType', 'scheduledProcedure', 'anesthesiologist', 'anesthesiologistLicenseNumber', 'asaClassification', 'npoDuration', 'lastOralIntake', 'complicationDetails', 'airwayAssessmentFindings', 'regionalAnesthesiaTechnique', 'consentGivenBy', 'relationshipToPatient', 'interpreterLanguage', 'witnessName'];
+const COMMA_SPLIT_FIELDS = new Set(['airwayAssessmentFindings']);
+const SEMICOLON_SPLIT_FIELDS = new Set(STRING_FIELDS);
+const SEMICOLON_SEPARATOR = /;\s+/;
+
+const stripDelims = (text) => {
+  if (text === null || text === undefined) return '';
+  return String(text).replace(/^[\s.;,]+/, '').replace(/[\s.;,]+$/, '').trim();
+};
+
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  const result = []; let current = ''; let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') depth++;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
+    const boundary = ch === '.' && depth === 0 && (i + 1 >= text.length || /\s/.test(text[i + 1]));
+    if (boundary) {
+      if (/\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)$/.test(current)) { current += ch; continue; }
+      const value = stripDelims(current); if (value) result.push(value); current = '';
+      while (i + 1 < text.length && /\s/.test(text[i + 1])) i++;
+    } else current += ch;
+  }
+  const value = stripDelims(current); if (value) result.push(value);
+  return result;
 };
 
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
   const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  if (m) return { isLabeled: true, label: m[1].trim(), value: stripDelims(m[2]) };
   return { isLabeled: false, label: '', value: text };
 };
 
-const splitByComma = (text) => {
+const splitOnChar = (text, separator) => {
   if (!text || typeof text !== 'string') return [text || ''];
   const result = []; let current = ''; let depth = 0;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) {
-      const rest = text.slice(i + 1).trimStart();
-      if (/^\d{4}\b/.test(rest)) { current += ch; continue; }
-      const t = current.trim(); if (t) result.push(t); current = '';
+    else if (ch === separator && depth === 0) {
+      if (separator === ',' && /\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || '')) { current += ch; continue; }
+      const t = stripDelims(current); if (t) result.push(t); current = '';
     }
     else { current += ch; }
   }
-  const t = current.trim(); if (t) result.push(t);
+  const t = stripDelims(current); if (t) result.push(t);
   return result.length > 0 ? result : [text];
+};
+
+const segmentSentence = (sentence, fieldName) => {
+  const semicolonItems = SEMICOLON_SPLIT_FIELDS.has(fieldName) && SEMICOLON_SEPARATOR.test(sentence) ? splitOnChar(sentence, ';') : [sentence];
+  if (semicolonItems.length >= 2) return { label: null, items: semicolonItems };
+  const parsed = parseLabel(sentence);
+  const base = parsed.isLabeled ? parsed.value : sentence;
+  const commaItems = COMMA_SPLIT_FIELDS.has(fieldName) ? splitOnChar(base, ',') : [stripDelims(base)];
+  return { label: parsed.isLabeled ? parsed.label : null, items: commaItems };
+};
+
+const buildUnits = (value, fieldName) => {
+  const units = [];
+  splitBySentence(String(value || '')).forEach(sentence => {
+    const { label, items } = segmentSentence(sentence, fieldName);
+    const rows = items.map(stripDelims).filter(Boolean);
+    const previous = units[units.length - 1];
+    if (!label && previous && !previous.label) previous.rows.push(...rows);
+    else units.push({ label, rows });
+  });
+  return units;
 };
 
 /* renderFieldRow: label + value inside fieldBox. leadingTitle (anti-orphan) rides INSIDE
@@ -96,7 +137,7 @@ const splitByComma = (text) => {
 const renderFieldRow = (label, value, showLabel = true, leadingTitle = null) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox} wrap={leadingTitle ? false : undefined}>
+    <View style={styles.fieldBox} wrap={false}>
       {leadingTitle && <Text style={styles.sectionTitle}>{leadingTitle}</Text>}
       {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
       <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
@@ -108,7 +149,7 @@ const renderFieldRow = (label, value, showLabel = true, leadingTitle = null) => 
 const renderDateFieldPDF = (label, value, showLabel = true, leadingTitle = null) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox} wrap={leadingTitle ? false : undefined}>
+    <View style={styles.fieldBox} wrap={false}>
       {leadingTitle && <Text style={styles.sectionTitle}>{leadingTitle}</Text>}
       {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
       <Text style={styles.fieldValue}>{formatDate(value)}</Text>
@@ -117,32 +158,17 @@ const renderDateFieldPDF = (label, value, showLabel = true, leadingTitle = null)
 };
 
 /* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text, showLabel = true, leadingTitle = null) => {
+const renderSentenceSection = (fieldName, label, text, showLabel = true, leadingTitle = null) => {
   if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
   const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
-    }
+  buildUnits(fmtVal(text), fieldName).forEach(unit => {
+    if (unit.label) rows.push({ type: 'subtitle', text: unit.label });
+    unit.rows.forEach((row, index) => rows.push({ type: 'item', text: row, num: index + 1 }));
   });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
+  if (rows.length === 0) return null;
 
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View style={styles.fieldBox} wrap={rows.length > 8}>
       {leadingTitle && <Text style={styles.sectionTitle}>{leadingTitle}</Text>}
       {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
       {rows.map((row, i) => {
@@ -162,11 +188,11 @@ const renderArrayFieldPDF = (label, items, showLabel = true, leadingTitle = null
   if (safeItems.length === 0) return null;
 
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={!leadingTitle && safeItems.length > 8}>
       {leadingTitle && <Text style={styles.sectionTitle}>{leadingTitle}</Text>}
       {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
       {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
+        <Text key={i} style={styles.listItem}>{i + 1}. {stripDelims(safeString(item))}</Text>
       ))}
     </View>
   );
@@ -177,6 +203,7 @@ const SECTION_CONFIGS = [
   {
     title: 'Record Information',
     fields: [
+      { key: 'date', label: 'Consent Date', isDate: true },
       { key: 'anesthesiologist', label: 'Anesthesiologist', isSentence: true },
       { key: 'anesthesiologistLicenseNumber', label: 'Anesthesiologist License Number', isSentence: true },
       { key: 'asaClassification', label: 'ASA Classification', isSentence: true },
@@ -247,7 +274,7 @@ const AnesthesiaConsentDocumentPDFTemplate = ({ document: data }) => {
   if (!records || records.length === 0) {
     return (
       <Document>
-        <Page size="LETTER" style={styles.page}>
+        <Page size="A4" style={styles.page}>
           <View style={styles.documentHeader}>
             <Text style={styles.documentTitle}>Anesthesia Consent</Text>
           </View>
@@ -259,7 +286,7 @@ const AnesthesiaConsentDocumentPDFTemplate = ({ document: data }) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         {/* Document Header */}
         <View style={styles.documentHeader}>
           <Text style={styles.documentTitle}>Anesthesia Consent</Text>
@@ -271,11 +298,6 @@ const AnesthesiaConsentDocumentPDFTemplate = ({ document: data }) => {
 
             {/* Record Header */}
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
               <Text style={styles.recordTitle}>
                 {`Anesthesia Consent ${index + 1}`}
               </Text>
@@ -300,7 +322,7 @@ const AnesthesiaConsentDocumentPDFTemplate = ({ document: data }) => {
                     if (field.isBoolean) return <View key={field.key}>{renderFieldRow(field.label, val ? 'Yes' : 'No', showFieldLabel, leadingTitle)}</View>;
                     if (field.isDate) return <View key={field.key}>{renderDateFieldPDF(field.label, val, showFieldLabel, leadingTitle)}</View>;
                     if (field.isArray) return <View key={field.key}>{renderArrayFieldPDF(field.label, val, showFieldLabel, leadingTitle)}</View>;
-                    if (field.isSentence) return <View key={field.key}>{renderSentenceSection(field.label, val, showFieldLabel, leadingTitle)}</View>;
+                    if (field.isSentence) return <View key={field.key}>{renderSentenceSection(field.key, field.label, val, showFieldLabel, leadingTitle)}</View>;
                     return <View key={field.key}>{renderFieldRow(field.label, val, showFieldLabel, leadingTitle)}</View>;
                   })}
                 </View>

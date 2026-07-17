@@ -15,6 +15,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import AnesthesiaConsentDocumentPDFTemplate from '../pdf-templates/AnesthesiaConsentDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './AnesthesiaConsentDocument.css';
 
@@ -45,6 +47,7 @@ const SECTION_TITLES = {
 };
 
 const FIELD_LABELS = {
+  date: 'Consent Date',
   anesthesiologist: 'Anesthesiologist',
   asaClassification: 'ASA Classification',
   anesthesiaType: 'Anesthesia Type',
@@ -73,7 +76,7 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
-  'record-info': ['anesthesiologist', 'anesthesiologistLicenseNumber', 'asaClassification', 'anesthesiaType', 'scheduledProcedure'],
+  'record-info': ['date', 'anesthesiologist', 'anesthesiologistLicenseNumber', 'asaClassification', 'anesthesiaType', 'scheduledProcedure'],
   'risks-alternatives': ['risksDisclosed', 'alternativesDiscussed'],
   'patient-history': ['npoDuration', 'lastOralIntake', 'allergiesDisclosed', 'previousAnesthesiaComplications', 'complicationDetails', 'familyHistoryMalignantHyperthermia'],
   'airway-assessment': ['difficultAirwayAnticipated', 'airwayAssessmentFindings'],
@@ -86,33 +89,99 @@ const STRING_FIELDS = ['anesthesiaType', 'scheduledProcedure', 'anesthesiologist
 const ARRAY_FIELDS = ['risksDisclosed', 'alternativesDiscussed', 'allergiesDisclosed'];
 const BOOLEAN_FIELDS = ['previousAnesthesiaComplications', 'familyHistoryMalignantHyperthermia', 'difficultAirwayAnticipated', 'bloodTransfusionConsent', 'postoperativePainManagementDiscussed', 'patientQuestionsAnswered', 'interpreterUsed'];
 const DATE_FIELDS = ['date', 'consentSignatureDateTime'];
+const COMMA_SPLIT_FIELDS = new Set(['airwayAssessmentFindings']);
+const SEMICOLON_SPLIT_FIELDS = new Set(STRING_FIELDS);
+const SEMICOLON_SEPARATOR = /;\s+/;
 
-/* parseLabel: detect "Label: value" patterns */
+const stripDelims = (text) => {
+  if (text === null || text === undefined) return '';
+  return String(text).replace(/^[\s.;,]+/, '').replace(/[\s.;,]+$/, '').trim();
+};
+
+/* splitBySentence: split period-delimited sentences while preserving credentials and parentheses.
+   Field-aware semicolon and comma splitting happens in segmentSentence below. */
+const splitBySentence = (text) => {
+  if (!text || typeof text !== 'string') return [];
+  const result = [];
+  let current = '';
+  let parenDepth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '(') parenDepth++;
+    else if (ch === ')') parenDepth = Math.max(0, parenDepth - 1);
+    const atBoundary = ch === '.' && parenDepth === 0 &&
+      (i + 1 >= text.length || /\s/.test(text[i + 1]));
+    if (atBoundary) {
+      if (/\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)$/.test(current)) {
+        current += ch;
+        continue;
+      }
+      const value = stripDelims(current);
+      if (value) result.push(value);
+      current = '';
+      while (i + 1 < text.length && /\s/.test(text[i + 1])) i++;
+    } else {
+      current += ch;
+    }
+  }
+  const value = stripDelims(current);
+  if (value) result.push(value);
+  return result;
+};
+
+const reconstructFullText = (sentences) => {
+  if (!sentences || sentences.length === 0) return '';
+  return sentences.map(stripDelims).filter(Boolean).map(s => (/[.!?]$/.test(s) ? s : `${s}.`)).join(' ');
+};
+
+/* parseLabel: detect "Label: value" patterns. */
 const parseLabel = (text) => {
   if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
   const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#:'"-]{1,80}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
+  if (m) return { isLabeled: true, label: m[1].trim(), value: stripDelims(m[2]) };
   return { isLabeled: false, label: '', value: text };
 };
 
-/* splitByComma: parenthesis-aware, date-aware comma split */
-const splitByComma = (text) => {
+const splitOnChar = (text, separator) => {
   if (!text || typeof text !== 'string') return [text || ''];
   const result = []; let current = ''; let depth = 0;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (ch === '(') { depth++; current += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) {
-      /* date-aware: skip comma followed by 4-digit year */
-      const rest = text.slice(i + 1).trimStart();
-      if (/^\d{4}\b/.test(rest)) { current += ch; continue; }
-      const t = current.trim(); if (t) result.push(t); current = '';
+    else if (ch === separator && depth === 0) {
+      if (separator === ',' && /\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || '')) { current += ch; continue; }
+      const value = stripDelims(current); if (value) result.push(value); current = '';
     }
     else { current += ch; }
   }
-  const t = current.trim(); if (t) result.push(t);
+  const t = stripDelims(current); if (t) result.push(t);
   return result.length > 0 ? result : [text];
+};
+
+const splitBySemicolon = (text) => splitOnChar(text, ';');
+const splitByComma = (text) => splitOnChar(text, ',');
+
+const segmentSentence = (sentence, fieldName) => {
+  const semicolonItems = SEMICOLON_SPLIT_FIELDS.has(fieldName) && SEMICOLON_SEPARATOR.test(sentence)
+    ? splitOnChar(sentence, ';') : [sentence];
+  if (semicolonItems.length >= 2) return { label: null, separator: '; ', items: semicolonItems };
+  const parsed = parseLabel(sentence);
+  const base = parsed.isLabeled ? parsed.value : sentence;
+  const commaItems = COMMA_SPLIT_FIELDS.has(fieldName) ? splitOnChar(base, ',') : [stripDelims(base)];
+  return { label: parsed.isLabeled ? parsed.label : null, separator: commaItems.length >= 2 ? ', ' : null, items: commaItems };
+};
+
+const buildUnits = (value, fieldName) => {
+  const units = [];
+  splitBySentence(String(value || '')).forEach((sentence, sentenceIndex) => {
+    const { label, separator, items } = segmentSentence(sentence, fieldName);
+    const rows = items.map((text, clauseIndex) => ({ text: stripDelims(text), sentenceIndex, clauseIndex, separator }));
+    const previous = units[units.length - 1];
+    if (!label && previous && !previous.label) previous.rows.push(...rows);
+    else units.push({ label, rows });
+  });
+  return units;
 };
 
 const formatDate = (dateValue) => {
@@ -126,7 +195,7 @@ const toInputDate = (dateValue) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const AnesthesiaConsentDocument = ({ document: docProp }) => {
+const AnesthesiaConsentDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -145,15 +214,16 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp || data || templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
       if (r?.anesthesia_consent) return Array.isArray(r.anesthesia_consent) ? r.anesthesia_consent : [r.anesthesia_consent];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.anesthesia_consent) return Array.isArray(dd.anesthesia_consent) ? dd.anesthesia_consent : [dd.anesthesia_consent]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
@@ -169,46 +239,29 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
         const editKey = `${fieldPart}-${idx}`;
         nLocal[editKey] = value;
         nPending[editKey] = true;
-        // Trailing numeric dot-segment → array element marker; otherwise field-level marker.
-        const dotIdx = fieldPart.lastIndexOf('.');
-        if (dotIdx !== -1 && /^\d+$/.test(fieldPart.slice(dotIdx + 1))) {
-          nFields[editKey] = 'edited';
-        } else {
-          nFields[editKey] = 'edited';
-          nSentences[`${fieldPart}-${idx}-s0`] = 'edited';
+        nFields[editKey] = 'edited';
+        if (Array.isArray(value)) {
+          value.forEach((_, itemIndex) => { nFields[`${fieldPart}-${idx}-a${itemIndex}`] = 'edited'; });
+        } else if (STRING_FIELDS.includes(fieldPart)) {
+          buildUnits(String(value || ''), fieldPart).forEach(unit => unit.rows.forEach(row => {
+            nSentences[`${fieldPart}-${idx}-s${row.sentenceIndex}-c${row.clauseIndex}`] = 'edited';
+          }));
         }
       });
     });
     if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
-    setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    const timer = setTimeout(() => {
+      setLocalEdits(prev => ({ ...nLocal, ...prev }));
+      setPendingEdits(prev => ({ ...nPending, ...prev }));
+      setEditedFields(prev => ({ ...nFields, ...prev }));
+      setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    }, 0);
+    return () => clearTimeout(timer);
   }, [records]);
 
   /* ═══════ UTILS ═══════ */
   const hasVal = useCallback((v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; }, []);
   const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
-
-  const splitBySentence = useCallback((text) => {
-    if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
-  }, []);
-
-  const splitBySemicolon = useCallback((text) => {
-    if (!text || typeof text !== 'string') return [];
-    return text.split(/;\s*/).map(s => s.trim()).filter(Boolean);
-  }, []);
-
-  function reconstructFullText(sentences, isSemicolon) {
-    if (!sentences || sentences.length === 0) return '';
-    if (isSemicolon) return sentences.join('; ');
-    return sentences.map((s, i) => {
-      let c = s.replace(/[;.]+$/, '').trim();
-      if (i < sentences.length - 1) c += '.';
-      return c;
-    }).join(' ');
-  }
 
   const getFieldValue = useCallback((record, fn, idx) => {
     const k = `${fn}-${idx}`;
@@ -335,58 +388,81 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
     stageDraft(record, fn, idx, saveVal, { fields: { [trackKey]: 'edited' }, sid });
   }, [editValue, safeId, stageDraft]);
 
-  function saveSentence(record, fn, idx, sid, sentenceIdx) {
+  const stageDraftClause = (record, fn, idx, sid, fullText, sentenceMarks, rebase) => {
     const id = safeId(record); if (!id) return;
-    const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const periodItems = splitBySentence(currentVal);
-    const isSemicolon = periodItems.length < 2;
-    const sentences = isSemicolon ? splitBySemicolon(currentVal) : periodItems;
-    const editedVal = editValue.trim();
-    if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
-      const updated = [...sentences]; updated.splice(sentenceIdx, 1);
-      const fullText = reconstructFullText(updated, isSemicolon);
-      setSaveError(null);
-      stageDraft(record, fn, idx, fullText, { sentences: { [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }, sid });
-      return;
-    }
-    const newSentences = isSemicolon ? splitBySemicolon(editedVal) : splitBySentence(editedVal);
-    const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
-    const fullText = reconstructFullText(updated, isSemicolon);
+    const editKey = `${fn}-${idx}`;
+    setLocalEdits(prev => ({ ...prev, [editKey]: fullText }));
+    setPendingEdits(prev => ({ ...prev, [editKey]: true }));
+    setEditedSentences(prev => {
+      let next;
+      if (rebase && rebase.delta) {
+        next = {};
+        const { prefix, at, delta } = rebase;
+        for (const [key, value] of Object.entries(prev)) {
+          if (key.startsWith(prefix)) {
+            const position = parseInt(key.slice(prefix.length), 10);
+            if (!isNaN(position)) {
+              if (position === at) continue;
+              if (position > at) { next[`${prefix}${position + delta}`] = value; continue; }
+            }
+          }
+          next[key] = value;
+        }
+      } else {
+        next = { ...prev };
+      }
+      return { ...next, ...sentenceMarks };
+    });
+    setApprovedSections(prev => { const next = { ...prev }; delete next[`${sid}-${idx}`]; return next; });
+    const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fn] = fullText; writeDrafts(store);
+    setEditingField(null); setEditValue('');
+  };
+
+  function saveClause(record, fn, idx, sid, sentenceIndex, clauseIndex) {
+    const id = safeId(record); if (!id) return;
+    const sentences = splitBySentence(String(getFieldValue(record, fn, idx) || ''));
+    const { label, separator, items } = segmentSentence(sentences[sentenceIndex] || '', fn);
+    const originalLength = items.length;
+    const edited = stripDelims(editValue);
+    const keyBase = `${fn}-${idx}-s${sentenceIndex}`;
+    const marks = {};
+    let deleted = false;
     setSaveError(null);
-    const orig = sentences[sentenceIdx] || '';
-    const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
-    const sMarks = {};
-    if (changed) sMarks[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
-    const extra = newSentences.length - 1;
-    for (let ei = 0; ei < extra; ei++) sMarks[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added';
-    stageDraft(record, fn, idx, fullText, { sentences: sMarks, sid });
+    if (!edited) {
+      if (clauseIndex < items.length) items.splice(clauseIndex, 1);
+      deleted = true;
+    } else {
+      const separatorChar = separator ? separator.trim()[0] : null;
+      const parts = (separatorChar ? splitOnChar(edited, separatorChar) : [edited]).map(stripDelims).filter(Boolean);
+      if (parts.length === 0) {
+        if (clauseIndex < items.length) items.splice(clauseIndex, 1);
+        deleted = true;
+      } else {
+        items.splice(clauseIndex, 1, ...parts);
+        marks[`${keyBase}-c${clauseIndex}`] = 'edited';
+        for (let offset = 1; offset < parts.length; offset++) marks[`${keyBase}-c${clauseIndex + offset}`] = 'added';
+      }
+    }
+    if (deleted) setEditedFields(prev => ({ ...prev, [`${fn}-${idx}`]: 'edited' }));
+    const delta = items.length - originalLength;
+    const base = items.join(separator || ' ');
+    sentences[sentenceIndex] = label ? (base ? `${label}: ${base}` : '') : base;
+    stageDraftClause(record, fn, idx, sid, reconstructFullText(sentences), marks, {
+      prefix: `${keyBase}-c`, at: clauseIndex, delta,
+    });
   }
 
-  function saveCommaItem(record, fn, idx, sid, sIdx, ciIdx) {
-    const id = safeId(record); if (!id) return;
-    const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const periodItems = splitBySentence(currentVal);
-    const isSemicolon = periodItems.length < 2;
-    const sentences = isSemicolon ? splitBySemicolon(currentVal) : periodItems;
-    const s = sentences[sIdx] || '';
-    const p = parseLabel(s);
-    if (!p.isLabeled) return;
-    const semiSub = splitBySemicolon(p.value);
-    const useSemicolon = semiSub.length >= 2;
-    const items = useSemicolon ? semiSub : splitByComma(p.value);
-    const trimmed = editValue.trim();
-    const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp);
-    if (subParts.length > 1) { items.splice(ciIdx, 1, ...subParts); } else { items[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); }
-    const joiner = useSemicolon ? '; ' : ', ';
-    const rebuilt = `${p.label}: ${items.join(joiner)}.`;
-    const allS = [...sentences]; allS[sIdx] = rebuilt;
-    const fullText = reconstructFullText(allS, isSemicolon);
-    setSaveError(null);
-    const sentenceKey = `${fn}-${idx}-s${sIdx}`;
-    const commaKey = `${sentenceKey}-c${ciIdx}`;
-    const marks = { [commaKey]: 'edited' };
-    for (let ei = 1; ei < subParts.length; ei++) marks[`${sentenceKey}-c${ciIdx + ei}`] = 'added';
-    stageDraft(record, fn, idx, fullText, { sentences: marks, sid });
+  function saveSentence(record, fn, idx, sid, renderedIndex) {
+    const sentences = splitBySentence(String(getFieldValue(record, fn, idx) || ''));
+    if (sentences.length === 1 && segmentSentence(sentences[0], fn).items.length > 1) {
+      saveClause(record, fn, idx, sid, 0, renderedIndex);
+    } else {
+      saveClause(record, fn, idx, sid, renderedIndex, 0);
+    }
+  }
+
+  function saveCommaItem(record, fn, idx, sid, sentenceIndex, clauseIndex) {
+    saveClause(record, fn, idx, sid, sentenceIndex, clauseIndex);
   }
 
   /* ═══════ APPROVE ═══════ */
@@ -458,21 +534,18 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatSentenceFieldLines = useCallback((text) => {
-    const sentences = splitBySentence(text);
-    const lines = []; let n = 1;
-    sentences.forEach(s => {
-      const parsed = parseLabel(s);
-      if (parsed.isLabeled) {
-        const parts = splitByComma(parsed.value);
-        if (parts.length >= 2) {
-          lines.push(parsed.label + ':');
-          parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
-        } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
-      } else { lines.push(`${n++}. ${s}`); }
+  const formatFieldForCopy = useCallback((text, fieldName) => {
+    const lines = [];
+    buildUnits(text, fieldName).forEach(unit => {
+      if (unit.label) {
+        lines.push(`${unit.label}:`);
+        unit.rows.forEach((row, index) => lines.push(`  ${index + 1}. ${row.text}`));
+      } else {
+        unit.rows.forEach((row, index) => lines.push(`${index + 1}. ${row.text}`));
+      }
     });
     return lines;
-  }, [splitBySentence]);
+  }, []);
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -482,38 +555,27 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
-      const showLabelCopy = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
       if (BOOLEAN_FIELDS.includes(f)) {
-        text += showLabelCopy ? `${label}: ${val ? 'Yes' : 'No'}\n\n` : `${val ? 'Yes' : 'No'}\n\n`;
+        text += `${label}\n${val ? 'Yes' : 'No'}\n\n`;
       } else if (DATE_FIELDS.includes(f)) {
-        if (showLabelCopy) text += `${label}\n`;
-        text += `${formatDate(val)}\n\n`;
+        text += `${label}\n${formatDate(val)}\n\n`;
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val.filter(v => v && String(v).trim()) : [];
         if (items.length > 0) {
-          if (showLabelCopy) text += `${label}\n`;
-          items.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
+          text += `${label}\n`;
+          items.forEach((item, i) => { text += `${i + 1}. ${stripDelims(item)}\n`; });
           text += '\n';
         }
       } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const periodItems = splitBySentence(strVal);
-        const sentences = periodItems.length >= 2 ? periodItems : splitBySemicolon(strVal);
-        if (sentences.length > 1) {
-          if (showLabelCopy) text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          if (showLabelCopy) text += `${label}\n`;
-          text += `${strVal}\n\n`;
-        }
+        text += `${label}\n`;
+        formatFieldForCopy(fmtVal(val), f).forEach(line => { text += `${line}\n`; });
+        text += '\n';
       } else {
-        if (showLabelCopy) text += `${label}\n`;
-        text += `${fmtVal(val)}\n\n`;
+        text += `${label}\n${fmtVal(val)}\n\n`;
       }
     });
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, splitBySemicolon, formatSentenceFieldLines]);
+  }, [getFieldValue, hasVal, fmtVal, formatFieldForCopy]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== ANESTHESIA CONSENT ===\n\n';
@@ -542,13 +604,12 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
     return (
       <div key={fn} className="rec-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className="nested-mini-card regular-row-group">
+        <div className="editable-leaf" data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -558,11 +619,13 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
+        </div>
       </div>
     );
   };
@@ -581,10 +644,12 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
     return (
       <div key={fn} className="rec-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className="nested-mini-card regular-row-group">
+        <div className="editable-leaf" data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={next => setEditValue(next || '')} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -599,6 +664,8 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
+        </div>
       </div>
     );
   };
@@ -628,7 +695,7 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} className="nested-mini-card editable-leaf" data-edit-field={fn}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
@@ -689,7 +756,7 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
                 if (commaItems.length >= 2 && !hasOxfordComma) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} className="nested-mini-card" style={{ marginTop: 8 }}>
                       <div className="nested-subtitle">{highlightText(parsed.label)}</div>
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
@@ -698,7 +765,7 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} className="editable-leaf" data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -729,9 +796,9 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
                  (unlabeled commas are grammar — keep names/clauses whole, Rule #70). */
               if (!parsed.isLabeled) {
                 const nlCommaItems = splitByComma(sentence);
-                if (nlCommaItems.length >= 2 && nlCommaItems.some(ci => parseLabel(ci).isLabeled)) {
+                if (nlCommaItems.length >= 2 && (COMMA_SPLIT_FIELDS.has(fn) || nlCommaItems.some(ci => parseLabel(ci).isLabeled))) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} className="nested-mini-card" style={{ marginTop: 8 }}>
                       {nlCommaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
                         const ciEditing = editingField === commaKey;
@@ -739,7 +806,7 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} className="editable-leaf" data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -771,13 +838,13 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
               const isDateValue = parsed.isLabeled && /^(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s*\d{4}/.test(rowValue.trim());
 
               return (
-                <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                <div key={sIdx} className="nested-mini-card editable-leaf" data-edit-field={fn} style={{ marginTop: 8 }}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(isDateValue ? toInputDate(new Date(rowValue.replace(/\.$/, ''))) : rowValue); setSaveError(null); } }}>
                     {isEditing ? (
                       <div className="edit-field-container">
                         {isDateValue ? (
-                          <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                          <BlueDatePicker value={editValue} onSelect={next => setEditValue(next || '')} />
                         ) : (
                           <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                         )}
@@ -807,7 +874,7 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
        (Rule #70/#73). Unlabeled comma values — e.g. "Dr. Priya Venkatesh, MD, FASA" — stay WHOLE. */
     const singleCommaItems = splitByComma(strVal);
 
-    if (singleCommaItems.length >= 2 && singleCommaItems.some(ci => parseLabel(ci).isLabeled)) {
+    if (singleCommaItems.length >= 2 && (COMMA_SPLIT_FIELDS.has(fn) || singleCommaItems.some(ci => parseLabel(ci).isLabeled))) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
       const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
@@ -825,7 +892,7 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
 
               if (ciParsed.isLabeled) {
                 return (
-                  <div key={ciIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                  <div key={ciIdx} className="nested-mini-card editable-leaf" data-edit-field={fn} style={{ marginTop: 8 }}>
                     <div className="nested-subtitle">{highlightText(ciParsed.label)}</div>
                     <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ciParsed.value); setSaveError(null); } }}>
                       {ciEditing ? (
@@ -850,7 +917,7 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
               }
 
               return (
-                <div key={ciIdx}>
+                <div key={ciIdx} className="nested-mini-card editable-leaf" data-edit-field={fn}>
                   <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                     {ciEditing ? (
                       <div className="edit-field-container">
@@ -885,6 +952,8 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
     return (
       <div key={fn} className="rec-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className="nested-mini-card regular-row-group">
+        <div className="editable-leaf" data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(singleEditKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -903,6 +972,8 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
           )}
         </div>
         {isModified && <span className={`modified-badge ${isModified === 'added' ? 'added' : ''}`}>edited - click Pending Approve to save</span>}
+        </div>
+        </div>
       </div>
     );
   };
@@ -957,7 +1028,7 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
         <h2 className="document-title">Anesthesia Consent</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<AnesthesiaConsentDocumentPDFTemplate document={pdfData} />} fileName={`anesthesia-consent-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<AnesthesiaConsentDocumentPDFTemplate document={pdfData} />} fileName="Anesthesia_Consent.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -970,11 +1041,6 @@ const AnesthesiaConsentDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{highlightText(formatDate(record.date))}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Anesthesia Consent ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'record-info')}

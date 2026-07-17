@@ -32,6 +32,16 @@ const ALLOWED_FIELDS = [
   'specificIgE',
   'provider',
 ];
+const ARRAY_FIELDS = new Set(['environmentalAllergens', 'skinTestResults']);
+
+function isAllowedFieldPath(field) {
+  const parts = String(field).split('.');
+  if (!ALLOWED_FIELDS.includes(parts[0])) return false;
+  if (parts.length === 1) return true;
+  if (parts.length !== 2) return false;
+  if (ARRAY_FIELDS.has(parts[0])) return /^\d+$/.test(parts[1]);
+  return parts[0] === 'specificIgE' && /^[A-Za-z0-9_]+$/.test(parts[1]);
+}
 
 function buildContext(req, operation = 'read') {
   return {
@@ -60,7 +70,7 @@ router.put('/:id/edit', async (req, res) => {
       return res.status(400).json({ success: false, error: 'field and value are required' });
     }
 
-    if (!ALLOWED_FIELDS.includes(field)) {
+    if (!isAllowedFieldPath(field)) {
       return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     }
 

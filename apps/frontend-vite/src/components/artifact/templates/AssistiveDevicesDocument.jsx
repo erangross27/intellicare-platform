@@ -1,690 +1,196 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import AssistiveDevicesDocumentPDFTemplate from '../pdf-templates/AssistiveDevicesDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import secureApiClient from '../../../services/secureApiClient';
 import './AssistiveDevicesDocument.css';
 
-/**
- * AssistiveDevicesDocument — inline editing with per-section approve
- * Blue glow theme, PDFDownloadLink + pdfData memo, phrase matching search
- */
+const COLLECTION = 'assistive_devices';
+const DRAFT_KEY = `${COLLECTION}PendingEdits`;
+const COMMA_ARRAY_FIELDS = [];
+const COMMA_SPLIT_FIELDS = [];
 
-const SECTION_FIELDS = {
-  deviceInfo: ['deviceType', 'deviceName', 'indication'],
-  prescriptionDetails: ['prescribedBy'],
-  supplierInsurance: ['supplier', 'insurance'],
-  trainingCompliance: ['trainingProvided', 'effectiveness', 'compliance'],
-  maintenance: ['maintenanceSchedule', 'replacementNeeds'],
-  facility: ['facility'],
-  notes: ['notes'],
-};
-
-const SECTION_TITLES = {
-  deviceInfo: 'Device Information',
-  prescriptionDetails: 'Prescription Details',
-  supplierInsurance: 'Supplier & Insurance',
-  trainingCompliance: 'Training & Compliance',
-  maintenance: 'Maintenance',
-  facility: 'Facility',
-  notes: 'Notes',
-};
-
+const SECTIONS = [
+  { id: 'record', title: 'Record Information', fields: ['date', 'facility'] },
+  { id: 'device', title: 'Device Information', fields: ['deviceType', 'deviceName', 'indication'] },
+  { id: 'prescription', title: 'Prescription Details', fields: ['prescribedBy', 'dateOrdered', 'dateReceived'] },
+  { id: 'supplier', title: 'Supplier & Insurance', fields: ['supplier', 'insurance'] },
+  { id: 'training', title: 'Training & Compliance', fields: ['trainingProvided', 'effectiveness', 'compliance'] },
+  { id: 'maintenance', title: 'Maintenance', fields: ['maintenanceSchedule', 'replacementNeeds'] },
+  { id: 'notes', title: 'Notes', fields: ['notes'] },
+];
 const FIELD_LABELS = {
-  deviceType: 'Device Type',
-  deviceName: 'Device Name',
-  indication: 'Indication',
-  prescribedBy: 'Prescribed By',
-  supplier: 'Supplier',
-  insurance: 'Insurance',
-  trainingProvided: 'Training Provided',
-  effectiveness: 'Effectiveness',
-  compliance: 'Compliance',
-  maintenanceSchedule: 'Maintenance Schedule',
-  replacementNeeds: 'Replacement Needs',
-  facility: 'Facility',
-  notes: 'Notes',
+  date: 'Date', facility: 'Facility', deviceType: 'Device Type', deviceName: 'Device Name', indication: 'Indication',
+  prescribedBy: 'Prescribed By', dateOrdered: 'Date Ordered', dateReceived: 'Date Received', supplier: 'Supplier',
+  insurance: 'Insurance', trainingProvided: 'Training Provided', effectiveness: 'Effectiveness', compliance: 'Compliance',
+  maintenanceSchedule: 'Maintenance Schedule', replacementNeeds: 'Replacement Needs', notes: 'Notes',
+};
+const DATE_FIELDS = new Set(['date', 'dateOrdered', 'dateReceived']);
+const NARRATIVE_FIELDS = new Set(['indication', 'trainingProvided', 'effectiveness', 'compliance', 'maintenanceSchedule', 'replacementNeeds', 'notes']);
+const DISPLAY_FIELDS = Object.keys(FIELD_LABELS);
+
+const readDrafts = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; } };
+const writeDrafts = store => { try { if (store && Object.keys(store).length) localStorage.setItem(DRAFT_KEY, JSON.stringify(store)); else localStorage.removeItem(DRAFT_KEY); } catch { /* best effort */ } };
+const recordIdOf = record => { if (!record?._id) return null; if (typeof record._id === 'string') return record._id; if (record._id.$oid) return record._id.$oid; return String(record._id); };
+const hasValue = value => value !== null && value !== undefined && (typeof value !== 'string' || value.trim() !== '');
+const formatDate = value => {
+  if (!value) return '';
+  try { const date = new Date(value.$date || value); return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
+  catch { return String(value); }
+};
+const toInputDate = value => {
+  if (!value) return '';
+  try { const date = new Date(value.$date || value); return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10); }
+  catch { return ''; }
 };
 
-const SIMPLE_FIELDS = ['deviceType', 'deviceName', 'prescribedBy', 'supplier', 'insurance', 'facility'];
-const ALL_EDITABLE_FIELDS = Object.values(SECTION_FIELDS).flat();
+// Periods and semicolons split narrative fields. Commas stay whole for every Assistive Devices field.
+const splitClauses = text => {
+  const source = String(text || '');
+  if (!source.trim()) return [];
+  const clauses = [];
+  let start = 0;
+  let depth = 0;
+  const push = end => {
+    let left = start; let right = end;
+    while (left < right && /\s/.test(source[left])) left += 1;
+    while (right > left && /\s/.test(source[right - 1])) right -= 1;
+    if (right > left) clauses.push({ text: source.slice(left, right), start: left, end: right });
+  };
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); continue; }
+    if (depth === 0 && (char === '.' || char === ';') && (index + 1 === source.length || /\s/.test(source[index + 1]))) { push(index); start = index + 1; }
+  }
+  push(source.length);
+  return clauses;
+};
+const unwrapRecords = source => {
+  if (!source) return [];
+  const queue = Array.isArray(source) ? [...source] : [source];
+  const records = [];
+  while (queue.length) {
+    const value = queue.shift();
+    if (!value) continue;
+    if (Array.isArray(value)) { queue.unshift(...value); continue; }
+    if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; }
+    if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; }
+    if (value.data !== undefined && !DISPLAY_FIELDS.some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; }
+    if (value.records !== undefined) { queue.unshift(value.records); continue; }
+    if (typeof value === 'object') records.push(value);
+  }
+  return records.filter(record => DISPLAY_FIELDS.some(field => hasValue(record[field])));
+};
 
-const AssistiveDevicesDocument = ({ document: data }) => {
+const AssistiveDevicesDocument = ({ document: documentProp, data, templateData }) => {
+  const records = useMemo(() => unwrapRecords(documentProp || data || templateData), [documentProp, data, templateData]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [copiedId, setCopiedId] = useState(null);
+  const [copied, setCopied] = useState(null);
   const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState('');
-  const [saving, setSaving] = useState(false);
   const [localEdits, setLocalEdits] = useState({});
-  const [editedFields, setEditedFields] = useState({});
-  const [editedSentences, setEditedSentences] = useState({});
+  const [pendingEdits, setPendingEdits] = useState({});
   const [approvedSections, setApprovedSections] = useState({});
+  const [approving, setApproving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
-  /* ==================== DATA UNWRAPPING ==================== */
-  const records = useMemo(() => {
-    if (!data) return [];
-    if (Array.isArray(data)) {
-      if (data.length === 1 && data[0]?.assistive_devices) return data[0].assistive_devices;
-      return data;
-    }
-    if (data.assistive_devices) return data.assistive_devices;
-    if (data.documentData) {
-      const dd = data.documentData;
-      if (Array.isArray(dd)) return dd;
-      if (dd.assistive_devices) return dd.assistive_devices;
-      return [dd];
-    }
-    if (data && typeof data === 'object') return [data];
-    return [];
-  }, [data]);
+  useEffect(() => {
+    const store = readDrafts(); const nextLocal = {}; const nextPending = {};
+    records.forEach((record, index) => Object.entries(store[recordIdOf(record)] || {}).forEach(([field, value]) => { const key = `${field}-${index}`; nextLocal[key] = value; nextPending[key] = true; }));
+    if (Object.keys(nextLocal).length) { setLocalEdits(previous => ({ ...nextLocal, ...previous })); setPendingEdits(previous => ({ ...nextPending, ...previous })); }
+  }, [records]);
 
-  /* ==================== HELPERS ==================== */
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
+  const valueAt = useCallback((record, field, index) => localEdits[`${field}-${index}`] !== undefined ? localEdits[`${field}-${index}`] : record[field], [localEdits]);
+  const stageDraft = useCallback((record, field, index, value) => {
+    const id = recordIdOf(record); if (!id) return;
+    const key = `${field}-${index}`;
+    setLocalEdits(previous => ({ ...previous, [key]: value }));
+    setPendingEdits(previous => ({ ...previous, [key]: true }));
+    const store = readDrafts(); store[id] = { ...(store[id] || {}), [field]: value }; writeDrafts(store);
+  }, []);
+  const startEdit = (key, value) => { setEditingField(key); setEditValue(value ?? ''); setSaveError(''); };
+  const cancelEdit = () => { setEditingField(null); setEditValue(''); setSaveError(''); };
+  const copyText = async (text, key) => { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 1600); };
+  const recordWithEdits = useCallback((record, index, includePending = true) => {
+    const merged = { ...record };
+    Object.entries(localEdits).forEach(([key, value]) => { if (!key.endsWith(`-${index}`) || (!includePending && pendingEdits[key])) return; merged[key.slice(0, -String(index).length - 1)] = value; });
+    return merged;
+  }, [localEdits, pendingEdits]);
+  const pdfData = useMemo(() => records.map((record, index) => recordWithEdits(record, index, false)), [records, recordWithEdits]);
+  const sectionPending = (section, index) => section.fields.some(field => pendingEdits[`${field}-${index}`]);
+  const approveSection = async (record, index, section) => {
+    const id = recordIdOf(record); if (!id) return;
+    setApproving(true);
     try {
-      return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    } catch { return String(dateStr); }
-  };
-
-  const getRecordId = (record) => {
-    const id = record?._id;
-    if (!id) return null;
-    if (typeof id === 'string') return id;
-    if (id.$oid) return id.$oid;
-    return String(id);
-  };
-
-  const getFieldValue = useCallback((record, fieldName, idx) => {
-    const key = `${fieldName}-${idx}`;
-    if (localEdits[key] !== undefined) return localEdits[key];
-    return record[fieldName];
-  }, [localEdits]);
-
-  const splitBySentence = (text) => {
-    if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<=\.)\s+|(?<=;)\s+/).filter(s => s.trim().length > 0);
-  };
-
-  function reconstructFullText(sentences) {
-    return sentences.map((s, i) => {
-      const trimmed = s.trim();
-      if (i < sentences.length - 1 && !trimmed.endsWith('.') && !trimmed.endsWith(';')) {
-        return trimmed + '.';
+      const fields = section.fields.filter(field => pendingEdits[`${field}-${index}`]);
+      for (const field of fields) {
+        const response = await secureApiClient.put(`/api/edit/${COLLECTION}/${id}/edit`, { field, value: localEdits[`${field}-${index}`] });
+        if (!response?.success) throw new Error(response?.error || 'save failed');
       }
-      return trimmed;
-    }).join(' ');
-  }
-
-  // highlightText uses regex replacement — content comes from user's own medical records (trusted source)
-  const highlightText = (text) => {
-    if (!text || !searchTerm) return text;
-    const textStr = String(text);
-    const escaped = searchTerm.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    if (!escaped) return textStr;
-    const regex = new RegExp(`(${escaped})`, 'gi');
-    const result = textStr.replace(regex, '<mark>$1</mark>');
-    return <span dangerouslySetInnerHTML={{ __html: result }} />;
+      await secureApiClient.put(`/api/edit/${COLLECTION}/${id}/approve`, { sectionId: section.id, approved: true });
+      setPendingEdits(previous => { const next = { ...previous }; fields.forEach(field => delete next[`${field}-${index}`]); return next; });
+      const store = readDrafts(); if (store[id]) { fields.forEach(field => delete store[id][field]); if (!Object.keys(store[id]).length) delete store[id]; writeDrafts(store); }
+      setApprovedSections(previous => ({ ...previous, [`${section.id}-${index}`]: true }));
+    } finally { setApproving(false); }
+  };
+  const highlight = value => {
+    const text = String(value ?? ''); const query = searchTerm.trim(); if (!query) return text;
+    const index = text.toLowerCase().indexOf(query.toLowerCase()); if (index < 0) return text;
+    return <>{text.slice(0, index)}<mark>{text.slice(index, index + query.length)}</mark>{text.slice(index + query.length)}</>;
   };
 
-  const copyToClipboard = async (text, id) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    }
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  const saveSimple = (record, field, index) => {
+    const value = DATE_FIELDS.has(field) ? `${editValue}T00:00:00.000Z` : editValue.trim();
+    if (!value || (DATE_FIELDS.has(field) && !/^\d{4}-\d{2}-\d{2}$/.test(editValue))) { setSaveError(DATE_FIELDS.has(field) ? 'Please choose a valid date' : 'Please enter a value'); return; }
+    stageDraft(record, field, index, value); cancelEdit();
+  };
+  const renderSimpleField = (record, field, index, section) => {
+    const raw = valueAt(record, field, index); if (!hasValue(raw)) return null;
+    const display = DATE_FIELDS.has(field) ? formatDate(raw) : String(raw);
+    const editKey = `${field}-${index}`; const editing = editingField === editKey; const modified = !!pendingEdits[editKey];
+    return <div className="rec-mini-card nested-mini-card" key={field}>{FIELD_LABELS[field] !== section.title && <div className="nested-subtitle">{FIELD_LABELS[field]}</div>}<div data-edit-field={field}><div className={`numbered-row editable-row${modified ? ' modified' : ''}`} onClick={() => !editing && startEdit(editKey, DATE_FIELDS.has(field) ? toInputDate(raw) : raw)}>{editing ? <div className="edit-field-container" onClick={event => event.stopPropagation()}>{DATE_FIELDS.has(field) ? <BlueDatePicker value={editValue} onSelect={setEditValue} /> : <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />}{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={() => saveSimple(record, field, index)}>Save</button><button className="cancel-btn" onClick={cancelEdit}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlight(display)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn${copied === editKey ? ' copied' : ''}`} onClick={event => { event.stopPropagation(); copyText(display, editKey); }}>{copied === editKey ? 'Copied!' : 'Copy'}</button></>}</div></div>{modified && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>;
+  };
+  const renderNarrativeField = (record, field, index, section) => {
+    const source = String(valueAt(record, field, index) || ''); const clauses = splitClauses(source); if (!clauses.length) return null;
+    const modified = !!pendingEdits[`${field}-${index}`];
+    return <div className={`rec-mini-card nested-mini-card${FIELD_LABELS[field] === section.title ? ' regular-row-group' : ''}`} key={field}>{FIELD_LABELS[field] !== section.title && <div className="nested-subtitle">{FIELD_LABELS[field]}</div>}{clauses.map((clause, clauseIndex) => {
+      const editKey = `${field}-${index}-clause-${clauseIndex}`; const editing = editingField === editKey;
+      return <div key={editKey} data-edit-field={field}><div className={`numbered-row editable-row${modified ? ' modified' : ''}`} onClick={() => !editing && startEdit(editKey, clause.text)}>{editing ? <div className="edit-field-container" onClick={event => event.stopPropagation()}><textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={() => { if (!editValue.trim()) { setSaveError('Please enter a value'); return; } stageDraft(record, field, index, source.slice(0, clause.start) + editValue.trim() + source.slice(clause.end)); cancelEdit(); }}>Save</button><button className="cancel-btn" onClick={cancelEdit}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlight(clause.text)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn${copied === editKey ? ' copied' : ''}`} onClick={event => { event.stopPropagation(); copyText(clause.text, editKey); }}>{copied === editKey ? 'Copied!' : 'Copy'}</button></>}</div></div>;
+    })}{modified && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>;
   };
 
-  /* ==================== SEARCH FILTERING ==================== */
-  const shouldShowSection = (record, title, ...content) => {
-    if (!searchTerm.trim()) return true;
-    if (record._showAllSections) return true;
-    const searchLower = searchTerm.toLowerCase().trim();
-    if (title && title.toLowerCase().includes(searchLower)) return true;
-    return content.filter(Boolean).join(' ').toLowerCase().includes(searchLower);
-  };
-
-  const shouldShowRow = (record, ...values) => {
-    if (!searchTerm.trim()) return true;
-    if (record._showAllSections) return true;
-    const searchLower = searchTerm.toLowerCase().trim();
-    return values.filter(Boolean).join(' ').toLowerCase().includes(searchLower);
-  };
-
-  const filteredRecords = useMemo(() => {
-    if (!searchTerm.trim()) return records.map((r, i) => ({ ...r, _origIdx: i, _showAllSections: true }));
-    const searchLower = searchTerm.toLowerCase().trim();
-
-    return records.map((record, idx) => {
-      const r = { ...record, _origIdx: idx, _showAllSections: false };
-
-      // Document title match → show all sections
-      const docTitle = `Assistive Device ${idx + 1}`;
-      if (docTitle.toLowerCase().includes(searchLower) || 'assistive devices'.includes(searchLower)) {
-        r._showAllSections = true;
-        return r;
-      }
-
-      // Build searchable text from all fields + labels + section titles + dates
-      const searchableTexts = [
-        docTitle,
-        formatDate(record.date),
-        ...Object.values(SECTION_TITLES),
-        ...ALL_EDITABLE_FIELDS.flatMap(f => [
-          FIELD_LABELS[f],
-          String(getFieldValue(record, f, idx) || ''),
-        ]),
-        'Date Ordered', formatDate(record.dateOrdered),
-        'Date Received', formatDate(record.dateReceived),
-      ];
-
-      const fullText = searchableTexts.filter(Boolean).join(' ').toLowerCase();
-      return fullText.includes(searchLower) ? r : null;
-    }).filter(Boolean);
-  }, [records, searchTerm, localEdits, getFieldValue]);
-
-  /* ==================== SAVE HANDLERS ==================== */
-  const handleSaveField = useCallback(async (record, fieldName, idx, sectionId, sentenceIdx, valueOverride, editTrackingKey) => {
-    const recordId = getRecordId(record);
-    if (!recordId) return;
-    setSaving(true);
-    try {
-      const newValue = valueOverride !== undefined ? valueOverride : editValue;
-      const secureApiClient = (await import('../../../services/secureApiClient')).default;
-      await secureApiClient.put(`/api/edit/assistive_devices/${recordId}/edit`, {
-        field: fieldName,
-        value: newValue,
-      });
-      const editKey = editTrackingKey || `${fieldName}-${idx}`;
-      setLocalEdits(prev => ({ ...prev, [editKey]: newValue }));
-      setEditingField(null);
-      setEditValue('');
-    } catch (err) {
-      console.error('[AssistiveDevices] Save error:', err);
-    } finally {
-      setSaving(false);
-    }
-  }, [editValue]);
-
-  function saveSentence(record, fieldName, idx, sectionId, sentenceIdx) {
-    const currentValue = String(getFieldValue(record, fieldName, idx) || '');
-    const currentSentences = splitBySentence(currentValue);
-    const originalSentence = currentSentences[sentenceIdx] || '';
-    const cleanOriginal = originalSentence.replace(/[.;]\s*$/, '').trim();
-    const cleanNew = editValue.trim();
-
-    if (cleanNew === cleanOriginal) {
-      setEditingField(null);
-      setEditValue('');
-      return;
-    }
-
-    const newSentences = [...currentSentences];
-    let newText = cleanNew;
-    if (!newText.endsWith('.') && !newText.endsWith(';')) newText += '.';
-    newSentences[sentenceIdx] = newText;
-    const fullText = reconstructFullText(newSentences);
-
-    const sKey = `${fieldName}-${idx}-s${sentenceIdx}`;
-    setEditedSentences(prev => ({ ...prev, [sKey]: 'edited' }));
-
-    // Detect added sentences
-    const newSentencesSplit = splitBySentence(fullText);
-    if (newSentencesSplit.length > currentSentences.length) {
-      for (let i = currentSentences.length; i < newSentencesSplit.length; i++) {
-        setEditedSentences(prev => ({ ...prev, [`${fieldName}-${idx}-s${i}`]: 'added' }));
-      }
-    }
-
-    handleSaveField(record, fieldName, idx, sectionId, null, fullText, `${fieldName}-${idx}`);
-  }
-
-  /* ==================== APPROVE ==================== */
-  const renderApproveButton = (sectionId, idx, record) => {
-    const key = `${sectionId}-${idx}`;
-    const fields = SECTION_FIELDS[sectionId] || [];
-
-    // Check hasEdits BEFORE isApproved
-    const hasEdits = fields.some(f => {
-      if (editedFields[`${f}-${idx}`]) return true;
-      return Object.keys(editedSentences).some(k => k.startsWith(`${f}-${idx}`));
+  const sectionLines = (record, section) => {
+    const lines = [section.title.toUpperCase(), '='.repeat(40)];
+    section.fields.forEach(field => {
+      const value = record[field]; if (!hasValue(value)) return;
+      const label = FIELD_LABELS[field]; if (label !== section.title) lines.push(label, '-'.repeat(40));
+      if (DATE_FIELDS.has(field)) lines.push(`1. ${formatDate(value)}`);
+      else if (NARRATIVE_FIELDS.has(field)) splitClauses(value).forEach((clause, index) => lines.push(`${index + 1}. ${clause.text}`));
+      else lines.push(`1. ${value}`);
     });
-    const isApproved = approvedSections[key];
-
-    if (hasEdits) {
-      return (
-        <button
-          className="approve-btn pending"
-          onClick={async (e) => {
-            e.stopPropagation();
-            const recordId = getRecordId(record);
-            if (!recordId) return;
-            try {
-              const secureApiClient = (await import('../../../services/secureApiClient')).default;
-              await secureApiClient.put(`/api/edit/assistive_devices/${recordId}/approve`, {
-                sectionId, approved: true,
-              });
-              // Clear edit markers for all fields in section
-              const newEditedFields = { ...editedFields };
-              const newEditedSentences = { ...editedSentences };
-              fields.forEach(f => {
-                Object.keys(newEditedFields).forEach(k => {
-                  if (k.startsWith(`${f}-${idx}`)) delete newEditedFields[k];
-                });
-                Object.keys(newEditedSentences).forEach(k => {
-                  if (k.startsWith(`${f}-${idx}`)) delete newEditedSentences[k];
-                });
-              });
-              setEditedFields(newEditedFields);
-              setEditedSentences(newEditedSentences);
-              setApprovedSections(prev => ({ ...prev, [key]: true }));
-            } catch (err) {
-              console.error('[AssistiveDevices] Approve error:', err);
-            }
-          }}
-        >
-          Pending Approve
-        </button>
-      );
-    }
-
-    if (isApproved) {
-      return <span className="approve-btn approved">Approved</span>;
-    }
-
-    return null;
+    return lines;
   };
+  const allText = useCallback((record, index) => {
+    const merged = recordWithEdits(record, index, true); const lines = [`ASSISTIVE DEVICE ${index + 1}`, '='.repeat(40)];
+    SECTIONS.forEach(section => { if (section.fields.some(field => hasValue(merged[field]))) lines.push('', ...sectionLines(merged, section)); });
+    return lines.join('\n');
+  }, [recordWithEdits]);
+  const filtered = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase(); if (!query) return records.map((record, index) => ({ record, index }));
+    return records.map((record, index) => ({ record, index })).filter(({ record }) => JSON.stringify(record).toLowerCase().includes(query) || 'assistive devices'.includes(query));
+  }, [records, searchTerm]);
 
-  /* ==================== RENDER EDITABLE FIELD (simple) ==================== */
-  const renderEditableField = (record, fieldName, idx, sectionId) => {
-    const value = getFieldValue(record, fieldName, idx);
-    if (!value && !editedFields[`${fieldName}-${idx}`]) return null;
-
-    const editKey = `${fieldName}-${idx}`;
-    const isEditing = editingField === editKey;
-    const isEdited = editedFields[editKey];
-    const label = FIELD_LABELS[fieldName] || fieldName;
-
-    if (!shouldShowRow(record, label, String(value || ''))) return null;
-
-    return (
-      <div key={fieldName} className="rec-mini-card">
-        {/* suppress the nested-subtitle when it would duplicate the section title (single-field section) */}
-        {SECTION_TITLES[sectionId] !== label && <div className="nested-subtitle">{highlightText(label)}</div>}
-        {isEditing ? (
-          <div className="edit-field-container">
-            <textarea
-              className="edit-textarea"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.ctrlKey) {
-                  setEditedFields(prev => ({ ...prev, [editKey]: 'edited' }));
-                  handleSaveField(record, fieldName, idx, sectionId);
-                }
-                if (e.key === 'Escape') { setEditingField(null); setEditValue(''); }
-              }}
-              autoFocus
-              rows={2}
-              disabled={saving}
-            />
-            <div className="edit-actions">
-              <button className="save-btn" disabled={saving} onClick={() => {
-                setEditedFields(prev => ({ ...prev, [editKey]: 'edited' }));
-                handleSaveField(record, fieldName, idx, sectionId);
-              }}>
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-              <button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div
-              className={`numbered-row editable-row${isEdited ? ' modified' : ''}`}
-              onClick={() => { setEditingField(editKey); setEditValue(String(value || '')); }}
-            >
-              <div className="row-content">
-                <span className="content-value">{highlightText(String(value || ''))}</span>
-                {!isEdited && <span className="edit-indicator">✎</span>}
-              </div>
-              <button
-                className={`copy-btn${copiedId === editKey ? ' copied' : ''}`}
-                onClick={(e) => { e.stopPropagation(); copyToClipboard(String(value || ''), editKey); }}
-              >
-                {copiedId === editKey ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-            {isEdited && <div className="modified-badge">edited - click Pending Approve to save</div>}
-          </>
-        )}
-      </div>
-    );
-  };
-
-  /* ==================== RENDER SENTENCE EDITABLE FIELD ==================== */
-  const renderSentenceEditableField = (record, fieldName, idx, sectionId) => {
-    const value = getFieldValue(record, fieldName, idx);
-    if (!value && !editedSentences[`${fieldName}-${idx}-s0`]) return null;
-
-    const label = FIELD_LABELS[fieldName] || fieldName;
-    const sentences = splitBySentence(String(value || ''));
-
-    // Fall back to simple editable for single sentence
-    if (sentences.length <= 1) {
-      return renderEditableField(record, fieldName, idx, sectionId);
-    }
-
-    const sectionTitleMatches = (() => {
-      if (!searchTerm) return false;
-      return label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-    })();
-
-    return sentences.map((sentence, sIdx) => {
-      const sentenceKey = `${fieldName}-${idx}-s${sIdx}`;
-      const isEditing = editingField === sentenceKey;
-      const isEdited = editedSentences[sentenceKey];
-      const cleanSentence = sentence.replace(/[.;]\s*$/, '').trim();
-
-      // Per-sentence search filtering
-      if (!sectionTitleMatches && !shouldShowRow(record, label, sentence)) return null;
-
-      return (
-        <div key={sentenceKey} className="rec-mini-card">
-          {sIdx === 0 && SECTION_TITLES[sectionId] !== label && <div className="nested-subtitle">{highlightText(label)}</div>}
-          {isEditing ? (
-            <div className="edit-field-container">
-              <textarea
-                className="edit-textarea"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.ctrlKey) saveSentence(record, fieldName, idx, sectionId, sIdx);
-                  if (e.key === 'Escape') { setEditingField(null); setEditValue(''); }
-                }}
-                autoFocus
-                rows={2}
-                disabled={saving}
-              />
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={() => saveSentence(record, fieldName, idx, sectionId, sIdx)}>
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-                <button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div
-                className={`numbered-row editable-row${isEdited ? ' modified' : ''}`}
-                onClick={() => { setEditingField(sentenceKey); setEditValue(cleanSentence); }}
-              >
-                <div className="row-content">
-                  <span className="content-value">{highlightText(cleanSentence)}</span>
-                  {!isEdited && <span className="edit-indicator">✎</span>}
-                </div>
-                <button
-                  className={`copy-btn${copiedId === sentenceKey ? ' copied' : ''}`}
-                  onClick={(e) => { e.stopPropagation(); copyToClipboard(cleanSentence, sentenceKey); }}
-                >
-                  {copiedId === sentenceKey ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-              {isEdited && (
-                <div className={`modified-badge${isEdited === 'added' ? ' added' : ''}`}>
-                  {isEdited === 'added' ? 'added' : 'edited - click Pending Approve to save'}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      );
-    });
-  };
-
-  /* ==================== RENDER NON-EDITABLE FIELD (dates) ==================== */
-  const renderNonEditableField = (record, fieldName, idx, label, value) => {
-    if (!value) return null;
-    if (!shouldShowRow(record, label, String(value))) return null;
-
-    return (
-      <div key={fieldName} className="rec-mini-card">
-        <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className="numbered-row">
-          <div className="row-content">
-            <span className="content-value">{highlightText(String(value))}</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  /* ==================== RENDER GROUPED SECTION ==================== */
-  const renderGroupedSection = (record, idx, sectionId) => {
-    const title = SECTION_TITLES[sectionId];
-    const fields = SECTION_FIELDS[sectionId];
-
-    // Build content for section-level filtering
-    const sectionContent = fields.map(f => {
-      const val = getFieldValue(record, f, idx);
-      return val ? `${FIELD_LABELS[f]} ${String(val)}` : '';
-    }).filter(Boolean).join(' ');
-
-    // Include date fields for prescriptionDetails search
-    let extraContent = '';
-    if (sectionId === 'prescriptionDetails') {
-      if (record.dateOrdered) extraContent += ` Date Ordered ${formatDate(record.dateOrdered)}`;
-      if (record.dateReceived) extraContent += ` Date Received ${formatDate(record.dateReceived)}`;
-    }
-
-    // Check if section has any data
-    const hasFieldData = fields.some(f => {
-      const val = getFieldValue(record, f, idx);
-      return val && String(val).trim();
-    });
-    const hasDateData = sectionId === 'prescriptionDetails' && (record.dateOrdered || record.dateReceived);
-    if (!hasFieldData && !hasDateData) return null;
-
-    if (!shouldShowSection(record, title, sectionContent + extraContent)) return null;
-
-    // Copy section text using pdfData
-    const copySectionText = () => {
-      const effectiveRecord = pdfData[idx] || record;
-      let text = `${title.toUpperCase()}\n`;
-      let itemNum = 1;
-      fields.forEach(f => {
-        const val = effectiveRecord[f];
-        if (val && String(val).trim()) {
-          // drop the redundant "Label:" prefix when the field label is the section title
-          text += FIELD_LABELS[f] !== title
-            ? `${itemNum}. ${FIELD_LABELS[f]}: ${String(val)}\n`
-            : `${itemNum}. ${String(val)}\n`;
-          itemNum++;
-        }
-      });
-      if (sectionId === 'prescriptionDetails') {
-        if (record.dateOrdered) { text += `${itemNum}. Date Ordered: ${formatDate(record.dateOrdered)}\n`; itemNum++; }
-        if (record.dateReceived) { text += `${itemNum}. Date Received: ${formatDate(record.dateReceived)}\n`; }
-      }
-      return text;
-    };
-
-    const copySectionKey = `${sectionId}-section-${idx}`;
-
-    return (
-      <div className="section" key={sectionId}>
-        <div className="mini-cards-container">
-          <div className="section-header">
-            <h4 className="section-title">{highlightText(title)}</h4>
-            <div className="header-right-actions">
-              <button
-                className={`copy-btn${copiedId === copySectionKey ? ' copied' : ''}`}
-                onClick={() => copyToClipboard(copySectionText(), copySectionKey)}
-              >
-                {copiedId === copySectionKey ? 'Copied!' : 'Copy Section'}
-              </button>
-              {renderApproveButton(sectionId, idx, record)}
-            </div>
-          </div>
-
-          {/* Render editable fields */}
-          {fields.map(fieldName => {
-            if (SIMPLE_FIELDS.includes(fieldName)) {
-              return renderEditableField(record, fieldName, idx, sectionId);
-            }
-            return renderSentenceEditableField(record, fieldName, idx, sectionId);
-          })}
-
-          {/* Non-editable date fields for prescriptionDetails */}
-          {sectionId === 'prescriptionDetails' && (
-            <>
-              {renderNonEditableField(record, 'dateOrdered', idx, 'Date Ordered', formatDate(record.dateOrdered))}
-              {renderNonEditableField(record, 'dateReceived', idx, 'Date Received', formatDate(record.dateReceived))}
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  /* ==================== PDF DATA (merges edits) ==================== */
-  const pdfData = useMemo(() => {
-    if (Object.keys(localEdits).length === 0) return records;
-    return records.map((record, idx) => {
-      const merged = { ...record };
-      Object.entries(localEdits).forEach(([key, value]) => {
-        const lastDash = key.lastIndexOf('-');
-        if (lastDash === -1) return;
-        const fieldName = key.substring(0, lastDash);
-        const recordIdx = parseInt(key.substring(lastDash + 1));
-        if (recordIdx === idx && ALL_EDITABLE_FIELDS.includes(fieldName)) {
-          merged[fieldName] = value;
-        }
-      });
-      return merged;
-    });
-  }, [records, localEdits]);
-
-  /* ==================== COPY ALL (uses pdfData) ==================== */
-  const copyAllContent = () => {
-    let text = 'ASSISTIVE DEVICES\n\n';
-    pdfData.forEach((record, idx) => {
-      text += `--- Assistive Device ${idx + 1} ---\n`;
-      if (record.date) text += `Date: ${formatDate(record.date)}\n\n`;
-
-      Object.entries(SECTION_TITLES).forEach(([sectionId, title]) => {
-        const fields = SECTION_FIELDS[sectionId];
-        let sectionText = '';
-        let itemNum = 1;
-        fields.forEach(f => {
-          if (record[f] && String(record[f]).trim()) {
-            // drop the redundant "Label:" prefix when the field label is the section title
-            sectionText += FIELD_LABELS[f] !== title
-              ? `${itemNum}. ${FIELD_LABELS[f]}: ${String(record[f])}\n`
-              : `${itemNum}. ${String(record[f])}\n`;
-            itemNum++;
-          }
-        });
-        if (sectionId === 'prescriptionDetails') {
-          if (record.dateOrdered) { sectionText += `${itemNum}. Date Ordered: ${formatDate(record.dateOrdered)}\n`; itemNum++; }
-          if (record.dateReceived) { sectionText += `${itemNum}. Date Received: ${formatDate(record.dateReceived)}\n`; }
-        }
-        if (sectionText) text += `${title.toUpperCase()}\n${sectionText}\n`;
-      });
-      text += '\n';
-    });
-    return text;
-  };
-
-  /* ==================== RENDER ==================== */
-  if (!records || records.length === 0) {
-    return (
-      <div className="assistive-devices-document">
-        <div className="empty-state">
-          <div className="empty-icon">No assistive devices data available.</div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="assistive-devices-document">
-      {/* Header */}
-      <div className="document-header">
-        <h1 className="document-title">Assistive Devices</h1>
-        <div className="header-actions">
-          <button
-            className={`copy-btn${copiedId === 'copy-all' ? ' copied' : ''}`}
-            onClick={() => copyToClipboard(copyAllContent(), 'copy-all')}
-          >
-            {copiedId === 'copy-all' ? 'Copied!' : 'Copy All'}
-          </button>
-          <PDFDownloadLink
-            document={<AssistiveDevicesDocumentPDFTemplate document={pdfData} />}
-            fileName={`assistive_devices_${new Date().toISOString().split('T')[0]}.pdf`}
-          >
-            {({ loading }) => (
-              <button className="copy-btn">
-                {loading ? 'Preparing...' : 'Export PDF'}
-              </button>
-            )}
-          </PDFDownloadLink>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="search-container">
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Search assistive devices..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        {searchTerm && (
-          <button className="clear-search" onClick={() => setSearchTerm('')}>×</button>
-        )}
-      </div>
-
-      {/* Records */}
-      {filteredRecords.length === 0 && searchTerm && (
-        <div className="no-results">No results found for "{searchTerm}"</div>
-      )}
-
-      <div className="records-list">
-        {filteredRecords.map((record) => {
-          const idx = record._origIdx;
-
-          return (
-            <div key={record._id || idx} className="record-card">
-              {/* Record Header */}
-              <div className="record-header">
-                <div className="record-meta-row">
-                  {record.date && (
-                    <span className="record-date">{highlightText(formatDate(record.date))}</span>
-                  )}
-                </div>
-                <h3 className="record-name">{highlightText(`Assistive Device ${idx + 1}`)}</h3>
-              </div>
-
-              {/* Grouped Sections */}
-              {renderGroupedSection(record, idx, 'deviceInfo')}
-              {renderGroupedSection(record, idx, 'prescriptionDetails')}
-              {renderGroupedSection(record, idx, 'supplierInsurance')}
-              {renderGroupedSection(record, idx, 'trainingCompliance')}
-              {renderGroupedSection(record, idx, 'maintenance')}
-              {renderGroupedSection(record, idx, 'facility')}
-              {renderGroupedSection(record, idx, 'notes')}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  if (!records.length) return <div className="assistive-devices-document"><div className="empty-state">No assistive devices data available.</div></div>;
+  return <div className="assistive-devices-document"><div className="document-header"><h1 className="document-title">Assistive Devices</h1><div className="header-actions"><button className={`copy-btn${copied === 'all' ? ' copied' : ''}`} onClick={() => copyText(records.map(allText).join('\n\n'), 'all')}>{copied === 'all' ? 'Copied!' : 'Copy All'}</button><PDFDownloadLink document={<AssistiveDevicesDocumentPDFTemplate document={pdfData} />} fileName="Assistive_Devices.pdf" className="copy-btn pdf-btn">{({ loading }) => loading ? 'Preparing...' : 'Export PDF'}</PDFDownloadLink></div></div><div className="search-container"><input className="search-input" value={searchTerm} onChange={event => setSearchTerm(event.target.value)} placeholder="Search assistive devices..." />{searchTerm && <button className="clear-search" onClick={() => setSearchTerm('')}>×</button>}</div><div className="records-list">{!filtered.length ? <div className="no-results">No records match your search.</div> : filtered.map(({ record, index }) => {
+    const id = recordIdOf(record) || `record-${index}`; const merged = recordWithEdits(record, index, true);
+    return <div className="record-card" key={id}><div className="record-header"><h3 className="record-name">Assistive Device {index + 1}</h3></div>{SECTIONS.map(section => {
+      if (!section.fields.some(field => hasValue(merged[field]))) return null;
+      const pending = sectionPending(section, index); const approved = approvedSections[`${section.id}-${index}`];
+      return <div className="section" key={section.id}><div className="mini-cards-container"><div className="section-header"><h4 className="section-title">{section.title}</h4><div className="header-right-actions"><button className={`copy-btn${copied === `${id}-${section.id}` ? ' copied' : ''}`} onClick={() => copyText(sectionLines(merged, section).join('\n'), `${id}-${section.id}`)}>{copied === `${id}-${section.id}` ? 'Copied!' : 'Copy Section'}</button>{(pending || approved) && <button className={`approve-btn${approved && !pending ? ' approved' : ' pending'}`} disabled={approving || !pending} onClick={() => approveSection(record, index, section)}>{approving ? 'Approving...' : approved && !pending ? 'Approved' : 'Pending Approve'}</button>}</div></div>{section.fields.map(field => hasValue(merged[field]) ? (NARRATIVE_FIELDS.has(field) ? renderNarrativeField(merged, field, index, section) : renderSimpleField(merged, field, index, section)) : null)}</div></div>;
+    })}</div>;
+  })}</div></div>;
 };
 
+export { COMMA_ARRAY_FIELDS, COMMA_SPLIT_FIELDS, splitClauses };
 export default AssistiveDevicesDocument;

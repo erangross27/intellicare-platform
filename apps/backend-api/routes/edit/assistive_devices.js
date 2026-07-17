@@ -28,6 +28,8 @@ const ALLOWED_FIELDS = [
   'deviceName',
   'indication',
   'prescribedBy',
+  'dateOrdered',
+  'dateReceived',
   'supplier',
   'trainingProvided',
   'effectiveness',
@@ -35,6 +37,7 @@ const ALLOWED_FIELDS = [
   'maintenanceSchedule',
   'replacementNeeds',
   'insurance',
+  'date',
   'facility',
   'notes',
 ];

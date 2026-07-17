@@ -7,21 +7,22 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 13, lineHeight: 1.5, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 24 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 4, paddingBottom: 6, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
   recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  sectionLead: { marginBottom: 0 },
+  sectionSpacer: { height: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 10, padding: 8, borderWidth: 0.5, borderColor: '#cccccc', borderStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 5, paddingBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
   noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
 });
@@ -63,7 +64,15 @@ const fmtVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/;\s+|(?<!\d)\.(?:\s+|$)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const COMMA_ARRAY_FIELDS = new Set(['bodyCompositionMethod', 'nutritionalStatus']);
+
+const splitFieldValue = (field, text) => {
+  const clauses = splitBySentence(String(text || ''));
+  if (!COMMA_ARRAY_FIELDS.has(field)) return clauses;
+  return clauses.flatMap(clause => splitByComma(clause)).map(item => item.trim()).filter(Boolean);
 };
 
 const parseLabel = (text) => {
@@ -91,9 +100,9 @@ const splitByComma = (text) => {
 const renderFieldRow = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
+      <Text style={styles.fieldValue}>1. {safeString(fmtVal(value))}</Text>
     </View>
   );
 };
@@ -102,17 +111,17 @@ const renderFieldRow = (label, value) => {
 const renderDateFieldPDF = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
+      <Text style={styles.fieldValue}>1. {formatDate(value)}</Text>
     </View>
   );
 };
 
 /* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
+const renderSentenceSection = (field, label, text) => {
   if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
+  const sentences = splitFieldValue(field, fmtVal(text));
   if (sentences.length === 0) return null;
 
   const rows = [];
@@ -132,10 +141,8 @@ const renderSentenceSection = (label, text) => {
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View style={styles.fieldBox}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {rows.map((row, i) => {
         if (row.type === 'subtitle') {
@@ -208,17 +215,20 @@ const SECTION_CONFIGS = [
 ];
 
 /* ======= COMPONENT ======= */
-const WeightMeasurementsDocumentPDFTemplate = ({ document: data }) => {
+const WeightMeasurementsDocumentPDFTemplate = ({ document: documentProp, data: dataProp, templateData }) => {
   const records = React.useMemo(() => {
+    const data = documentProp ?? dataProp ?? templateData;
     if (!data) return [];
     let arr = Array.isArray(data) ? data : [data];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.records)) return r.records;
+      if (Array.isArray(r?._records)) return r._records;
       if (r?.weight_measurements) return Array.isArray(r.weight_measurements) ? r.weight_measurements : [r.weight_measurements];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.weight_measurements) return Array.isArray(dd.weight_measurements) ? dd.weight_measurements : [dd.weight_measurements]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [documentProp, dataProp, templateData]);
 
   if (!records || records.length === 0) {
     return (
@@ -235,50 +245,36 @@ const WeightMeasurementsDocumentPDFTemplate = ({ document: data }) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Weight Measurements</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.createdAt && (
-                  <Text style={styles.recordDate}>{formatDate(record.createdAt)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {`Weight Measurement ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const hasAnyVal = sectionConfig.fields.some(f => hasVal(record[f.key]));
-              if (!hasAnyVal) return null;
-
-              return (
-                <View key={sIdx} style={styles.section}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = record[field.key];
-                    if (!hasVal(val)) return null;
-
-                    if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val)}</View>;
-                  })}
-                </View>
-              );
-            })}
+      {records.map((record, index) => (
+        <Page key={index} size="LETTER" style={styles.page}>
+          <View style={styles.documentHeader}>
+            <Text style={styles.documentTitle}>Weight Measurements</Text>
           </View>
-        ))}
-      </Page>
+          <View style={styles.recordHeader} wrap={false}>
+            <Text style={styles.recordTitle}>{`Weight Measurement ${index + 1}`}</Text>
+          </View>
+          {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
+            const visibleFields = sectionConfig.fields.filter(field => hasVal(record[field.key]));
+            if (!visibleFields.length) return null;
+            const renderField = (field, fieldIndex) => {
+              const value = record[field.key];
+              if (field.isDate) return <View key={`${field.key}-${fieldIndex}`}>{renderDateFieldPDF(field.label, value)}</View>;
+              if (field.isSentence) return <View key={`${field.key}-${fieldIndex}`}>{renderSentenceSection(field.key, field.label, value)}</View>;
+              return <View key={`${field.key}-${fieldIndex}`}>{renderFieldRow(field.label, value)}</View>;
+            };
+            return (
+              <React.Fragment key={sIdx}>
+                <View style={styles.sectionLead} wrap={false}>
+                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
+                  {renderField(visibleFields[0], 0)}
+                </View>
+                {visibleFields.slice(1).map((field, fieldIndex) => renderField(field, fieldIndex + 1))}
+                <View style={styles.sectionSpacer} />
+              </React.Fragment>
+            );
+          })}
+        </Page>
+      ))}
     </Document>
   );
 };

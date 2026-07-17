@@ -158,6 +158,7 @@ import WeightMeasurementsDocumentPDFTemplate from './WeightMeasurementsDocumentP
 import WeightMonitoringDocumentPDFTemplate from './WeightMonitoringDocumentPDFTemplate';
 import WellChildExaminationsDocumentPDFTemplate from './WellChildExaminationsDocumentPDFTemplate';
 import WellChildSummaryDocumentPDFTemplate from './WellChildSummaryDocumentPDFTemplate';
+import WellnessVisitDocumentationDocumentPDFTemplate from './WellnessVisitDocumentationDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -305,6 +306,7 @@ const templateRegistry = {
   'weight_monitoring': WeightMonitoringDocumentPDFTemplate,
   'well_child_examinations': WellChildExaminationsDocumentPDFTemplate,
   'well_child_summary': WellChildSummaryDocumentPDFTemplate,
+  'wellness_visit_documentation': WellnessVisitDocumentationDocumentPDFTemplate,
 };
 
 /**

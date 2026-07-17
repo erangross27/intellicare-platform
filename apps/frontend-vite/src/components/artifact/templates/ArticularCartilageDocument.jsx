@@ -15,6 +15,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ArticularCartilageDocumentPDFTemplate from '../pdf-templates/ArticularCartilageDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './ArticularCartilageDocument.css';
 
@@ -76,6 +78,14 @@ const DATE_FIELDS = ['date'];
 const ARRAY_FIELDS = ['location', 'recommendations'];
 const OBJECT_FIELDS = ['results'];
 const STRING_FIELDS = ['grade', 'size', 'treatment', 'provider', 'facility', 'findings', 'assessment', 'plan', 'notes', 'status', 'type'];
+const COMMA_SPLIT_FIELDS = ['findings'];
+const STATUS_OPTIONS = ['Active', 'Completed', 'Pending', 'Reviewed'];
+const TYPE_OPTIONS = ['Initial Assessment', 'Follow-up Assessment', 'Clinical Articular Cartilage Evaluation', 'Postoperative Assessment'];
+const ENUM_OPTIONS = { status: STATUS_OPTIONS, type: TYPE_OPTIONS };
+const canonicalEnumValue = (field, value) => {
+  const raw = String(value ?? '').trim();
+  return (ENUM_OPTIONS[field] || []).find(option => option.toLowerCase() === raw.toLowerCase()) || raw;
+};
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -185,7 +195,7 @@ const flattenSearchable = (v) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const ArticularCartilageDocument = ({ document: docProp }) => {
+const ArticularCartilageDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -204,15 +214,17 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp || data || templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
       if (r?.articular_cartilage) return Array.isArray(r.articular_cartilage) ? r.articular_cartilage : [r.articular_cartilage];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.articular_cartilage) return Array.isArray(dd.articular_cartilage) ? dd.articular_cartilage : [dd.articular_cartilage]; return [dd]; }
+      if (r?.data) { const dd = r.data; if (Array.isArray(dd)) return dd; if (dd?.articular_cartilage) return Array.isArray(dd.articular_cartilage) ? dd.articular_cartilage : [dd.articular_cartilage]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   const safeIdOf = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
 
@@ -246,7 +258,8 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
      ("A; B; C. D") renders one row per clause. */
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return splitClauses(text).map(c => c.text).filter(s => s && !/^[;.,!?]+$/.test(s));
+    const protectedText = text.replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)\./gi, '$1<dot>');
+    return protectedText.split(/[.;]\s+/).map(s => s.replace(/<dot>/g, '.').replace(/[;.]+$/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   const splitBySemicolon = useCallback((text) => {
@@ -268,8 +281,21 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
 
   const getFieldValue = useCallback((record, fn, idx) => {
     const k = `${fn}-${idx}`;
-    if (localEdits[k] !== undefined) return localEdits[k];
-    return record[fn];
+    let value = localEdits[k] !== undefined ? localEdits[k] : record[fn];
+    const dottedPrefix = `${fn}.`;
+    const dottedEntries = Object.entries(localEdits).filter(([key]) => key.startsWith(dottedPrefix) && key.endsWith(`-${idx}`));
+    if (dottedEntries.length === 0) return value;
+    const clone = JSON.parse(JSON.stringify(value ?? (Array.isArray(record[fn]) ? [] : {})));
+    dottedEntries.forEach(([key, nextValue]) => {
+      const fieldPath = key.slice(0, -(`-${idx}`.length)).split('.').slice(1);
+      let node = clone;
+      fieldPath.forEach((segment, pathIndex) => {
+        const pathKey = /^\d+$/.test(segment) ? Number(segment) : segment;
+        if (pathIndex === fieldPath.length - 1) node[pathKey] = nextValue;
+        else { if (node[pathKey] === undefined || node[pathKey] === null) node[pathKey] = /^\d+$/.test(fieldPath[pathIndex + 1]) ? [] : {}; node = node[pathKey]; }
+      });
+    });
+    return clone;
   }, [localEdits]);
 
   const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
@@ -350,7 +376,13 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
         if (pendingEdits[key]) return; // pending drafts stay OUT of the PDF/Copy All until approved
         const m = key.match(/^(.+)-(\d+)$/);
         if (m && parseInt(m[2]) === idx) {
-          merged[m[1]] = localEdits[key];
+          const path = m[1].split('.');
+          let node = merged;
+          path.forEach((segment, pathIndex) => {
+            const pathKey = /^\d+$/.test(segment) ? Number(segment) : segment;
+            if (pathIndex === path.length - 1) node[pathKey] = localEdits[key];
+            else { if (node[pathKey] === undefined || node[pathKey] === null) node[pathKey] = /^\d+$/.test(path[pathIndex + 1]) ? [] : {}; node = node[pathKey]; }
+          });
         }
       });
       return merged;
@@ -370,6 +402,15 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
     if (id) { const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fn] = fullValue; writeDrafts(store); }
   }, [safeId]);
 
+  const stagePathDraft = useCallback((record, path, idx, sid, value) => {
+    const id = safeId(record);
+    const editKey = `${path}-${idx}`;
+    setLocalEdits(prev => ({ ...prev, [editKey]: value }));
+    setPendingEdits(prev => ({ ...prev, [editKey]: true }));
+    if (sid) setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const next = { ...prev }; delete next[`${sid}-${idx}`]; return next; });
+    if (id) { const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][path] = value; writeDrafts(store); }
+  }, [safeId]);
+
   // Save = stage a DRAFT locally + write it to the pending-drafts localStorage store (survives refresh).
   // NOT written to MongoDB and NOT shown in the PDF until the user clicks Approve (handleApproveSection commits).
   const handleSaveField = useCallback((record, fn, idx, sid, sentIdx, valueOverride, editTrackingKey) => {
@@ -384,16 +425,10 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
   /* saveLeaf: persist a dynamic-object leaf via dot-path; preserves object shape locally */
   const saveLeaf = useCallback((record, rootField, path, idx, sid, leafKeyTrack, newVal) => {
     const id = safeId(record); if (!id) return;
-    // Stage a DRAFT of the FULL object value under `${rootField}-${idx}` (no DB write). Approve commits.
-    const cur = localEdits[`${rootField}-${idx}`] !== undefined ? localEdits[`${rootField}-${idx}`] : record[rootField];
-    const clone = JSON.parse(JSON.stringify(cur ?? {}));
-    let node = clone;
-    for (let i = 0; i < path.length - 1; i++) node = node[path[i]];
-    node[path[path.length - 1]] = newVal;
-    stageDraft(record, rootField, idx, sid, clone);
+    stagePathDraft(record, `${rootField}.${path.join('.')}`, idx, sid, newVal);
     setEditedFields(prev => ({ ...prev, [leafKeyTrack]: 'edited' }));
     setEditingField(null); setEditValue('');
-  }, [safeId, localEdits, stageDraft]);
+  }, [safeId, stagePathDraft]);
 
   function saveSentence(record, fn, idx, sid, sentenceIdx) {
     const id = safeId(record); if (!id) return;
@@ -404,6 +439,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
       const updated = [...sentences]; updated.splice(sentenceIdx, 1);
       const fullText = reconstructFullText(updated, currentVal);
       stageDraft(record, fn, idx, sid, fullText);
+      setEditedFields(prev => ({ ...prev, [`${fn}-${idx}`]: 'edited' }));
       setEditedSentences(prev => ({ ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }));
       setEditingField(null); setEditValue('');
       return;
@@ -412,6 +448,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
     const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
     const fullText = reconstructFullText(updated, currentVal);
     stageDraft(record, fn, idx, sid, fullText);
+    setEditedFields(prev => ({ ...prev, [`${fn}-${idx}`]: 'edited' }));
     const orig = sentences[sentenceIdx] || '';
     const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
     setEditedSentences(prev => {
@@ -430,18 +467,19 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
     const sentences = splitBySentence(currentVal);
     const s = sentences[sIdx] || '';
     const p = parseLabel(s);
-    if (!p.isLabeled) return;
-    const semiSub = splitBySemicolon(p.value);
+    const sourceValue = p.isLabeled ? p.value : s;
+    const semiSub = splitBySemicolon(sourceValue);
     const useSemicolon = semiSub.length >= 2;
-    const items = useSemicolon ? semiSub : splitByComma(p.value);
+    const items = useSemicolon ? semiSub : splitByComma(sourceValue);
     const trimmed = editValue.trim();
     const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp);
     if (subParts.length > 1) { items.splice(ciIdx, 1, ...subParts); } else { items[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); }
     const joiner = useSemicolon ? '; ' : ', ';
-    const rebuilt = `${p.label}: ${items.join(joiner)}.`;
+    const rebuilt = p.isLabeled ? `${p.label}: ${items.join(joiner)}` : items.join(joiner);
     const allS = [...sentences]; allS[sIdx] = rebuilt;
     const fullText = reconstructFullText(allS, currentVal);
     stageDraft(record, fn, idx, sid, fullText);
+    setEditedFields(prev => ({ ...prev, [`${fn}-${idx}`]: 'edited' }));
     const sentenceKey = `${fn}-${idx}-s${sIdx}`;
     const commaKey = `${sentenceKey}-c${ciIdx}`;
     const marks = { [commaKey]: 'edited' };
@@ -475,11 +513,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
     try {
       for (const editKey of toCommit) {
         const fieldPart = editKey.slice(0, -suffix.length); // "field" or "field.arrayIndex"
-        const lastDot = fieldPart.lastIndexOf('.');
-        // arrayIndex ONLY when the segment after the LAST dot is purely numeric
-        const tail = lastDot === -1 ? '' : fieldPart.slice(lastDot + 1);
         const payload = { field: fieldPart, value: localEdits[editKey] };
-        if (lastDot !== -1 && /^\d+$/.test(tail)) { payload.field = fieldPart.slice(0, lastDot); payload.arrayIndex = parseInt(tail, 10); }
         const resp = await secureApiClient.put(`/api/edit/articular_cartilage/${id}/edit`, payload);
         if (resp && resp.success === false) throw new Error(resp.error || 'save failed');
       }
@@ -518,8 +552,8 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
   const objectCopyLines = useCallback((label, value, indent) => {
     const pad = '  '.repeat(indent); const out = [];
     if (isEmptyDeep(value)) return out;
-    if (isScalar(value)) { out.push(`${pad}${label ? label + ': ' : ''}${fmtScalar(value)}`); return out; }
-    if (label) out.push(`${pad}${label}:`);
+    if (isScalar(value)) { if (label) out.push(`${pad}${label}`); out.push(`${pad}${fmtScalar(value)}`); return out; }
+    if (label) out.push(`${pad}${label}`);
     const nextIndent = indent + (label ? 1 : 0);
     if (Array.isArray(value)) {
       value.filter(v => !isEmptyDeep(v)).forEach(v => { out.push(...objectCopyLines('', v, nextIndent)); });
@@ -530,7 +564,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
   }, []);
 
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatStringClauses = useCallback((text) => {
+  const formatStringClauses = useCallback((field, text) => {
     /* split on '. '/'; ' into clauses, then comma-split each (and/or-guarded); continuous numbering.
        Labeled clause → "Label:" header + indented items. Mirrors the JSX display + PDF. */
     const clauses = splitBySentence(text);
@@ -539,9 +573,9 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
       const parsed = parseLabel(clause);
       if (parsed.isLabeled) {
         lines.push(parsed.label + ':');
-        splitByComma(parsed.value).forEach(ci => { lines.push(`  ${n++}. ${ci}`); });
+        (COMMA_SPLIT_FIELDS.includes(field) ? splitByComma(parsed.value) : [parsed.value]).forEach(ci => { lines.push(`  ${n++}. ${ci}`); });
       } else {
-        splitByComma(clause).forEach(ci => { lines.push(`${n++}. ${ci}`); });
+        (COMMA_SPLIT_FIELDS.includes(field) ? splitByComma(clause) : [clause]).forEach(ci => { lines.push(`${n++}. ${ci}`); });
       }
     });
     return lines;
@@ -549,8 +583,9 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
+    if (!fields.some(field => hasVal(getFieldValue(record, field, idx)))) return '';
+    let text = `${title}\n${'='.repeat(40)}\n\n`;
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
@@ -559,6 +594,13 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
       if (DATE_FIELDS.includes(f)) {
         if (showLabelCopy) text += `${label}\n`;
         text += `${formatDate(val)}\n\n`;
+      } else if (f === 'recommendations') {
+        let rowNumber = 1;
+        recommendationGroups(record, idx).forEach(([dateKey, entries]) => {
+          if (!dateKey.startsWith('no-date-')) text += `${formatDate(entries[0].date)}\n`;
+          entries.forEach(entry => { if (entry.recommendation) text += `${rowNumber++}. ${entry.recommendation}\n`; });
+        });
+        text += '\n';
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
         if (showLabelCopy) text += `${label}\n`;
@@ -570,16 +612,16 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
           text += '\n';
         }
       } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
+        const strVal = canonicalEnumValue(f, fmtVal(val));
         const clauses = splitBySentence(strVal);
         const head = clauses[0] || strVal;
         // single bare scalar (one clause, one comma-item, no label) → plain value, no numbering
-        const isSingleScalar = clauses.length <= 1 && !parseLabel(head).isLabeled && splitByComma(head).length < 2;
+        const isSingleScalar = clauses.length <= 1 && !parseLabel(head).isLabeled && (!COMMA_SPLIT_FIELDS.includes(f) || splitByComma(head).length < 2);
         if (showLabelCopy) text += `${label}\n`;
         if (isSingleScalar) {
           text += `${strVal}\n\n`;
         } else {
-          formatStringClauses(strVal).forEach(l => { text += `${l}\n`; });
+          formatStringClauses(f, strVal).forEach(l => { text += `${l}\n`; });
           text += '\n';
         }
       } else {
@@ -615,12 +657,12 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={next => setEditValue(next || '')} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -639,17 +681,58 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
     );
   };
 
+  const recommendationGroups = (record, idx) => {
+    const recommendations = getFieldValue(record, 'recommendations', idx);
+    if (!Array.isArray(recommendations)) return [];
+    const groups = new Map();
+    recommendations.forEach((item, itemIndex) => {
+      const objectItem = item && typeof item === 'object';
+      const recommendation = objectItem ? item.recommendation : item;
+      const date = objectItem ? item.date : null;
+      if (!hasVal(recommendation) && !hasVal(date)) return;
+      const dateKey = toInputDate(date) || `no-date-${itemIndex}`;
+      if (!groups.has(dateKey)) groups.set(dateKey, []);
+      groups.get(dateKey).push({ itemIndex, recommendation: String(recommendation || ''), date });
+    });
+    return [...groups.entries()];
+  };
+
+  const renderRecommendations = (record, idx, sid) => recommendationGroups(record, idx).map(([dateKey, entries]) => {
+    const dated = !dateKey.startsWith('no-date-');
+    const dateEditKey = `recommendations-${idx}-${dateKey}-date`;
+    const dateEditing = editingField === dateEditKey;
+    const datePaths = entries.map(entry => `recommendations.${entry.itemIndex}.date`);
+    return (
+      <div key={dateKey} className={`rec-mini-card nested-mini-card recommendation-group${dated ? '' : ' regular-row-group'}`}>
+        {dated && <div className="editable-date-subtitle" data-edit-field={datePaths[0]} data-edit-fields={datePaths.join(',')}>
+          <div className="nested-subtitle editable-row date-subtitle" onClick={() => { if (!dateEditing) { setEditingField(dateEditKey); setEditValue(dateKey); setSaveError(null); } }}>
+            {dateEditing ? <div className="edit-field-container"><BlueDatePicker value={editValue} onSelect={next => setEditValue(next || '')} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); if (!/^\d{4}-\d{2}-\d{2}$/.test(editValue)) { setSaveError('Please choose a valid date'); return; } datePaths.forEach(path => stagePathDraft(record, path, idx, sid, editValue)); setEditedFields(prev => ({ ...prev, ...Object.fromEntries(datePaths.map(path => [`${path}-${idx}`, 'edited'])) })); setEditingField(null); setEditValue(''); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><span className="content-value">{highlightText(formatDate(entries[0].date))}</span><span className="edit-indicator">&#9998;</span></>}
+          </div>
+        </div>}
+        {entries.map(entry => {
+          if (!entry.recommendation) return null;
+          const path = `recommendations.${entry.itemIndex}.recommendation`;
+          const editKey = `${path}-${idx}`;
+          const editing = editingField === editKey;
+          const modified = editedFields[editKey];
+          return <div key={path} data-edit-field={path}><div className={`numbered-row editable-row${modified ? ' modified' : ''}`} onClick={() => { if (!editing) { setEditingField(editKey); setEditValue(entry.recommendation); setSaveError(null); } }}>{editing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={event => { event.stopPropagation(); if (!editValue.trim()) { setSaveError('Please enter a recommendation'); return; } stagePathDraft(record, path, idx, sid, editValue.trim()); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setEditingField(null); setEditValue(''); }}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(entry.recommendation)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(entry.recommendation, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{modified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div>;
+        })}
+      </div>
+    );
+  });
+
   /* ═══════ RENDER: ARRAY FIELD (per-item editing with dot-path keys) ═══════ */
   const renderArrayField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx);
     const items = Array.isArray(val) ? val.filter(Boolean) : [];
     if (items.length === 0) return null;
+    if (fn === 'recommendations') return <div key={fn}>{renderRecommendations(record, idx, sid)}</div>;
     const label = FIELD_LABELS[fn] || fn;
     const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card regular-row-group">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
@@ -664,14 +747,14 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} data-edit-field={`${fn}.${itemIdx}`}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                     {saveError && <div className="save-error">{saveError}</div>}
                     <div className="edit-actions">
-                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])]; currentArr[itemIdx] = editValue; stageDraft(record, fn, idx, sid, currentArr); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; stagePathDraft(record, `${fn}.${itemIdx}`, idx, sid, editValue.trim()); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
                       <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                     </div>
                   </div>
@@ -693,8 +776,9 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
   /* ═══════ RENDER: STRING FIELD with splitBySentence / splitBySemicolon ═══════ */
   const renderStringField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
-    const strVal = fmtVal(val);
+    const strVal = canonicalEnumValue(fn, fmtVal(val));
     const sentences = splitBySentence(strVal);
+    const splitFieldCommas = (text) => COMMA_SPLIT_FIELDS.includes(fn) ? splitByComma(text) : [text];
     const label = FIELD_LABELS[fn] || fn;
     const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
@@ -706,7 +790,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
+          <div className={`rec-mini-card nested-mini-card${showLabel || sentences.some(sentence => parseLabel(sentence).isLabeled) ? '' : ' regular-row-group'}`}>
             {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -718,11 +802,11 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
               const parsed = parseLabel(sentence);
               if (parsed.isLabeled) {
                 const semiItems2 = splitBySemicolon(parsed.value);
-                const commaItems = semiItems2.length >= 2 ? semiItems2 : splitByComma(parsed.value);
+                const commaItems = semiItems2.length >= 2 ? semiItems2 : splitFieldCommas(parsed.value);
                 const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
                 if (commaItems.length >= 2) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} className="rec-mini-card nested-mini-card" style={{ marginTop: 8 }}>
                       <div className="nested-subtitle">{highlightText(parsed.label)}</div>
                       {commaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
@@ -731,7 +815,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -760,10 +844,10 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
 
               /* Non-labeled sentence with 2+ comma items: split into rows */
               if (!parsed.isLabeled) {
-                const nlCommaItems = splitByComma(sentence);
+                const nlCommaItems = splitFieldCommas(sentence);
                 if (nlCommaItems.length >= 2) {
                   return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                    <div key={sIdx} style={{ marginTop: 8 }}>
                       {nlCommaItems.map((ci, ciIdx) => {
                         const commaKey = `${sentenceKey}-c${ciIdx}`;
                         const ciEditing = editingField === commaKey;
@@ -771,7 +855,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
                         const ciMatches = phraseMatch || labelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
-                          <div key={ciIdx}>
+                          <div key={ciIdx} data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -803,13 +887,13 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
               const isDateValue = parsed.isLabeled && /^(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s*\d{4}/.test(rowValue.trim());
 
               return (
-                <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} style={{ marginTop: 8 }} data-edit-field={fn}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(isDateValue ? toInputDate(new Date(rowValue.replace(/\.$/, ''))) : rowValue); setSaveError(null); } }}>
                     {isEditing ? (
                       <div className="edit-field-container">
                         {isDateValue ? (
-                          <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                          <BlueDatePicker value={editValue} onSelect={next => setEditValue(next || '')} />
                         ) : (
                           <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                         )}
@@ -836,7 +920,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
     }
 
     /* Single-value: split comma items into separate rows (labeled or not) */
-    const singleCommaItems = splitByComma(strVal);
+    const singleCommaItems = splitFieldCommas(strVal);
 
     if (singleCommaItems.length >= 2) {
       const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
@@ -844,7 +928,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
+          <div className="rec-mini-card nested-mini-card regular-row-group">
             {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
             {singleCommaItems.map((ci, ciIdx) => {
               const ciParsed = parseLabel(ci);
@@ -856,7 +940,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
 
               if (ciParsed.isLabeled) {
                 return (
-                  <div key={ciIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                  <div key={ciIdx} className="rec-mini-card nested-mini-card" style={{ marginTop: 8 }} data-edit-field={fn}>
                     <div className="nested-subtitle">{highlightText(ciParsed.label)}</div>
                     <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ciParsed.value); setSaveError(null); } }}>
                       {ciEditing ? (
@@ -864,7 +948,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
                           <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                           {saveError && <div className="save-error">{saveError}</div>}
                           <div className="edit-actions">
-                            <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const allItems = splitByComma(String(getFieldValue(record, fn, idx) || '')); allItems[ciIdx] = `${ciParsed.label}: ${editValue.trim()}`; const fullText = allItems.join(', '); stageDraft(record, fn, idx, sid, fullText); setEditedSentences(prev => ({ ...prev, [commaKey]: 'edited' })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                            <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const allItems = splitFieldCommas(String(getFieldValue(record, fn, idx) || '')); allItems[ciIdx] = `${ciParsed.label}: ${editValue.trim()}`; const fullText = allItems.join(', '); stageDraft(record, fn, idx, sid, fullText); setEditedSentences(prev => ({ ...prev, [commaKey]: 'edited' })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
                             <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                           </div>
                         </div>
@@ -881,14 +965,14 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
               }
 
               return (
-                <div key={ciIdx}>
+                <div key={ciIdx} data-edit-field={fn}>
                   <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                     {ciEditing ? (
                       <div className="edit-field-container">
                         <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                         {saveError && <div className="save-error">{saveError}</div>}
                         <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const allItems = splitByComma(String(getFieldValue(record, fn, idx) || '')); allItems[ciIdx] = editValue.trim(); const fullText = allItems.join(', '); stageDraft(record, fn, idx, sid, fullText); setEditedSentences(prev => ({ ...prev, [commaKey]: 'edited' })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const allItems = splitFieldCommas(String(getFieldValue(record, fn, idx) || '')); allItems[ciIdx] = editValue.trim(); const fullText = allItems.join(', '); stageDraft(record, fn, idx, sid, fullText); setEditedSentences(prev => ({ ...prev, [commaKey]: 'edited' })); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
                           <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                         </div>
                       </div>
@@ -914,12 +998,12 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
     const isModified = editedFields[`${fn}-${idx}`] || editedSentences[singleEditKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(singleEditKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              {ENUM_OPTIONS[fn] ? <BlueSelect value={canonicalEnumValue(fn, editValue)} options={ENUM_OPTIONS[fn]} onChange={setEditValue} /> : <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSentence(record, fn, idx, sid, 0); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -949,19 +1033,18 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
     const nu = (isBool || ratio) ? null : splitNumberUnit(leafValueString);
     const editStartValue = isBool ? (value ? 'yes' : 'no') : ratio ? ratio.num : nu ? nu.num : leafValueString;
     return (
-      <div key={path[path.length - 1]} className="nested-mini-card">
+      <div key={path[path.length - 1]} className="nested-mini-card" data-edit-field={`${rootField}.${path.join('.')}`}>
         <div className="nested-subtitle sub-label">{highlightText(humanizeKey(path[path.length - 1]))}</div>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(leafKey); setEditValue(editStartValue); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
               {isBool ? (
-                <select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <BlueSelect value={editValue === 'yes' ? 'Yes' : 'No'} options={['Yes', 'No']} onChange={next => setEditValue(String(next).toLowerCase())} />
               ) : (ratio || nu) ? (
-                <div className="number-edit-row">
-                  <input type="number" step="any" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <div className="number-edit-row num-step">
+                  <button type="button" className="stepper-btn" onClick={e => { e.stopPropagation(); setEditValue(current => String((parseFloat(current) || 0) - 1)); }}>−</button>
+                  <input type="text" inputMode="decimal" className="edit-number stepper-input" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                  <button type="button" className="stepper-btn" onClick={e => { e.stopPropagation(); setEditValue(current => String((parseFloat(current) || 0) + 1)); }}>+</button>
                   {ratio ? <span className="number-edit-unit">{`/ ${ratio.denom}`}</span> : (nu.unit && <span className="number-edit-unit">{nu.unit}</span>)}
                 </div>
               ) : (
@@ -1045,7 +1128,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
     const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
     if (entries.length === 0) return null;
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showSubLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         {entries.map(([k, v]) => (
           isScalar(v) ? renderObjectLeaf(record, fn, [k], idx, sid, v)
@@ -1105,7 +1188,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
         <h2 className="document-title">Articular Cartilage</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<ArticularCartilageDocumentPDFTemplate document={pdfData} />} fileName={`articular-cartilage-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<ArticularCartilageDocumentPDFTemplate document={pdfData} />} fileName="Articular_Cartilage.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -1117,14 +1200,7 @@ const ArticularCartilageDocument = ({ document: docProp }) => {
       <div className="records-container">
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
-            <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{highlightText(formatDate(record.date))}</span>
-                </div>
-              )}
-              <h3 className="record-name">{highlightText(`Articular Cartilage ${idx + 1}`)}</h3>
-            </div>
+            <div className="record-header"><h3 className="record-name">{highlightText(`Articular Cartilage ${idx + 1}`)}</h3></div>
             {renderSection(record, idx, 'record-info')}
             {renderSection(record, idx, 'cartilage-details')}
             {renderSection(record, idx, 'location')}

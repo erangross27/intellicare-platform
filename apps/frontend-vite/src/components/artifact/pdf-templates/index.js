@@ -17,6 +17,7 @@ import AnatomyScanResultDocumentPDFTemplate from './AnatomyScanResultDocumentPDF
 import AnesthesiaConsentDocumentPDFTemplate from './AnesthesiaConsentDocumentPDFTemplate';
 import ArterialBloodGasesDocumentPDFTemplate from './ArterialBloodGasesDocumentPDFTemplate';
 import ArthritisAssessmentsDocumentPDFTemplate from './ArthritisAssessmentsDocumentPDFTemplate';
+import ArticularCartilageDocumentPDFTemplate from './ArticularCartilageDocumentPDFTemplate';
 import AllergiesDocumentPDFTemplate from './AllergiesDocumentPDFTemplate';
 import AllergiesAssessmentDocumentPDFTemplate from './AllergiesAssessmentDocumentPDFTemplate';
 import AllergyAssessmentsDocumentPDFTemplate from './AllergyAssessmentsDocumentPDFTemplate';
@@ -297,6 +298,7 @@ const templateRegistry = {
   'appetite_stimulants': AppetiteStimulantsDocumentPDFTemplate,
   'arterial_blood_gases': ArterialBloodGasesDocumentPDFTemplate,
   'arthritis_assessments': ArthritisAssessmentsDocumentPDFTemplate,
+  'articular_cartilage': ArticularCartilageDocumentPDFTemplate,
   'recommendations': RecommendationsTemplate,
   'clinical_scores': ClinicalScoresTemplate,
   'administrative_data': AdministrativeDataDocumentPDFTemplate,

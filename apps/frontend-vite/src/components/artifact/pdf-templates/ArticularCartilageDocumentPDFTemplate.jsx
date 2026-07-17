@@ -1,6 +1,6 @@
 /**
  * ArticularCartilageDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — articular cartilage
+ * Canonical box-free A4 template for articular cartilage
  * Collection: articular_cartilage
  */
 import React from 'react';
@@ -8,17 +8,15 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 24, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  documentHeader: { marginBottom: 24 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid', paddingBottom: 6 },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 13, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 17, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid', paddingBottom: 4 },
   fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid', paddingBottom: 2 },
   fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
   listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
   nestedSubtitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
@@ -81,6 +79,14 @@ const fmtVal = (v) => {
   if (typeof v === 'boolean') return v ? 'Yes' : 'No';
   if (typeof v === 'number') return String(v);
   return String(v || '');
+};
+const COMMA_SPLIT_FIELDS = ['findings'];
+const STATUS_OPTIONS = ['Active', 'Completed', 'Pending', 'Reviewed'];
+const TYPE_OPTIONS = ['Initial Assessment', 'Follow-up Assessment', 'Clinical Articular Cartilage Evaluation', 'Postoperative Assessment'];
+const canonicalEnumValue = (field, value) => {
+  const raw = String(value ?? '').trim();
+  const options = field === 'status' ? STATUS_OPTIONS : field === 'type' ? TYPE_OPTIONS : [];
+  return options.find(option => option.toLowerCase() === raw.toLowerCase()) || raw;
 };
 
 /* splitClauses: split on BOTH '. ' and '; ' (paren-aware, abbreviation/decimal-safe). Mirrors the JSX
@@ -165,9 +171,9 @@ const renderDateFieldPDF = (label, value, showLabel) => {
 /* renderSentenceSection: split narrative on '. ' AND '; ' into clauses, then comma-split each clause
    (and/or-guarded — a list-tail conjunction "..., and X" / "..., or Y" stays joined to its item).
    Labeled clause → nested-subtitle + its comma items. A single bare scalar → plain value (no numbering). */
-const renderSentenceSection = (label, text, showLabel) => {
+const renderSentenceSection = (field, label, text, showLabel) => {
   if (!hasVal(text)) return null;
-  const strVal = fmtVal(text);
+  const strVal = canonicalEnumValue(field, fmtVal(text));
   const clauses = splitBySentence(strVal);
   if (clauses.length === 0) return null;
 
@@ -177,9 +183,9 @@ const renderSentenceSection = (label, text, showLabel) => {
     const parsed = parseLabel(clause);
     if (parsed.isLabeled) {
       rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-      splitByComma(parsed.value).forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
+      (COMMA_SPLIT_FIELDS.includes(field) ? splitByComma(parsed.value) : [parsed.value]).forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
     } else {
-      splitByComma(clause).forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
+      (COMMA_SPLIT_FIELDS.includes(field) ? splitByComma(clause) : [clause]).forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
     }
   });
 
@@ -193,7 +199,7 @@ const renderSentenceSection = (label, text, showLabel) => {
     );
   }
 
-  /* wrap={undefined} === false on @react-pdf v4 — use true for long lists so they flow across pages */
+  /* Long lists remain breakable so they can flow across pages without overprinting. */
   const wrapProp = rows.length > 8 ? true : false;
 
   return (
@@ -216,11 +222,35 @@ const renderArrayFieldPDF = (label, items, showLabel) => {
   if (safeItems.length === 0) return null;
 
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? true : false}>
       {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
       {safeItems.map((item, i) => (
         <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
       ))}
+    </View>
+  );
+};
+
+const renderRecommendationsPDF = (label, items, showLabel) => {
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const groups = new Map();
+  items.forEach((item, itemIndex) => {
+    const objectItem = item && typeof item === 'object';
+    const recommendation = objectItem ? item.recommendation : item;
+    const date = objectItem ? item.date : null;
+    if (!hasVal(recommendation) && !hasVal(date)) return;
+    const dateKey = date ? (new Date(date.$date || date).toISOString().slice(0, 10)) : `no-date-${itemIndex}`;
+    if (!groups.has(dateKey)) groups.set(dateKey, []);
+    groups.get(dateKey).push({ recommendation: safeString(recommendation), date });
+  });
+  let rowNumber = 1;
+  return (
+    <View style={styles.fieldBox} wrap={groups.size > 3 ? true : false}>
+      {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
+      {[...groups.entries()].map(([dateKey, entries]) => <View key={dateKey}>
+        {!dateKey.startsWith('no-date-') && <Text style={styles.nestedSubtitle}>{formatDate(entries[0].date)}</Text>}
+        {entries.map((entry, entryIndex) => entry.recommendation ? <Text key={entryIndex} style={styles.listItem}>{rowNumber++}. {entry.recommendation}</Text> : null)}
+      </View>)}
     </View>
   );
 };
@@ -270,7 +300,7 @@ const renderObjectFieldPDF = (label, value, showLabel) => {
   if (isEmptyDeep(value) || isScalar(value)) return null;
   const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
   if (entries.length === 0) return null;
-  const wrapProp = countRows(value) > 8 ? undefined : false;
+  const wrapProp = countRows(value) > 8 ? true : false;
   return (
     <View style={styles.fieldBox} wrap={wrapProp}>
       {showLabel !== false && <Text style={styles.fieldLabel}>{label}</Text>}
@@ -334,22 +364,24 @@ const SECTION_CONFIGS = [
 ];
 
 /* ======= COMPONENT ======= */
-const ArticularCartilageDocumentPDFTemplate = ({ document: data }) => {
+const ArticularCartilageDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
   const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
+    const source = documentProp || data || templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
       if (r?.articular_cartilage) return Array.isArray(r.articular_cartilage) ? r.articular_cartilage : [r.articular_cartilage];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.articular_cartilage) return Array.isArray(dd.articular_cartilage) ? dd.articular_cartilage : [dd.articular_cartilage]; return [dd]; }
+      if (r?.data) { const dd = r.data; if (Array.isArray(dd)) return dd; if (dd?.articular_cartilage) return Array.isArray(dd.articular_cartilage) ? dd.articular_cartilage : [dd.articular_cartilage]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [documentProp, data, templateData]);
 
   if (!records || records.length === 0) {
     return (
       <Document>
-        <Page size="LETTER" style={styles.page}>
+        <Page size="A4" style={styles.page}>
           <View style={styles.documentHeader}>
             <Text style={styles.documentTitle}>Articular Cartilage</Text>
           </View>
@@ -361,7 +393,7 @@ const ArticularCartilageDocumentPDFTemplate = ({ document: data }) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         {/* Document Header */}
         <View style={styles.documentHeader}>
           <Text style={styles.documentTitle}>Articular Cartilage</Text>
@@ -373,11 +405,6 @@ const ArticularCartilageDocumentPDFTemplate = ({ document: data }) => {
 
             {/* Record Header */}
             <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
               <Text style={styles.recordTitle}>
                 {`Articular Cartilage ${index + 1}`}
               </Text>
@@ -393,8 +420,9 @@ const ArticularCartilageDocumentPDFTemplate = ({ document: data }) => {
                 const showLabel = field.label.toLowerCase() !== sectionConfig.title.toLowerCase();
                 if (field.isDate) return renderDateFieldPDF(field.label, val, showLabel);
                 if (field.isObject) return renderObjectFieldPDF(field.label, val, showLabel);
+                if (field.key === 'recommendations') return renderRecommendationsPDF(field.label, val, showLabel);
                 if (field.isArray) return renderArrayFieldPDF(field.label, val, showLabel);
-                if (field.isSentence) return renderSentenceSection(field.label, val, showLabel);
+                if (field.isSentence) return renderSentenceSection(field.key, field.label, val, showLabel);
                 return renderFieldRow(field.label, val, showLabel);
               };
 

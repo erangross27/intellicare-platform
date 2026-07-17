@@ -22,6 +22,7 @@ function buildContext(req, operation = 'read') { return { serviceId: 'airway-cle
 function toObjectId(str) { try { return new mongoose.Types.ObjectId(str); } catch { return null; } }
 
 const ALLOWED_FIELDS = [
+  'therapySessionId',
   'primaryDiagnosis', 'baselineSpO2', 'postTherapySpO2', 'supplementalOxygenFlowRate',
   'chestPhysiotherapyTechnique',
   'highFrequencyChestWallOscillation', 'hfcwoFrequencySetting', 'hfcwoPressureSetting',
@@ -39,14 +40,18 @@ router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params; const { field, value, arrayIndex } = req.body;
     if (!field || value === undefined) return res.status(400).json({ success: false, error: 'field and value are required' });
-    if (!ALLOWED_FIELDS.includes(field)) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
+    const fieldParts = String(field).split('.');
+    const rootField = fieldParts[0];
+    const validIndexedPath = fieldParts.length === 1 || (fieldParts.length === 2 && /^\d+$/.test(fieldParts[1]));
+    if (!ALLOWED_FIELDS.includes(rootField) || !validIndexedPath) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
+    if (arrayIndex !== undefined && arrayIndex !== null && !/^\d+$/.test(String(arrayIndex))) return res.status(400).json({ success: false, error: 'arrayIndex must be a non-negative integer' });
     const objectId = toObjectId(id); if (!objectId) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const sda = getSecureDataAccess(); const context = buildContext(req, 'write');
     let updateOp;
     if (arrayIndex !== undefined && arrayIndex !== null) {
-      updateOp = { $set: { [`${field}.${arrayIndex}`]: value, 'doctorEdits.editedAt': new Date(), 'doctorEdits.editedBy': req.user?.id }, $addToSet: { 'doctorEdits.editedFields': field } };
+      updateOp = { $set: { [`${rootField}.${arrayIndex}`]: value, 'doctorEdits.editedAt': new Date(), 'doctorEdits.editedBy': req.user?.id }, $addToSet: { 'doctorEdits.editedFields': rootField } };
     } else {
-      updateOp = { $set: { [field]: value, 'doctorEdits.editedAt': new Date(), 'doctorEdits.editedBy': req.user?.id }, $addToSet: { 'doctorEdits.editedFields': field } };
+      updateOp = { $set: { [field]: value, 'doctorEdits.editedAt': new Date(), 'doctorEdits.editedBy': req.user?.id }, $addToSet: { 'doctorEdits.editedFields': rootField } };
     }
     await sda.update('airway_clearance_therapy', { _id: objectId }, updateOp, context);
     return res.json({ success: true, recordId: id, editedField: field });

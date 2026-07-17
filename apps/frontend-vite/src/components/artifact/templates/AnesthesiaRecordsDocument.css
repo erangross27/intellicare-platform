@@ -10,7 +10,9 @@
   line-height: 1.6;
   max-width: 1400px;
   margin: 0 auto;
+  direction: ltr;
 }
+.anesthesia-records-document * { direction: ltr; }
 
 /* ===== HEADER ===== */
 .anesthesia-records-document .document-header {
@@ -193,13 +195,6 @@
   font-weight: 700;
   color: #ececf1;
   margin: 0;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-.anesthesia-records-document .record-date {
-  color: #60a5fa;
-  font-size: 15px;
-  font-weight: 600;
   font-family: 'Comfortaa', sans-serif;
 }
 
@@ -653,8 +648,10 @@
 .anesthesia-records-document .edit-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
+
+.anesthesia-records-document .nested-mini-card { border: 1px solid rgba(96, 165, 250, 0.28); border-radius: 8px; padding: 10px; }
 
 .anesthesia-records-document .save-btn {
   padding: 6px 16px;

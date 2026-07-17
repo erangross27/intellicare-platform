@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import SearchBar from '../components/SearchBar';
+import BlueDatePicker from '../components/BlueDatePicker';
 import AnesthesiaRecordsDocumentPDFTemplate from '../pdf-templates/AnesthesiaRecordsDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
 import './AnesthesiaRecordsDocument.css';
@@ -53,10 +54,11 @@ const SECTION_FIELDS = {
   findings: ['findings'],
   outcome: ['outcome'],
   followUp: ['followUp'],
+  providers: ['providers'],
 };
 
 // NON-EDITABLE fields
-const NON_EDITABLE_FIELDS = ['procedureDate', 'createdAt', 'updatedAt', 'providers', '_id', 'patientId'];
+const NON_EDITABLE_FIELDS = ['procedureDate', 'createdAt', 'updatedAt', '_id', 'patientId'];
 
 // Sentence fields (long text)
 const SENTENCE_FIELDS = [
@@ -75,6 +77,19 @@ const OBJECT_FIELDS = [
 
 // Array fields
 const ARRAY_FIELDS = ['monitoring', 'complications', 'referrals', 'followUpAppointments'];
+
+// These exact clinical narrative fields contain genuine top-level comma-separated clauses.
+// Other commas (credentials, appositives, addresses, and numeric thousands) stay intact.
+const COMMA_SPLIT_FIELDS = new Set([
+  'induction.spinalTechnique',
+  'induction.epiduralTechnique',
+  'maintenance.sedation'
+]);
+
+const OBJECT_SENTENCE_SPLIT_FIELDS = new Set([
+  'anesthesiologyAssessment.assessment',
+  'anesthesiaPlan.technique'
+]);
 
 /* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
    written to MongoDB and NOT shown in the PDF until the user clicks Approve.
@@ -95,7 +110,7 @@ const writeDrafts = (store) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<=[.;])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+  return text.split(/[.;]\s+/).map(s => s.trim()).filter(s => s.length > 0);
 };
 
 // Paren/bracket-aware comma split with a digit-guard: a comma sitting between two digits
@@ -122,7 +137,32 @@ const splitByComma = (text) => {
   return result;
 };
 
-// Convert a stored date value (ISO string / {$date} / Date) to YYYY-MM-DD for <input type="date">.
+const splitFieldClauses = (fieldName, text) => {
+  const source = String(text);
+  if (COMMA_SPLIT_FIELDS.has(fieldName)) {
+    return splitBySentence(source).flatMap(part => splitByComma(part));
+  }
+  if (OBJECT_SENTENCE_SPLIT_FIELDS.has(fieldName)) return splitBySentence(source);
+  return [source];
+};
+
+const replaceClauseAtIndex = (source, clauses, clauseIndex, replacement) => {
+  let cursor = 0;
+  for (let index = 0; index < clauses.length; index++) {
+    const clause = clauses[index];
+    const start = source.indexOf(clause, cursor);
+    if (start < 0) break;
+    if (index === clauseIndex) {
+      return `${source.slice(0, start)}${replacement}${source.slice(start + clause.length)}`;
+    }
+    cursor = start + clause.length;
+  }
+  return source;
+};
+
+const isDateText = (value) => /^(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}$/i.test(String(value).trim());
+
+// Convert a stored date value (ISO string / {$date} / Date) to the date picker's YYYY-MM-DD value.
 const toInputDate = (dateValue) => {
   if (!dateValue) return '';
   try {
@@ -681,8 +721,12 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
 
   const canEdit = true;
 
-  // Data unwrapping - handle wrapped collection structure
-  const unwrappedData = rawDoc?.documentData || rawDoc;
+  // Data unwrapping - handle direct records plus array-wrapped collection/documentData props.
+  const docInput = Array.isArray(rawDoc) && rawDoc.length === 1 &&
+    (rawDoc[0]?.documentData || rawDoc[0]?.anesthesia_records)
+    ? rawDoc[0]
+    : rawDoc;
+  const unwrappedData = docInput?.documentData || docInput;
   let recordsArray = [];
   if (unwrappedData?.anesthesia_records && Array.isArray(unwrappedData.anesthesia_records)) {
     recordsArray = unwrappedData.anesthesia_records;
@@ -930,15 +974,13 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
     handleSaveField(rec, fieldName, recIdx, sectionId, 0, currentArray, `${fieldName}-${recIdx}-item${itemIdx}`);
   };
 
-  // saveClause — for a comma-split string sub-field, replace clause cIdx and re-join with ", "
-  // (lossless round-trip: splitByComma → edit one clause → join ', ' reproduces the field text).
+  // Replace only the edited clause so all original commas, semicolons, periods, and spacing survive.
   const saveClause = (rec, fieldName, recIdx, sectionId, cIdx) => {
     const editedClause = editValue.trim();
     const sourceText = getEffectiveDot(rec, fieldName, recIdx);
-    const clauses = splitByComma(String(sourceText != null ? sourceText : ''));
-    if (cIdx < clauses.length) clauses[cIdx] = editedClause;
-    else clauses.push(editedClause);
-    const fullText = clauses.join(', ');
+    const source = String(sourceText != null ? sourceText : '');
+    const clauses = splitFieldClauses(fieldName, source);
+    const fullText = replaceClauseAtIndex(source, clauses, cIdx, editedClause);
     handleSaveField(rec, fieldName, recIdx, sectionId, cIdx, fullText, `${fieldName}-${recIdx}-s${cIdx}`);
   };
 
@@ -1264,7 +1306,7 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
   };
 
   // Helper: format object section text with subtitle + numbered pattern
-  const formatObjectCopyText = (obj) => {
+  const formatObjectCopyText = (obj, parentPath = '') => {
     if (!obj || typeof obj !== 'object') return '';
     return Object.entries(obj).filter(([, v]) => v != null).map(([key, value]) => {
       if (Array.isArray(value)) {
@@ -1272,9 +1314,10 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
       }
       if (typeof value === 'object' && value !== null) {
         const subs = Object.entries(value).filter(([, v]) => v != null);
-        return `${formatKey(key)}\n${subs.map(([k, v], i) => `  ${i + 1}. ${formatKey(k)}: ${v}`).join('\n')}`;
+        return `${formatKey(key)}\n${subs.map(([k, v]) => `${formatKey(k)}\n  1. ${v}`).join('\n')}`;
       }
-      const clauses = splitByComma(String(value));
+      const fieldPath = parentPath ? `${parentPath}.${key}` : key;
+      const clauses = splitFieldClauses(fieldPath, String(value));
       if (clauses.length > 1) {
         return `${formatKey(key)}\n${clauses.map((c, i) => `  ${i + 1}. ${c}`).join('\n')}`;
       }
@@ -1302,7 +1345,7 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
 
     filteredRecords.forEach((rec, recIdx) => {
       text += `Anesthesia Record ${recIdx + 1}\n`;
-      text += '='.repeat(60) + '\n\n';
+      text += '-'.repeat(60) + '\n\n';
 
       // Header fields - subtitle + numbered
       text += 'SURGERY INFORMATION:\n';
@@ -1333,7 +1376,10 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
         ['clinicalScores', 'CLINICAL SCORES'],
         ['pulmonaryFunctionTests', 'PULMONARY FUNCTION TESTS'],
         ['sleepStudy', 'SLEEP STUDY'],
+        ['chiefComplaint', 'CHIEF COMPLAINT'],
         ['medicalHistory', 'MEDICAL HISTORY'],
+        ['reviewOfSystems', 'REVIEW OF SYSTEMS'],
+        ['physicalExamination', 'PHYSICAL EXAMINATION'],
         ['preOperativePreparation', 'PREOPERATIVE PREPARATION'],
         ['postoperativeOrders', 'POSTOPERATIVE ORDERS'],
         ['dvtProphylaxis', 'DVT PROPHYLAXIS'],
@@ -1346,7 +1392,7 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
       objectSections.forEach(([field, title]) => {
         const val = rec[field];
         if (val && typeof val === 'object' && Object.keys(val).length > 0) {
-          text += `${title}:\n${formatObjectCopyText(val)}\n\n`;
+          text += `${title}:\n${formatObjectCopyText(val, field)}\n\n`;
         }
       });
 
@@ -1398,7 +1444,7 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
 
       // Providers - non-editable
       if (rec.providers && Object.keys(rec.providers).length > 0) {
-        text += `PROVIDERS:\n${formatObjectCopyText(rec.providers)}\n\n`;
+        text += `PROVIDERS:\n${formatObjectCopyText(rec.providers, 'providers')}\n\n`;
       }
 
       text += '\n' + '='.repeat(80) + '\n\n';
@@ -1415,15 +1461,8 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
     const hasEdits = sectionHasEdits(sectionId, recIdx);
     const isApproved = approvedSections[approveKey];
     if (!hasEdits && !isApproved) return null;
-    return (
-      <button
-        className={`approve-btn ${isApproved ? 'approved' : 'pending'}`}
-        onClick={() => handleApproveSection(rec, recIdx, sectionId)}
-        disabled={approving}
-      >
-        {approving ? 'Approving...' : isApproved ? 'Approved' : 'Pending Approve'}
-      </button>
-    );
+    if (hasEdits) return <button className="approve-btn pending" onClick={() => handleApproveSection(rec, recIdx, sectionId)} disabled={approving}>{approving ? 'Approving...' : 'Pending Approve'}</button>;
+    return <span className="approve-btn approved">Approved</span>;
   };
 
   // Render editable field (simple short fields)
@@ -1434,31 +1473,68 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
     const val = getEffectiveDot(rec, fieldName, recIdx);
     const displayVal = val != null ? String(val) : null;
     if (displayVal === null && !isEditing) return null;
+    const scoreRatio = fieldName === 'airwayAssessment.mallampati'
+      ? String(displayVal || '').match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/)
+      : null;
+    const startEditing = () => {
+      if (scoreRatio) {
+        setEditingField(editKey);
+        setEditValue(scoreRatio[1]);
+      } else {
+        handleStartEdit(fieldName, recIdx, displayVal, 0);
+      }
+    };
+    const saveValue = () => handleSaveField(
+      rec,
+      fieldName,
+      recIdx,
+      sectionId,
+      0,
+      scoreRatio ? `${editValue}/${scoreRatio[2]}` : undefined
+    );
 
     return (
       <React.Fragment key={copyId}>
-        <div className="rec-mini-card">
+        <div className="rec-mini-card nested-mini-card" data-edit-field={fieldName}>
           {label && <div className="nested-subtitle">{highlightText(label)}</div>}
-          <div className={`numbered-row${isEdited ? ' modified' : ''}`}>
+          <div
+            className={`numbered-row editable-row${isEdited ? ' modified' : ''}`}
+            onClick={!isEditing && canEdit ? startEditing : undefined}
+          >
             {isEditing ? (
               <div className="edit-field-container">
-                <textarea
-                  ref={textareaRef}
-                  className="edit-textarea"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                      handleSaveField(rec, fieldName, recIdx, sectionId, 0);
-                    } else if (e.key === 'Escape') {
-                      setEditingField(null);
-                      setEditValue('');
-                    }
-                  }}
-                  disabled={saving}
-                />
+                {scoreRatio ? (
+                  <div className="number-edit-row score-ratio-editor">
+                    <button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String(Math.max(0, (Number(editValue) || 0) - 1))); }}>−</button>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      className="edit-input edit-number"
+                      value={editValue}
+                      onChange={event => setEditValue(event.target.value)}
+                    />
+                    <button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String(Math.min(Number(scoreRatio[2]), (Number(editValue) || 0) + 1))); }}>+</button>
+                    <span className="number-edit-unit">/{scoreRatio[2]}</span>
+                  </div>
+                ) : (
+                  <textarea
+                    ref={textareaRef}
+                    className="edit-textarea"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                        saveValue();
+                      } else if (e.key === 'Escape') {
+                        setEditingField(null);
+                        setEditValue('');
+                      }
+                    }}
+                    disabled={saving}
+                  />
+                )}
                 <div className="edit-actions">
-                  <button className="save-btn" onClick={() => handleSaveField(rec, fieldName, recIdx, sectionId, 0)} disabled={saving}>
+                  <button className="save-btn" onClick={saveValue} disabled={saving}>
                     {saving ? 'Saving...' : 'Save'}
                   </button>
                   <button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button>
@@ -1468,7 +1544,6 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
               <>
                 <div
                   className={`row-content${canEdit ? ' editable' : ''}`}
-                  onClick={() => canEdit && handleStartEdit(fieldName, recIdx, displayVal, 0)}
                 >
                   <span className="content-value">{highlightText(displayVal)}</span>
                   {canEdit && !isEdited && <span className="edit-indicator">{'\u270E'}</span>}
@@ -1514,10 +1589,13 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
 
       return (
         <React.Fragment key={partCopyId}>
-          <div className="rec-mini-card">
+          <div className="rec-mini-card nested-mini-card" data-edit-field={fieldName}>
             {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
             {isLabeled && <div className="nested-subtitle">{highlightText(itemLabel)}</div>}
-            <div className={`numbered-row${isPartEdited ? ' modified' : ''}`}>
+            <div
+              className={`numbered-row editable-row${isPartEdited ? ' modified' : ''}`}
+              onClick={!isPartEditing && canEdit ? () => handleStartEdit(fieldName, recIdx, isLabeled ? itemValue : cleanSentence, sIdx) : undefined}
+            >
               {isPartEditing ? (
                 <div className="edit-field-container">
                   <textarea
@@ -1546,7 +1624,6 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
                 <>
                   <div
                     className={`row-content${canEdit ? ' editable' : ''}`}
-                    onClick={() => canEdit && handleStartEdit(fieldName, recIdx, isLabeled ? itemValue : cleanSentence, sIdx)}
                   >
                     <span className="content-value">{highlightText(isLabeled ? itemValue : cleanSentence)}</span>
                     {canEdit && !isPartEdited && <span className="edit-indicator">{'\u270E'}</span>}
@@ -1578,9 +1655,12 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
     const isEdited = editedSentences[editKey] === 'edited';
     return (
       <React.Fragment key={copyId}>
-        <div className="rec-mini-card">
+        <div className="rec-mini-card nested-mini-card" data-edit-field={fieldName}>
           {label && <div className="nested-subtitle">{highlightText(label)}</div>}
-          <div className={`numbered-row${isEdited ? ' modified' : ''}`}>
+          <div
+            className={`numbered-row editable-row${isEdited ? ' modified' : ''}`}
+            onClick={!isEditing && canEdit ? () => { setEditingField(editKey); setEditValue(toTimeInput(displayVal)); } : undefined}
+          >
             {isEditing ? (
               <div className="edit-field-container">
                 <input
@@ -1609,7 +1689,6 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
               <>
                 <div
                   className={`row-content${canEdit ? ' editable' : ''}`}
-                  onClick={() => { if (canEdit) { setEditingField(editKey); setEditValue(toTimeInput(displayVal)); } }}
                 >
                   <span className="content-value">{highlightText(displayVal)}</span>
                   {canEdit && !isEdited && <span className="edit-indicator">{'✎'}</span>}
@@ -1640,7 +1719,7 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
     if (isTimeValue(displayVal)) {
       return renderTimeField(rec, fieldName, recIdx, sectionId, label, copyId);
     }
-    const clauses = splitByComma(displayVal);
+    const clauses = splitFieldClauses(fieldName, displayVal);
     if (clauses.length <= 1) {
       return renderEditableField(rec, fieldName, recIdx, sectionId, label, copyId);
     }
@@ -1654,7 +1733,11 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
           const isEdited = editedSentences[editKey] === 'edited' || editedSentences[editKey] === 'added';
           const clauseCopyId = `${copyId}-c${cIdx}`;
           return (
-            <div className={`numbered-row${isEdited ? ' modified' : ''}`} key={clauseCopyId}>
+            <div className="nested-mini-card editable-leaf" data-edit-field={fieldName} key={clauseCopyId}>
+            <div
+              className={`numbered-row editable-row${isEdited ? ' modified' : ''}`}
+              onClick={!isEditing && canEdit ? () => handleStartEdit(fieldName, recIdx, clause, cIdx) : undefined}
+            >
               {isEditing ? (
                 <div className="edit-field-container">
                   <textarea
@@ -1683,7 +1766,6 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
                 <>
                   <div
                     className={`row-content${canEdit ? ' editable' : ''}`}
-                    onClick={() => canEdit && handleStartEdit(fieldName, recIdx, clause, cIdx)}
                   >
                     <span className="content-value">{highlightText(clause)}</span>
                     {canEdit && !isEdited && <span className="edit-indicator">{'✎'}</span>}
@@ -1696,6 +1778,7 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
                   </button>
                 </>
               )}
+            </div>
             </div>
           );
         })}
@@ -1710,7 +1793,7 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
     if (!parentVal || typeof parentVal !== 'object') return null;
 
     return Object.entries(parentVal).map(([key, value]) => {
-      if (!value) return null;
+      if (value === null || value === undefined || value === '') return null;
       const dotPath = `${parentPath}.${key}`;
       const label = formatKey(key);
 
@@ -1727,8 +1810,11 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
               const arrayCopyId = `${dotPath}-${recIdx}-item${itemIdx}`;
 
               return (
-                <React.Fragment key={arrayCopyId}>
-                  <div className={`numbered-row${isArrayEdited ? ' modified' : ''}`}>
+                <div className="nested-mini-card editable-leaf" data-edit-field={dotPath} key={arrayCopyId}>
+                  <div
+                    className={`numbered-row editable-row${isArrayEdited ? ' modified' : ''}`}
+                    onClick={!isArrayEditing && canEdit ? () => handleStartEditArray(dotPath, recIdx, itemIdx, itemStr) : undefined}
+                  >
                     {isArrayEditing ? (
                       <div className="edit-field-container">
                         <textarea
@@ -1757,7 +1843,6 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
                       <>
                         <div
                           className={`row-content${canEdit ? ' editable' : ''}`}
-                          onClick={() => canEdit && handleStartEditArray(dotPath, recIdx, itemIdx, itemStr)}
                         >
                           <span className="content-value">{highlightText(itemStr)}</span>
                           {canEdit && !isArrayEdited && <span className="edit-indicator">{'\u270E'}</span>}
@@ -1772,7 +1857,7 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
                     )}
                   </div>
                   {isArrayEdited && <div className="modified-badge">edited - click Pending Approve to save</div>}
-                </React.Fragment>
+                </div>
               );
             })}
           </div>
@@ -1822,10 +1907,9 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
     if (!hasVisibleRows) return null;
 
     // Build copy text - subtitle + numbered pattern
-    const copyText = formatObjectCopyText(obj);
-
     // Determine the parentPath for the object field
     const parentPath = sectionId.replace(`record-${recIdx}-`, '');
+    const copyText = formatObjectCopyText(obj, parentPath);
 
     return (
       <div className="section-container" key={sectionId}>
@@ -1887,32 +1971,41 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
               const itemStr = typeof item === 'string' ? item : JSON.stringify(item);
               if (!(showAll || shouldShowRow(rec, itemStr))) return null;
 
+              const dateItem = isDateText(itemStr);
               const arrayEditKey = `${fieldName}-${recIdx}-item${itemIdx}`;
               const isArrayEditing = editingField === arrayEditKey;
               const isArrayEdited = editedSentences[arrayEditKey] === 'edited';
               const arrayCopyId = `${sectionId}-${itemIdx}`;
 
               return (
-                <React.Fragment key={arrayCopyId}>
-                  <div className="rec-mini-card">
-                    <div className={`numbered-row${isArrayEdited ? ' modified' : ''}`}>
+                <div className="rec-mini-card nested-mini-card editable-leaf" data-edit-field={fieldName} key={arrayCopyId}>
+                    <div
+                      className={`numbered-row editable-row${isArrayEdited ? ' modified' : ''}`}
+                      onClick={!isArrayEditing && canEdit ? () => {
+                        handleStartEditArray(fieldName, recIdx, itemIdx, dateItem ? toInputDate(itemStr) : itemStr);
+                      } : undefined}
+                    >
                       {isArrayEditing ? (
                         <div className="edit-field-container">
-                          <textarea
-                            ref={textareaRef}
-                            className="edit-textarea"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                                saveArrayItem(rec, fieldName, recIdx, fieldName, itemIdx);
-                              } else if (e.key === 'Escape') {
-                                setEditingField(null);
-                                setEditValue('');
-                              }
-                            }}
-                            disabled={saving}
-                          />
+                          {dateItem ? (
+                            <BlueDatePicker value={editValue} onSelect={next => setEditValue(next || '')} />
+                          ) : (
+                            <textarea
+                              ref={textareaRef}
+                              className="edit-textarea"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                                  saveArrayItem(rec, fieldName, recIdx, fieldName, itemIdx);
+                                } else if (e.key === 'Escape') {
+                                  setEditingField(null);
+                                  setEditValue('');
+                                }
+                              }}
+                              disabled={saving}
+                            />
+                          )}
                           <div className="edit-actions">
                             <button className="save-btn" onClick={() => saveArrayItem(rec, fieldName, recIdx, fieldName, itemIdx)} disabled={saving}>
                               {saving ? 'Saving...' : 'Save'}
@@ -1924,7 +2017,6 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
                         <>
                           <div
                             className={`row-content${canEdit ? ' editable' : ''}`}
-                            onClick={() => canEdit && handleStartEditArray(fieldName, recIdx, itemIdx, itemStr)}
                           >
                             <span className="content-value">{highlightText(itemStr)}</span>
                             {canEdit && !isArrayEdited && <span className="edit-indicator">{'\u270E'}</span>}
@@ -1938,9 +2030,8 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
                         </>
                       )}
                     </div>
-                  </div>
                   {isArrayEdited && <div className="modified-badge">edited - click Pending Approve to save</div>}
-                </React.Fragment>
+                </div>
               );
             })}
           </div>
@@ -2067,7 +2158,7 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
           </button>
           <PDFDownloadLink
             document={<AnesthesiaRecordsDocumentPDFTemplate document={{ anesthesia_records: pdfData }} />}
-            fileName={`anesthesia-records-${new Date().toISOString().split('T')[0]}.pdf`}
+            fileName="Anesthesia_Records.pdf"
             className="export-pdf-btn"
           >
             {({ loading }) => (loading ? 'Preparing PDF...' : 'Export to PDF')}
@@ -2090,13 +2181,8 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
 
           return (
             <div key={recIdx} className="record-card">
-              {/* Record Header - Date top right, Title below left */}
+              {/* Record Header */}
               <div className="card-header">
-                {getEffectiveDot(rec, 'surgeryDate', recIdx) && (
-                  <div className="date-row">
-                    <span className="record-date">{highlightText(formatDate(getEffectiveDot(rec, 'surgeryDate', recIdx)))}</span>
-                  </div>
-                )}
                 <div className="title-row">
                   <h3 className="record-title">
                     {highlightText(`Anesthesia Record ${recIdx + 1}`)}
@@ -2167,19 +2253,15 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
                           const sdEdited = editedSentences[sdEditKey] === 'edited';
                           const sdCopyId = `${recordKey}-surgeryDate`;
                           return (
-                            <div className="rec-mini-card">
+                            <div className="rec-mini-card nested-mini-card" data-edit-field="surgeryDate">
                               <div className="nested-subtitle">{highlightText('Surgery Date')}</div>
-                              <div className={`numbered-row${sdEdited ? ' modified' : ''}`}>
+                              <div
+                                className={`numbered-row editable-row${sdEdited ? ' modified' : ''}`}
+                                onClick={!sdEditing && canEdit ? () => { setEditingField(sdEditKey); setEditValue(toInputDate(sdVal)); } : undefined}
+                              >
                                 {sdEditing ? (
                                   <div className="edit-field-container">
-                                    <input
-                                      type="date"
-                                      className="edit-date"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      ref={(el) => { if (el) { el.focus(); try { el.showPicker(); } catch { /* showPicker unsupported */ } } }}
-                                      onKeyDown={(e) => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }}
-                                    />
+                                    <BlueDatePicker value={editValue} onSelect={next => setEditValue(next || '')} />
                                     <div className="edit-actions">
                                       <button
                                         className="save-btn"
@@ -2198,7 +2280,6 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
                                   <>
                                     <div
                                       className={`row-content${canEdit ? ' editable' : ''}`}
-                                      onClick={() => { if (canEdit) { setEditingField(sdEditKey); setEditValue(toInputDate(sdVal)); } }}
                                     >
                                       <span className="content-value">{highlightText(sdDisplay)}</span>
                                       {canEdit && !sdEdited && <span className="edit-indicator">{'✎'}</span>}
@@ -2377,7 +2458,9 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
 
               {/* Array Sections */}
               {renderArraySection(rec, rec.monitoring, 'Monitoring', `${recordKey}-monitoring`, 'monitoring', recIdx)}
-              {renderArraySection(rec, rec.complications, 'Complications', `${recordKey}-complications`, 'complications', recIdx)}
+              {Array.isArray(rec.complications)
+                ? renderArraySection(rec, rec.complications, 'Complications', `${recordKey}-complications`, 'complications', recIdx)
+                : renderNarrativeSection(rec, 'complications', 'Complications', `${recordKey}-complications`, recIdx)}
               {renderArraySection(rec, rec.referrals, 'Referrals', `${recordKey}-referrals`, 'referrals', recIdx)}
               {renderArraySection(rec, rec.followUpAppointments, 'Follow-Up Appointments', `${recordKey}-followUpAppointments`, 'followUpAppointments', recIdx)}
 
@@ -2393,7 +2476,7 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
               {renderSimpleFieldSection(rec, 'outcome', 'Outcome', `${recordKey}-outcome`, recIdx)}
               {renderSimpleFieldSection(rec, 'followUp', 'Follow Up', `${recordKey}-followUp`, recIdx)}
 
-              {/* Providers - NON-EDITABLE */}
+              {/* Providers */}
               {rec.providers && Object.keys(rec.providers).length > 0 && shouldShowSection(rec, 'Providers', JSON.stringify(rec.providers)) && (
                 <div className="section-container">
                   <div className="section-header-row">
@@ -2401,30 +2484,26 @@ const AnesthesiaRecordsDocument = ({ document: rawDoc }) => {
                     <div className="header-right-actions">
                       <button
                         className={`copy-btn${copiedSectionId === `${recordKey}-providers` ? ' copied' : ''}`}
-                        onClick={() => copySection(`Providers\n${formatObjectCopyText(rec.providers)}`, `${recordKey}-providers`)}
+                        onClick={() => copySection(`Providers\n${formatObjectCopyText(rec.providers, 'providers')}`, `${recordKey}-providers`)}
                       >
                         {copiedSectionId === `${recordKey}-providers` ? 'Copied!' : 'Copy Section'}
                       </button>
+                      {renderApproveBtn(rec, 'providers', recIdx)}
                     </div>
                   </div>
                   <div className="numbered-rows-wrapper">
                     <div className="domain-groups-wrapper">
-                      {Object.entries(rec.providers).map(([key, value]) => (
-                        <div key={key} className="rec-mini-card">
-                          <div className="nested-subtitle">{highlightText(formatKey(key))}</div>
-                          <div className="numbered-row">
-                            <div className="row-content">
-                              <span className="content-value">{highlightText(String(value))}</span>
-                            </div>
-                            <button
-                              className={`copy-btn${copiedSectionId === `${recordKey}-providers-${key}` ? ' copied' : ''}`}
-                              onClick={() => copySection(`${formatKey(key)}\n  1. ${value}`, `${recordKey}-providers-${key}`)}
-                            >
-                              {copiedSectionId === `${recordKey}-providers-${key}` ? 'Copied!' : 'Copy'}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                      {Object.entries(rec.providers).map(([key]) => {
+                        const fieldName = `providers.${key}`;
+                        return renderEditableField(
+                          rec,
+                          fieldName,
+                          recIdx,
+                          'providers',
+                          formatKey(key),
+                          `${recordKey}-providers-${key}`
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

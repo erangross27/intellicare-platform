@@ -462,7 +462,7 @@ const filterNulls = (arr) => {
 // Split text by sentences for numbered rendering
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<=[.;])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+  return text.split(/[.;]\s+/).map(s => s.trim()).filter(s => s.length > 0);
 };
 
 // Paren/bracket-aware comma split with a digit-guard (mirrors the JSX splitter so the PDF
@@ -489,6 +489,26 @@ const splitByComma = (text) => {
   return result;
 };
 
+const COMMA_SPLIT_FIELDS = new Set([
+  'induction.spinalTechnique',
+  'induction.epiduralTechnique',
+  'maintenance.sedation'
+]);
+
+const OBJECT_SENTENCE_SPLIT_FIELDS = new Set([
+  'anesthesiologyAssessment.assessment',
+  'anesthesiaPlan.technique'
+]);
+
+const splitFieldClauses = (fieldName, text) => {
+  const source = String(text);
+  if (COMMA_SPLIT_FIELDS.has(fieldName)) {
+    return splitBySentence(source).flatMap(part => splitByComma(part));
+  }
+  if (OBJECT_SENTENCE_SPLIT_FIELDS.has(fieldName)) return splitBySentence(source);
+  return [source];
+};
+
 // Strip trailing ';'/'.' + whitespace from a split segment (mirrors the JSX so PDF rows read clean).
 const stripTrailingSep = (s) => (typeof s === 'string' ? s.replace(/[\s;.]+$/, '') : s);
 
@@ -496,44 +516,47 @@ const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'Helvetica',
-    fontSize: 12,
+    fontSize: 13,
     lineHeight: 1.5,
     color: '#000000',
     backgroundColor: '#FFFFFF'
   },
-  title: {
-    fontSize: 20,
+  documentTitle: {
+    fontSize: 26,
     fontFamily: 'Helvetica-Bold',
     marginBottom: 16,
     textAlign: 'center',
     paddingBottom: 8,
-    borderBottom: '2px solid #000000'
+    borderBottom: '2pt solid #000000'
   },
   recordTitle: {
-    fontSize: 16,
+    fontSize: 19,
     fontFamily: 'Helvetica-Bold',
     marginTop: 16,
     marginBottom: 10,
     paddingBottom: 4,
-    borderBottom: '1px solid #666666'
+    borderBottom: '1pt solid #000000'
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
     marginTop: 12,
     marginBottom: 6,
-    textDecoration: 'underline'
+    paddingBottom: 3,
+    borderBottom: '1pt solid #000000'
   },
-  subtitle: {
-    fontSize: 12,
+  fieldLabel: {
+    fontSize: 14,
     fontFamily: 'Helvetica-Bold',
     marginTop: 6,
     marginBottom: 2,
     marginLeft: 10,
-    color: '#333333'
+    color: '#333333',
+    paddingBottom: 2,
+    borderBottom: '0.5pt solid #999999'
   },
   numberedItem: {
-    fontSize: 12,
+    fontSize: 13,
     marginLeft: 20,
     marginBottom: 2,
     lineHeight: 1.5
@@ -695,7 +718,7 @@ const formatKey = (key) => {
 };
 
 // Render nested object with subtitle + numbered content pattern
-const renderNestedObject = (obj, sectionTitle) => {
+const renderNestedObject = (obj, sectionTitle, parentPath = '') => {
   if (!obj || typeof obj !== 'object' || Object.keys(obj).length === 0) return null;
 
   const entries = Object.entries(obj).filter(([, value]) => value !== null && value !== undefined);
@@ -703,12 +726,13 @@ const renderNestedObject = (obj, sectionTitle) => {
 
   // Build all content items: each key becomes a subtitle with numbered values below
   const renderEntry = ([key, value]) => {
+    const fieldPath = parentPath ? `${parentPath}.${key}` : key;
     if (Array.isArray(value)) {
       const validItems = filterNulls(value);
       if (validItems.length === 0) return null;
       return (
         <View key={key}>
-          <Text style={styles.subtitle}>{formatKey(key)}</Text>
+          <Text style={styles.fieldLabel}>{formatKey(key)}</Text>
           {validItems.map((item, i) => (
             <Text key={i} style={styles.numberedItem}>
               {i + 1}. {typeof item === 'string' ? item : JSON.stringify(item)}
@@ -723,20 +747,21 @@ const renderNestedObject = (obj, sectionTitle) => {
       if (subEntries.length === 0) return null;
       return (
         <View key={key}>
-          <Text style={styles.subtitle}>{formatKey(key)}</Text>
-          {subEntries.map(([k, v], i) => (
-            <Text key={i} style={styles.numberedItem}>
-              {i + 1}. {formatKey(k)}: {String(v)}
-            </Text>
+          <Text style={styles.fieldLabel}>{formatKey(key)}</Text>
+          {subEntries.map(([k, v]) => (
+            <View key={k}>
+              <Text style={styles.fieldLabel}>{formatKey(k)}</Text>
+              <Text style={styles.numberedItem}>1. {String(v)}</Text>
+            </View>
           ))}
         </View>
       );
     }
 
-    const clauses = splitByComma(String(value));
+    const clauses = splitFieldClauses(fieldPath, String(value));
     return (
       <View key={key}>
-        <Text style={styles.subtitle}>{formatKey(key)}</Text>
+        <Text style={styles.fieldLabel}>{formatKey(key)}</Text>
         {clauses.length > 1
           ? clauses.map((c, i) => (
               <Text key={i} style={styles.numberedItem}>{i + 1}. {c}</Text>
@@ -746,12 +771,12 @@ const renderNestedObject = (obj, sectionTitle) => {
     );
   };
 
-  // Content rows an entry renders — so a long comma-split field can flow/break across pages
-  // (Rule #74: <=8 rows -> wrap={false} keeps the block intact; >8 -> wrap to avoid overprint).
-  const entryRows = ([, value]) => {
+  // Content rows an entry renders so a long field can flow across pages.
+  const entryRows = ([key, value]) => {
     if (Array.isArray(value)) return filterNulls(value).length;
     if (value && typeof value === 'object') return Object.entries(value).filter(([, v]) => v != null).length;
-    return splitByComma(String(value)).length;
+    const fieldPath = parentPath ? `${parentPath}.${key}` : key;
+    return splitFieldClauses(fieldPath, String(value)).length;
   };
 
   const firstEntry = entries[0];
@@ -759,12 +784,12 @@ const renderNestedObject = (obj, sectionTitle) => {
 
   return (
     <View>
-      <View wrap={entryRows(firstEntry) > 8 ? undefined : false}>
+      <View wrap={entryRows(firstEntry) > 8}>
         <Text style={styles.sectionTitle}>{sectionTitle}</Text>
         {renderEntry(firstEntry)}
       </View>
       {remainingEntries.map((entry) => (
-        <View key={entry[0]} wrap={entryRows(entry) > 8 ? undefined : false}>
+        <View key={entry[0]} wrap={entryRows(entry) > 8}>
           {renderEntry(entry)}
         </View>
       ))}
@@ -780,18 +805,11 @@ const renderArray = (arr, sectionTitle) => {
   if (validItems.length === 0) return null;
 
   return (
-    <View>
-      <View wrap={false}>
-        <Text style={styles.sectionTitle}>{sectionTitle}</Text>
-        {validItems.slice(0, 1).map((item, idx) => (
-          <Text key={idx} style={styles.numberedItem}>
-            1. {typeof item === 'string' ? item : JSON.stringify(item)}
-          </Text>
-        ))}
-      </View>
-      {validItems.slice(1).map((item, idx) => (
+    <View wrap={validItems.length > 8}>
+      <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+      {validItems.map((item, idx) => (
         <Text key={idx} style={styles.numberedItem}>
-          {idx + 2}. {typeof item === 'string' ? item : JSON.stringify(item)}
+          {idx + 1}. {typeof item === 'string' ? item : JSON.stringify(item)}
         </Text>
       ))}
     </View>
@@ -878,20 +896,30 @@ const renderRiskAssessmentChart = (record) => {
 };
 
 // Render a narrative text field with sentence-level numbering
-const renderNarrativeField = (text, sectionTitle) => {
+const renderNarrativeField = (text, sectionTitle, breakBefore = false) => {
   if (!text || String(text).trim() === '') return null;
   const sentences = splitBySentence(String(text));
   if (sentences.length === 0) return null;
 
-  return (
-    <View>
-      <View wrap={false}>
+  if (breakBefore) {
+    return (
+      <View break wrap={false}>
         <Text style={styles.sectionTitle}>{sectionTitle}</Text>
-        <Text style={styles.numberedItem}>1. {stripTrailingSep(sentences[0])}</Text>
+        {sentences.map((sentence, idx) => (
+          <Text key={idx} style={styles.numberedItem}>
+            {idx + 1}. {stripTrailingSep(sentence)}
+          </Text>
+        ))}
       </View>
-      {sentences.slice(1).map((sentence, idx) => (
+    );
+  }
+
+  return (
+    <View wrap={sentences.length > 8}>
+      <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+      {sentences.map((sentence, idx) => (
         <Text key={idx} style={styles.numberedItem}>
-          {idx + 2}. {stripTrailingSep(sentence)}
+          {idx + 1}. {stripTrailingSep(sentence)}
         </Text>
       ))}
     </View>
@@ -918,15 +946,19 @@ const renderHeaderField = (value, label) => {
 
   return (
     <View>
-      <Text style={styles.subtitle}>{label}</Text>
+      <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={styles.numberedItem}>1. {String(value)}</Text>
     </View>
   );
 };
 
 const AnesthesiaRecordsDocumentPDFTemplate = ({ document: doc }) => {
-  // Data unwrapping - handle wrapped collection structure
-  const unwrappedData = doc?.documentData || doc;
+  // Data unwrapping - handle direct records plus array-wrapped collection/documentData props.
+  const docInput = Array.isArray(doc) && doc.length === 1 &&
+    (doc[0]?.documentData || doc[0]?.anesthesia_records)
+    ? doc[0]
+    : doc;
+  const unwrappedData = docInput?.documentData || docInput;
   let recordsArray = [];
   if (unwrappedData?.anesthesia_records && Array.isArray(unwrappedData.anesthesia_records)) {
     recordsArray = unwrappedData.anesthesia_records;
@@ -941,7 +973,7 @@ const AnesthesiaRecordsDocumentPDFTemplate = ({ document: doc }) => {
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <Text style={styles.title}>Anesthesia Records</Text>
+        <Text style={styles.documentTitle}>Anesthesia Records</Text>
 
         {validRecords.map((record, idx) => (
           <View key={idx}>
@@ -949,10 +981,10 @@ const AnesthesiaRecordsDocumentPDFTemplate = ({ document: doc }) => {
             <View wrap={false}>
               <Text style={styles.recordTitle}>
                 Anesthesia Record {idx + 1}
-                {record.surgeryDate ? ` - ${formatDate(record.surgeryDate)}` : ''}
               </Text>
 
               {/* Header Information - first field stays with title */}
+              {renderHeaderField(record.surgeryDate ? formatDate(record.surgeryDate) : '', 'Surgery Date')}
               {renderHeaderField(record.anesthesiaType, 'Anesthesia Type')}
             </View>
 
@@ -968,27 +1000,27 @@ const AnesthesiaRecordsDocumentPDFTemplate = ({ document: doc }) => {
             {renderRiskAssessmentChart(record)}
 
             {/* Nested Object Sections */}
-            {renderNestedObject(record.anesthesiologyAssessment, 'Anesthesiology Assessment')}
-            {renderNestedObject(record.airwayAssessment, 'Airway Assessment')}
-            {renderNestedObject(record.anesthesiaPlan, 'Anesthesia Plan')}
-            {renderNestedObject(record.painManagement, 'Pain Management')}
-            {renderNestedObject(record.induction, 'Induction')}
-            {renderNestedObject(record.maintenance, 'Maintenance')}
-            {renderNestedObject(record.operativeDetails, 'Operative Details')}
+            {renderNestedObject(record.anesthesiologyAssessment, 'Anesthesiology Assessment', 'anesthesiologyAssessment')}
+            {renderNestedObject(record.airwayAssessment, 'Airway Assessment', 'airwayAssessment')}
+            {renderNestedObject(record.anesthesiaPlan, 'Anesthesia Plan', 'anesthesiaPlan')}
+            {renderNestedObject(record.painManagement, 'Pain Management', 'painManagement')}
+            {renderNestedObject(record.induction, 'Induction', 'induction')}
+            {renderNestedObject(record.maintenance, 'Maintenance', 'maintenance')}
+            {renderNestedObject(record.operativeDetails, 'Operative Details', 'operativeDetails')}
             {/* Clinical Scores Section REMOVED - Data now shown in Risk Assessment Overview bar chart above */}
-            {renderNestedObject(record.pulmonaryFunctionTests, 'Pulmonary Function Tests')}
-            {renderNestedObject(record.sleepStudy, 'Sleep Study')}
-            {renderNestedObject(record.chiefComplaint, 'Chief Complaint')}
-            {renderNestedObject(record.medicalHistory, 'Medical History')}
-            {renderNestedObject(record.reviewOfSystems, 'Review of Systems')}
-            {renderNestedObject(record.physicalExamination, 'Physical Examination')}
-            {renderNestedObject(record.preOperativePreparation, 'Preoperative Preparation')}
-            {renderNestedObject(record.postoperativeOrders, 'Postoperative Orders')}
-            {renderNestedObject(record.dvtProphylaxis, 'DVT Prophylaxis')}
-            {renderNestedObject(record.prognosis, 'Prognosis')}
-            {renderNestedObject(record.consultationDetails, 'Consultation Details')}
-            {renderNestedObject(record.patientEducation, 'Patient Education')}
-            {renderNestedObject(record.administrativeData, 'Administrative Data')}
+            {renderNestedObject(record.pulmonaryFunctionTests, 'Pulmonary Function Tests', 'pulmonaryFunctionTests')}
+            {renderNestedObject(record.sleepStudy, 'Sleep Study', 'sleepStudy')}
+            {renderNestedObject(record.chiefComplaint, 'Chief Complaint', 'chiefComplaint')}
+            {renderNestedObject(record.medicalHistory, 'Medical History', 'medicalHistory')}
+            {renderNestedObject(record.reviewOfSystems, 'Review of Systems', 'reviewOfSystems')}
+            {renderNestedObject(record.physicalExamination, 'Physical Examination', 'physicalExamination')}
+            {renderNestedObject(record.preOperativePreparation, 'Preoperative Preparation', 'preOperativePreparation')}
+            {renderNestedObject(record.postoperativeOrders, 'Postoperative Orders', 'postoperativeOrders')}
+            {renderNestedObject(record.dvtProphylaxis, 'DVT Prophylaxis', 'dvtProphylaxis')}
+            {renderNestedObject(record.prognosis, 'Prognosis', 'prognosis')}
+            {renderNestedObject(record.consultationDetails, 'Consultation Details', 'consultationDetails')}
+            {renderNestedObject(record.patientEducation, 'Patient Education', 'patientEducation')}
+            {renderNestedObject(record.administrativeData, 'Administrative Data', 'administrativeData')}
 
             {/* Array Sections */}
             {renderArray(record.monitoring, 'Monitoring')}
@@ -1001,15 +1033,17 @@ const AnesthesiaRecordsDocumentPDFTemplate = ({ document: doc }) => {
 
             {/* Simple Fields - subtitle + numbered content */}
             {renderNarrativeField(record.emergence, 'Emergence')}
-            {renderSimpleField(record.complications, 'Complications')}
+            {Array.isArray(record.complications)
+              ? renderArray(record.complications, 'Complications')
+              : renderNarrativeField(record.complications, 'Complications')}
             {renderNarrativeField(record.bloodProductsOrdered, 'Blood Products Ordered')}
-            {renderNarrativeField(record.findings, 'Findings')}
+            {renderNarrativeField(record.findings, 'Findings', true)}
             {renderNarrativeField(record.outcome, 'Outcome')}
             {renderNarrativeField(record.followUp, 'Follow Up')}
             {renderNarrativeField(record.additionalNotes, 'Additional Notes')}
 
             {/* Providers - non-editable, dynamic-key object */}
-            {renderNestedObject(record.providers, 'Providers')}
+            {renderNestedObject(record.providers, 'Providers', 'providers')}
 
             <View style={styles.divider} />
           </View>

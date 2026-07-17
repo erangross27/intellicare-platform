@@ -1,421 +1,78 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-
-/**
- * Acute Kidney Injury PDF Template - March 2026
- * Professional Black & White Format for Printing (US Letter)
- *
- * Anti-orphaning: Section titles INSIDE fieldBox
- * wrap={false} conditional on fieldBox
- * NO borderBottom on sectionTitle
- * Record header always wrap={false}
- */
-
-const safeString = (str) => {
-  if (!str) return '';
-  return String(str)
-    .replace(/\u03bcm/g, 'um')
-    .replace(/\u00b0/g, 'deg')
-    .replace(/\u00b1/g, '+/-')
-    .replace(/\u00d7/g, 'x')
-    .replace(/\u00f7/g, '/')
-    .replace(/\u2264/g, '<=')
-    .replace(/\u2265/g, '>=')
-    .replace(/\u2192/g, '->')
-    .replace(/\u2190/g, '<-')
-    .replace(/\u2022/g, '-')
-    .replace(/\u2014/g, '--')
-    .replace(/\u2013/g, '-')
-    .replace(/[^\x00-\x7F]/g, '');
-};
+import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    lineHeight: 1.5,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentHeader: {
-    marginBottom: 24,
-    paddingBottom: 14,
-  },
-  title: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  recordContainer: {
-    marginBottom: 28,
-    paddingBottom: 20,
-  },
-  recordHeader: {
-    marginBottom: 16,
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-  },
-  recordDate: {
-    fontSize: 10,
-    color: '#000000',
-    marginTop: 4,
-  },
-  section: {
-    marginBottom: 10,
-  },
-  fieldBox: {
-    marginBottom: 6,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 2,
-    textTransform: 'uppercase',
-  },
-  fieldValue: {
-    fontSize: 11,
-    fontFamily: 'Helvetica',
-    color: '#000000',
-    lineHeight: 1.4,
-  },
-  listItem: {
-    fontSize: 11,
-    fontFamily: 'Helvetica',
-    color: '#000000',
-    lineHeight: 1.5,
-    marginBottom: 2,
-    paddingLeft: 8,
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: 40,
-    color: '#000000',
-  },
+  page: { paddingTop: 38, paddingBottom: 42, paddingHorizontal: 42, fontFamily: 'Helvetica', color: '#111827', fontSize: 14 },
+  documentHeader: { marginBottom: 18 }, documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#2563eb' },
+  recordHeader: { marginBottom: 16 }, recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold' },
+  section: { marginTop: 11, flexDirection: 'column', width: 528 }, sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, marginBottom: 7, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldBox: { marginTop: 4, marginBottom: 8, flexDirection: 'column', width: 528 }, fieldHeader: { marginTop: 8, marginBottom: 6, width: 528 }, fieldLabel: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 3, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  nestedSubtitle: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 4, marginBottom: 6, color: '#1d4ed8' }, rowBlock: { width: 528, alignSelf: 'stretch', minHeight: 24, marginBottom: 8, flexDirection: 'column' }, fieldValue: { width: 528, fontSize: 14, lineHeight: 1.45 }, noData: { fontSize: 14, color: '#6b7280', marginTop: 16 },
 });
-
-const splitIntoSentences = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<=[.!?;])\s+/).filter(s => s.trim().length > 0).map(s => s.trim());
+const SECTIONS = [
+  { title: 'Assessment Information', fields: [['date', 'Date', 'date'], ['type', 'Assessment Type'], ['provider', 'Provider'], ['facility', 'Facility'], ['status', 'Status']] },
+  { title: 'AKI Parameters', fields: [['stage', 'Stage'], ['baselineCreatinine', 'Baseline Creatinine'], ['peakCreatinine', 'Peak Creatinine'], ['urineOutput', 'Urine Output']] },
+  { title: 'Etiology & Precipitants', fields: [['etiology', 'Etiology', 'comma'], ['precipitants', 'Precipitants', 'arrayComma']] },
+  { title: 'Labs & Urinary Indices', fields: [['fenA', 'FENa'], ['feUrea', 'FEUrea'], ['urinaryIndices', 'Urinary Indices', 'object'], ['results', 'Results', 'object']] },
+  { title: 'Recovery & Dialysis', fields: [['recovery', 'Recovery'], ['dialysisRequired', 'Dialysis Required', 'boolean']] },
+  { title: 'Clinical Review', fields: [['findings', 'Findings', 'sentence'], ['assessment', 'Assessment', 'sentence'], ['plan', 'Plan', 'sentence'], ['notes', 'Notes', 'sentence']] },
+  { title: 'Recommendations', fields: [['recommendations', 'Recommendations', 'objectArray']] },
+];
+const PAGE_GROUPS = [[0, 1], [2, 3], [4, 5], [6]];
+const hasVal = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasVal)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasVal));
+const humanize = key => String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, char => char.toUpperCase());
+const formatDate = value => { if (!value) return ''; try { return new Date(value.$date || value).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(value); } };
+const parseLabel = value => { const text = String(value || ''), match = text.match(/^([^:]{1,60}):\s+(.+)$/); return match ? { subtitle: match[1].trim(), content: match[2].trim() } : { subtitle: '', content: text }; };
+const splitComma = value => { const rows = []; let current = '', depth = 0; for (const char of String(value || '')) { if (char === '(') depth += 1; if (char === ')') depth = Math.max(0, depth - 1); if (char === ',' && depth === 0) { if (current.trim()) rows.push(current.trim()); current = ''; } else current += char; } if (current.trim()) rows.push(current.trim()); return rows; };
+const splitSentence = value => String(value || '').split(/;\s+|\.(?!\d)(?:\s+|$)/).map(row => row.trim()).filter(row => row && !/^[;.,!?]+$/.test(row));
+const textRows = (value, { sentences = false, commas = false, commasWhenLabeled = false } = {}) => (sentences ? splitSentence(value) : [String(value || '').trim()]).flatMap(part => { const parsed = parseLabel(part), clauses = commas && (!commasWhenLabeled || parsed.subtitle) ? splitComma(parsed.content) : [parsed.content]; return clauses.filter(Boolean).map(row => ({ subtitle: parsed.subtitle, value: row })); });
+const SENTENCE_OBJECT_PATHS = new Set(['urinaryIndices.interpretation', 'results.trend', 'recommendations.*.recommendation']);
+const COMMA_OBJECT_PATHS = new Set();
+const normalizeIndexedPath = path => path.replace(/\.\d+(?=\.|$)/g, '.*');
+const pathIsDeclared = (set, path) => set.has(path) || set.has(normalizeIndexedPath(path));
+const isDatePath = path => /date/i.test(String(path || '').split('.').pop());
+const isDateObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && Object.hasOwn(value, '$date');
+const OBJECT_ARRAY_ITEM_LABELS = { recommendations: 'Recommendation' };
+const flattenObject = (value, pathPrefix = '', labelPrefix = '') => {
+  if (Array.isArray(value)) return value.flatMap((child, index) => {
+    const path = pathPrefix ? `${pathPrefix}.${index}` : String(index), label = `${labelPrefix || 'Item'} ${index + 1}`;
+    return child && typeof child === 'object' && !isDateObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: child }] : [];
+  });
+  return Object.entries(value || {}).flatMap(([key, child]) => {
+    const path = pathPrefix ? `${pathPrefix}.${key}` : key, label = labelPrefix ? `${labelPrefix} — ${humanize(key)}` : humanize(key);
+    return child && typeof child === 'object' && !isDateObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: child }] : [];
+  });
 };
-
-const hasValue = (val) => val !== null && val !== undefined && val !== '';
-
-const KEY_OVERRIDES = {
-  fenA: 'FENa',
-  feUrea: 'FEUrea',
-  bun: 'BUN',
-  egfr: 'eGFR',
-  uOsm: 'Urine Osmolality',
-  sOsm: 'Serum Osmolality',
+const formatLeaf = leaf => ({ subtitle: leaf.subtitle, value: isDatePath(leaf.path) ? formatDate(leaf.value) : typeof leaf.value === 'boolean' ? (leaf.value ? 'Yes' : 'No') : String(leaf.value) });
+const objectLeafRows = (field, leaf, subtitlePrefix = '') => {
+  const path = `${field}.${leaf.path}`, subtitle = subtitlePrefix ? `${subtitlePrefix} — ${leaf.subtitle}` : leaf.subtitle;
+  if (typeof leaf.value === 'string' && (pathIsDeclared(SENTENCE_OBJECT_PATHS, path) || pathIsDeclared(COMMA_OBJECT_PATHS, path))) return textRows(leaf.value, { sentences: pathIsDeclared(SENTENCE_OBJECT_PATHS, path), commas: pathIsDeclared(COMMA_OBJECT_PATHS, path) }).map(row => ({ ...row, subtitle: row.subtitle ? `${subtitle} — ${row.subtitle}` : subtitle }));
+  return [{ ...formatLeaf({ ...leaf, subtitle }), path }];
 };
-
-const humanizeKey = (key) => {
-  if (key === null || key === undefined || key === '') return '';
-  if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key];
-  const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  return s.charAt(0).toUpperCase() + s.slice(1);
+const rowsFor = ([field, , type], value) => {
+  if (type === 'date') return [{ value: formatDate(value) }]; if (type === 'boolean') return [{ value: value ? 'Yes' : 'No' }]; if (type === 'number') return [{ value: String(value) }]; if (type === 'sentence') return textRows(value, { sentences: true }); if (type === 'sentenceComma') return textRows(value, { sentences: true, commas: true }); if (type === 'comma') return textRows(value, { commas: true });
+  if (type === 'arrayConditional') return (Array.isArray(value) ? value : []).flatMap(item => { const parsed = parseLabel(item); return parsed.subtitle ? textRows(item, { commas: true }) : [{ value: String(item) }]; });
+  if (type === 'arrayKeep') return (Array.isArray(value) ? value : []).map(item => ({ value: String(item) }));
+  if (type === 'arrayComma') return (Array.isArray(value) ? value : []).flatMap(item => textRows(item, { commas: true }));
+  if (type === 'arrayLabeledKeep') return (Array.isArray(value) ? value : []).map(item => { const parsed = parseLabel(item); return { subtitle: parsed.subtitle, value: parsed.content }; });
+  if (type === 'objectSplit') return flattenObject(value).flatMap(leaf => leaf.path === 'description' && typeof leaf.value === 'string' ? textRows(leaf.value, { sentences: true, commas: true }).map(row => ({ ...row, subtitle: row.subtitle ? `${leaf.subtitle} — ${row.subtitle}` : leaf.subtitle })) : [formatLeaf(leaf)]);
+  if (type === 'objectArray') return (Array.isArray(value) ? value : []).flatMap((item, index) => flattenObject(item).flatMap(leaf => objectLeafRows(`${field}.${index}`, leaf, `${OBJECT_ARRAY_ITEM_LABELS[field]} ${index + 1}`)));
+  if (type === 'object') return flattenObject(value).flatMap(leaf => objectLeafRows(field, leaf)); return [{ value: String(value) }];
 };
-
-const isObjEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isObjEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isObjEmptyDeep);
-  return false;
-};
-
-const formatDate = (dateVal) => {
-  if (!dateVal) return '';
-  try {
-    const d = new Date(dateVal);
-    if (isNaN(d.getTime())) return String(dateVal);
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return String(dateVal);
-  }
-};
-
-const AcuteKidneyInjuryDocumentPDFTemplate = ({ document: docProp, data }) => {
-  const templateData = docProp || data;
-
-  let records = [];
-  if (templateData) {
-    if (templateData.acute_kidney_injury) {
-      const raw = templateData.acute_kidney_injury;
-      records = Array.isArray(raw) ? raw : [raw];
-    } else if (Array.isArray(templateData)) {
-      records = templateData;
-    } else if (templateData.documentData) {
-      const docData = templateData.documentData;
-      if (Array.isArray(docData)) records = docData;
-      else if (docData.acute_kidney_injury) {
-        const raw = docData.acute_kidney_injury;
-        records = Array.isArray(raw) ? raw : [raw];
-      } else records = [docData];
-    } else {
-      records = [templateData];
-    }
-  }
-
-  /**
-   * Render a section with simple key-value fields.
-   * Anti-orphan: sectionTitle INSIDE fieldBox, wrap={false}.
-   */
-  const renderSection = (sectionTitle, fields, keyPrefix) => {
-    const visibleFields = fields.filter(([, val]) => hasValue(val));
-    if (visibleFields.length === 0) return null;
-
-    return (
-      <View key={keyPrefix} style={styles.section}>
-        <View style={styles.fieldBox} wrap={visibleFields.length > 8 ? undefined : false}>
-          <Text style={styles.sectionTitle}>{safeString(sectionTitle)}</Text>
-          {visibleFields.map(([label, value], i) => (
-            <View key={`${keyPrefix}-${i}`} style={{ flexDirection: 'row', marginBottom: 3 }}>
-              <Text style={styles.fieldLabel}>{safeString(label)}: </Text>
-              <Text style={styles.fieldValue}>{safeString(String(value))}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    );
+const renderField = (config, value, key, sectionTitle) => {
+  const [, label] = config, rows = rowsFor(config, value), showLabel = label !== sectionTitle;
+  if (!rows.length) return null;
+  const renderRow = (row, index, priorSubtitle) => {
+    const showSubtitle = row.subtitle && row.subtitle !== priorSubtitle;
+    return <View key={`${key}-${index}`} style={styles.rowBlock} wrap={false}>{showSubtitle && <Text style={styles.nestedSubtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}{'\n'}</Text></View>;
   };
-
-  /**
-   * Render a section with sentence-split text content.
-   * Anti-orphan: sectionTitle INSIDE fieldBox, wrap conditional on item count.
-   */
-  const renderSentenceSection = (sectionTitle, label, text, keyPrefix) => {
-    const sentences = splitIntoSentences(text);
-    if (sentences.length === 0) return null;
-    // Hide the field label when it duplicates the section title (case-insensitive)
-    const showLabel = label && String(label).trim().toLowerCase() !== String(sectionTitle).trim().toLowerCase();
-
-    return (
-      <View key={keyPrefix} style={styles.section}>
-        <View style={styles.fieldBox} wrap={sentences.length > 8 ? undefined : false}>
-          <Text style={styles.sectionTitle}>{safeString(sectionTitle)}</Text>
-          {showLabel ? <Text style={styles.fieldLabel}>{safeString(label)}</Text> : null}
-          {sentences.map((s, i) => (
-            <Text key={i} style={styles.listItem}>{i + 1}. {safeString(s)}</Text>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  /**
-   * Render an array section (precipitants, recommendations).
-   * Anti-orphan: sectionTitle INSIDE fieldBox, wrap conditional on item count.
-   */
-  const renderArraySection = (sectionTitle, label, items, keyPrefix) => {
-    if (!items || items.length === 0) return null;
-    // Hide the field label when it duplicates the section title (case-insensitive)
-    const showLabel = label && String(label).trim().toLowerCase() !== String(sectionTitle).trim().toLowerCase();
-
-    return (
-      <View key={keyPrefix} style={styles.section}>
-        <View style={styles.fieldBox} wrap={items.length > 8 ? undefined : false}>
-          <Text style={styles.sectionTitle}>{safeString(sectionTitle)}</Text>
-          {showLabel ? <Text style={styles.fieldLabel}>{safeString(label)}</Text> : null}
-          {items.map((item, i) => {
-            const text = typeof item === 'string' ? item : item.recommendation || '';
-            return (
-              <Text key={i} style={styles.listItem}>{i + 1}. {safeString(text)}</Text>
-            );
-          })}
-        </View>
-      </View>
-    );
-  };
-
-  /**
-   * Recursively flatten an object into indented label/value lines.
-   */
-  const objectLines = (value, depth = 0, label = '') => {
-    const out = [];
-    const empty = (v) => {
-      if (v === null || v === undefined) return true;
-      if (typeof v === 'boolean') return false;
-      if (typeof v === 'number') return !Number.isFinite(v);
-      if (typeof v === 'string') return v.trim() === '';
-      if (Array.isArray(v)) return v.filter(x => !empty(x)).length === 0;
-      if (typeof v === 'object') return Object.values(v).every(empty);
-      return false;
-    };
-    const fmt = (v) => (typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v ?? ''));
-    if (empty(value)) return out;
-    if (value === null || typeof value !== 'object') {
-      out.push({ depth, label, value: fmt(value) });
-      return out;
-    }
-    if (label) out.push({ depth, label, value: null });
-    Object.entries(value).filter(([, v]) => !empty(v)).forEach(([k, v]) => {
-      out.push(...objectLines(v, depth + (label ? 1 : 0), humanizeKey(k)));
-    });
-    return out;
-  };
-
-  /**
-   * Render an OBJECT field section (urinaryIndices, results).
-   * Anti-orphan: sectionTitle INSIDE fieldBox, wrap conditional on line count.
-   */
-  const renderObjectSection = (sectionTitle, value, keyPrefix) => {
-    const lines = objectLines(value, 0, '');
-    if (lines.length === 0) return null;
-
-    return (
-      <View key={keyPrefix} style={styles.section}>
-        <View style={styles.fieldBox} wrap={lines.length > 8 ? undefined : false}>
-          <Text style={styles.sectionTitle}>{safeString(sectionTitle)}</Text>
-          {lines.map((ln, i) => (
-            <View key={`${keyPrefix}-${i}`} style={{ flexDirection: 'row', marginBottom: 3, paddingLeft: 8 * ln.depth }}>
-              {ln.value === null ? (
-                <Text style={styles.fieldLabel}>{safeString(ln.label)}</Text>
-              ) : (
-                <>
-                  <Text style={styles.fieldLabel}>{safeString(ln.label)}: </Text>
-                  <Text style={styles.fieldValue}>{safeString(ln.value)}</Text>
-                </>
-              )}
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.title}>Acute Kidney Injury Report</Text>
-          </View>
-          <Text style={styles.emptyState}>No acute kidney injury records available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.title}>Acute Kidney Injury Report</Text>
-        </View>
-
-        {records.map((record, idx) => {
-          const recordTitle = record._documentTitle || `AKI Assessment ${idx + 1}`;
-
-          return (
-            <View key={record._id || idx} style={styles.recordContainer}>
-              {/* Record Header — always wrap={false} */}
-              <View style={styles.recordHeader} wrap={false}>
-                <Text style={styles.recordTitle}>{safeString(recordTitle)}</Text>
-                {(record.date || record.stage) && (
-                  <Text style={styles.recordDate}>
-                    {record.date ? formatDate(record.date) : ''}
-                    {record.date && record.stage ? ' | ' : ''}
-                    {record.stage ? `Stage: ${safeString(record.stage)}` : ''}
-                  </Text>
-                )}
-              </View>
-
-              {/* AKI Parameters */}
-              {renderSection('AKI Parameters', [
-                ['Baseline Creatinine', record.baselineCreatinine],
-                ['Peak Creatinine', record.peakCreatinine],
-                ['Urine Output', record.urineOutput],
-                ['Stage', record.stage],
-              ], `aki-params-${idx}`)}
-
-              {/* Etiology — sentence split */}
-              {hasValue(record.etiology) && renderSentenceSection(
-                'Etiology', 'Etiology', record.etiology, `etiology-${idx}`
-              )}
-
-              {/* Precipitants — array */}
-              {renderArraySection('Precipitants', 'Precipitants', record.precipitants, `precipitants-${idx}`)}
-
-              {/* Labs & Indices — fenA, feUrea (string with units) */}
-              {renderSection('Labs & Indices', [
-                ['FENa', record.fenA],
-                ['FEUrea', record.feUrea],
-              ], `labs-indices-${idx}`)}
-
-              {/* Urinary Indices — object */}
-              {!isObjEmptyDeep(record.urinaryIndices) && renderObjectSection(
-                'Urinary Indices', record.urinaryIndices, `urinary-indices-${idx}`
-              )}
-
-              {/* Recovery & Dialysis */}
-              {renderSection('Recovery & Dialysis', [
-                ['Recovery', record.recovery],
-                ['Dialysis Required', record.dialysisRequired === true ? 'Yes' : record.dialysisRequired === false ? 'No' : ''],
-              ], `recovery-${idx}`)}
-
-              {/* Provider Details */}
-              {renderSection('Provider Details', [
-                ['Provider', record.provider],
-                ['Facility', record.facility],
-              ], `provider-${idx}`)}
-
-              {/* Findings — sentence split */}
-              {hasValue(record.findings) && renderSentenceSection(
-                'Findings', 'Findings', record.findings, `findings-${idx}`
-              )}
-
-              {/* Results — object */}
-              {!isObjEmptyDeep(record.results) && renderObjectSection(
-                'Results', record.results, `results-${idx}`
-              )}
-
-              {/* Assessment — sentence split */}
-              {hasValue(record.assessment) && renderSentenceSection(
-                'Assessment', 'Assessment', record.assessment, `assessment-${idx}`
-              )}
-
-              {/* Plan — sentence split */}
-              {hasValue(record.plan) && renderSentenceSection(
-                'Plan', 'Plan', record.plan, `plan-${idx}`
-              )}
-
-              {/* Notes — sentence split */}
-              {hasValue(record.notes) && renderSentenceSection(
-                'Notes', 'Notes', record.notes, `notes-${idx}`
-              )}
-
-              {/* Recommendations — array */}
-              {renderArraySection('Recommendations', 'Recommendations', record.recommendations, `recommendations-${idx}`)}
-
-              {/* Status */}
-              {hasValue(record.status) && renderSection('Status', [
-                ['Status', record.status],
-              ], `status-${idx}`)}
-            </View>
-          );
-        })}
-      </Page>
-    </Document>
-  );
+  const first = rows[0];
+  return <React.Fragment key={key}>{showLabel ? <View wrap={false}><View style={styles.fieldHeader}><Text style={styles.fieldLabel}>{label}</Text></View>{renderRow(first, 0, '')}</View> : renderRow(first, 0, '')}{rows.slice(1).map((row, offset) => renderRow(row, offset + 1, rows[offset].subtitle || ''))}</React.Fragment>;
 };
 
+const AcuteKidneyInjuryDocumentPDFTemplate = ({ document: documentProp, data: dataProp, templateData }) => {
+  const records = React.useMemo(() => { const source = documentProp ?? dataProp ?? templateData; if (!source) return []; let rows = Array.isArray(source) ? source : [source]; rows = rows.flatMap(row => { if (Array.isArray(row?.records)) return row.records; if (Array.isArray(row?._records)) return row._records; if (row?.acute_kidney_injury) return Array.isArray(row.acute_kidney_injury) ? row.acute_kidney_injury : [row.acute_kidney_injury]; if (row?.documentData) { const nested = row.documentData; if (Array.isArray(nested)) return nested; if (nested?.acute_kidney_injury) return Array.isArray(nested.acute_kidney_injury) ? nested.acute_kidney_injury : [nested.acute_kidney_injury]; return [nested]; } return [row]; }); return rows.filter(row => row && typeof row === 'object'); }, [documentProp, dataProp, templateData]);
+  if (!records.length) return <Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.documentTitle}>Acute Kidney Injury</Text></View><Text style={styles.noData}>No acute kidney injury data available</Text></Page></Document>;
+  return <Document>{records.flatMap((record, recordIndex) => PAGE_GROUPS.map((indexes, pageIndex) => { const visible = indexes.map(index => ({ section: SECTIONS[index], index, fields: SECTIONS[index].fields.filter(([field]) => hasVal(record[field])) })).filter(item => item.fields.length); if (!visible.length) return null; return <Page key={`${recordIndex}-${pageIndex}`} size="LETTER" style={styles.page}>{pageIndex === 0 && <View style={styles.documentHeader}><Text style={styles.documentTitle}>Acute Kidney Injury</Text></View>}{pageIndex === 0 && <View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>{record.stage || `AKI Assessment ${recordIndex + 1}`}</Text></View>}{visible.map(({ section, index, fields }) => <View key={`${index}-${section.title}`} style={styles.section}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text></View>{fields.map((config, fieldIndex) => renderField(config, record[config[0]], `${index}-${fieldIndex}`, section.title))}</View>)}</Page>; }))}</Document>;
+};
 export default AcuteKidneyInjuryDocumentPDFTemplate;

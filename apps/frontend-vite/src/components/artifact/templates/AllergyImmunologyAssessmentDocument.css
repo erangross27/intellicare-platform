@@ -8,6 +8,11 @@
   padding: 24px;
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
+  direction: ltr;
+}
+
+.allergy-immunology-assessment-document * {
+  direction: ltr;
 }
 
 /* Document Title - 31px BIGGEST */
@@ -153,16 +158,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-/* Badges */
-.allergy-immunology-assessment-document .date-badge {
-  background: rgba(96, 165, 250, 0.2);
-  color: #60a5fa;
-  padding: 5px 14px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .allergy-immunology-assessment-document .status-badge {
@@ -391,7 +386,19 @@
 .allergy-immunology-assessment-document .edit-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
+}
+
+.allergy-immunology-assessment-document .editable-leaf {
+  width: 100%;
+}
+
+.allergy-immunology-assessment-document .editable-date-subtitle {
+  margin-bottom: 8px;
+}
+
+.allergy-immunology-assessment-document .date-subtitle.editable-row {
+  cursor: pointer;
 }
 
 .allergy-immunology-assessment-document .save-btn {

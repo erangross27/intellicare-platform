@@ -8,7 +8,7 @@
 import AbnormalResultsDocumentPDFTemplate from './AbnormalResultsDocumentPDFTemplate';
 import AccessPlanningDocumentPDFTemplate from './AccessPlanningDocumentPDFTemplate';
 import AllergyAssessmentTemplate from './AllergyAssessmentTemplate';
-import AllergyImmunologyAssessmentTemplate from './AllergyImmunologyAssessmentPDFTemplate';
+import AllergyImmunologyAssessmentDocumentPDFTemplate from './AllergyImmunologyAssessmentDocumentPDFTemplate';
 import AllergiesDocumentPDFTemplate from './AllergiesDocumentPDFTemplate';
 import AllergiesAssessmentDocumentPDFTemplate from './AllergiesAssessmentDocumentPDFTemplate';
 import AllergyAssessmentsDocumentPDFTemplate from './AllergyAssessmentsDocumentPDFTemplate';
@@ -192,7 +192,7 @@ const templateRegistry = {
   'addiction_medicine_consultations': AddictionMedicineConsultationsDocumentPDFTemplate,
   'adhd_assessment': ADHDAssessmentDocumentPDFTemplate,
   'allergy_assessment': AllergyAssessmentTemplate,
-  'allergy_immunology_assessment': AllergyImmunologyAssessmentTemplate,
+  'allergy_immunology_assessment': AllergyImmunologyAssessmentDocumentPDFTemplate,
   'asthma_assessments': AsthmaAssessmentsPDFTemplate,
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsTemplate,

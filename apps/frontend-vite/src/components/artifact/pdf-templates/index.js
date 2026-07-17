@@ -60,7 +60,7 @@ import TriageDataTemplate from './TriageDataDocumentPDFTemplate';
 import EdCourseTemplate from './EdCourseDocumentPDFTemplate';
 import EdDispositionTemplate from './EdDispositionDocumentPDFTemplate';
 import OperativeReportsTemplate from './OperativeReportsTemplate';
-import AdmissionAssessmentsTemplate from './AdmissionAssessmentsTemplate';
+import AdmissionAssessmentsDocumentPDFTemplate from './AdmissionAssessmentsDocumentPDFTemplate';
 import HospitalAdmissionNotesTemplate from './HospitalAdmissionNotesTemplate';
 import HistoryPresentIllnessTemplate from './HistoryPresentIllnessTemplate';
 import PathologyReportsTemplate from './PathologyReportsTemplate';
@@ -231,7 +231,7 @@ const templateRegistry = {
   'ed_course': EdCourseTemplate,
   'ed_disposition': EdDispositionTemplate,
   'operative_reports': OperativeReportsTemplate,
-  'admission_assessments': AdmissionAssessmentsTemplate,
+  'admission_assessments': AdmissionAssessmentsDocumentPDFTemplate,
   'hospital_admission_notes': HospitalAdmissionNotesTemplate,
   'history_present_illness': HistoryPresentIllnessTemplate,
   'pathology_reports': PathologyReportsTemplate,

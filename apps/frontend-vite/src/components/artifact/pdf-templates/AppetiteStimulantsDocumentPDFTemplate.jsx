@@ -1,430 +1,271 @@
 /**
  * AppetiteStimulantsDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — appetite stimulants
- * Collection: appetite_stimulants
+ * Canonical box-free PDF for appetite_stimulants.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  nested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', borderLeftStyle: 'solid', marginTop: 2 },
-  recDate: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid', paddingBottom: 6, marginBottom: 24 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', marginBottom: 16 },
+  recordSeparator: { borderTopWidth: 1, borderTopColor: '#999999', borderTopStyle: 'solid', marginTop: 20, marginBottom: 20 },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid', paddingBottom: 4, marginBottom: 8 },
+  fieldUnit: { marginBottom: 6 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid', paddingBottom: 2, marginBottom: 4 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14, lineHeight: 1.45, paddingLeft: 8 },
+  noDataText: { fontSize: 14, textAlign: 'center', marginTop: 40 },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
+const SECTION_CONFIGS = [
+  { title: 'Provider Information', fields: ['provider', 'facility'] },
+  { title: 'Overview', fields: ['date', 'type', 'status', 'considered'] },
+  { title: 'Medications', fields: ['medications'] },
+  { title: 'Reason', fields: ['reason'] },
+  { title: 'Findings', fields: ['findings'] },
+  { title: 'Assessment', fields: ['assessment'] },
+  { title: 'Plan', fields: ['plan'] },
+  { title: 'Results', fields: ['results'] },
+  { title: 'Recommendations', fields: ['recommendations'] },
+  { title: 'Notes', fields: ['notes'] },
+];
+
+const FIELD_LABELS = {
+  provider: 'Provider',
+  facility: 'Facility',
+  date: 'Date',
+  type: 'Type',
+  status: 'Status',
+  considered: 'Considered',
+  medications: 'Medications',
+  reason: 'Reason',
+  findings: 'Findings',
+  assessment: 'Assessment',
+  plan: 'Plan',
+  results: 'Results',
+  recommendations: 'Recommendations',
+  notes: 'Notes',
 };
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
-};
+const COMMA_SPLIT_FIELDS = ['reason', 'assessment'];
+const STATUS_OPTIONS = ['Active', 'Completed', 'Pending', 'Reviewed'];
 
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
+const hasVal = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'boolean' || typeof value === 'number') return true;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasVal);
+  if (typeof value === 'object') return Object.values(value).some(hasVal);
   return true;
 };
 
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
+const isScalar = (value) => value === null || typeof value !== 'object';
+const scalarText = (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+
+const humanizeKey = (key) => {
+  const text = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
+};
+
+const formatDate = (value) => {
+  if (!value) return '';
+  try {
+    const date = new Date(value.$date || value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch {
+    return String(value);
+  }
+};
+
+const toInputDate = (value) => {
+  if (!value) return '';
+  try {
+    const date = new Date(value.$date || value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toISOString().slice(0, 10);
+  } catch {
+    return String(value);
+  }
 };
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
-};
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
+  const protectedText = text.replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)\./gi, '$1<dot>');
+  return protectedText.split(/[.;]\s+/).map(part => part.replace(/<dot>/g, '.').replace(/[;.]+$/, '').trim()).filter(Boolean);
 };
 
 const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0 && !(/\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || ''))) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
+  if (!text || typeof text !== 'string') return [String(text || '')];
+  const result = [];
+  let current = '';
+  let depth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '(') { depth += 1; current += character; }
+    else if (character === ')') { depth = Math.max(0, depth - 1); current += character; }
+    else if (character === ',' && depth === 0 && !(/\d/.test(text[index - 1] || '') && /\d/.test(text[index + 1] || ''))) {
+      const item = current.trim();
+      if (item) result.push(item);
+      current = '';
+    } else current += character;
   }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [text];
 };
 
-/* ======= OBJECT / RECURSIVE HELPERS ======= */
-const KEY_OVERRIDES = {};
-const humanizeKey = (key) => {
-  if (key === null || key === undefined || key === '') return '';
-  if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key];
-  const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  return s.charAt(0).toUpperCase() + s.slice(1);
-};
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
-  return false;
-};
-const isScalar = (v) => v === null || typeof v !== 'object';
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
+const shouldSplitSentenceCommas = (field, sentence) => field === 'plan' && /^Monitor\b/i.test(String(sentence || '').trim());
 
-/* recursive object node: label = bold heading; value = plain line below (NO inline "Label: value") */
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.nestedSubtitle;
-  if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{safeString(label)}</Text> : null}
-        <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
-      </View>
-    );
-  }
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{safeString(label)}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
-  );
+const canonicalStatus = (value) => {
+  const raw = String(value || '').trim();
+  return STATUS_OPTIONS.find(option => option.toLowerCase() === raw.toLowerCase()) || raw;
 };
 
-/* count rows for the wrap heuristic */
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-/* renderObjectFieldPDF: OBJECT field — each top-level entry is its own wrap-gated View */
-const renderObjectFieldPDF = (label, val, showLabel = true) => {
-  if (!hasVal(val) || isScalar(val)) return null;
-  const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return entries.map(([k, v], i) => {
-    const rows = countRows(v);
-    return (
-      <View key={`obj-${k}`} style={styles.fieldBox} wrap={rows > 8 ? undefined : false}>
-        {i === 0 && showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
-        {renderObjectNode(humanizeKey(k), v, `obj-${k}`, 1)}
-      </View>
-    );
-  });
-};
-
-/* renderRecommendationsPDF: array of {recommendation, date}, date-grouped numbered list */
-const renderRecommendationsPDF = (label, val, showLabel = true) => {
-  const recs = Array.isArray(val) ? val.filter(r => r && (r.recommendation || r.date)) : [];
-  if (recs.length === 0) return null;
-  const groups = [];
-  recs.forEach((r) => { const d = (r?.date || '').trim(); const last = groups[groups.length - 1]; if (last && last.date === d) last.items.push(r); else groups.push({ date: d, items: [r] }); });
-  return (
-    <View style={styles.fieldBox} wrap={recs.length > 8 ? undefined : false}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {groups.map((group, gIdx) => (
-        <View key={gIdx}>
-          {group.date ? <Text style={styles.recDate}>{safeString(group.date)}</Text> : null}
-          {group.items.map((r, i) => (<Text key={i} style={styles.listItem}>{i + 1}. {safeString((r?.recommendation || '').trim())}</Text>))}
-        </View>
-      ))}
-    </View>
-  );
-};
-
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value, showLabel = true) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
-
-/* renderDateField */
-const renderDateFieldPDF = (label, value, showLabel = true) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text, showLabel = true) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
+const narrativeRows = (field, value) => {
   const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
+  splitBySentence(String(value || '')).forEach(sentence => {
+    if (COMMA_SPLIT_FIELDS.includes(field) || shouldSplitSentenceCommas(field, sentence)) {
+      splitByComma(sentence).map(item => item.replace(/[;.]+$/, '').trim()).filter(Boolean).forEach(item => rows.push(item));
     } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
+      rows.push(sentence);
     }
   });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
+  return rows;
 };
 
-/* renderCommaSection: COMMA_SPLIT field — sentence-then-comma → continuous-numbered list.
-   Mirrors the JSX renderCommaField / formatCommaFieldLines exactly. */
-const renderCommaSection = (label, text, showLabel = true) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-  const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    const base = parsed.isLabeled ? parsed.value : s;
-    const items = splitByComma(base).map(x => x.replace(/[;.]+$/, '').trim()).filter(Boolean);
-    if (parsed.isLabeled) rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-    items.forEach(ci => rows.push({ type: 'item', text: safeString(ci), num: n++ }));
+const objectRows = (value, label = '') => {
+  if (!hasVal(value)) return [];
+  if (isScalar(value)) return [{ label, value: scalarText(value) }];
+  if (Array.isArray(value)) {
+    const rows = [];
+    value.filter(hasVal).forEach((item, itemIndex) => {
+      if (isScalar(item)) rows.push({ label: itemIndex === 0 ? label : '', value: scalarText(item), numbered: true });
+      else rows.push(...objectRows(item, itemIndex === 0 ? label : ''));
+    });
+    return rows;
+  }
+  return Object.entries(value).filter(([, child]) => hasVal(child)).flatMap(([key, child]) => objectRows(child, humanizeKey(key)));
+};
+
+const recommendationRows = (value) => {
+  const entries = (Array.isArray(value) ? value : []).filter(item => item && (item.recommendation || item.date));
+  const groups = new Map();
+  entries.forEach((item, itemIndex) => {
+    const key = toInputDate(item.date) || `no-date-${itemIndex}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
   });
-  const wrapProp = rows.length > 8 ? undefined : false;
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {rows.map((row, i) => row.type === 'subtitle'
-        ? <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>
-        : <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>)}
-    </View>
-  );
+  const rows = [];
+  let number = 1;
+  groups.forEach((items, key) => {
+    if (!key.startsWith('no-date-')) rows.push({ value: formatDate(items[0].date), subtitle: true });
+    items.forEach(item => splitBySentence(String(item.recommendation || '')).forEach(clause => {
+      rows.push({ value: clause, number: number++ });
+    }));
+  });
+  return rows;
 };
 
-/* renderArrayField */
-const renderArrayFieldPDF = (label, items, showLabel = true) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
+const fieldRows = (field, value) => {
+  if (!hasVal(value) && !(field === 'considered' && value === false)) return [];
+  if (field === 'date') return [{ value: formatDate(value) }];
+  if (field === 'status') return [{ value: canonicalStatus(value) }];
+  if (field === 'considered') return [{ value: value ? 'Yes' : 'No' }];
+  if (field === 'medications') return (Array.isArray(value) ? value : [value]).filter(hasVal).map((item, index) => ({ value: scalarText(item), number: index + 1 }));
+  if (field === 'results') return objectRows(value);
+  if (field === 'recommendations') return recommendationRows(value);
+  if (['reason', 'findings', 'assessment', 'plan', 'notes'].includes(field)) {
+    const rows = narrativeRows(field, value);
+    return rows.map((row, index) => ({ value: row, number: rows.length > 1 ? index + 1 : null }));
+  }
+  return [{ value: scalarText(value) }];
 };
 
-/* SECTION CONFIGS */
-const SECTION_CONFIGS = [
-  {
-    title: 'Provider Information',
-    fields: [
-      { key: 'provider', label: 'Provider', isSentence: true },
-      { key: 'facility', label: 'Facility', isSentence: true },
-    ],
-  },
-  {
-    title: 'Overview',
-    fields: [
-      { key: 'date', label: 'Date', isDate: true },
-      { key: 'status', label: 'Status', isSentence: true },
-      { key: 'considered', label: 'Considered', isBoolean: true },
-    ],
-  },
-  {
-    title: 'Medications',
-    fields: [
-      { key: 'medications', label: 'Medications', isArray: true },
-    ],
-  },
-  {
-    title: 'Reason',
-    fields: [
-      { key: 'reason', label: 'Reason', isComma: true },
-    ],
-  },
-  {
-    title: 'Findings',
-    fields: [
-      { key: 'findings', label: 'Findings', isSentence: true },
-    ],
-  },
-  {
-    title: 'Assessment',
-    fields: [
-      { key: 'assessment', label: 'Assessment', isComma: true },
-    ],
-  },
-  {
-    title: 'Plan',
-    fields: [
-      { key: 'plan', label: 'Plan', isSentence: true },
-    ],
-  },
-  {
-    title: 'Results',
-    fields: [
-      { key: 'results', label: 'Results', isObject: true },
-    ],
-  },
-  {
-    title: 'Recommendations',
-    fields: [
-      { key: 'recommendations', label: 'Recommendations', isRecommendations: true },
-    ],
-  },
-  {
-    title: 'Notes',
-    fields: [
-      { key: 'notes', label: 'Notes', isSentence: true },
-    ],
-  },
-];
+const sectionUnits = (section, record) => {
+  const units = [];
+  section.fields.forEach(field => {
+    const rows = fieldRows(field, record[field]);
+    if (!rows.length) return;
+    const label = FIELD_LABELS[field] || humanizeKey(field);
+    const showLabel = label.toLowerCase() !== section.title.toLowerCase();
+    rows.forEach((row, rowIndex) => units.push({
+      ...row,
+      fieldLabel: showLabel && rowIndex === 0 ? label : '',
+    }));
+  });
+  return units;
+};
 
-/* ======= COMPONENT ======= */
+const renderUnit = (unit, key, sectionTitle) => (
+  <View key={key} style={styles.fieldUnit} wrap={false}>
+    {sectionTitle ? <Text style={styles.sectionTitle}>{sectionTitle}</Text> : null}
+    {unit.fieldLabel ? <Text style={styles.fieldLabel}>{unit.fieldLabel}</Text> : null}
+    {unit.label ? <Text style={styles.nestedSubtitle}>{unit.label}</Text> : null}
+    {unit.subtitle ? <Text style={styles.nestedSubtitle}>{unit.value}</Text> : <Text style={styles.fieldValue}>{unit.number ? `${unit.number}. ` : ''}{unit.value}</Text>}
+  </View>
+);
+
+const renderSections = (record, titles, keyPrefix) => SECTION_CONFIGS.filter(section => titles.includes(section.title)).map(section => {
+  const units = sectionUnits(section, record);
+  if (!units.length) return null;
+  return (
+    <View key={`${keyPrefix}-${section.title}`} style={styles.section}>
+      {units.map((unit, unitIndex) => renderUnit(unit, `${keyPrefix}-${section.title}-${unitIndex}`, unitIndex === 0 ? section.title : ''))}
+    </View>
+  );
+});
+
+const hasSectionData = (record, titles) => SECTION_CONFIGS.some(section => titles.includes(section.title) && sectionUnits(section, record).length > 0);
+
 const AppetiteStimulantsDocumentPDFTemplate = ({ document: data }) => {
   const records = React.useMemo(() => {
     if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.appetite_stimulants) return Array.isArray(r.appetite_stimulants) ? r.appetite_stimulants : [r.appetite_stimulants];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.appetite_stimulants) return Array.isArray(dd.appetite_stimulants) ? dd.appetite_stimulants : [dd.appetite_stimulants]; return [dd]; }
-      return [r];
+    let source = Array.isArray(data) ? data : [data];
+    source = source.flatMap(record => {
+      if (record?.appetite_stimulants) return Array.isArray(record.appetite_stimulants) ? record.appetite_stimulants : [record.appetite_stimulants];
+      if (record?.data) {
+        const nested = record.data;
+        if (Array.isArray(nested)) return nested;
+        if (nested?.appetite_stimulants) return Array.isArray(nested.appetite_stimulants) ? nested.appetite_stimulants : [nested.appetite_stimulants];
+        return [nested];
+      }
+      if (record?.documentData) {
+        const nested = record.documentData;
+        if (Array.isArray(nested)) return nested;
+        if (nested?.appetite_stimulants) return Array.isArray(nested.appetite_stimulants) ? nested.appetite_stimulants : [nested.appetite_stimulants];
+        return [nested];
+      }
+      return [record];
     });
-    return arr.filter(r => r && typeof r === 'object');
+    return source.filter(record => record && typeof record === 'object');
   }, [data]);
 
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Appetite Stimulants</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
+  if (records.length === 0) {
+    return <Document><Page size="LETTER" style={styles.page}><Text style={styles.documentTitle}>Appetite Stimulants</Text><Text style={styles.noDataText}>No data available</Text></Page></Document>;
   }
+
+  const primaryTitles = ['Provider Information', 'Overview', 'Medications'];
+  const middleTitles = ['Reason', 'Findings', 'Assessment', 'Plan'];
+  const extendedTitles = ['Results', 'Recommendations'];
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Appetite Stimulants</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {record.provider || `Appetite Stimulant ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections — anti-orphaning: sectionTitle INSIDE fieldBox */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const hasAnyVal = sectionConfig.fields.some(f => {
-                if (f.isBoolean) return hasVal(record[f.key]) || record[f.key] === false;
-                return hasVal(record[f.key]);
-              });
-              if (!hasAnyVal) return null;
-
-              return (
-                <View key={sIdx} style={styles.fieldBox}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {sectionConfig.fields.map((field, fIdx) => {
-                    const val = record[field.key];
-                    if (!hasVal(val) && !(field.isBoolean && val === false)) return null;
-                    const showFieldLabel = field.label.toLowerCase() !== (sectionConfig.title || '').toLowerCase();
-
-                    if (field.isDate) return <View key={fIdx}>{renderDateFieldPDF(field.label, val, showFieldLabel)}</View>;
-                    if (field.isArray) return <View key={fIdx}>{renderArrayFieldPDF(field.label, val, showFieldLabel)}</View>;
-                    if (field.isRecommendations) return <View key={fIdx}>{renderRecommendationsPDF(field.label, val, showFieldLabel)}</View>;
-                    if (field.isObject) return <View key={fIdx}>{renderObjectFieldPDF(field.label, val, showFieldLabel)}</View>;
-                    if (field.isBoolean) return <View key={fIdx}>{renderFieldRow(field.label, val, showFieldLabel)}</View>;
-                    if (field.isComma) return <View key={fIdx}>{renderCommaSection(field.label, val, showFieldLabel)}</View>;
-                    if (field.isSentence) return <View key={fIdx}>{renderSentenceSection(field.label, val, showFieldLabel)}</View>;
-                    return <View key={fIdx}>{renderFieldRow(field.label, val, showFieldLabel)}</View>;
-                  })}
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </Page>
+      {records.flatMap((record, recordIndex) => {
+        const hasExtended = hasSectionData(record, extendedTitles);
+        const middleWithNotes = hasExtended ? middleTitles : [...middleTitles, 'Notes'];
+        const extendedWithNotes = [...extendedTitles, 'Notes'];
+        const pages = [
+          <Page key={`${recordIndex}-primary`} size="LETTER" style={styles.page}>
+            <Text style={styles.documentTitle}>Appetite Stimulants</Text>
+            <Text style={styles.recordTitle}>{`Appetite Stimulant ${recordIndex + 1}`}</Text>
+            {renderSections(record, primaryTitles, `${recordIndex}-primary`)}
+          </Page>,
+        ];
+        if (hasSectionData(record, middleWithNotes)) pages.push(<Page key={`${recordIndex}-middle`} size="LETTER" style={styles.page}>{renderSections(record, middleWithNotes, `${recordIndex}-middle`)}</Page>);
+        if (hasExtended && hasSectionData(record, extendedWithNotes)) pages.push(<Page key={`${recordIndex}-extended`} size="LETTER" style={styles.page}>{renderSections(record, extendedWithNotes, `${recordIndex}-extended`)}</Page>);
+        return pages;
+      })}
     </Document>
   );
 };

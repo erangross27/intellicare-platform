@@ -38,6 +38,7 @@ const ALLOWED_FIELDS = [
   'provider',
   'facility',
   'date',
+  'type',
   'status',
   'considered',
   'medications',

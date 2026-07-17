@@ -1,165 +1,86 @@
-/**
- * AutoimmunePanelsDocumentPDFTemplate.jsx
- * PDFDownloadLink + pdfData memo pattern, ASCII separators, Helvetica
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'autoimmune_panels';
+const COMMA_SPLIT_FIELDS = ['interpretation'];
+const CLAUSE_FIELDS = new Set(['indication', 'complement', 'interpretation', 'clinicalCorrelation', 'notes']);
+const OBJECT_FIELDS = new Set(['enaPanel', 'antiphospholipid']);
+const LABELS = {
+  date: 'Date', panelType: 'Panel Type', indication: 'Indication', ana: 'ANA',
+  enaPanel: 'ENA Panel', dsDna: 'Anti-dsDNA', rheumatoidFactor: 'Rheumatoid Factor',
+  antiCcp: 'Anti-CCP', complement: 'Complement', anca: 'ANCA',
+  antiphospholipid: 'Antiphospholipid Antibodies', interpretation: 'Interpretation',
+  clinicalCorrelation: 'Clinical Correlation', orderingProvider: 'Ordering Provider',
+  lab: 'Lab', notes: 'Notes',
+};
+const SECTIONS = [
+  { title: 'Date', fields: ['date'] },
+  { title: 'Record Information', fields: ['orderingProvider', 'lab'] },
+  { title: 'Panel Information', fields: ['panelType', 'indication'] },
+  { title: 'Results', fields: ['ana', 'dsDna', 'rheumatoidFactor', 'antiCcp', 'complement', 'anca'] },
+  { title: 'ENA Panel', fields: ['enaPanel'] },
+  { title: 'Antiphospholipid Antibodies', fields: ['antiphospholipid'] },
+  { title: 'Interpretation', fields: ['interpretation'] },
+  { title: 'Clinical Correlation', fields: ['clinicalCorrelation'] },
+  { title: 'Notes', fields: ['notes'] },
+];
+const KEY_OVERRIDES = { antiRo: 'Anti-Ro', antiLa: 'Anti-La', antiSm: 'Anti-Sm', antiRnp: 'Anti-RNP', antiJo1: 'Anti-Jo-1', antiScl70: 'Anti-Scl-70', anticardiolipin: 'Anticardiolipin', beta2Glycoprotein: 'Beta-2-Glycoprotein', lupusAnticoagulant: 'Lupus Anticoagulant', IgG: 'IgG', IgM: 'IgM', IgA: 'IgA' };
+
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 24, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  recordSection: { marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 8, backgroundColor: '#f0f0f0', padding: 8, borderWidth: 1, borderColor: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 4, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 14 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4 },
-  fieldBlock: { marginBottom: 6 },
-  fieldLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#3a3d40', marginBottom: 1 },
-  fieldValue: { fontSize: 12, color: '#3a3d40', lineHeight: 1.4, paddingLeft: 12 },
-  listItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 4 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
-  separator: { fontSize: 10, color: '#999999', marginBottom: 8, textAlign: 'center' },
-  objLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 3, paddingLeft: 4 },
-  objGroup: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#cccccc', marginBottom: 4 },
-  objLeafBlock: { marginBottom: 3 },
-  objLeafLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#3a3d40', marginBottom: 1 },
-  objLeafValue: { fontSize: 11, color: '#3a3d40', paddingLeft: 12 },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
 
-const KEY_OVERRIDES = { ro: 'Anti-Ro', la: 'Anti-La', sm: 'Anti-Sm', rnp: 'Anti-RNP', scl70: 'Scl-70', jo1: 'Jo-1', antiRo: 'Anti-Ro', antiLa: 'Anti-La', antiSm: 'Anti-Sm', antiRnp: 'Anti-RNP', anticardiolipin: 'Anticardiolipin', beta2Glycoprotein: 'Beta-2-Glycoprotein', lupusAnticoagulant: 'Lupus Anticoagulant', igg: 'IgG', igm: 'IgM', iga: 'IgA', ssa: 'SSA', ssb: 'SSB', ena: 'ENA' };
-const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
-const isEmptyDeep = (v) => { if (v === null || v === undefined) return true; if (typeof v === 'boolean') return false; if (typeof v === 'number') return !Number.isFinite(v); if (typeof v === 'string') return v.trim() === ''; if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0; if (typeof v === 'object') return Object.values(v).every(isEmptyDeep); return false; };
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-const isScalar = (v) => v === null || typeof v !== 'object';
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const splitBySentence = (t) => { if (!t || typeof t !== 'string') return []; return t.split(/(?<=[.!?])\s+|(?<=;)\s+/).filter(s => { const tr = s.trim(); return tr.length > 0 && tr.replace(/[.!?;,]+/g, '').trim().length > 0; }); };
-// Paren-aware clause splitter (parity with the JSX). Splits on ';' + sentence-enders always; on a depth-0
-// ',' only when includeComma AND not inside (), between digits, before a year, or before "and"/"or".
-const CLAUSE_ABBREV = /(?:^|\s)(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|Lt|Capt|vs|etc|No|Fig|approx|Inc|Ltd)$/i;
-const splitClauses = (text, includeComma) => {
-  if (!text || typeof text !== 'string') return [{ text: text || '', sep: '' }];
-  const parts = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; continue; }
-    if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; continue; }
-    let isSep = false;
-    if (depth === 0) {
-      if (ch === ';') isSep = true;
-      else if (ch === '.' || ch === '!' || ch === '?') { const next = text[i + 1]; if ((next === undefined || /\s/.test(next)) && !CLAUSE_ABBREV.test(current)) isSep = true; }
-      else if (includeComma && ch === ',') {
-        const prev = text[i - 1] || '', nx = text[i + 1] || '';
-        const rest = text.slice(i + 1).trimStart();
-        if (!((/\d/.test(prev) && /\d/.test(nx)) || /^\d{4}\b/.test(rest) || /^(?:and|or)\b/i.test(rest))) isSep = true;
-      }
-    }
-    if (isSep) {
-      let j = i + 1, ws = '';
-      while (j < text.length && /\s/.test(text[j])) { ws += text[j]; j++; }
-      const t = current.trim();
-      if (t) parts.push({ text: t, sep: ch + ws });
-      else if (parts.length) parts[parts.length - 1].sep += ch + ws;
-      current = ''; i = j - 1;
-      continue;
-    }
-    current += ch;
-  }
-  const tail = current.trim();
-  if (tail) parts.push({ text: tail, sep: '' });
-  return parts.length ? parts : [{ text: String(text), sep: '' }];
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const humanize = key => KEY_OVERRIDES[key] || String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, character => character.toUpperCase());
+const formatDate = value => { const raw = value?.$date || value; const match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (field, text, splitCommas = COMMA_SPLIT_FIELDS.includes(field)) => {
+  const source = String(text || ''); const output = []; let current = ''; let depth = 0; const push = () => { if (current.trim()) output.push(current.trim()); current = ''; };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') depth += 1; if (character === ')') depth = Math.max(0, depth - 1); const sentenceBreak = depth === 0 && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = depth === 0 && splitCommas && character === ','; if (sentenceBreak || commaBreak) push(); else current += character; }
+  push(); return output;
+};
+const nestedLeaves = (value, prefix, labelPrefix = '') => {
+  if (Array.isArray(value)) return value.flatMap((child, index) => { const path = `${prefix}.${index}`; if (child && typeof child === 'object' && !child.$date) return nestedLeaves(child, path, `${labelPrefix || 'Item'} ${index + 1}`); return hasValue(child) ? [{ path, rowLabel: labelPrefix ? `${labelPrefix} ${index + 1}` : '', value: child }] : []; });
+  return Object.entries(value || {}).flatMap(([key, child]) => { const path = `${prefix}.${key}`, label = labelPrefix ? `${labelPrefix} — ${humanize(key)}` : humanize(key); if (child && typeof child === 'object' && !child.$date) return nestedLeaves(child, path, label); return hasValue(child) ? [{ path, rowLabel: label, value: child }] : []; });
+};
+const objectGroups = (root, value) => Object.entries(value || {}).flatMap(([key, child]) => {
+  if (!hasValue(child)) return []; const path = `${root}.${key}`, subtitle = humanize(key);
+  if (Array.isArray(child)) return [{ subtitle, leaves: child.flatMap((item, index) => item && typeof item === 'object' && !item.$date ? nestedLeaves(item, `${path}.${index}`, `Item ${index + 1}`) : hasValue(item) ? [{ path: `${path}.${index}`, rowLabel: '', value: item }] : []) }];
+  if (child && typeof child === 'object' && !child.$date) return [{ subtitle, leaves: nestedLeaves(child, path) }];
+  return [{ subtitle, leaves: [{ path, rowLabel: '', value: child }] }];
+});
+const unwrapRecords = source => {
+  if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = [];
+  while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); }
+  return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field])));
+};
+const rowsFor = (record, field) => {
+  const value = record[field]; if (!hasValue(value)) return []; if (field === 'date') return [{ subtitle: '', value: formatDate(value) }];
+  if (OBJECT_FIELDS.has(field)) return objectGroups(field, value).flatMap(group => group.leaves.map(leaf => { const rendered = /(?:^|\.)(?:date|reviewDate)$/i.test(leaf.path) ? formatDate(leaf.value) : displayValue(leaf.value); return { subtitle: group.subtitle, value: leaf.rowLabel ? `${leaf.rowLabel} — ${rendered}` : rendered }; }));
+  if (CLAUSE_FIELDS.has(field)) return splitClauses(field, value).map(text => parseLabel(text));
+  return [{ subtitle: '', value: displayValue(value) }];
+};
+const renderSection = (record, section, key) => {
+  const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null;
+  const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const priorSubtitle = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== priorSubtitle && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); });
+  const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>;
 };
 
-const AutoimmunePanelsDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => {
-      if (r?.autoimmune_panels) return Array.isArray(r.autoimmune_panels) ? r.autoimmune_panels : [r.autoimmune_panels];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.autoimmune_panels) return Array.isArray(dd.autoimmune_panels) ? dd.autoimmune_panels : [dd.autoimmune_panels]; return [dd]; }
-      return r;
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  const parseLabel = (text) => { if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' }; const m = text.match(/^([A-Z][A-Za-z0-9 &/()>=<+%.#-]+):\s*(.+)$/); if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() }; return { isLabeled: false, label: '', value: text }; };
-  const splitByComma = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/,\s*/).map(s => s.trim()).filter(s => s.length > 0); };
-
-  // Stacked label-above-value (NEVER side-by-side "Label: value", no colon). Small/atomic → wrap={false}.
-  const renderField = (label, value) => { if (!value || String(value).trim() === '') return null; return <View style={styles.fieldBlock} wrap={false}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{String(value)}</Text></View>; };
-  const renderSentenceField = (label, value) => { if (!value || String(value).trim() === '') return null; const ss = splitBySentence(String(value)); if (ss.length <= 1) return renderField(label, value); return <View style={styles.fieldContainer}><Text style={styles.sectionTitle}>{label}</Text>{ss.map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {s}</Text>)}</View>; };
-  const renderLabeledCommaField = (label, value) => {
-    if (!value || String(value).trim() === '') return null;
-    const parsed = parseLabel(String(value));
-    if (parsed.isLabeled) {
-      const items = splitByComma(parsed.value);
-      if (items.length > 1) {
-        return (<View style={styles.fieldContainer}><Text style={styles.sectionTitle}>{label}</Text><Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 4, paddingLeft: 4 }}>{parsed.label}</Text>{items.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>)}</View>);
-      }
-    }
-    return renderSentenceField(label, value);
-  };
-
-  // Interpretation: own section title + numbered clause list (semicolon + guarded comma).
-  const renderClauseField = (label, value, includeComma) => {
-    if (!value || String(value).trim() === '') return null;
-    const items = splitClauses(String(value), includeComma).map(p => p.text);
-    if (items.length <= 1) return renderField(label, value);
-    return <View style={styles.fieldContainer} wrap={items.length > 8}><Text style={styles.sectionTitle}>{label}</Text>{items.map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {s}</Text>)}</View>;
-  };
-  // Complement: stacked bold sub-label + numbered clause list INSIDE the Results section (never side-by-side).
-  const renderClauseInline = (label, value, includeComma) => {
-    if (!value || String(value).trim() === '') return null;
-    const items = splitClauses(String(value), includeComma).map(p => p.text);
-    if (items.length <= 1) return renderField(label, value);
-    return <View style={{ marginBottom: 6 }}><Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#3a3d40', marginBottom: 3 }}>{label}</Text>{items.map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {s}</Text>)}</View>;
-  };
-
-  /* recursive grayscale object nodes */
-  const renderObjectNodes = (value, keyPrefix) => {
-    const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-    return entries.map(([k, v]) => {
-      if (isScalar(v)) return <View key={`${keyPrefix}-${k}`} style={styles.objLeafBlock} wrap={false}><Text style={styles.objLeafLabel}>{humanizeKey(k)}</Text><Text style={styles.objLeafValue}>{fmtScalar(v)}</Text></View>;
-      return <View key={`${keyPrefix}-${k}`} style={styles.objGroup}><Text style={styles.objLabel}>{humanizeKey(k)}</Text>{renderObjectNodes(v, `${keyPrefix}-${k}`)}</View>;
-    });
-  };
-  const countLeaves = (value) => { if (isEmptyDeep(value)) return 0; if (isScalar(value)) return 1; return Object.values(value).filter(v => !isEmptyDeep(v)).reduce((a, v) => a + countLeaves(v), 0); };
-  const renderObjectSection = (label, value, keyPrefix) => {
-    if (isEmptyDeep(value) || isScalar(value)) return null;
-    const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return null;
-    const leaves = countLeaves(value);
-    return (
-      <View style={styles.fieldContainer} wrap={leaves > 8}>
-        <Text style={styles.sectionTitle}>{label}</Text>
-        {renderObjectNodes(value, keyPrefix)}
-      </View>
-    );
-  };
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Autoimmune Panels</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Autoimmune Panels</Text>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordSection}>
-            <View wrap={false}><Text style={styles.recordTitle}>{`Autoimmune Panel ${idx + 1}`}</Text>{record.date && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}</View>
-            {idx > 0 && <Text style={styles.separator}>{'='.repeat(60)}</Text>}
-            {(record.orderingProvider || record.lab) && <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Record Information</Text>{renderField('Ordering Provider', record.orderingProvider)}{renderField('Lab', record.lab)}</View>}
-            {(record.panelType || record.indication) && <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Panel Information</Text>{renderField('Panel Type', record.panelType)}{renderField('Indication', record.indication)}</View>}
-            {(record.ana || record.dsDna || record.rheumatoidFactor || record.antiCcp || record.complement || record.anca) && <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Results</Text>{renderField('ANA', record.ana)}{renderField('Anti-dsDNA', record.dsDna)}{renderField('Rheumatoid Factor', record.rheumatoidFactor)}{renderField('Anti-CCP', record.antiCcp)}{renderClauseInline('Complement', record.complement, false)}{renderField('ANCA', record.anca)}</View>}
-            {renderObjectSection('ENA Panel', record.enaPanel, `ena-${idx}`)}
-            {renderObjectSection('Antiphospholipid Antibodies', record.antiphospholipid, `apl-${idx}`)}
-            {renderClauseField('Interpretation', record.interpretation, true)}
-            {renderSentenceField('Clinical Correlation', record.clinicalCorrelation)}
-            {renderLabeledCommaField('Notes', record.notes)}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const AutoimmunePanelsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Autoimmune Panels</Text><Text style={styles.noData}>No autoimmune panel data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Autoimmune Panels</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Autoimmune Panel {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
 
 export default AutoimmunePanelsDocumentPDFTemplate;

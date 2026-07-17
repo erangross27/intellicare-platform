@@ -10,7 +10,10 @@
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
   min-height: 100%;
+  direction: ltr;
 }
+
+.autoimmune-panels-document * { direction: ltr; }
 
 /* Header — block layout, buttons below title */
 .autoimmune-panels-document .document-header {
@@ -80,16 +83,6 @@
   color: #ececf1;
   margin: 0;
   text-transform: none !important;
-}
-
-.autoimmune-panels-document .record-date {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
 /* Section */
@@ -243,8 +236,16 @@
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
+
+.autoimmune-panels-document .num-stepper-row { display: flex; align-items: center; gap: 10px; }
+.autoimmune-panels-document .num-step, .autoimmune-panels-document .num-stepper-input { background: #0d1929; border: 2px solid #2563eb; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; min-height: 42px; }
+.autoimmune-panels-document .num-step { cursor: pointer; min-width: 42px; }
+.autoimmune-panels-document .num-stepper-input { max-width: 160px; padding: 8px 12px; text-align: center; }
+.autoimmune-panels-document .save-error { color: #fca5a5; font-size: 12px; margin-top: 6px; }
+.autoimmune-panels-document .sr-only { clip: rect(0, 0, 0, 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.autoimmune-panels-document .pdf-btn { display: inline-flex; align-items: center; text-decoration: none; }
 
 .autoimmune-panels-document .save-btn {
   background: #2563eb;

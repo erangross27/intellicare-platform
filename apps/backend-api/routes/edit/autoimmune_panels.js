@@ -13,7 +13,7 @@ let secureDataAccess;
 function getSecureDataAccess() { if (!secureDataAccess) secureDataAccess = require('../../services/secureDataAccess'); return secureDataAccess; }
 router.use(practiceContext); router.use(practiceModels); router.use(practiceAuth);
 
-const ALLOWED_FIELDS = ['panelType', 'indication', 'ana', 'enaPanel', 'dsDna', 'rheumatoidFactor', 'antiCcp', 'complement', 'anca', 'antiphospholipid', 'interpretation', 'clinicalCorrelation', 'orderingProvider', 'lab', 'notes'];
+const ALLOWED_FIELDS = ['date', 'panelType', 'indication', 'ana', 'enaPanel', 'dsDna', 'rheumatoidFactor', 'antiCcp', 'complement', 'anca', 'antiphospholipid', 'interpretation', 'clinicalCorrelation', 'orderingProvider', 'lab', 'notes'];
 
 function buildContext(req, op = 'read') { return { serviceId: 'autoimmune-panels-edit-service', userId: req.user?.id, operation: op, practiceId: req.practiceContext?.subdomain || req.practiceContext?.practiceId, permissions: [op === 'read' ? 'read' : 'write'] }; }
 function toObjectId(s) { try { return new mongoose.Types.ObjectId(s); } catch { return null; } }

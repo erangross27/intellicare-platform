@@ -10,7 +10,9 @@
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
   min-height: 100%;
+  direction: ltr;
 }
+.anticoagulation-management-document * { direction: ltr; }
 
 /* Header — block layout, buttons below title */
 .anticoagulation-management-document .document-header {
@@ -84,16 +86,6 @@
   font-weight: 700;
   color: #ececf1;
   margin: 0;
-}
-
-.anticoagulation-management-document .record-date {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
 .anticoagulation-management-document .indication-badge {
@@ -257,8 +249,13 @@
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
+
+.anticoagulation-management-document .num-stepper-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.anticoagulation-management-document .num-step { width: 40px; min-width: 40px; height: 40px; border: 1px solid #2563eb; border-radius: 6px; background: #0d1929; color: #60a5fa; font-size: 20px; cursor: pointer; }
+.anticoagulation-management-document .edit-number { flex: 1; min-width: 0; background: #0d1929; border: 2px solid #2563eb; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 14px; padding: 10px 14px; text-align: center; }
+.anticoagulation-management-document .number-unit { color: #93c5fd; font-size: 13px; }
 
 .anticoagulation-management-document .save-btn {
   background: #2563eb;

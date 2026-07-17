@@ -96,6 +96,7 @@ import AnnualPhysicalExaminationDocumentPDFTemplate from './AnnualPhysicalExamin
 import AntibiogramReportsDocumentPDFTemplate from './AntibiogramReportsDocumentPDFTemplate';
 import AntibioticStewardshipDocumentPDFTemplate from './AntibioticStewardshipDocumentPDFTemplate';
 import AnticipatoryGuidanceDocumentPDFTemplate from './AnticipatoryGuidanceDocumentPDFTemplate';
+import AnticoagulationManagementDocumentPDFTemplate from './AnticoagulationManagementDocumentPDFTemplate';
 import RecommendationsTemplate from './RecommendationsTemplate';
 // Single source of truth: route to the same box-free template the Document's Export button imports
 // (the legacy ./ClinicalScoresTemplate diverged — boxed, small fonts, no numbering).
@@ -283,6 +284,7 @@ const templateRegistry = {
   'antibiogram_reports': AntibiogramReportsDocumentPDFTemplate,
   'antibiotic_stewardship': AntibioticStewardshipDocumentPDFTemplate,
   'anticipatory_guidance': AnticipatoryGuidanceDocumentPDFTemplate,
+  'anticoagulation_management': AnticoagulationManagementDocumentPDFTemplate,
   'recommendations': RecommendationsTemplate,
   'clinical_scores': ClinicalScoresTemplate,
   'administrative_data': AdministrativeDataDocumentPDFTemplate,

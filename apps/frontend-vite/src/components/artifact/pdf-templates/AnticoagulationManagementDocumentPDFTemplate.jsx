@@ -5,22 +5,23 @@ const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'Helvetica',
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 1.5,
     backgroundColor: '#ffffff',
     color: '#000000',
   },
   header: {
     marginBottom: 24,
     paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: '#606060',
   },
   documentTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     fontFamily: 'Helvetica-Bold',
     marginBottom: 4,
     textAlign: 'center',
+    borderBottom: '2pt solid #000000',
+    paddingBottom: 8,
   },
   recordCard: {
     marginBottom: 20,
@@ -29,7 +30,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#cccccc',
   },
   recordTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: 'bold',
     fontFamily: 'Helvetica-Bold',
     marginBottom: 12,
@@ -45,36 +46,37 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
     color: '#000000',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#999999',
+    borderBottom: '1pt solid #000000',
     paddingBottom: 4,
   },
   fieldBlock: {
     marginBottom: 8,
     paddingLeft: 8,
   },
-  fieldSubtitle: {
+  fieldLabel: {
     fontSize: 14,
     fontWeight: 'bold',
     fontFamily: 'Helvetica-Bold',
     marginBottom: 2,
     color: '#333333',
+    borderBottom: '0.5pt solid #999999',
+    paddingBottom: 2,
   },
   fieldValue: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 1.5,
     marginBottom: 4,
     color: '#000000',
   },
   listItem: {
-    fontSize: 14,
+    fontSize: 13,
     paddingLeft: 12,
     marginBottom: 4,
     lineHeight: 1.5,
     color: '#000000',
   },
   contentText: {
-    fontSize: 14,
+    fontSize: 13,
     marginBottom: 6,
     paddingLeft: 8,
     lineHeight: 1.5,
@@ -102,7 +104,7 @@ const safeString = (val) => {
 const formatDate = (dateVal) => {
   if (!dateVal) return '';
   try {
-    const d = new Date(dateVal);
+    const d = new Date(dateVal.$date || dateVal);
     if (isNaN(d.getTime())) return String(dateVal);
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   } catch {
@@ -118,10 +120,15 @@ const AnticoagulationManagementDocumentPDFTemplate = ({ document: docProp, data 
     records = templateData.flatMap(item => {
       if (item.anticoagulation_management) return item.anticoagulation_management;
       if (item.records) return item.records;
+      if (item.data) return item.data;
+      if (item.documentData?.anticoagulation_management) return item.documentData.anticoagulation_management;
+      if (item.documentData) return item.documentData;
       return item;
     });
   } else if (templateData?.anticoagulation_management) {
     records = Array.isArray(templateData.anticoagulation_management) ? templateData.anticoagulation_management : [templateData.anticoagulation_management];
+  } else if (templateData?.data) {
+    records = Array.isArray(templateData.data) ? templateData.data : [templateData.data];
   } else if (templateData?.documentData?.anticoagulation_management) {
     records = Array.isArray(templateData.documentData.anticoagulation_management) ? templateData.documentData.anticoagulation_management : [templateData.documentData.anticoagulation_management];
   } else if (templateData?.documentData) {
@@ -147,33 +154,22 @@ const AnticoagulationManagementDocumentPDFTemplate = ({ document: docProp, data 
     return parts.length > 1 ? parts : [t];
   };
 
+  const visibleTextParts = (text) => safeString(text).split(/(?<=[.;])\s+/).map(value => value.trim()).filter(Boolean).flatMap(value => {
+    const labeled = value.match(/^([A-Z][A-Za-z0-9 &/()>=<+%.#-]+):\s*(.+)$/);
+    return labeled ? splitByComma(labeled[2].trim()) : [value];
+  });
+
   const renderTextSection = (title, text) => {
     if (!hasValue(text)) return null;
-    const str = safeString(text);
-    const sentences = str.split(/(?<=[.;])\s+/).map(s => s.trim()).filter(Boolean);
+    const dateOnly = /^\d{4}-\d{2}-\d{2}/.test(safeString(text));
+    const sentences = dateOnly ? [formatDate(text)] : visibleTextParts(text);
     return (
-      <View style={styles.section}>
+      <View style={styles.section} wrap={false}>
         <Text style={styles.sectionTitle}>{title}</Text>
         {sentences.length > 1 ? (
-          sentences.map((s, si) => {
-            const labelMatch = s.match(/^([A-Z][A-Za-z0-9 &/()>=<+%.#-]+):\s*(.+)$/);
-            if (labelMatch) {
-              const commaItems = splitByComma(labelMatch[2].trim());
-              if (commaItems.length > 1) {
-                return (
-                  <View key={si} style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>{labelMatch[1].trim()}</Text>
-                    {commaItems.map((item, ci) => (
-                      <Text key={ci} style={styles.listItem}>{ci + 1}. {item}</Text>
-                    ))}
-                  </View>
-                );
-              }
-            }
-            return <Text key={si} style={styles.listItem}>{si + 1}. {s}</Text>;
-          })
+          sentences.map((s, si) => <Text key={si} style={styles.listItem}>{si + 1}. {s}</Text>)
         ) : (
-          <Text style={styles.contentText}>{str}</Text>
+          <Text style={styles.contentText}>{sentences[0]}</Text>
         )}
       </View>
     );
@@ -182,7 +178,7 @@ const AnticoagulationManagementDocumentPDFTemplate = ({ document: docProp, data 
   const renderArraySection = (title, arr) => {
     if (!arr || !Array.isArray(arr) || arr.length === 0) return null;
     return (
-      <View style={styles.section}>
+      <View style={styles.section} wrap={false}>
         <Text style={styles.sectionTitle}>{title}</Text>
         {arr.map((item, i) => (
           <Text key={i} style={styles.listItem}>
@@ -195,7 +191,7 @@ const AnticoagulationManagementDocumentPDFTemplate = ({ document: docProp, data 
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.documentTitle}>Anticoagulation Management</Text>
         </View>
@@ -208,35 +204,35 @@ const AnticoagulationManagementDocumentPDFTemplate = ({ document: docProp, data 
 
             {/* Anticoagulation Information */}
             {(hasValue(record.anticoagulant) || hasValue(record.indication) || hasValue(record.date) || hasValue(record.provider) || hasValue(record.facility)) && (
-              <View style={styles.section}>
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Anticoagulation Information</Text>
                 {hasValue(record.anticoagulant) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Anticoagulant</Text>
+                    <Text style={styles.fieldLabel}>Anticoagulant</Text>
                     <Text style={styles.fieldValue}>{safeString(record.anticoagulant)}</Text>
                   </View>
                 )}
                 {hasValue(record.indication) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Indication</Text>
+                    <Text style={styles.fieldLabel}>Indication</Text>
                     <Text style={styles.fieldValue}>{safeString(record.indication)}</Text>
                   </View>
                 )}
                 {hasValue(record.date) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Date</Text>
+                    <Text style={styles.fieldLabel}>Date</Text>
                     <Text style={styles.fieldValue}>{formatDate(record.date)}</Text>
                   </View>
                 )}
                 {hasValue(record.provider) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Provider</Text>
+                    <Text style={styles.fieldLabel}>Provider</Text>
                     <Text style={styles.fieldValue}>{safeString(record.provider)}</Text>
                   </View>
                 )}
                 {hasValue(record.facility) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Facility</Text>
+                    <Text style={styles.fieldLabel}>Facility</Text>
                     <Text style={styles.fieldValue}>{safeString(record.facility)}</Text>
                   </View>
                 )}
@@ -245,17 +241,17 @@ const AnticoagulationManagementDocumentPDFTemplate = ({ document: docProp, data 
 
             {/* INR Monitoring */}
             {(hasValue(record.targetInr) || hasValue(record.currentInr)) && (
-              <View style={styles.section}>
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>INR Monitoring</Text>
                 {hasValue(record.targetInr) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Target INR</Text>
+                    <Text style={styles.fieldLabel}>Target INR</Text>
                     <Text style={styles.fieldValue}>{safeString(record.targetInr)}</Text>
                   </View>
                 )}
                 {hasValue(record.currentInr) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Current INR</Text>
+                    <Text style={styles.fieldLabel}>Current INR</Text>
                     <Text style={styles.fieldValue}>{safeString(record.currentInr)}</Text>
                   </View>
                 )}
@@ -264,17 +260,17 @@ const AnticoagulationManagementDocumentPDFTemplate = ({ document: docProp, data 
 
             {/* aPTT Monitoring */}
             {(hasValue(record.targetAptt) || hasValue(record.currentAptt)) && (
-              <View style={styles.section}>
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>aPTT Monitoring</Text>
                 {hasValue(record.targetAptt) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Target aPTT</Text>
+                    <Text style={styles.fieldLabel}>Target aPTT</Text>
                     <Text style={styles.fieldValue}>{safeString(record.targetAptt)}</Text>
                   </View>
                 )}
                 {hasValue(record.currentAptt) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Current aPTT</Text>
+                    <Text style={styles.fieldLabel}>Current aPTT</Text>
                     <Text style={styles.fieldValue}>{safeString(record.currentAptt)}</Text>
                   </View>
                 )}
@@ -283,17 +279,17 @@ const AnticoagulationManagementDocumentPDFTemplate = ({ document: docProp, data 
 
             {/* Dosing */}
             {(hasValue(record.doseAdjustment) || hasValue(record.nextDose)) && (
-              <View style={styles.section}>
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Dosing</Text>
                 {hasValue(record.doseAdjustment) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Dose Adjustment</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.doseAdjustment)}</Text>
+                    <Text style={styles.fieldLabel}>Dose Adjustment</Text>
+                    {visibleTextParts(record.doseAdjustment).map((part, i) => <Text key={i} style={styles.listItem}>{i + 1}. {part}</Text>)}
                   </View>
                 )}
                 {hasValue(record.nextDose) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Next Dose</Text>
+                    <Text style={styles.fieldLabel}>Next Dose</Text>
                     <Text style={styles.fieldValue}>{safeString(record.nextDose)}</Text>
                   </View>
                 )}
@@ -302,18 +298,18 @@ const AnticoagulationManagementDocumentPDFTemplate = ({ document: docProp, data 
 
             {/* Clinical Events */}
             {(hasValue(record.bleedingEvents) || hasValue(record.thromboticEvents)) && (
-              <View style={styles.section}>
+              <View style={styles.section} wrap={false}>
                 <Text style={styles.sectionTitle}>Clinical Events</Text>
                 {hasValue(record.bleedingEvents) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Bleeding Events</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.bleedingEvents)}</Text>
+                    <Text style={styles.fieldLabel}>Bleeding Events</Text>
+                    {visibleTextParts(record.bleedingEvents).map((part, i) => <Text key={i} style={styles.listItem}>{i + 1}. {part}</Text>)}
                   </View>
                 )}
                 {hasValue(record.thromboticEvents) && (
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldSubtitle}>Thrombotic Events</Text>
-                    <Text style={styles.fieldValue}>{safeString(record.thromboticEvents)}</Text>
+                    <Text style={styles.fieldLabel}>Thrombotic Events</Text>
+                    {visibleTextParts(record.thromboticEvents).map((part, i) => <Text key={i} style={styles.listItem}>{i + 1}. {part}</Text>)}
                   </View>
                 )}
               </View>
@@ -329,14 +325,14 @@ const AnticoagulationManagementDocumentPDFTemplate = ({ document: docProp, data 
                 const key = labelMatch ? labelMatch[1].trim() : 'Other';
                 const val = labelMatch ? labelMatch[2].trim() : str;
                 if (!groups[key]) { groups[key] = []; groupOrder.push(key); }
-                groups[key].push(val);
+                groups[key].push(...(labelMatch ? splitByComma(val) : [val]));
               });
               return (
-                <View style={styles.section}>
+                <View style={styles.section} wrap={false}>
                   <Text style={styles.sectionTitle}>Drug Interactions</Text>
                   {groupOrder.map((key, gi) => (
                     <View key={gi} style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>{key}</Text>
+                      <Text style={styles.fieldLabel}>{key}</Text>
                       {groups[key].map((val, vi) => (
                         <Text key={vi} style={styles.listItem}>{vi + 1}. {val}</Text>
                       ))}

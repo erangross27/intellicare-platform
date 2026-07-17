@@ -10,6 +10,7 @@ import AccessPlanningDocumentPDFTemplate from './AccessPlanningDocumentPDFTempla
 import AllergyAssessmentTemplate from './AllergyAssessmentTemplate';
 import AllergyImmunologyAssessmentDocumentPDFTemplate from './AllergyImmunologyAssessmentDocumentPDFTemplate';
 import AllergySkinTestingDocumentPDFTemplate from './AllergySkinTestingDocumentPDFTemplate';
+import AmniocentesisReportsDocumentPDFTemplate from './AmniocentesisReportsDocumentPDFTemplate';
 import AllergiesDocumentPDFTemplate from './AllergiesDocumentPDFTemplate';
 import AllergiesAssessmentDocumentPDFTemplate from './AllergiesAssessmentDocumentPDFTemplate';
 import AllergyAssessmentsDocumentPDFTemplate from './AllergyAssessmentsDocumentPDFTemplate';
@@ -195,6 +196,7 @@ const templateRegistry = {
   'allergy_assessment': AllergyAssessmentTemplate,
   'allergy_immunology_assessment': AllergyImmunologyAssessmentDocumentPDFTemplate,
   'allergy_skin_testing': AllergySkinTestingDocumentPDFTemplate,
+  'amniocentesis_reports': AmniocentesisReportsDocumentPDFTemplate,
   'asthma_assessments': AsthmaAssessmentsPDFTemplate,
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsTemplate,

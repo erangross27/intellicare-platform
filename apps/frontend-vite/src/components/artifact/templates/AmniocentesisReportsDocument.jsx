@@ -12,6 +12,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import AmniocentesisReportsDocumentPDFTemplate from '../pdf-templates/AmniocentesisReportsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './AmniocentesisReportsDocument.css';
 
@@ -42,6 +43,8 @@ const SECTION_FIELDS = {
 
 const DATE_FIELDS = ['assessmentDate'];
 const STRING_FIELDS = ['programType', 'findings', 'goals', 'progress', 'recommendations', 'followUp'];
+const COMMA_SPLIT_FIELDS = new Set(['findings', 'progress']);
+const SEMICOLON_SEPARATOR = /;\s+/;
 
 /* parseLabel: detect "Label: value" patterns (cap 80 chars to capture long medical sub-labels
    e.g. "Most recent amniotic fluid index assessment (January 15, 2026 - 28w3d)") */
@@ -65,7 +68,10 @@ const splitOnChar = (text, sep) => {
     if (ch === '(') { depth++; cur += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); cur += ch; }
     else if (ch === sep && depth === 0) {
-      if (sep === ',' && /\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || '')) { cur += ch; continue; }
+      if (sep === ',' && !/\s/.test(text[i + 1] || '')) { cur += ch; continue; }
+      const before = cur.trim();
+      const after = text.slice(i + 1).trimStart();
+      if (sep === ',' && /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}$/i.test(before) && /^\d{4}\b/.test(after)) { cur += ch; continue; }
       const t = cur.trim(); if (t) out.push(t); cur = '';
     } else { cur += ch; }
   }
@@ -73,19 +79,14 @@ const splitOnChar = (text, sep) => {
   return out;
 };
 
-/* splitByComma kept for back-compat (paren-aware) */
-const splitByComma = (text) => splitOnChar(text, ',');
-
-/* splitClauses: choose the right list separator for a value.
-   Semicolon first (>=2 items) — semicolons are higher-level separators and commas often appear
-   INSIDE items (dates "November 5, 2025", karyotype "46,XX"). Else comma (>=3 items, Rule #73, so
-   "Lisa Yamamoto, RDMS" / "Dr. Benjamin Osei, MD" stay whole). Else a single clause. */
-const splitClauses = (text) => {
+/* Semicolons are explicit separators. Safe top-level commas are split only in fields inventoried
+   as genuine clinical lists; credentials, color descriptors, dates, karyotypes, and parentheses stay intact. */
+const splitClauses = (text, fieldName) => {
   if (!text || typeof text !== 'string') return { sep: null, items: [text || ''] };
-  const semi = splitOnChar(text, ';');
+  const semi = SEMICOLON_SEPARATOR.test(text) ? splitOnChar(text, ';') : [text];
   if (semi.length >= 2) return { sep: '; ', items: semi };
   const comma = splitOnChar(text, ',');
-  if (comma.length >= 3) return { sep: ', ', items: comma };
+  if (COMMA_SPLIT_FIELDS.has(fieldName) && comma.length >= 2) return { sep: ', ', items: comma };
   return { sep: null, items: [text.trim()] };
 };
 
@@ -163,10 +164,13 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
       });
     });
     if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
-    setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    const timer = setTimeout(() => {
+      setLocalEdits(prev => ({ ...nLocal, ...prev }));
+      setPendingEdits(prev => ({ ...nPending, ...prev }));
+      setEditedFields(prev => ({ ...nFields, ...prev }));
+      setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    }, 0);
+    return () => clearTimeout(timer);
   }, [records]);
 
   /* ═══════ UTILS ═══════ */
@@ -175,7 +179,7 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+|$)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -307,7 +311,7 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
     setLocalEdits(prev => ({ ...prev, [editKey]: fullText }));
     setPendingEdits(prev => ({ ...prev, [editKey]: true }));
     setEditedSentences(prev => {
-      let next = prev;
+      let next;
       // Re-base existing clause badges after an index-shifting edit so a yellow/green badge never
       // drifts onto an untouched clause (delete shifts indices down; separator-add shifts them up).
       if (rebase && rebase.delta) {
@@ -344,20 +348,20 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
   // unlabeled sentence) into clauses via splitClauses (semicolon-first, else comma >=3). Consecutive
   // UNLABELED sentences merge into ONE card. Each row carries its sentence+clause index for stable
   // per-clause editing.
-  const buildUnits = (value) => {
+  const buildUnits = useCallback((value, fieldName) => {
     const sentences = splitBySentence(String(value || ''));
     const units = [];
     sentences.forEach((sentence, sIdx) => {
       const p = parseLabel(sentence);
       const base = p.isLabeled ? p.value : sentence;
-      const { sep, items } = splitClauses(base);
+      const { sep, items } = splitClauses(base, fieldName);
       const rows = items.map((text, cIdx) => ({ text: STRIP(text), sIdx, cIdx, sep }));
       const last = units[units.length - 1];
       if (!p.isLabeled && last && !last.label) last.rows.push(...rows);
       else units.push({ label: p.isLabeled ? p.label : null, rows });
     });
     return units;
-  };
+  }, [splitBySentence]);
 
   // Stage one clause edit as a DRAFT (no DB write). Reconstructs the sentence with its detected
   // separator (';' or ','), then the full field with '. ', preserving every other clause. A blank
@@ -369,7 +373,7 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
     const sentence = sentences[sIdx] || '';
     const p = parseLabel(sentence);
     const base = p.isLabeled ? p.value : sentence;
-    const { sep, items } = splitClauses(base);
+    const { sep, items } = splitClauses(base, fn);
     const origLen = items.length;
     const edited = editValue.trim();
     const sKeyBase = `${fn}-${idx}-s${sIdx}`;
@@ -466,15 +470,15 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
   // Copy formatting mirrors the JSX units: labeled unit → "Label:" + indented numbered rows;
   // unlabeled unit → numbered rows. Per-unit numbering (matches the PDF).
-  const formatFieldForCopy = (text) => {
-    const units = buildUnits(text);
+  const formatFieldForCopy = useCallback((text, fieldName) => {
+    const units = buildUnits(text, fieldName);
     const lines = [];
     units.forEach(u => {
       if (u.label) { lines.push(`${u.label}:`); u.rows.forEach((r, i) => lines.push(`  ${i + 1}. ${r.text}`)); }
       else u.rows.forEach((r, i) => lines.push(`${i + 1}. ${r.text}`));
     });
     return lines;
-  };
+  }, [buildUnits]);
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
@@ -490,14 +494,14 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
         text += showLabel ? `${label}\n${formatDate(val)}\n\n` : `${formatDate(val)}\n\n`;
       } else if (STRING_FIELDS.includes(f)) {
         if (showLabel) text += `${label}\n`;
-        formatFieldForCopy(fmtVal(val)).forEach(l => { text += `${l}\n`; });
+        formatFieldForCopy(fmtVal(val), f).forEach(l => { text += `${l}\n`; });
         text += '\n';
       } else {
         text += showLabel ? `${label}\n${fmtVal(val)}\n\n` : `${fmtVal(val)}\n\n`;
       }
     });
     return text;
-  }, [getFieldValue, hasVal, fmtVal]);
+  }, [getFieldValue, hasVal, fmtVal, formatFieldForCopy]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== AMNIOCENTESIS REPORTS ===\n\n';
@@ -525,10 +529,12 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
     return (
       <div key={fn} className="rec-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className="nested-mini-card regular-row-group">
+        <div className="editable-leaf" data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={next => setEditValue(next || '')} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -543,6 +549,8 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
           )}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+        </div>
+        </div>
       </div>
     );
   };
@@ -558,7 +566,7 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
     const showLabel = label.toLowerCase() !== sectionTitle.toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    const units = buildUnits(fmtVal(val));
+    const units = buildUnits(fmtVal(val), fn);
     const phrase = searchTerm.trim().toLowerCase();
     const fieldOrTitleMatch = !phrase || sectionTitleMatches(sid) || record._showAllSections || label.toLowerCase().includes(phrase);
 
@@ -577,7 +585,7 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
                 const isEditing = editingField === editKey;
                 const badge = editedSentences[editKey];
                 return (
-                  <div key={editKey}>
+                  <div key={editKey} className="editable-leaf" data-edit-field={fn}>
                     <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(row.text); setSaveError(null); } }}>
                       {isEditing ? (
                         <div className="edit-field-container">
@@ -654,7 +662,7 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Amniocentesis Reports</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<AmniocentesisReportsDocumentPDFTemplate document={pdfData} />} fileName={`amniocentesis-reports-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<AmniocentesisReportsDocumentPDFTemplate document={pdfData} />} fileName="Amniocentesis_Reports.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -667,11 +675,6 @@ const AmniocentesisReportsDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.assessmentDate) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.assessmentDate)}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Amniocentesis Report ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'assessment-info')}

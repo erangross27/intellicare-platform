@@ -55,7 +55,7 @@ import DischargeSummariesTemplate from './DischargeSummariesTemplate';
 import HospitalDischargeSummariesTemplate from './HospitalDischargeSummariesDocumentPDFTemplate';
 import EmergencyDischargeSummariesTemplate from './EmergencyDischargeSummariesDocumentPDFTemplate';
 import EmergencyReportsTemplate from './EmergencyReportsDocumentPDFTemplate';
-import AdmissionRecommendationsTemplate from './AdmissionRecommendationsDocumentPDFTemplate';
+import AdmissionRecommendationsDocumentPDFTemplate from './AdmissionRecommendationsDocumentPDFTemplate';
 import TriageDataTemplate from './TriageDataDocumentPDFTemplate';
 import EdCourseTemplate from './EdCourseDocumentPDFTemplate';
 import EdDispositionTemplate from './EdDispositionDocumentPDFTemplate';
@@ -226,7 +226,7 @@ const templateRegistry = {
   'hospital_discharge_summaries': HospitalDischargeSummariesTemplate,
   'emergency_discharge_summaries': EmergencyDischargeSummariesTemplate,
   'emergency_reports': EmergencyReportsTemplate,
-  'admission_recommendations': AdmissionRecommendationsTemplate,
+  'admission_recommendations': AdmissionRecommendationsDocumentPDFTemplate,
   'triage_data': TriageDataTemplate,
   'ed_course': EdCourseTemplate,
   'ed_disposition': EdDispositionTemplate,

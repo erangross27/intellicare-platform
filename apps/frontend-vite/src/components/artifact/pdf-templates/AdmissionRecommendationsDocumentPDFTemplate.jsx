@@ -1,324 +1,77 @@
 import React from 'react';
-import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
-
-/**
- * Admission Recommendations PDF Template - December 2025
- * BLACK & WHITE only for professional printing
- * Numbers in lists (no dashes)
- * Keep-With-Next pattern for section titles
- */
+import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    backgroundColor: '#ffffff'
-  },
-  header: {
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    borderBottomStyle: 'solid'
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 4
-  },
-  subtitle: {
-    fontSize: 10,
-    color: '#333333'
-  },
-  recordContainer: {
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#cccccc',
-    borderBottomStyle: 'solid'
-  },
-  recordHeader: {
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    borderBottomStyle: 'solid'
-  },
-  recordTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 4
-  },
-  recordMeta: {
-    fontSize: 9,
-    color: '#666666'
-  },
-  sectionHeader: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginTop: 12,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    borderBottomStyle: 'solid',
-    paddingBottom: 3
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    marginBottom: 4,
-    paddingLeft: 8
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#000000',
-    width: 140,
-    flexShrink: 0
-  },
-  fieldValue: {
-    fontSize: 10,
-    color: '#333333',
-    flex: 1
-  },
-  listItem: {
-    fontSize: 10,
-    color: '#333333',
-    marginBottom: 3,
-    paddingLeft: 12,
-    lineHeight: 1.4
-  },
-  paragraph: {
-    fontSize: 10,
-    color: '#333333',
-    lineHeight: 1.5,
-    marginBottom: 6,
-    paddingLeft: 8
-  },
-  nestedLabel: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginTop: 8,
-    marginBottom: 4,
-    paddingLeft: 8,
-    textTransform: 'uppercase'
-  },
-  urgencyText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#000000',
-    paddingLeft: 8
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: 'center',
-    fontSize: 8,
-    color: '#999999',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    borderTopStyle: 'solid',
-    paddingTop: 8
-  }
+  page: { paddingTop: 38, paddingBottom: 42, paddingHorizontal: 42, fontFamily: 'Helvetica', color: '#111827', fontSize: 14 },
+  documentHeader: { marginBottom: 18 }, documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#2563eb' },
+  recordHeader: { marginBottom: 16 }, recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold' },
+  section: { marginTop: 11, flexDirection: 'column', width: 528 }, sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, marginBottom: 7, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldBox: { marginTop: 4, marginBottom: 8, flexDirection: 'column', width: 528 }, fieldHeader: { marginTop: 8, marginBottom: 6, width: 528 }, fieldLabel: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 3, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  nestedSubtitle: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 4, marginBottom: 6, color: '#1d4ed8' }, rowBlock: { width: 528, alignSelf: 'stretch', minHeight: 24, marginBottom: 8, flexDirection: 'column' }, fieldValue: { width: 528, fontSize: 14, lineHeight: 1.45 }, noData: { fontSize: 14, color: '#6b7280', marginTop: 16 },
 });
-
-const AdmissionRecommendationsDocumentPDFTemplate = ({ document }) => {
-  // Handle data unwrapping
-  const records = Array.isArray(document) ? document :
-                  document?.admission_recommendations ? document.admission_recommendations :
-                  document ? [document] : [];
-
-  // Format date helper
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
-  // Split into sentences on '.'/';' + whitespace (paren-aware, abbreviation-protected) — mirrors the JSX template's splitBySentence
-  const splitBySentence = (text) => {
-    if (!text || typeof text !== 'string') return [];
-    const result = [];
-    let current = '';
-    let parenDepth = 0;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (ch === '(') parenDepth++;
-      else if (ch === ')') parenDepth = Math.max(0, parenDepth - 1);
-      if ((ch === '.' || ch === ';') && parenDepth === 0 && i + 1 < text.length && /\s/.test(text[i + 1])) {
-        if (ch === '.' && /\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|etc)$/.test(current)) {
-          current += ch;
-          continue;
-        }
-        const trimmed = current.trim();
-        if (trimmed) result.push(trimmed);
-        current = '';
-        while (i + 1 < text.length && /\s/.test(text[i + 1])) i++;
-      } else {
-        current += ch;
-      }
-    }
-    const tail = current.replace(/[.;]+$/, '').trim();
-    if (tail) result.push(tail);
-    return result;
-  };
-
-  // Split by comma, respecting parentheses
-  const splitByComma = (text) => {
-    if (!text) return [];
-    const items = [];
-    let current = '';
-    let parenDepth = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      if (char === '(') parenDepth++;
-      else if (char === ')') parenDepth--;
-      // Skip thousands separators: a comma directly between two digits (e.g. 85,000) is part of the number, not a list separator
-      else if (char === ',' && parenDepth === 0 &&
-               !(/\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || ''))) {
-        if (current.trim()) items.push(current.trim());
-        current = '';
-        continue;
-      }
-      current += char;
-    }
-    if (current.trim()) items.push(current.trim());
-    return items;
-  };
-
-  // Mirror the JSX renderSentenceEditableField: split into sentences, then per sentence detect a "Label:"
-  // and comma-split the value (>=2 items) into nested-subtitle blocks. Keeps the PDF and JSX in lockstep.
-  const parseSentenceBlocks = (text) => {
-    if (!text || typeof text !== 'string') return [];
-    return splitBySentence(text).map((sentence) => {
-      const colonIdx = sentence.indexOf(':');
-      if (colonIdx > 0 && colonIdx < 50) {
-        const label = sentence.substring(0, colonIdx).trim();
-        const value = sentence.substring(colonIdx + 1).trim();
-        const parts = splitByComma(value);
-        return { label, items: parts.length >= 2 ? parts : [value] };
-      }
-      const parts = splitByComma(sentence);
-      return { label: null, items: parts.length >= 2 ? parts : [sentence] };
-    });
-  };
-
-  // Render a sentence field as nested-subtitle blocks (optional label header + numbered items), matching the JSX layout.
-  // Page-break rule #74: section title INSIDE the conditional-wrap View; <=8 lines stay together, longer flows.
-  const renderSentenceSection = (title, text) => {
-    const blocks = parseSentenceBlocks(text);
-    if (blocks.length === 0) return null;
-    // Group consecutive UNLABELED blocks into ONE unit (mirrors the JSX: Findings collapses to one card,
-    // numbered continuously; Follow-Up keeps Week 2/4/12 + Monthly as separate units).
-    const units = [];
-    blocks.forEach((b) => {
-      const last = units[units.length - 1];
-      if (!b.label && last && !last.label) {
-        last.items.push(...b.items);
-      } else {
-        units.push({ label: b.label, items: [...b.items] });
-      }
-    });
-    const totalLines = units.reduce((n, u) => n + (u.label ? 1 : 0) + u.items.length, 0);
-    return (
-      <View>
-        <View wrap={totalLines > 8 ? undefined : false}>
-          <Text style={styles.sectionHeader}>{title}</Text>
-          {units.map((u, ui) => (
-            <View key={ui}>
-              {u.label && <Text style={styles.nestedLabel}>{u.label}</Text>}
-              {u.items.length > 1
-                ? u.items.map((item, ii) => (
-                    <Text key={ii} style={styles.listItem}>{ii + 1}. {item}</Text>
-                  ))
-                : <Text style={u.label ? styles.listItem : styles.paragraph}>{u.items[0]}</Text>}
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Admission Recommendations</Text>
-          <Text style={styles.subtitle}>Generated: {formatDate(new Date())}</Text>
-        </View>
-
-        {/* Records */}
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            {/* Record Header */}
-            <View style={styles.recordHeader}>
-              <Text style={styles.recordTitle}>Admission Recommendation {idx + 1}</Text>
-              <Text style={styles.recordMeta}>
-                {record.reportDate && `Date: ${formatDate(record.reportDate)}`}
-                {record.reportDate && record.reportType && ' | '}
-                {record.reportType && `Type: ${record.reportType}`}
-                {(record.reportDate || record.reportType) && record.urgency && ' | '}
-                {record.urgency && `Urgency: ${record.urgency.split(' - ')[0] || record.urgency}`}
-              </Text>
-            </View>
-
-            {/* Report Type */}
-            {record.reportType && (
-              <View>
-                <View wrap={false}>
-                  <Text style={styles.sectionHeader}>Report Type</Text>
-                  <Text style={styles.paragraph}>{record.reportType}</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Clinical Indication */}
-            {record.clinicalIndication && renderSentenceSection('Clinical Indication', record.clinicalIndication)}
-
-            {/* Findings */}
-            {record.findings && renderSentenceSection('Findings', record.findings)}
-
-            {/* Urgency */}
-            {record.urgency && (
-              <View>
-                <View wrap={false}>
-                  <Text style={styles.sectionHeader}>Urgency</Text>
-                  <Text style={styles.urgencyText}>{record.urgency}</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Recommendations */}
-            {record.recommendations && renderSentenceSection('Recommendations', record.recommendations)}
-
-            {/* Follow-up */}
-            {record.followUp && renderSentenceSection('Follow-Up', record.followUp)}
-          </View>
-        ))}
-
-        {/* Footer */}
-        <Text style={styles.footer} fixed>
-          Admission Recommendations - Confidential Medical Record
-        </Text>
-      </Page>
-    </Document>
-  );
+const SECTIONS = [
+  { title: 'Report Information', fields: [['reportDate', 'Report Date', 'date'], ['reportType', 'Report Type'], ['urgency', 'Urgency']] },
+  { title: 'Clinical Indication', fields: [['clinicalIndication', 'Clinical Indication', 'comma']] },
+  { title: 'Findings', fields: [['findings', 'Findings', 'sentence']] },
+  { title: 'Recommendations', fields: [['recommendations', 'Recommendations', 'comma']] },
+  { title: 'Follow-up', fields: [['followUp', 'Follow-up', 'sentenceLabeledComma']] },
+];
+const PAGE_GROUPS = SECTIONS.map((_, index) => [index]);
+const hasVal = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasVal)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasVal));
+const humanize = key => String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, char => char.toUpperCase());
+const formatDate = value => { if (!value) return ''; try { const raw = value?.$date?.$numberLong ?? value?.$date ?? value?.$numberLong ?? value, normalized = typeof raw === 'string' && /^-?\d+$/.test(raw) ? Number(raw) : raw, date = new Date(normalized); return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(value); } };
+const parseLabel = value => { const text = String(value || ''), match = text.match(/^([^:]{1,60}):\s+(.+)$/); return match && !/[([\]]/.test(match[1]) ? { subtitle: match[1].trim(), content: match[2].trim() } : { subtitle: '', content: text }; };
+const splitComma = value => { const rows = []; let current = '', depth = 0; for (const char of String(value || '')) { if (char === '(') depth += 1; if (char === ')') depth = Math.max(0, depth - 1); if (char === ',' && depth === 0) { if (current.trim()) rows.push(current.trim()); current = ''; } else current += char; } if (current.trim()) rows.push(current.trim()); return rows; };
+const splitSentence = value => String(value || '').split(/;\s+|\.(?!\d)(?:\s+|$)/).map(row => row.trim()).filter(row => row && !/^[;.,!?]+$/.test(row));
+const textRows = (value, { sentences = false, commas = false, commasWhenLabeled = false } = {}) => { const source = String(value || '').trim(); return (sentences ? splitSentence(source) : [source]).flatMap(part => { const parsed = parseLabel(part), clauses = commas && (!commasWhenLabeled || parsed.subtitle) ? splitComma(parsed.content) : [parsed.content]; return clauses.filter(Boolean).map(row => ({ subtitle: parsed.subtitle, value: row })); }); };
+const SENTENCE_OBJECT_PATHS = new Set();
+const COMMA_OBJECT_PATHS = new Set();
+const normalizeIndexedPath = path => path.replace(/\.\d+(?=\.|$)/g, '.*');
+const pathIsDeclared = (set, path) => set.has(path) || set.has(normalizeIndexedPath(path));
+const isDatePath = path => /date/i.test(String(path || '').split('.').pop());
+const isDateObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && Object.hasOwn(value, '$date');
+const EXTENDED_NUMBER_KEYS = ['$numberInt', '$numberLong', '$numberDouble', '$numberDecimal'];
+const isExtendedNumberObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && EXTENDED_NUMBER_KEYS.includes(Object.keys(value)[0]);
+const unwrapExtendedNumber = value => { if (!isExtendedNumberObject(value)) return value; const raw = value[Object.keys(value)[0]], number = Number(raw); return Number.isFinite(number) ? number : raw; };
+const OBJECT_ARRAY_ITEM_LABELS = {};
+const flattenObject = (value, pathPrefix = '', labelPrefix = '') => {
+  if (Array.isArray(value)) return value.flatMap((child, index) => {
+    const path = pathPrefix ? `${pathPrefix}.${index}` : String(index), label = `${labelPrefix || 'Item'} ${index + 1}`;
+    return child && typeof child === 'object' && !isDateObject(child) && !isExtendedNumberObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: unwrapExtendedNumber(child) }] : [];
+  });
+  return Object.entries(value || {}).flatMap(([key, child]) => {
+    const path = pathPrefix ? `${pathPrefix}.${key}` : key, label = labelPrefix ? `${labelPrefix} — ${humanize(key)}` : humanize(key);
+    return child && typeof child === 'object' && !isDateObject(child) && !isExtendedNumberObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: unwrapExtendedNumber(child) }] : [];
+  });
+};
+const formatLeaf = leaf => ({ subtitle: leaf.subtitle, value: isDatePath(leaf.path) ? formatDate(leaf.value) : typeof leaf.value === 'boolean' ? (leaf.value ? 'Yes' : 'No') : String(leaf.value) });
+const objectLeafRows = (field, leaf, subtitlePrefix = '') => {
+  const path = `${field}.${leaf.path}`, subtitle = subtitlePrefix ? `${subtitlePrefix} — ${leaf.subtitle}` : leaf.subtitle;
+  if (typeof leaf.value === 'string' && (pathIsDeclared(SENTENCE_OBJECT_PATHS, path) || pathIsDeclared(COMMA_OBJECT_PATHS, path))) return textRows(leaf.value, { sentences: pathIsDeclared(SENTENCE_OBJECT_PATHS, path), commas: pathIsDeclared(COMMA_OBJECT_PATHS, path) }).map(row => ({ ...row, subtitle: row.subtitle ? `${subtitle} — ${row.subtitle}` : subtitle }));
+  return [{ ...formatLeaf({ ...leaf, subtitle }), path }];
+};
+const rowsFor = ([field, , type], value) => {
+  if (type === 'date') return [{ value: formatDate(value) }]; if (type === 'boolean') return [{ value: value ? 'Yes' : 'No' }]; if (type === 'number') return [{ value: String(value) }]; if (type === 'sentence') return textRows(value, { sentences: true }); if (type === 'sentenceComma') return textRows(value, { sentences: true, commas: true }); if (type === 'sentenceLabeledComma') return textRows(value, { sentences: true, commas: true, commasWhenLabeled: true }); if (type === 'comma') return textRows(value, { commas: true });
+  if (type === 'recommendationGroups') { const groups = []; (Array.isArray(value) ? value : []).forEach(item => { if (!hasVal(item)) return; const dateValue = item && typeof item === 'object' ? item.date : null, dateKey = dateValue ? formatDate(dateValue) : 'no-date'; let group = groups.find(candidate => candidate.dateKey === dateKey); if (!group) { group = { dateKey, dateValue, items: [] }; groups.push(group); } group.items.push(item); }); return groups.flatMap(group => { const rows = []; if (group.dateValue) rows.push({ subtitle: 'Date', value: formatDate(group.dateValue) }); group.items.forEach(item => { const objectItem = item && typeof item === 'object', raw = objectItem ? (item.recommendation ?? item.text ?? item.value) : item; if (hasVal(raw)) rows.push({ value: String(raw) }); }); return rows; }); }
+  if (type === 'arrayConditional') return (Array.isArray(value) ? value : []).flatMap(item => { const parsed = parseLabel(item); return parsed.subtitle ? textRows(item, { commas: true }) : [{ value: String(item) }]; });
+  if (type === 'arrayKeep') return (Array.isArray(value) ? value : []).map(item => ({ value: String(item) }));
+  if (type === 'arrayComma') return (Array.isArray(value) ? value : []).flatMap(item => textRows(item, { commas: true }));
+  if (type === 'arrayLabeledKeep') return (Array.isArray(value) ? value : []).map(item => { const parsed = parseLabel(item); return { subtitle: parsed.subtitle, value: parsed.content }; });
+  if (type === 'objectSplit') return flattenObject(value).flatMap(leaf => leaf.path === 'description' && typeof leaf.value === 'string' ? textRows(leaf.value, { sentences: true, commas: true }).map(row => ({ ...row, subtitle: row.subtitle ? `${leaf.subtitle} — ${row.subtitle}` : leaf.subtitle })) : [formatLeaf(leaf)]);
+  if (type === 'objectArray') return (Array.isArray(value) ? value : []).flatMap((item, index) => flattenObject(item).flatMap(leaf => objectLeafRows(`${field}.${index}`, leaf, `${OBJECT_ARRAY_ITEM_LABELS[field]} ${index + 1}`)));
+  if (type === 'object') return flattenObject(value).flatMap(leaf => objectLeafRows(field, leaf)); return textRows(value);
+};
+const renderField = (config, value, key, sectionTitle) => {
+  const [, label] = config, rows = rowsFor(config, value), showLabel = label !== sectionTitle;
+  if (!rows.length) return null;
+  const renderRow = (row, index, priorSubtitle) => { const showSubtitle = row.subtitle && row.subtitle !== priorSubtitle; return <View key={`${key}-${index}`} style={styles.rowBlock} wrap={false}>{showSubtitle && <Text style={styles.nestedSubtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}{'\n'}</Text></View>; };
+  const first = rows[0];
+  return <React.Fragment key={key}>{showLabel ? <View wrap={false}><View style={styles.fieldHeader}><Text style={styles.fieldLabel}>{label}</Text></View>{renderRow(first, 0, '')}</View> : renderRow(first, 0, '')}{rows.slice(1).map((row, offset) => renderRow(row, offset + 1, rows[offset].subtitle || ''))}</React.Fragment>;
 };
 
+const AdmissionRecommendationsDocumentPDFTemplate = ({ document: documentProp, data: dataProp, templateData }) => {
+  const records = React.useMemo(() => { const source = documentProp ?? dataProp ?? templateData; if (!source) return []; let rows = Array.isArray(source) ? source : [source]; rows = rows.flatMap(row => { if (Array.isArray(row?.records)) return row.records; if (Array.isArray(row?._records)) return row._records; if (row?.admission_recommendations) return Array.isArray(row.admission_recommendations) ? row.admission_recommendations : [row.admission_recommendations]; if (row?.documentData) { const nested = row.documentData; if (Array.isArray(nested)) return nested; if (nested?.admission_recommendations) return Array.isArray(nested.admission_recommendations) ? nested.admission_recommendations : [nested.admission_recommendations]; return [nested]; } return [row]; }); return rows.filter(row => row && typeof row === 'object'); }, [documentProp, dataProp, templateData]);
+  if (!records.length) return <Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.documentTitle}>Admission Recommendations</Text></View><Text style={styles.noData}>No admission recommendations available</Text></Page></Document>;
+  return <Document>{records.flatMap((record, recordIndex) => PAGE_GROUPS.map((indexes, pageIndex) => { const visible = indexes.map(index => ({ section: SECTIONS[index], index, fields: SECTIONS[index].fields.filter(([field]) => hasVal(record[field])) })).filter(item => item.fields.length); if (!visible.length) return null; return <Page key={`${recordIndex}-${pageIndex}`} size="LETTER" style={styles.page}>{pageIndex === 0 && <View style={styles.documentHeader}><Text style={styles.documentTitle}>Admission Recommendations</Text></View>}{pageIndex === 0 && <View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>{record.reportType || `Admission Recommendation ${recordIndex + 1}`}</Text></View>}{visible.map(({ section, index, fields }) => <View key={`${index}-${section.title}`} style={styles.section}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text></View>{fields.map((config, fieldIndex) => renderField(config, record[config[0]], `${index}-${fieldIndex}`, section.title))}</View>)}</Page>; }))}</Document>;
+};
 export default AdmissionRecommendationsDocumentPDFTemplate;

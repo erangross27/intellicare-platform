@@ -24,6 +24,7 @@ router.use(practiceModels);
 router.use(practiceAuth);
 
 const ALLOWED_FIELDS = [
+  'reportDate',
   'reportType',
   'clinicalIndication',
   'findings',
@@ -59,7 +60,8 @@ router.put('/:id/edit', async (req, res) => {
       return res.status(400).json({ success: false, error: 'field and value are required' });
     }
 
-    if (!ALLOWED_FIELDS.includes(field)) {
+    const rootField = field.split('.')[0];
+    if (!ALLOWED_FIELDS.includes(field) && !ALLOWED_FIELDS.includes(rootField)) {
       return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     }
 

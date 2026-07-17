@@ -1,535 +1,59 @@
-/* Access Planning Document - December 2025 Standards */
-/* Blue-only color scheme, Comfortaa font, text-transform: none !important */
-
-.access-planning-document {
-  padding: 24px;
-  color: #ececf1;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-/* Document Title - 31px BIGGEST */
-.access-planning-document .document-title {
-  font-size: 31px;
-  font-weight: 700;
-  color: #ececf1;
-  margin: 0 0 20px 0;
-  text-transform: none !important;
-}
-
-/* Header Controls - Search on top, buttons below */
-.access-planning-document .header-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-/* Action Buttons - Below search */
-.access-planning-document .action-buttons {
-  display: flex !important;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  flex-direction: row !important;
-  gap: 12px;
-}
-
-.access-planning-document .action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex: 0 0 auto !important;
-  min-width: 120px;
-  white-space: nowrap;
-  height: 36px;
-  padding: 8px 16px;
-  box-sizing: border-box;
-  background: transparent;
-  color: #ececf1;
-  border: 1px solid #2563eb;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: 'Comfortaa', sans-serif;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.access-planning-document .action-btn:hover {
-  background: rgba(37, 99, 235, 0.2);
-}
-
-.access-planning-document .action-btn.copied {
-  background: #2563eb;
-  color: #ffffff;
-}
-
-/* Records Container */
-.access-planning-document .records-container {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  margin-top: 20px;
-}
-
-/* Record Card */
-.access-planning-document .record-card {
-  background: #1e1f2e;
-  border: 1px solid rgba(96, 165, 250, 0.2);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-/* Card Header - Two Row Layout */
-.access-planning-document .card-header {
-  display: flex;
-  flex-direction: column !important;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(96, 165, 250, 0.08) 100%);
-  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
-}
-
-.access-planning-document .header-top-row {
-  display: flex !important;
-  flex-direction: row !important;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  gap: 8px !important;
-  margin-bottom: 8px !important;
-  width: 100% !important;
-}
-
-/* NESTED OVERRIDES - Required to prevent external CSS interference */
-.access-planning-document .header-top-row .date-badge {
-  margin-bottom: 0 !important;
-  display: inline-flex !important;
-}
-
-/* Card Title - 23px */
-.access-planning-document .card-title {
-  font-size: 23px;
-  font-weight: 700;
-  color: #ececf1;
-  margin: 0;
-  text-transform: none !important;
-}
-
-/* Badges */
-.access-planning-document .date-badge {
-  background: rgba(96, 165, 250, 0.2);
-  color: #60a5fa;
-  padding: 5px 14px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* Type Badge */
-.access-planning-document .type-badge {
-  background: rgba(96, 165, 250, 0.2);
-  color: #60a5fa;
-  border: 1px solid #60a5fa;
-  padding: 5px 14px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-/* Card Content */
-.access-planning-document .card-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Sections */
-.access-planning-document .section {
-  margin-bottom: 0;
-}
-
-.access-planning-document .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
-}
-
-/* Section Title - 19px BLUE */
-.access-planning-document .section-title {
-  font-size: 19px;
-  font-weight: 700;
-  color: #60a5fa;
-  margin: 0;
-  text-transform: none !important;
-}
-
-/* Section Copy Button */
-.access-planning-document .section-copy-btn {
-  background: rgba(96, 165, 250, 0.15);
-  color: #93c5fd;
-  border: 1px solid rgba(96, 165, 250, 0.4);
-  border-radius: 4px;
-  padding: 5px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: 'Comfortaa', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.access-planning-document .section-copy-btn:hover {
-  background: rgba(96, 165, 250, 0.1);
-  border-color: #60a5fa;
-}
-
-.access-planning-document .section-copy-btn.copied {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
-}
-
-/* Blue Box Card Frame */
-.access-planning-document .numbered-rows-wrapper {
-  background: rgba(96, 165, 250, 0.08);
-  border: 2px solid rgba(96, 165, 250, 0.3);
-  border-radius: 10px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Numbered Row */
-.access-planning-document .numbered-row {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: flex-start;
-  background: #0d1929;
-  padding: 12px 16px;
-  border-radius: 6px;
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  gap: 12px;
-}
-
-.access-planning-document .row-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-/* Content Subtitle - 17px LIGHT BRIGHT BLUE (nested-subtitle standard) */
-.access-planning-document .content-subtitle {
-  font-size: 17px;
-  font-weight: 700;
-  color: #93c5fd;
-  text-transform: none !important;
-}
-
-/* Content Value - 17px WHITE */
-.access-planning-document .content-value {
-  font-size: 17px;
-  color: #ececf1;
-  line-height: 1.6;
-}
-
-/* ── Triple-nested mini-card (template-creation checklist standard) ──
-   rec-mini-card (field; label = nested-subtitle) -> nested-mini-card (value box) -> numbered-row (value + Copy) */
-.access-planning-document .rec-mini-card {
-  background: rgba(96, 165, 250, 0.08);
-  border: 1px solid rgba(96, 165, 250, 0.25);
-  border-radius: 8px;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.access-planning-document .nested-subtitle {
-  font-size: 17px;
-  font-weight: 700;
-  color: #93c5fd;
-  text-transform: none !important;
-}
-.access-planning-document .nested-subtitle.sub-label {
-  font-size: 15px;
-  opacity: 0.9;
-}
-.access-planning-document .nested-mini-card {
-  background: #0d1929;
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  border-radius: 6px;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-/* numbered-row inside a nested-mini-card is just the flex layout — the card IS the value box */
-.access-planning-document .nested-mini-card .numbered-row {
-  background: transparent;
-  border: none;
-  padding: 0;
-}
-
-/* Date picker input (editable date fields) */
-.access-planning-document .edit-date-input {
-  background: #0d1929;
-  color: #ececf1;
-  border: 1px solid rgba(96, 165, 250, 0.5);
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 15px;
-  font-family: 'Comfortaa', sans-serif;
-}
-.access-planning-document .edit-date-input::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  cursor: pointer;
-}
-
-/* Subsection - For nested arrays like preoperativeConsiderations */
-.access-planning-document .subsection {
-  background: rgba(96, 165, 250, 0.08);
-  border: 2px solid rgba(96, 165, 250, 0.3);
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-
-.access-planning-document .subsection:last-child {
-  margin-bottom: 0;
-}
-
-.access-planning-document .subsection-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #60a5fa;
-  text-transform: none !important;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
-  padding-bottom: 8px;
-  margin-bottom: 12px;
-}
-
-.access-planning-document .subsection-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.access-planning-document .subsection .numbered-row {
-  background: #0d1929;
-}
-
-/* Copy Button (Row Level) — NOT transparent per March 2026 */
-.access-planning-document .copy-btn {
-  background: rgba(96, 165, 250, 0.15);
-  color: #93c5fd;
-  border: 1px solid rgba(96, 165, 250, 0.4);
-  border-radius: 4px;
-  padding: 5px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: 'Comfortaa', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.access-planning-document .copy-btn:hover {
-  background: rgba(96, 165, 250, 0.1);
-  border-color: #60a5fa;
-}
-
-.access-planning-document .copy-btn.copied {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
-}
-
-/* Search Highlight - YELLOW ON BLACK */
-.access-planning-document mark {
-  background-color: yellow;
-  color: black !important;
-  -webkit-text-fill-color: black !important;
-  padding: 0 2px;
-  border-radius: 2px;
-}
-
-/* No Data Message */
-.access-planning-document .no-data-message {
-  color: #9ca3af;
-  font-size: 16px;
-  text-align: center;
-  padding: 40px 20px;
-}
-
-/* ─── Editing Styles (March 2026) ────────────────────────────────────────── */
-
-/* Header right actions — column layout: copy on top, approve below */
-.access-planning-document .header-right-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  margin-left: auto;
-}
-
-/* Edit field container — MUST have width: 100% */
-.access-planning-document .edit-field-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
-/* Edit textarea */
-.access-planning-document .edit-textarea {
-  width: 100%;
-  min-height: 60px;
-  padding: 10px 12px;
-  background: #0d1929;
-  color: #ececf1;
-  border: 2px solid #2563eb;
-  border-radius: 6px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.access-planning-document .edit-textarea:focus {
-  outline: none;
-  border-color: #60a5fa;
-  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
-}
-
-/* Edit actions (Save / Cancel) */
-.access-planning-document .edit-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.access-planning-document .save-btn {
-  padding: 6px 16px;
-  background: #2563eb;
-  color: #ffffff;
-  border: none;
-  border-radius: 6px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.access-planning-document .save-btn:hover {
-  background: #1d4ed8;
-}
-
-.access-planning-document .save-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.access-planning-document .cancel-btn {
-  padding: 6px 16px;
-  background: transparent;
-  color: #9ca3af;
-  border: 1px solid #4b5563;
-  border-radius: 6px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.access-planning-document .cancel-btn:hover {
-  background: rgba(75, 85, 99, 0.2);
-  color: #ececf1;
-}
-
-/* Editable row content — cursor pointer + edit indicator */
-.access-planning-document .row-content.editable {
-  cursor: pointer;
-  position: relative;
-}
-
-.access-planning-document .row-content.editable:hover {
-  background: rgba(96, 165, 250, 0.05);
-  border-radius: 4px;
-}
-
-.access-planning-document .edit-indicator {
-  margin-left: 8px;
-  color: rgba(96, 165, 250, 0.4);
-  font-size: 14px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.access-planning-document .row-content.editable:hover .edit-indicator {
-  opacity: 1;
-}
-
-/* Modified row — yellow left border */
-.access-planning-document .numbered-row.modified {
-  border-left: 3px solid #eab308;
-}
-
-/* Modified badge — below numbered-row (OUTSIDE per React.Fragment) */
-.access-planning-document .modified-badge {
-  font-size: 12px;
-  color: #eab308;
-  font-style: italic;
-  padding: 2px 14px;
-  margin-top: -4px;
-}
-
-/* Approve button — base */
-.access-planning-document .approve-btn {
-  margin-top: 4px;
-  border-radius: 6px;
-  padding: 5px 14px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: capitalize;
-  letter-spacing: 0.3px;
-  transition: all 0.2s ease;
-}
-
-/* Pending Approve — YELLOW */
-.access-planning-document .approve-btn.pending {
-  background: rgba(234, 179, 8, 0.15);
-  border: 1px solid rgba(234, 179, 8, 0.5);
-  color: #eab308;
-}
-
-.access-planning-document .approve-btn.pending:hover {
-  background: rgba(234, 179, 8, 0.25);
-  border-color: rgba(234, 179, 8, 0.7);
-  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
-}
-
-/* Approved — GREEN */
-.access-planning-document .approve-btn.approved {
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  color: #22c55e;
-}
-
-.access-planning-document .approve-btn.approved:hover {
-  background: rgba(34, 197, 94, 0.25);
-  border-color: rgba(34, 197, 94, 0.6);
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
-}
+/* AccessPlanningDocument.css — March 2026 Blue glow editing theme */
+.access-planning-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; text-align: left; }
+.access-planning-document * { direction: ltr; text-align: left; }
+.access-planning-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
+.access-planning-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
+.access-planning-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
+.access-planning-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+.access-planning-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
+.access-planning-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
+.access-planning-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
+.access-planning-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
+.access-planning-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
+.access-planning-document .section { margin-top: 16px; }
+.access-planning-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
+.access-planning-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
+.access-planning-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
+.access-planning-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+.access-planning-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.access-planning-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
+.access-planning-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
+.access-planning-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
+.access-planning-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
+.access-planning-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
+.access-planning-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
+.access-planning-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
+.access-planning-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
+.access-planning-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: white; }
+.access-planning-document .editable-row { cursor: pointer; }
+.access-planning-document .editable-row:hover .edit-indicator { opacity: 1; }
+.access-planning-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.access-planning-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.access-planning-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.access-planning-document .modified-badge.added { color: #4ade80; }
+.access-planning-document .edit-field-container { width: 100%; }
+.access-planning-document .edit-input { flex: 1; min-width: 0; height: 40px; padding: 8px 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font: inherit; box-sizing: border-box; }
+.access-planning-document .num-step { width: 40px; height: 40px; border: 1px solid #60a5fa; border-radius: 6px; background: rgba(96, 165, 250, 0.14); color: #ececf1; cursor: pointer; font-size: 20px; text-align: center; }
+.access-planning-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.access-planning-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.access-planning-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.access-planning-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.access-planning-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.access-planning-document .approve-btn { text-transform: capitalize; }
+.access-planning-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.access-planning-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.access-planning-document .search-container { margin-bottom: 20px; }
+.access-planning-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.access-planning-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.access-planning-document .search-input::placeholder { color: #9ca3af; }
+.access-planning-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
+.access-planning-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
+.access-planning-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
+/* nested OBJECT renderer (results) */
+.access-planning-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.access-planning-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.access-planning-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.access-planning-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.access-planning-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.access-planning-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
+@media (max-width: 768px) { .access-planning-document .document-header { padding-bottom: 12px; } .access-planning-document .document-title { font-size: 24px; } .access-planning-document .header-actions { flex-direction: column; } }

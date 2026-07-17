@@ -1,279 +1,67 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-
-// Register Helvetica (built-in, no registration needed)
+import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#000000',
-  },
-  recordContainer: {
-    marginBottom: 24,
-    paddingBottom: 16,
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#000000',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#000000',
-  },
-  row: {
-    marginBottom: 6,
-    paddingLeft: 8,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 2,
-  },
-  value: {
-    fontSize: 12,
-    color: '#000000',
-    lineHeight: 1.4,
-  },
-  listItem: {
-    fontSize: 12,
-    color: '#000000',
-    paddingLeft: 8,
-    marginBottom: 4,
-  },
-  subsectionTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#444444',
-    marginTop: 8,
-    marginBottom: 6,
-    paddingLeft: 4,
-  },
-  noData: {
-    fontSize: 12,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 40,
-  },
+  page: { paddingTop: 38, paddingBottom: 42, paddingHorizontal: 42, fontFamily: 'Helvetica', color: '#111827', fontSize: 14 },
+  documentHeader: { marginBottom: 18 }, documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#2563eb' },
+  recordHeader: { marginBottom: 16 }, recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold' },
+  section: { marginTop: 11, flexDirection: 'column', width: 528 }, sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, marginBottom: 7, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldBox: { marginTop: 4, marginBottom: 8, flexDirection: 'column', width: 528 }, fieldHeader: { marginTop: 8, marginBottom: 6, width: 528 }, fieldLabel: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 3, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  nestedSubtitle: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 4, marginBottom: 6, color: '#1d4ed8' }, rowBlock: { width: 528, alignSelf: 'stretch', minHeight: 24, marginBottom: 8, flexDirection: 'column' }, fieldValue: { width: 528, fontSize: 14, lineHeight: 1.45 }, noData: { fontSize: 14, color: '#6b7280', marginTop: 16 },
 });
-
-// Format date helper
-const formatDate = (dateValue) => {
-  if (!dateValue) return '';
-  try {
-    const dateStr = dateValue.$date || dateValue;
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return String(dateValue || '');
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return String(dateValue || '');
-  }
+const SECTIONS = [
+  { title: 'Planning Information', fields: [['date', 'Planning Date', 'date'], ['provider', 'Provider'], ['facility', 'Facility']] },
+  { title: 'Access Details', fields: [['accessType', 'Access Type'], ['indication', 'Indication'], ['plannedSite', 'Planned Site'], ['vascularMapping', 'Vascular Mapping', 'comma']] },
+  { title: 'Procedure Schedule & Team', fields: [['plannedDate', 'Planned Procedure Date', 'date'], ['surgeon', 'Surgeon']] },
+  { title: 'Preoperative Plan', fields: [['preoperativeConsiderations', 'Preoperative Considerations', 'arrayKeep'], ['anticoagulation', 'Anticoagulation', 'comma'], ['temporaryAccess', 'Temporary Access'], ['maturationTime', 'Maturation Time']] },
+  { title: 'Follow-up & Notes', fields: [['followUp', 'Follow-up', 'sentence'], ['notes', 'Notes', 'sentence']] },
+];
+const PAGE_GROUPS = SECTIONS.map((_, index) => [index]);
+const hasVal = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasVal)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasVal));
+const humanize = key => String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, char => char.toUpperCase());
+const formatDate = value => { if (!value) return ''; try { return new Date(value.$date || value).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(value); } };
+const parseLabel = value => { const text = String(value || ''), match = text.match(/^([^:]{1,60}):\s+(.+)$/); return match ? { subtitle: match[1].trim(), content: match[2].trim() } : { subtitle: '', content: text }; };
+const splitComma = value => { const rows = []; let current = '', depth = 0; for (const char of String(value || '')) { if (char === '(') depth += 1; if (char === ')') depth = Math.max(0, depth - 1); if (char === ',' && depth === 0) { if (current.trim()) rows.push(current.trim()); current = ''; } else current += char; } if (current.trim()) rows.push(current.trim()); return rows; };
+const splitSentence = value => String(value || '').split(/;\s+|\.(?!\d)(?:\s+|$)/).map(row => row.trim()).filter(row => row && !/^[;.,!?]+$/.test(row));
+const textRows = (value, { sentences = false, commas = false, commasWhenLabeled = false } = {}) => (sentences ? splitSentence(value) : [String(value || '').trim()]).flatMap(part => { const parsed = parseLabel(part), clauses = commas && (!commasWhenLabeled || parsed.subtitle) ? splitComma(parsed.content) : [parsed.content]; return clauses.filter(Boolean).map(row => ({ subtitle: parsed.subtitle, value: row })); });
+const SENTENCE_OBJECT_PATHS = new Set();
+const COMMA_OBJECT_PATHS = new Set();
+const normalizeIndexedPath = path => path.replace(/\.\d+(?=\.|$)/g, '.*');
+const pathIsDeclared = (set, path) => set.has(path) || set.has(normalizeIndexedPath(path));
+const isDatePath = path => /date/i.test(String(path || '').split('.').pop());
+const isDateObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && Object.hasOwn(value, '$date');
+const OBJECT_ARRAY_ITEM_LABELS = {};
+const flattenObject = (value, pathPrefix = '', labelPrefix = '') => {
+  if (Array.isArray(value)) return value.flatMap((child, index) => {
+    const path = pathPrefix ? `${pathPrefix}.${index}` : String(index), label = `${labelPrefix || 'Item'} ${index + 1}`;
+    return child && typeof child === 'object' && !isDateObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: child }] : [];
+  });
+  return Object.entries(value || {}).flatMap(([key, child]) => {
+    const path = pathPrefix ? `${pathPrefix}.${key}` : key, label = labelPrefix ? `${labelPrefix} — ${humanize(key)}` : humanize(key);
+    return child && typeof child === 'object' && !isDateObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: child }] : [];
+  });
 };
-
-// Safe string conversion
-const toSafeString = (value) => {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return value.filter(Boolean).join(', ');
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
+const formatLeaf = leaf => ({ subtitle: leaf.subtitle, value: isDatePath(leaf.path) ? formatDate(leaf.value) : typeof leaf.value === 'boolean' ? (leaf.value ? 'Yes' : 'No') : String(leaf.value) });
+const objectLeafRows = (field, leaf, subtitlePrefix = '') => {
+  const path = `${field}.${leaf.path}`, subtitle = subtitlePrefix ? `${subtitlePrefix} — ${leaf.subtitle}` : leaf.subtitle;
+  if (typeof leaf.value === 'string' && (pathIsDeclared(SENTENCE_OBJECT_PATHS, path) || pathIsDeclared(COMMA_OBJECT_PATHS, path))) return textRows(leaf.value, { sentences: pathIsDeclared(SENTENCE_OBJECT_PATHS, path), commas: pathIsDeclared(COMMA_OBJECT_PATHS, path) }).map(row => ({ ...row, subtitle: row.subtitle ? `${subtitle} — ${row.subtitle}` : subtitle }));
+  return [{ ...formatLeaf({ ...leaf, subtitle }), path }];
 };
-
-const AccessPlanningDocumentPDFTemplate = ({ document }) => {
-  // Data unwrapping
-  let records = [];
-  if (Array.isArray(document)) {
-    if (document.length > 0 && document[0]?.records) {
-      records = document[0].records;
-    } else if (document.length > 0 && document[0]?._records) {
-      records = document[0]._records;
-    } else {
-      records = document;
-    }
-  } else if (document?.records) {
-    records = document.records;
-  } else if (document?._records) {
-    records = document._records;
-  } else if (document) {
-    records = [document];
-  }
-
-  const validRecords = Array.isArray(records) ? records : [];
-
-  if (!validRecords.length) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <Text style={styles.documentTitle}>Access Planning</Text>
-          <Text style={styles.noData}>No access planning data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Access Planning</Text>
-
-        {validRecords.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer} minPresenceAhead={80}>
-            <Text style={styles.recordTitle}>Access Planning {idx + 1}</Text>
-
-            {/* Planning Information */}
-            {(record.date || record.provider || record.facility) && (
-              <View style={styles.section} wrap={false} minPresenceAhead={80}>
-                <Text style={styles.sectionTitle}>Planning Information</Text>
-                {record.date && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>1. Date</Text>
-                    <Text style={styles.value}>{formatDate(record.date)}</Text>
-                  </View>
-                )}
-                {record.provider && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>2. Provider</Text>
-                    <Text style={styles.value}>{toSafeString(record.provider)}</Text>
-                  </View>
-                )}
-                {record.facility && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>3. Facility</Text>
-                    <Text style={styles.value}>{toSafeString(record.facility)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Access Details */}
-            {(record.accessType || record.indication || record.plannedSite || record.vascularMapping) && (
-              <View style={styles.section} wrap={false} minPresenceAhead={80}>
-                <Text style={styles.sectionTitle}>Access Details</Text>
-                {record.accessType && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>1. Access Type</Text>
-                    <Text style={styles.value}>{toSafeString(record.accessType)}</Text>
-                  </View>
-                )}
-                {record.indication && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>2. Indication</Text>
-                    <Text style={styles.value}>{toSafeString(record.indication)}</Text>
-                  </View>
-                )}
-                {record.plannedSite && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>3. Planned Site</Text>
-                    <Text style={styles.value}>{toSafeString(record.plannedSite)}</Text>
-                  </View>
-                )}
-                {record.vascularMapping && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>4. Vascular Mapping</Text>
-                    <Text style={styles.value}>{toSafeString(record.vascularMapping)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Procedure Details */}
-            {(record.plannedDate || record.surgeon) && (
-              <View style={styles.section} wrap={false} minPresenceAhead={80}>
-                <Text style={styles.sectionTitle}>Procedure Details</Text>
-                {record.plannedDate && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>1. Planned Date</Text>
-                    <Text style={styles.value}>{formatDate(record.plannedDate)}</Text>
-                  </View>
-                )}
-                {record.surgeon && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>2. Surgeon</Text>
-                    <Text style={styles.value}>{toSafeString(record.surgeon)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Clinical Considerations */}
-            {(record.preoperativeConsiderations?.length > 0 || record.anticoagulation || record.temporaryAccess) && (
-              <View style={styles.section} wrap={false} minPresenceAhead={80}>
-                <Text style={styles.sectionTitle}>Clinical Considerations</Text>
-                {record.preoperativeConsiderations?.length > 0 && (
-                  <View>
-                    <Text style={styles.subsectionTitle}>Preoperative Considerations</Text>
-                    {record.preoperativeConsiderations.map((item, itemIdx) => (
-                      <Text key={itemIdx} style={styles.listItem}>
-                        {itemIdx + 1}. {toSafeString(item)}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-                {record.anticoagulation && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Anticoagulation</Text>
-                    <Text style={styles.value}>{toSafeString(record.anticoagulation)}</Text>
-                  </View>
-                )}
-                {record.temporaryAccess && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Temporary Access</Text>
-                    <Text style={styles.value}>{toSafeString(record.temporaryAccess)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Follow-Up */}
-            {(record.maturationTime || record.followUp) && (
-              <View style={styles.section} wrap={false} minPresenceAhead={80}>
-                <Text style={styles.sectionTitle}>Follow-Up</Text>
-                {record.maturationTime && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>1. Maturation Time</Text>
-                    <Text style={styles.value}>{toSafeString(record.maturationTime)}</Text>
-                  </View>
-                )}
-                {record.followUp && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>2. Follow-Up Plan</Text>
-                    <Text style={styles.value}>{toSafeString(record.followUp)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Notes */}
-            {record.notes && (
-              <View style={styles.section} wrap={false} minPresenceAhead={80}>
-                <Text style={styles.sectionTitle}>Notes</Text>
-                <View style={styles.row}>
-                  <Text style={styles.value}>{toSafeString(record.notes)}</Text>
-                </View>
-              </View>
-            )}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const rowsFor = ([field, , type], value) => {
+  if (type === 'date') return [{ value: formatDate(value) }]; if (type === 'boolean') return [{ value: value ? 'Yes' : 'No' }]; if (type === 'number') return [{ value: String(value) }]; if (type === 'sentence') return textRows(value, { sentences: true }); if (type === 'sentenceComma') return textRows(value, { sentences: true, commas: true }); if (type === 'comma') return textRows(value, { commas: true });
+  if (type === 'arrayConditional') return (Array.isArray(value) ? value : []).flatMap(item => { const parsed = parseLabel(item); return parsed.subtitle ? textRows(item, { commas: true }) : [{ value: String(item) }]; });
+  if (type === 'arrayKeep') return (Array.isArray(value) ? value : []).map(item => ({ value: String(item) }));
+  if (type === 'arrayComma') return (Array.isArray(value) ? value : []).flatMap(item => textRows(item, { commas: true }));
+  if (type === 'arrayLabeledKeep') return (Array.isArray(value) ? value : []).map(item => { const parsed = parseLabel(item); return { subtitle: parsed.subtitle, value: parsed.content }; });
+  if (type === 'objectSplit') return flattenObject(value).flatMap(leaf => leaf.path === 'description' && typeof leaf.value === 'string' ? textRows(leaf.value, { sentences: true, commas: true }).map(row => ({ ...row, subtitle: row.subtitle ? `${leaf.subtitle} — ${row.subtitle}` : leaf.subtitle })) : [formatLeaf(leaf)]);
+  if (type === 'objectArray') return (Array.isArray(value) ? value : []).flatMap((item, index) => flattenObject(item).flatMap(leaf => objectLeafRows(`${field}.${index}`, leaf, `${OBJECT_ARRAY_ITEM_LABELS[field]} ${index + 1}`)));
+  if (type === 'object') return flattenObject(value).flatMap(leaf => objectLeafRows(field, leaf)); return [{ value: String(value) }];
 };
+const renderField = (config, value, key, sectionTitle) => { const [, label] = config, rows = rowsFor(config, value); let prior = ''; return <React.Fragment key={key}>{label !== sectionTitle && <View style={styles.fieldHeader} wrap={false}><Text style={styles.fieldLabel}>{label}</Text></View>}{rows.map((row, index) => { const showSubtitle = row.subtitle && row.subtitle !== prior; prior = row.subtitle || ''; return <View key={`${key}-${index}`} style={styles.rowBlock} wrap={false}>{showSubtitle && <Text style={styles.nestedSubtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}{'\n'}</Text></View>; })}</React.Fragment>; };
 
+const AccessPlanningDocumentPDFTemplate = ({ document: documentProp, data: dataProp, templateData }) => {
+  const records = React.useMemo(() => { const source = documentProp ?? dataProp ?? templateData; if (!source) return []; let rows = Array.isArray(source) ? source : [source]; rows = rows.flatMap(row => { if (Array.isArray(row?.records)) return row.records; if (Array.isArray(row?._records)) return row._records; if (row?.access_planning) return Array.isArray(row.access_planning) ? row.access_planning : [row.access_planning]; if (row?.documentData) { const nested = row.documentData; if (Array.isArray(nested)) return nested; if (nested?.access_planning) return Array.isArray(nested.access_planning) ? nested.access_planning : [nested.access_planning]; return [nested]; } return [row]; }); return rows.filter(row => row && typeof row === 'object'); }, [documentProp, dataProp, templateData]);
+  if (!records.length) return <Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.documentTitle}>Access Planning</Text></View><Text style={styles.noData}>No access planning data available</Text></Page></Document>;
+  return <Document>{records.flatMap((record, recordIndex) => PAGE_GROUPS.map((indexes, pageIndex) => { const visible = indexes.map(index => ({ section: SECTIONS[index], index, fields: SECTIONS[index].fields.filter(([field]) => hasVal(record[field])) })).filter(item => item.fields.length); if (!visible.length) return null; return <Page key={`${recordIndex}-${pageIndex}`} size="LETTER" style={styles.page}>{pageIndex === 0 && <View style={styles.documentHeader}><Text style={styles.documentTitle}>Access Planning</Text></View>}{pageIndex === 0 && <View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>{record.accessType || `Access Planning ${recordIndex + 1}`}</Text></View>}{visible.map(({ section, index, fields }) => <View key={`${index}-${section.title}`} style={styles.section}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text></View>{fields.map((config, fieldIndex) => renderField(config, record[config[0]], `${index}-${fieldIndex}`, section.title))}</View>)}</Page>; }))}</Document>;
+};
 export default AccessPlanningDocumentPDFTemplate;

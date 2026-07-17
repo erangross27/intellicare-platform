@@ -6,6 +6,7 @@
  */
 
 import AbnormalResultsDocumentPDFTemplate from './AbnormalResultsDocumentPDFTemplate';
+import AccessPlanningDocumentPDFTemplate from './AccessPlanningDocumentPDFTemplate';
 import AllergyAssessmentTemplate from './AllergyAssessmentTemplate';
 import AllergyImmunologyAssessmentTemplate from './AllergyImmunologyAssessmentPDFTemplate';
 import BiopsyReportsTemplate from './BiopsyReportsTemplate';
@@ -174,6 +175,7 @@ import WoundHealingHyperbaricDocumentPDFTemplate from './WoundHealingHyperbaricD
 // Template registry - add new templates here
 const templateRegistry = {
   'abnormal_results': AbnormalResultsDocumentPDFTemplate,
+  'access_planning': AccessPlanningDocumentPDFTemplate,
   'acmg_guidelines_reference': AcmgGuidelinesReferencePDFTemplate,
   'allergy_assessment': AllergyAssessmentTemplate,
   'allergy_immunology_assessment': AllergyImmunologyAssessmentTemplate,

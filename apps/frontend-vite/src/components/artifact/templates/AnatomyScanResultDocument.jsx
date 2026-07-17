@@ -27,6 +27,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import AnatomyScanResultDocumentPDFTemplate from '../pdf-templates/AnatomyScanResultDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './AnatomyScanResultDocument.css';
 
@@ -78,6 +79,9 @@ const ARRAY_FIELDS = ['abnormalities'];
 const DATE_FIELDS = ['date'];
 // Simple short strings → simple field (everything else not classified above).
 const SIMPLE_FIELDS = ['gestationalAge', 'scanCompleteness', 'fetalNumber', 'sex', 'sonographer', 'facility'];
+const COMMA_SPLIT_FIELDS = new Set([]);
+const SEMICOLON_SPLIT_FIELDS = new Set(STRING_FIELDS);
+const SEMICOLON_SEPARATOR = /;\s+/;
 
 /* ═══════ SHARED HELPERS (delimiter-stripping) ═══════ */
 /* stripDelims: remove ANY trailing [.;,]+ and surrounding whitespace from a row.
@@ -173,31 +177,31 @@ const splitOnChar = (text, sep) => {
 
 /* clausesOf: semicolon FIRST (>=2 → list, sep '; '), else comma ONLY when labeled (>=3 per Rule #73,
    sep ', ' — so "Complete, no anomalies detected" stays ONE row), else single clause. */
-const clausesOf = (base, isLabeled) => {
-  const semi = splitOnChar(base, ';');
+const clausesOf = (base, fieldName) => {
+  const semi = SEMICOLON_SPLIT_FIELDS.has(fieldName) && SEMICOLON_SEPARATOR.test(base) ? splitOnChar(base, ';') : [base];
   if (semi.length >= 2) return { sep: '; ', items: semi };
-  if (isLabeled) { const c = splitOnChar(base, ','); if (c.length >= 3) return { sep: ', ', items: c }; }
+  if (COMMA_SPLIT_FIELDS.has(fieldName)) { const c = splitOnChar(base, ','); if (c.length >= 2) return { sep: ', ', items: c }; }
   return { sep: null, items: [stripDelims(base)] };
 };
 
 /* segmentSentence: a semicolon list (>=2) is decomposed FIRST (each clause kept whole, NO leading-label
    hoist), else parseLabel + clausesOf. SHARED by buildUnits (render) AND saveClause (edit) so the
    per-clause edit reconstruction stays lossless. */
-const segmentSentence = (sentence) => {
-  const semi = splitOnChar(sentence, ';');
+const segmentSentence = (sentence, fieldName) => {
+  const semi = SEMICOLON_SPLIT_FIELDS.has(fieldName) && SEMICOLON_SEPARATOR.test(sentence) ? splitOnChar(sentence, ';') : [sentence];
   if (semi.length >= 2) return { label: null, sep: '; ', items: semi.map(s => stripDelims(s)) };
   const p = parseLabel(sentence);
-  const { sep, items } = clausesOf(p.isLabeled ? p.value : sentence, p.isLabeled);
+  const { sep, items } = clausesOf(p.isLabeled ? p.value : sentence, fieldName);
   return { label: p.isLabeled ? p.label : null, sep, items };
 };
 
 /* buildUnits: period-split sentences → segmentSentence. A LABELED sentence = its own unit (sub-label);
    CONSECUTIVE UNLABELED sentences MERGE into one card. Rows carry {text, sIdx, cIdx, sep} for editing. */
-const buildUnits = (value) => {
+const buildUnits = (value, fieldName) => {
   const sentences = splitBySentence(String(value || ''));
   const units = [];
   sentences.forEach((sentence, sIdx) => {
-    const { label, sep, items } = segmentSentence(sentence);
+    const { label, sep, items } = segmentSentence(sentence, fieldName);
     const rows = items.map((text, cIdx) => ({ text: stripDelims(text), sIdx, cIdx, sep }));
     const last = units[units.length - 1];
     if (!label && last && !last.label) last.rows.push(...rows);
@@ -262,15 +266,18 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
         if (Array.isArray(value)) {
           value.forEach((_, i) => { nFields[`${fieldPart}-${idx}-a${i}`] = 'edited'; });
         } else {
-          buildUnits(String(value || '')).forEach(u => u.rows.forEach(r => { nSentences[`${fieldPart}-${idx}-s${r.sIdx}-c${r.cIdx}`] = 'edited'; }));
+          buildUnits(String(value || ''), fieldPart).forEach(u => u.rows.forEach(r => { nSentences[`${fieldPart}-${idx}-s${r.sIdx}-c${r.cIdx}`] = 'edited'; }));
         }
       });
     });
     if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
-    setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    const timer = setTimeout(() => {
+      setLocalEdits(prev => ({ ...nLocal, ...prev }));
+      setPendingEdits(prev => ({ ...nPending, ...prev }));
+      setEditedFields(prev => ({ ...nFields, ...prev }));
+      setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    }, 0);
+    return () => clearTimeout(timer);
   }, [records]);
 
   /* ═══════ UTILS ═══════ */
@@ -446,7 +453,7 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
     setLocalEdits(prev => ({ ...prev, [editKey]: fullText }));
     setPendingEdits(prev => ({ ...prev, [editKey]: true }));
     setEditedSentences(prev => {
-      let next = prev;
+      let next;
       if (rebase && rebase.delta) {
         next = {};
         const { prefix, at, delta } = rebase;
@@ -470,7 +477,7 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
     const cur = String(getFieldValue(record, fn, idx) || '');
     const sentences = splitBySentence(cur);
     const sentence = sentences[sIdx] || '';
-    const { label, sep, items } = segmentSentence(sentence);
+    const { label, sep, items } = segmentSentence(sentence, fn);
     const origLen = items.length;
     const edited = stripDelims(editValue);
     const sKeyBase = `${fn}-${idx}-s${sIdx}`;
@@ -524,6 +531,8 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
   const handleApproveSection = useCallback(async (record, sid, idx) => {
     const id = safeId(record); if (!id) return;
     const fields = SECTION_FIELDS[sid] || [];
+    setSaving(true);
+    setSaveError(null);
     try {
       // Collect this section's pending edits (editKey = "field-idx").
       const suffix = `-${idx}`;
@@ -554,7 +563,12 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
       setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
       setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
       setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setSaveError(err?.message || 'Unable to approve this section.');
+    } finally {
+      setSaving(false);
+    }
   }, [safeId, localEdits, pendingEdits]);
 
   const renderApproveButton = useCallback((record, sid, idx) => {
@@ -582,8 +596,8 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
 
   /* ═══════ FORMAT HELPERS FOR COPY (delimiter-stripped) ═══════ */
   // Mirror the JSX units: labeled unit → "Label:" + indented numbered rows; unlabeled unit → numbered rows.
-  const formatFieldForCopy = useCallback((text) => {
-    const units = buildUnits(text);
+  const formatFieldForCopy = useCallback((text, fieldName) => {
+    const units = buildUnits(text, fieldName);
     const lines = [];
     units.forEach(u => {
       if (u.label) { lines.push(`${u.label}:`); u.rows.forEach((r, i) => lines.push(`  ${i + 1}. ${r.text}`)); }
@@ -605,10 +619,10 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
         safeArray(val).forEach((item, i) => { text += `  ${i + 1}. ${stripDelims(item)}\n`; });
         text += '\n';
       } else if (DATE_FIELDS.includes(f) || SIMPLE_FIELDS.includes(f)) {
-        text += `${label}: ${fieldDisplay(f, val)}\n\n`;
+        text += `${label}\n${fieldDisplay(f, val)}\n\n`;
       } else {
         text += `${label}\n`;
-        formatFieldForCopy(fmtVal(val)).forEach(l => { text += `${l}\n`; });
+        formatFieldForCopy(fmtVal(val), f).forEach(l => { text += `${l}\n`; });
         text += '\n';
       }
     });
@@ -641,12 +655,13 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
     return (
       <div key={fn} className="rec-mini-card">
         <div className="nested-subtitle">{highlightText(label)}</div>
-        <div className="nested-mini-card">
+        <div className="nested-mini-card regular-row-group">
+        <div className="editable-leaf" data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(isDate ? (val ? new Date(val).toISOString().split('T')[0] : '') : displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
               {isDate ? (
-                <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+                <BlueDatePicker value={editValue} onSelect={next => setEditValue(next || '')} />
               ) : (
                 <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSaveField(record, fn, idx, sid, null, editValue.trim()); } }} />
               )}
@@ -665,6 +680,7 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
         </div>
+        </div>
       </div>
     );
   };
@@ -676,7 +692,7 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
     const strVal = fmtVal(val);
     const label = FIELD_LABELS[fn] || fn;
-    const units = buildUnits(strVal);
+    const units = buildUnits(strVal, fn);
     if (!units.length) return null;
     const term = searchTerm.toLowerCase().trim();
     const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
@@ -696,7 +712,7 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
                 const isEditing = editingField === rowKey;
                 const badge = editedSentences[rowKey];
                 return (
-                  <div key={`${row.sIdx}-${row.cIdx}`}>
+                  <div key={`${row.sIdx}-${row.cIdx}`} className="editable-leaf" data-edit-field={fn}>
                     <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(rowKey); setEditValue(row.text); setSaveError(null); } }}>
                       {isEditing ? (
                         <div className="edit-field-container">
@@ -749,7 +765,7 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
           const isEditing = editingField === itemKey;
           const isModified = editedFields[itemKey];
           return (
-            <div key={aIdx} className="nested-mini-card">
+            <div key={aIdx} className="nested-mini-card editable-leaf" data-edit-field={fn}>
               <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(itemKey); setEditValue(item); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
@@ -823,7 +839,7 @@ const AnatomyScanResultDocument = ({ document: docProp, data, templateData }) =>
         <h2 className="document-title">Anatomy Scan Result</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<AnatomyScanResultDocumentPDFTemplate document={pdfData} />} fileName={`anatomy-scan-result-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<AnatomyScanResultDocumentPDFTemplate document={pdfData} />} fileName="Anatomy_Scan_Result.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

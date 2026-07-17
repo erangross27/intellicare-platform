@@ -1,54 +1,42 @@
 /**
  * AnatomyScanResultDocumentPDFTemplate.jsx
- * June 2026 — Fetal anatomy ultrasound survey — Helvetica — A4 — BLACK & WHITE ONLY
+ * June 2026 — Fetal anatomy ultrasound survey — Helvetica — A4
  * Collection: anatomy_scan_result
  *
- * PDF FONT STANDARD (exact):
- *   page         { Helvetica, fontSize 14, bg #ffffff, color #000000 }
- *   documentTitle 22 Helvetica-Bold, centered, UPPERCASE
- *   recordTitle   16 Helvetica-Bold
- *   sectionTitle  13 Helvetica-Bold, UPPERCASE, NO borderBottom, plain heading (no box)
- *   fieldLabel    10 Helvetica-Bold, UPPERCASE
- *   subLabel      12 Helvetica-Bold (the parsed label of a "Label: value" clause, e.g. "Gender";
- *                 rendered as a heading WITHOUT a trailing colon — canonical parseSubtitleItems form)
- *   fieldValue    11 / listItem 11 (numbered)
- *   Colors: #000000 on #ffffff ONLY — box-free B&W, no borders/backgrounds, no grey.
+ * Canonical PDF typography: document 26, record 19, section 16, field label 14,
+ * and body/list text 13. Blue headings and restrained divider rules match the
+ * selected artifact PDF family.
  *
  * Field handling mirrors the JSX:
  *   - Narrative strings → per-sentence/semicolon split with TRAILING-DELIMITER STRIP
  *   - Array (abnormalities) → per-item, delimiters stripped
  *   - date → formatted; short strings → simple field; hide-empty everywhere
  *
- * Box-free, content-only layout: NO bordered/background containers. Page-break handling uses
- * the canonical codebase pattern (378/832 templates; memories 699004a9 / 6989860833 / 697da621):
- * each field is ONE View with wrap={rows.length > 8 ? undefined : false} — small fields stay
+ * Content-only layout uses divider rules rather than bordered field containers. Page-break handling uses
+ * the canonical codebase pattern:
+ * each field is ONE View with a boolean wrap gate — small fields stay
  * together and move whole to the next page (no orphan, no overprint), long narratives flow and
  * break across pages. The section title rides INSIDE the first field's View (never a standalone
- * sibling). Only the small record header is unconditionally wrap={false}. Helvetica, B&W,
- * delimiter-stripped rows.
+ * sibling). Only the small record header is unconditionally wrap={false}. Delimiters are stripped.
  */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  // Box-free B&W: no borders/backgrounds anywhere; only #000000 on #ffffff.
-  documentHeader: { marginBottom: 24, paddingBottom: 14 },
-  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20 },
-  recordHeader: { marginBottom: 12, paddingBottom: 6 },
-  recordTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordDate: { fontSize: 13, color: '#000000', marginTop: 4 },
+  page: { padding: 42, fontFamily: 'Helvetica', fontSize: 13, lineHeight: 1.35, backgroundColor: '#ffffff', color: '#111827' },
+  documentHeader: { marginBottom: 10 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#0f172a', paddingBottom: 9, borderBottom: '2pt solid #000000', marginBottom: 10 },
+  recordContainer: { marginBottom: 24 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#1e3a8a' },
   section: { marginBottom: 16 },
-  // NO borderBottom on sectionTitle (anti-orphan); plain heading, box-free.
-  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1d4ed8', paddingBottom: 5, borderBottom: '1pt solid #000000', marginBottom: 6 },
   fieldGroup: { marginBottom: 6 },
-  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#000000', marginBottom: 2 },
-  // sub-label = the parsed label of a "Label: value" clause (e.g. "Anatomy scan", "Gender") — keep its casing.
-  subLabel: { fontSize: 15, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 2, marginBottom: 2 },
-  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  noDataText: { fontSize: 16, color: '#000000', textAlign: 'center', marginTop: 40 },
+  fieldLabel: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e3a8a', paddingBottom: 3, borderBottom: '0.5pt solid #999999', marginBottom: 3 },
+  subLabel: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#334155', marginTop: 2, marginBottom: 2 },
+  fieldValue: { fontSize: 13, color: '#111827' },
+  listItem: { fontSize: 13, color: '#111827', marginBottom: 2, paddingLeft: 8 },
+  noDataText: { fontSize: 13, color: '#111827', textAlign: 'center', marginTop: 40 },
 });
 
 /* ═══════ FIELD CONFIG (mirror JSX) ═══════ */
@@ -94,6 +82,9 @@ const SECTION_FIELDS = {
 const STRING_FIELDS = ['brain', 'face', 'spine', 'heart', 'chest', 'abdomen', 'kidneys', 'extremities', 'placenta', 'amnioticFluid', 'recommendations', 'notes'];
 const ARRAY_FIELDS = ['abnormalities'];
 const DATE_FIELDS = ['date'];
+const COMMA_SPLIT_FIELDS = new Set([]);
+const SEMICOLON_SPLIT_FIELDS = new Set(STRING_FIELDS);
+const SEMICOLON_SEPARATOR = /;\s+/;
 
 /* ═══════ SHARED HELPERS (delimiter-stripping — identical to JSX) ═══════ */
 const stripDelims = (text) => {
@@ -153,24 +144,24 @@ const splitOnChar = (text, sep) => {
   const t = stripDelims(cur); if (t) out.push(t);
   return out;
 };
-const clausesOf = (base, isLabeled) => {
-  const semi = splitOnChar(base, ';');
+const clausesOf = (base, fieldName) => {
+  const semi = SEMICOLON_SPLIT_FIELDS.has(fieldName) && SEMICOLON_SEPARATOR.test(base) ? splitOnChar(base, ';') : [base];
   if (semi.length >= 2) return { sep: '; ', items: semi };
-  if (isLabeled) { const c = splitOnChar(base, ','); if (c.length >= 3) return { sep: ', ', items: c }; }
+  if (COMMA_SPLIT_FIELDS.has(fieldName)) { const c = splitOnChar(base, ','); if (c.length >= 2) return { sep: ', ', items: c }; }
   return { sep: null, items: [stripDelims(base)] };
 };
-const segmentSentence = (sentence) => {
-  const semi = splitOnChar(sentence, ';');
+const segmentSentence = (sentence, fieldName) => {
+  const semi = SEMICOLON_SPLIT_FIELDS.has(fieldName) && SEMICOLON_SEPARATOR.test(sentence) ? splitOnChar(sentence, ';') : [sentence];
   if (semi.length >= 2) return { label: null, sep: '; ', items: semi.map(s => stripDelims(s)) };
   const p = parseLabel(sentence);
-  const { sep, items } = clausesOf(p.isLabeled ? p.value : sentence, p.isLabeled);
+  const { sep, items } = clausesOf(p.isLabeled ? p.value : sentence, fieldName);
   return { label: p.isLabeled ? p.label : null, sep, items };
 };
-const buildUnits = (value) => {
+const buildUnits = (value, fieldName) => {
   const sentences = splitBySentence(String(value || ''));
   const units = [];
   sentences.forEach((sentence, sIdx) => {
-    const { label, sep, items } = segmentSentence(sentence);
+    const { label, sep, items } = segmentSentence(sentence, fieldName);
     const rows = items.map((text, cIdx) => ({ text: stripDelims(text), sIdx, cIdx, sep }));
     const last = units[units.length - 1];
     if (!label && last && !last.label) last.rows.push(...rows);
@@ -233,7 +224,7 @@ const buildFieldRows = (record, fn) => {
   /* Narrative string — buildUnits (mirror JSX): labeled unit → sub-label + numbered rows;
      consecutive unlabeled → one merged group of numbered rows. Per-unit numbering matches JSX Copy. */
   if (STRING_FIELDS.includes(fn)) {
-    const units = buildUnits(safeString(val));
+    const units = buildUnits(safeString(val), fn);
     units.forEach((u, ui) => {
       if (u.label) rows.push(<Text key={`l${ui}`} style={styles.subLabel}>{u.label}</Text>);
       u.rows.forEach((r, ri) => rows.push(<Text key={`${ui}-${ri}`} style={styles.listItem}>{ri + 1}. {r.text}</Text>));
@@ -250,7 +241,7 @@ const buildFieldRows = (record, fn) => {
  * Proven codebase pattern (378/832 PDF templates; memories 699004a9 / 6989860833 / 697da621;
  * sibling reference CervicalLengthMeasurementDocumentPDFTemplate.jsx): put the field's heading
  * (leading sectionTitle, only on the FIRST present field of a section) + fieldLabel + ALL rows
- * in ONE View and gate it with wrap={rows.length > 8 ? undefined : false}.
+ * in ONE View and gate it with a boolean row-count expression.
  *   - ≤8 rows  → wrap={false}: the whole small block (title+label+rows) stays together and
  *     moves to the NEXT PAGE intact when it doesn't fit → no orphan; small enough to never
  *     overprint (e.g. SPINE's label + its 2 rows never split across pages).
@@ -284,7 +275,7 @@ const renderSection = (record, sid) => {
   // Box-free, content-only: no bordered/background container; the section View itself never
   // wraps. The sectionTitle is NOT a standalone sibling (that orphans) — it is passed INTO the
   // FIRST present field's View, which carries the canonical conditional wrap
-  // (wrap={rows.length > 8 ? undefined : false}, see renderFieldGroup), so the title rides with
+  // (see renderFieldGroup), so the title rides with
   // its field and small fields move to the next page intact (no orphan, no overprint).
   return (
     <View key={sid} style={styles.section}>
@@ -294,25 +285,24 @@ const renderSection = (record, sid) => {
 };
 
 /* ═══════ MAIN COMPONENT ═══════ */
-const AnatomyScanResultDocumentPDFTemplate = ({ document: docProp }) => {
-  let records = [];
-  if (Array.isArray(docProp)) {
-    if (docProp.length > 0 && docProp[0]?.anatomy_scan_result && Array.isArray(docProp[0].anatomy_scan_result)) {
-      records = docProp[0].anatomy_scan_result;
-    } else {
-      records = docProp;
+const unwrap = (source) => {
+  if (!source) return [];
+  let records = Array.isArray(source) ? source : [source];
+  records = records.flatMap(record => {
+    if (record?.anatomy_scan_result) return Array.isArray(record.anatomy_scan_result) ? record.anatomy_scan_result : [record.anatomy_scan_result];
+    if (record?.documentData) {
+      const nested = record.documentData;
+      if (Array.isArray(nested)) return nested.flatMap(item => item?.anatomy_scan_result ? (Array.isArray(item.anatomy_scan_result) ? item.anatomy_scan_result : [item.anatomy_scan_result]) : [item]);
+      if (nested?.anatomy_scan_result) return Array.isArray(nested.anatomy_scan_result) ? nested.anatomy_scan_result : [nested.anatomy_scan_result];
+      return [nested];
     }
-  } else if (docProp && docProp.anatomy_scan_result) {
-    records = Array.isArray(docProp.anatomy_scan_result) ? docProp.anatomy_scan_result : [docProp.anatomy_scan_result];
-  } else if (docProp && docProp.documentData) {
-    const dd = docProp.documentData;
-    if (Array.isArray(dd)) records = dd;
-    else if (dd?.anatomy_scan_result) records = Array.isArray(dd.anatomy_scan_result) ? dd.anatomy_scan_result : [dd.anatomy_scan_result];
-    else records = [dd];
-  } else if (docProp) {
-    records = [docProp];
-  }
-  records = records.filter(r => r && typeof r === 'object');
+    return [record];
+  });
+  return records.filter(record => record && typeof record === 'object');
+};
+
+const AnatomyScanResultDocumentPDFTemplate = ({ document: docProp }) => {
+  const records = unwrap(docProp);
 
   if (!records || records.length === 0) {
     return (
@@ -333,13 +323,10 @@ const AnatomyScanResultDocumentPDFTemplate = ({ document: docProp }) => {
         <View style={styles.documentHeader}>
           <Text style={styles.documentTitle}>Anatomy Scan Result</Text>
         </View>
-        {records.map((record, idx) => {
-          const scanDate = record.date ? formatDate(record.date) : (record.createdAt ? formatDate(record.createdAt) : '');
-          return (
+        {records.map((record, idx) => (
             <View key={idx} style={styles.recordContainer} break={idx > 0}>
               <View style={styles.recordHeader} wrap={false}>
                 <Text style={styles.recordTitle}>{`Anatomy Scan Result ${idx + 1}`}</Text>
-                {scanDate ? <Text style={styles.recordDate}>{scanDate}</Text> : null}
               </View>
               {renderSection(record, 'scan-overview')}
               {renderSection(record, 'fetal-anatomy')}
@@ -347,8 +334,7 @@ const AnatomyScanResultDocumentPDFTemplate = ({ document: docProp }) => {
               {renderSection(record, 'findings-recs')}
               {renderSection(record, 'provider')}
             </View>
-          );
-        })}
+        ))}
       </Page>
     </Document>
   );

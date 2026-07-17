@@ -1,683 +1,79 @@
-/**
- * AddictionMedicineConsultationsDocumentPDFTemplate.jsx
- * December 2025 PDF Template - Black & White, Helvetica, 14pt minimum
- */
-
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-
-// Sanitize Unicode characters for Helvetica
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  let str = typeof val === 'string' ? val : String(val);
-  str = str.replace(/μ/g, 'u');
-  str = str.replace(/µ/g, 'u');
-  str = str.replace(/°/g, ' deg');
-  str = str.replace(/±/g, '+/-');
-  str = str.replace(/≥/g, '>=');
-  str = str.replace(/≤/g, '<=');
-  str = str.replace(/→/g, '->');
-  str = str.replace(/–/g, '-');
-  str = str.replace(/—/g, '-');
-  str = str.replace(/'/g, "'");
-  str = str.replace(/'/g, "'");
-  str = str.replace(/"/g, '"');
-  str = str.replace(/"/g, '"');
-  return str;
-};
-
-// Split a compound value into individual facts on top-level ';' and ',' (parenthesis-aware).
-const splitSemiComma = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  const result = []; let cur = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(' || ch === '[') { depth++; cur += ch; }
-    else if (ch === ')' || ch === ']') { depth = Math.max(0, depth - 1); cur += ch; }
-    else if ((ch === ';' || ch === ',') && depth === 0) { const t = cur.trim(); if (t) result.push(t); cur = ''; }
-    else cur += ch;
-  }
-  const t = cur.trim(); if (t) result.push(t);
-  return result.length ? result : (text.trim() ? [text.trim()] : []);
-};
-
-// Split on top-level commas only (parenthesis-aware) — for comma-separated value lists (symptoms).
-const splitByCommaParen = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  const result = []; let cur = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(' || ch === '[') { depth++; cur += ch; }
-    else if (ch === ')' || ch === ']') { depth = Math.max(0, depth - 1); cur += ch; }
-    else if (ch === ',' && depth === 0) { const t = cur.trim(); if (t) result.push(t); cur = ''; }
-    else cur += ch;
-  }
-  const t = cur.trim(); if (t) result.push(t);
-  return result.length ? result : (text.trim() ? [text.trim()] : []);
-};
-
-// Split on top-level semicolons only (parenthesis-aware) — matches the JSX MAT splitter.
-const splitBySemi = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  const result = []; let cur = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(' || ch === '[') { depth++; cur += ch; }
-    else if (ch === ')' || ch === ']') { depth = Math.max(0, depth - 1); cur += ch; }
-    else if (ch === ';' && depth === 0) { const t = cur.trim(); if (t) result.push(t); cur = ''; }
-    else cur += ch;
-  }
-  const t = cur.trim(); if (t) result.push(t);
-  return result.length ? result : (text.trim() ? [text.trim()] : []);
-};
+import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 14,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#000000',
-  },
-  recordContainer: {
-    marginBottom: 30,
-    paddingBottom: 20,
-    borderBottom: '1px solid #000000',
-  },
-  recordTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
-    color: '#000000',
-  },
-  recordMeta: {
-    fontSize: 12,
-    color: '#666666',
-    marginBottom: 16,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
-    paddingBottom: 4,
-    borderBottom: '1px solid #000000',
-    color: '#000000',
-  },
-  subsectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginTop: 8,
-    marginBottom: 6,
-    color: '#000000',
-  },
-  fieldBlock: {
-    marginBottom: 10,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 2,
-    color: '#000000',
-  },
-  fieldValue: {
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 1.4,
-  },
-  listItem: {
-    fontSize: 14,
-    color: '#000000',
-    marginBottom: 4,
-    paddingLeft: 12,
-    lineHeight: 1.4,
-  },
-  symptomRow: {
-    fontSize: 14,
-    color: '#000000',
-    marginBottom: 2,
-    paddingLeft: 16,
-  },
-  // Bar Chart Styles
-  chartContainer: {
-    marginTop: 12,
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 4,
-  },
-  chartLegend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottom: '1px solid #cccccc',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 8,
-  },
-  legendColor: {
-    width: 12,
-    height: 12,
-    marginRight: 4,
-  },
-  legendText: {
-    fontSize: 9,
-    color: '#666666',
-  },
-  mainScoreBar: {
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottom: '1px solid #dddddd',
-  },
-  mainScoreHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  mainScoreLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-  },
-  mainScoreValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-  },
-  barContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 20,
-  },
-  barBackground: {
-    flex: 1,
-    height: 16,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  mainInterpretation: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginTop: 6,
-    color: '#000000',
-  },
-  symptomBarsTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 10,
-    color: '#000000',
-  },
-  symptomBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  symptomLabel: {
-    fontSize: 10,
-    width: 100,
-    color: '#000000',
-  },
-  symptomBarContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  symptomBarBackground: {
-    flex: 1,
-    height: 12,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  symptomBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  symptomScore: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    width: 30,
-    textAlign: 'right',
-    marginLeft: 6,
-    color: '#000000',
-  },
+  page: { paddingTop: 38, paddingBottom: 42, paddingHorizontal: 42, fontFamily: 'Helvetica', color: '#111827', fontSize: 14 },
+  documentHeader: { marginBottom: 18 }, documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#2563eb' },
+  recordHeader: { marginBottom: 16 }, recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold' },
+  section: { marginTop: 11, flexDirection: 'column', width: 528 }, sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, marginBottom: 7, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldBox: { marginTop: 4, marginBottom: 8, flexDirection: 'column', width: 528 }, fieldHeader: { marginTop: 8, marginBottom: 6, width: 528 }, fieldLabel: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 3, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  nestedSubtitle: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 4, marginBottom: 6, color: '#1d4ed8' }, rowBlock: { width: 528, alignSelf: 'stretch', minHeight: 24, marginBottom: 8, flexDirection: 'column' }, fieldValue: { width: 528, fontSize: 14, lineHeight: 1.45 }, noData: { fontSize: 14, color: '#6b7280', marginTop: 16 },
 });
-
-// COWS Score color (grayscale for PDF) - higher = worse
-const getCOWSGrayscale = (score, max = 48) => {
-  const percentage = (score / max) * 100;
-  if (percentage <= 10) return '#cccccc';  // Light gray - Mild
-  if (percentage <= 25) return '#999999';  // Medium gray - Moderate
-  if (percentage <= 50) return '#666666';  // Dark gray - Moderately Severe
-  return '#333333';                         // Very dark - Severe
+const SECTIONS = [
+  { title: 'Consultation Information', fields: [['date', 'Date', 'date'], ['consultingProvider', 'Consulting Provider']] },
+  { title: 'Substance Use & Withdrawal', fields: [['substanceUseHistory', 'Substance Use History', 'arraySentence'], ['withdrawalAssessment', 'Withdrawal Assessment', 'object'], ['urineDrugScreening', 'Urine Drug Screening', 'arrayLabeledKeep']] },
+  { title: 'Medication & Treatment Plan', fields: [['medicationAssistedTreatment', 'Medication Assisted Treatment', 'object'], ['treatmentPlan', 'Treatment Plan', 'object']] },
+  { title: 'Relapse Prevention & Recovery', fields: [['relapsePrevention', 'Relapse Prevention', 'object'], ['recoveryPrograms', 'Recovery Programs', 'arrayKeep'], ['harmReductionCounseling', 'Harm Reduction Counseling', 'object']] },
+  { title: 'Psychiatric & Social Factors', fields: [['psychiatricComorbidities', 'Psychiatric Comorbidities', 'arrayKeep'], ['socialDeterminants', 'Social Determinants', 'object']] },
+  { title: 'Prognosis', fields: [['prognosis', 'Prognosis', 'object']] },
+];
+const PAGE_GROUPS = SECTIONS.map((_, index) => [index]);
+const hasVal = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasVal)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasVal));
+const humanize = key => String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, char => char.toUpperCase());
+const formatDate = value => { if (!value) return ''; try { const raw = value?.$date?.$numberLong ?? value?.$date ?? value?.$numberLong ?? value, normalized = typeof raw === 'string' && /^-?\d+$/.test(raw) ? Number(raw) : raw, date = new Date(normalized); return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(value); } };
+const parseLabel = value => { const text = String(value || ''), match = text.match(/^([^:]{1,60}):\s+(.+)$/); return match && !/[([\]]/.test(match[1]) ? { subtitle: match[1].trim(), content: match[2].trim() } : { subtitle: '', content: text }; };
+const splitComma = value => { const rows = []; let current = '', depth = 0; for (const char of String(value || '')) { if (char === '(') depth += 1; if (char === ')') depth = Math.max(0, depth - 1); if (char === ',' && depth === 0) { if (current.trim()) rows.push(current.trim()); current = ''; } else current += char; } if (current.trim()) rows.push(current.trim()); return rows; };
+const splitSentence = value => String(value || '').split(/;\s+|\.(?!\d)(?:\s+|$)/).map(row => row.trim()).filter(row => row && !/^[;.,!?]+$/.test(row));
+const textRows = (value, { sentences = false, commas = false, commasWhenLabeled = false } = {}) => { const initial = parseLabel(String(value || '').trim()), source = initial.subtitle ? initial.content : String(value || '').trim(); return (sentences ? splitSentence(source) : [source]).flatMap(part => { const parsed = initial.subtitle ? { subtitle: initial.subtitle, content: part } : parseLabel(part), clauses = commas && (!commasWhenLabeled || parsed.subtitle) ? splitComma(parsed.content) : [parsed.content]; return clauses.filter(Boolean).map(row => ({ subtitle: parsed.subtitle, value: row })); }); };
+const SENTENCE_OBJECT_PATHS = new Set(['medicationAssistedTreatment.inductionProtocol', 'medicationAssistedTreatment.titrationPlan', 'medicationAssistedTreatment.maintenanceDuration', 'harmReductionCounseling.naloxoneTraining', 'harmReductionCounseling.fentanylEducation', 'harmReductionCounseling.needleExchange', 'socialDeterminants.housing', 'socialDeterminants.employment', 'socialDeterminants.income', 'socialDeterminants.familySupport']);
+const COMMA_OBJECT_PATHS = new Set(['withdrawalAssessment.alcohol.symptoms', 'withdrawalAssessment.opioid.symptoms', 'medicationAssistedTreatment.adjunctMedications.*', 'socialDeterminants.legalHistory', 'treatmentPlan.phase1', 'treatmentPlan.phase2', 'treatmentPlan.phase3']);
+const normalizeIndexedPath = path => path.replace(/\.\d+(?=\.|$)/g, '.*');
+const pathIsDeclared = (set, path) => set.has(path) || set.has(normalizeIndexedPath(path));
+const DATE_OBJECT_PATHS = new Set(['withdrawalAssessment.benzodiazepine.lastUse', 'medicationAssistedTreatment.inductionDate']);
+const isDatePath = path => pathIsDeclared(DATE_OBJECT_PATHS, path) || /date/i.test(String(path || '').split('.').pop());
+const isDateObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && Object.hasOwn(value, '$date');
+const EXTENDED_NUMBER_KEYS = ['$numberInt', '$numberLong', '$numberDouble', '$numberDecimal'];
+const isExtendedNumberObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && EXTENDED_NUMBER_KEYS.includes(Object.keys(value)[0]);
+const unwrapExtendedNumber = value => { if (!isExtendedNumberObject(value)) return value; const raw = value[Object.keys(value)[0]], number = Number(raw); return Number.isFinite(number) ? number : raw; };
+const OBJECT_ARRAY_ITEM_LABELS = {};
+const flattenObject = (value, pathPrefix = '', labelPrefix = '') => {
+  if (Array.isArray(value)) return value.flatMap((child, index) => {
+    const path = pathPrefix ? `${pathPrefix}.${index}` : String(index), label = `${labelPrefix || 'Item'} ${index + 1}`;
+    return child && typeof child === 'object' && !isDateObject(child) && !isExtendedNumberObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: unwrapExtendedNumber(child) }] : [];
+  });
+  return Object.entries(value || {}).flatMap(([key, child]) => {
+    const path = pathPrefix ? `${pathPrefix}.${key}` : key, label = labelPrefix ? `${labelPrefix} — ${humanize(key)}` : humanize(key);
+    return child && typeof child === 'object' && !isDateObject(child) && !isExtendedNumberObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: unwrapExtendedNumber(child) }] : [];
+  });
+};
+const formatLeaf = leaf => ({ subtitle: leaf.subtitle, value: isDatePath(leaf.path) ? formatDate(leaf.value) : typeof leaf.value === 'boolean' ? (leaf.value ? 'Yes' : 'No') : String(leaf.value) });
+const objectLeafRows = (field, leaf, subtitlePrefix = '') => {
+  const path = `${field}.${leaf.path}`, subtitle = subtitlePrefix ? `${subtitlePrefix} — ${leaf.subtitle}` : leaf.subtitle;
+  if (typeof leaf.value === 'string' && (pathIsDeclared(SENTENCE_OBJECT_PATHS, path) || pathIsDeclared(COMMA_OBJECT_PATHS, path))) return textRows(leaf.value, { sentences: pathIsDeclared(SENTENCE_OBJECT_PATHS, path), commas: pathIsDeclared(COMMA_OBJECT_PATHS, path) }).map(row => ({ ...row, subtitle: row.subtitle ? `${subtitle} — ${row.subtitle}` : subtitle }));
+  return [{ ...formatLeaf({ ...leaf, subtitle }), path }];
+};
+const rowsFor = ([field, , type], value) => {
+  if (type === 'date') return [{ value: formatDate(value) }]; if (type === 'boolean') return [{ value: value ? 'Yes' : 'No' }]; if (type === 'number') return [{ value: String(value) }]; if (type === 'sentence') return textRows(value, { sentences: true }); if (type === 'sentenceComma') return textRows(value, { sentences: true, commas: true }); if (type === 'comma') return textRows(value, { commas: true });
+  if (type === 'arraySentence') return (Array.isArray(value) ? value : []).flatMap(item => textRows(item, { sentences: true }));
+  if (type === 'arrayConditional') return (Array.isArray(value) ? value : []).flatMap(item => { const parsed = parseLabel(item); return parsed.subtitle ? textRows(item, { commas: true }) : [{ value: String(item) }]; });
+  if (type === 'arrayKeep') return (Array.isArray(value) ? value : []).map(item => ({ value: String(item) }));
+  if (type === 'arrayComma') return (Array.isArray(value) ? value : []).flatMap(item => textRows(item, { commas: true }));
+  if (type === 'arrayLabeledKeep') return (Array.isArray(value) ? value : []).map(item => { const parsed = parseLabel(item); return { subtitle: parsed.subtitle, value: parsed.content }; });
+  if (type === 'objectSplit') return flattenObject(value).flatMap(leaf => leaf.path === 'description' && typeof leaf.value === 'string' ? textRows(leaf.value, { sentences: true, commas: true }).map(row => ({ ...row, subtitle: row.subtitle ? `${leaf.subtitle} — ${row.subtitle}` : leaf.subtitle })) : [formatLeaf(leaf)]);
+  if (type === 'objectArray') return (Array.isArray(value) ? value : []).flatMap((item, index) => flattenObject(item).flatMap(leaf => objectLeafRows(`${field}.${index}`, leaf, `${OBJECT_ARRAY_ITEM_LABELS[field]} ${index + 1}`)));
+  if (type === 'object') return flattenObject(value).flatMap(leaf => objectLeafRows(field, leaf)); return [{ value: String(value) }];
+};
+const renderField = (config, value, key, sectionTitle) => {
+  const [, label] = config, rows = rowsFor(config, value), showLabel = label !== sectionTitle;
+  if (!rows.length) return null;
+  const renderRow = (row, index, priorSubtitle) => { const showSubtitle = row.subtitle && row.subtitle !== priorSubtitle; return <View key={`${key}-${index}`} style={styles.rowBlock} wrap={false}>{showSubtitle && <Text style={styles.nestedSubtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}{'\n'}</Text></View>; };
+  const first = rows[0];
+  return <React.Fragment key={key}>{showLabel ? <View wrap={false}><View style={styles.fieldHeader}><Text style={styles.fieldLabel}>{label}</Text></View>{renderRow(first, 0, '')}</View> : renderRow(first, 0, '')}{rows.slice(1).map((row, offset) => renderRow(row, offset + 1, rows[offset].subtitle || ''))}</React.Fragment>;
 };
 
-// COWS interpretation
-const getCOWSInterpretation = (score) => {
-  if (score <= 4) return 'Mild';
-  if (score <= 12) return 'Moderate';
-  if (score <= 24) return 'Moderately Severe';
-  return 'Severe';
+const AddictionMedicineConsultationsDocumentPDFTemplate = ({ document: documentProp, data: dataProp, templateData }) => {
+  const records = React.useMemo(() => { const source = documentProp ?? dataProp ?? templateData; if (!source) return []; let rows = Array.isArray(source) ? source : [source]; rows = rows.flatMap(row => { if (Array.isArray(row?.records)) return row.records; if (Array.isArray(row?._records)) return row._records; if (row?.addiction_medicine_consultations) return Array.isArray(row.addiction_medicine_consultations) ? row.addiction_medicine_consultations : [row.addiction_medicine_consultations]; if (row?.documentData) { const nested = row.documentData; if (Array.isArray(nested)) return nested; if (nested?.addiction_medicine_consultations) return Array.isArray(nested.addiction_medicine_consultations) ? nested.addiction_medicine_consultations : [nested.addiction_medicine_consultations]; return [nested]; } return [row]; }); return rows.filter(row => row && typeof row === 'object'); }, [documentProp, dataProp, templateData]);
+  if (!records.length) return <Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.documentTitle}>Addiction Medicine Consultations</Text></View><Text style={styles.noData}>No addiction medicine consultation data available</Text></Page></Document>;
+  return <Document>{records.flatMap((record, recordIndex) => PAGE_GROUPS.map((indexes, pageIndex) => { const visible = indexes.map(index => ({ section: SECTIONS[index], index, fields: SECTIONS[index].fields.filter(([field]) => hasVal(record[field])) })).filter(item => item.fields.length); if (!visible.length) return null; return <Page key={`${recordIndex}-${pageIndex}`} size="LETTER" style={styles.page}>{pageIndex === 0 && <View style={styles.documentHeader}><Text style={styles.documentTitle}>Addiction Medicine Consultations</Text></View>}{pageIndex === 0 && <View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>{record.consultingProvider || `Addiction Medicine Consultation ${recordIndex + 1}`}</Text></View>}{visible.map(({ section, index, fields }) => <View key={`${index}-${section.title}`} style={styles.section}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text></View>{fields.map((config, fieldIndex) => renderField(config, record[config[0]], `${index}-${fieldIndex}`, section.title))}</View>)}</Page>; }))}</Document>;
 };
-
-// Symptom score grayscale (0-4)
-const getSymptomGrayscale = (score, max = 4) => {
-  const percentage = (score / max) * 100;
-  if (percentage <= 25) return '#cccccc';
-  if (percentage <= 50) return '#999999';
-  if (percentage <= 75) return '#666666';
-  return '#333333';
-};
-
-const AddictionMedicineConsultationsDocumentPDFTemplate = ({ document, data }) => {
-  const templateData = document || data;
-  const consultations = Array.isArray(templateData) ? templateData : [templateData];
-
-  const formatDate = (date) => {
-    if (!date) return 'N/A';
-    try {
-      return new Date(date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    } catch {
-      return String(date);
-    }
-  };
-
-  const formatFieldLabel = (key) => {
-    return key
-      .replace(/_/g, ' ')
-      .replace(/([A-Z])/g, ' $1')
-      .trim()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
-
-  // Render a whole section. The section title goes on the FIRST present block's View (Rule #74:
-  // title-inside-first-field, never a standalone sibling that would orphan). Each block is its own
-  // View with a page-fitting conditional wrap. A block is { label, value?, items?, splitter? }:
-  //  - items  → numbered list (subsection label)
-  //  - value  → "Label: value", or numbered parts when a splitter yields >1 part.
-  const renderSection = (sectionTitle, blocks) => {
-    const present = blocks.filter(b => b.items
-      ? (Array.isArray(b.items) && b.items.filter(x => x !== null && x !== undefined && String(x).trim() !== '').length > 0)
-      : (b.value !== null && b.value !== undefined && String(b.value).trim() !== ''));
-    if (present.length === 0) return null;
-    return (
-      <View style={styles.section}>
-        {present.map((b, bi) => {
-          const titleEl = bi === 0 ? <Text style={styles.sectionTitle}>{safeString(sectionTitle)}</Text> : null;
-          if (b.items) {
-            const arr = b.items.filter(x => x !== null && x !== undefined && String(x).trim() !== '');
-            return (
-              <View key={bi} style={styles.fieldBlock} wrap={arr.length > 8 ? undefined : false}>
-                {titleEl}
-                <Text style={styles.subsectionTitle}>{safeString(b.label)}:</Text>
-                {arr.map((it, i) => <Text key={i} style={styles.listItem}>{i + 1}. {safeString(it)}</Text>)}
-              </View>
-            );
-          }
-          const parts = b.splitter ? b.splitter(String(b.value)) : [String(b.value)];
-          return (
-            <View key={bi} style={styles.fieldBlock} wrap={parts.length > 8 ? undefined : false}>
-              {titleEl}
-              <Text style={styles.fieldLabel}>{safeString(b.label)}:</Text>
-              {parts.length > 1
-                ? parts.map((p, i) => <Text key={i} style={styles.listItem}>{i + 1}. {safeString(p)}</Text>)
-                : <Text style={styles.fieldValue}>{safeString(parts[0])}</Text>}
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Addiction Medicine Consultations</Text>
-
-        {consultations.filter(c => c && typeof c === 'object').map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            {/* Record Header */}
-            <View wrap={false}>
-              <Text style={styles.recordTitle}>
-                {safeString(`Addiction Medicine Consultation ${idx + 1}`)}
-              </Text>
-              <Text style={styles.recordMeta}>
-                Date: {safeString(formatDate(record.date))}
-              </Text>
-            </View>
-
-            {/* 1. Consulting Provider */}
-            {record.consultingProvider && (
-              <View style={styles.section} wrap={false}>
-                <Text style={styles.sectionTitle}>Consulting Provider</Text>
-                <Text style={styles.fieldValue}>{safeString(record.consultingProvider)}</Text>
-              </View>
-            )}
-
-            {/* 2. Substance Use History */}
-            {record.substanceUseHistory?.length > 0 && (
-              <View style={styles.section}>
-                {record.substanceUseHistory.map((item, i) => {
-                  const ci = String(item).indexOf(':');
-                  const label = ci > -1 ? String(item).substring(0, ci).trim() : `Substance ${i + 1}`;
-                  const valuePart = ci > -1 ? String(item).substring(ci + 1).trim() : String(item);
-                  const facts = splitSemiComma(valuePart);
-                  return (
-                    <View key={i} style={styles.fieldBlock} wrap={facts.length > 8 ? undefined : false}>
-                      {i === 0 && <Text style={styles.sectionTitle}>Substance Use History</Text>}
-                      <Text style={styles.subsectionTitle}>{safeString(label)}</Text>
-                      {facts.map((f, fi) => (
-                        <Text key={fi} style={styles.listItem}>{fi + 1}. {safeString(f)}</Text>
-                      ))}
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-
-            {/* 3. Withdrawal Assessment - With Bar Chart Visualization */}
-            {record.withdrawalAssessment && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Withdrawal Assessment</Text>
-                  {record.withdrawalAssessment.scale && (
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldLabel}>Scale:</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.withdrawalAssessment.scale)}</Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Bar Chart Visualization - wrap={false} keeps entire chart on same page */}
-                {(record.withdrawalAssessment.score !== undefined ||
-                  (record.withdrawalAssessment.symptoms && Object.keys(record.withdrawalAssessment.symptoms).length > 0)) && (
-                  <View style={styles.chartContainer} wrap={false}>
-                    {/* Legend */}
-                    <View style={styles.chartLegend}>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendColor, { backgroundColor: '#cccccc' }]} />
-                        <Text style={styles.legendText}>Mild</Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendColor, { backgroundColor: '#999999' }]} />
-                        <Text style={styles.legendText}>Moderate</Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendColor, { backgroundColor: '#666666' }]} />
-                        <Text style={styles.legendText}>Mod-Severe</Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendColor, { backgroundColor: '#333333' }]} />
-                        <Text style={styles.legendText}>Severe</Text>
-                      </View>
-                    </View>
-
-                    {/* Main COWS Score Bar */}
-                    {record.withdrawalAssessment.score !== undefined && record.withdrawalAssessment.score > 0 && (
-                      <View style={styles.mainScoreBar}>
-                        <View style={styles.mainScoreHeader}>
-                          <Text style={styles.mainScoreLabel}>COWS Score</Text>
-                          <Text style={styles.mainScoreValue}>{record.withdrawalAssessment.score}/48</Text>
-                        </View>
-                        <View style={styles.barContainer}>
-                          <View style={styles.barBackground}>
-                            <View
-                              style={[
-                                styles.barFill,
-                                {
-                                  width: `${Math.min(100, (record.withdrawalAssessment.score / 48) * 100)}%`,
-                                  backgroundColor: getCOWSGrayscale(record.withdrawalAssessment.score),
-                                },
-                              ]}
-                            />
-                          </View>
-                        </View>
-                        <Text style={styles.mainInterpretation}>
-                          {getCOWSInterpretation(record.withdrawalAssessment.score)}
-                        </Text>
-                      </View>
-                    )}
-
-                    {/* Symptom Bars */}
-                    {record.withdrawalAssessment.symptoms && Object.keys(record.withdrawalAssessment.symptoms).length > 0 && (
-                      <View>
-                        <Text style={styles.symptomBarsTitle}>Individual Symptoms (0-4 Scale)</Text>
-                        {Object.entries(record.withdrawalAssessment.symptoms).map(([symptom, score], sIdx) => {
-                          const numScore = typeof score === 'number' ? score : parseFloat(score) || 0;
-                          return (
-                            <View key={sIdx} style={styles.symptomBarRow}>
-                              <Text style={styles.symptomLabel}>{safeString(formatFieldLabel(symptom))}</Text>
-                              <View style={styles.symptomBarContainer}>
-                                <View style={styles.symptomBarBackground}>
-                                  <View
-                                    style={[
-                                      styles.symptomBarFill,
-                                      {
-                                        width: `${(numScore / 4) * 100}%`,
-                                        backgroundColor: getSymptomGrayscale(numScore),
-                                      },
-                                    ]}
-                                  />
-                                </View>
-                                <Text style={styles.symptomScore}>{numScore}/4</Text>
-                              </View>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                {/* Nested per-substance withdrawal (alcohol, opioid, benzodiazepine) */}
-                {record.withdrawalAssessment.alcohol && (() => {
-                  const sub = record.withdrawalAssessment.alcohol;
-                  const syms = sub.symptoms ? splitByCommaParen(sub.symptoms) : [];
-                  return (
-                    <View style={styles.fieldBlock} wrap={syms.length > 8 ? undefined : false}>
-                      <Text style={styles.subsectionTitle}>Alcohol ({safeString(sub.scale || 'N/A')})</Text>
-                      {(sub.score !== undefined || sub.severity) && (
-                        <Text style={styles.fieldValue}>Score: {safeString(sub.score)} — {safeString(sub.severity)}</Text>
-                      )}
-                      {syms.map((s, i) => (
-                        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(s)}</Text>
-                      ))}
-                    </View>
-                  );
-                })()}
-                {record.withdrawalAssessment.opioid && (() => {
-                  const sub = record.withdrawalAssessment.opioid;
-                  const syms = sub.symptoms ? splitByCommaParen(sub.symptoms) : [];
-                  return (
-                    <View style={styles.fieldBlock} wrap={syms.length > 8 ? undefined : false}>
-                      <Text style={styles.subsectionTitle}>Opioid ({safeString(sub.scale || 'N/A')})</Text>
-                      {(sub.score !== undefined || sub.severity) && (
-                        <Text style={styles.fieldValue}>Score: {safeString(sub.score)} — {safeString(sub.severity)}</Text>
-                      )}
-                      {syms.map((s, i) => (
-                        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(s)}</Text>
-                      ))}
-                    </View>
-                  );
-                })()}
-                {record.withdrawalAssessment.benzodiazepine && (() => {
-                  const benzo = record.withdrawalAssessment.benzodiazepine;
-                  const pairs = (benzo && typeof benzo === 'object')
-                    ? Object.entries(benzo).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '').map(([k, v]) => [formatFieldLabel(k), String(v)])
-                    : [['', String(benzo)]];
-                  if (pairs.length === 0) return null;
-                  return (
-                    <View style={styles.fieldBlock} wrap={false}>
-                      <Text style={styles.subsectionTitle}>Benzodiazepine</Text>
-                      {pairs.map(([lbl, val], i) => (
-                        <View key={i} style={{ marginBottom: 4 }}>
-                          {lbl ? <Text style={styles.fieldLabel}>{safeString(lbl)}:</Text> : null}
-                          <Text style={styles.fieldValue}>{safeString(val)}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  );
-                })()}
-              </View>
-            )}
-
-            {/* 4. Medication-Assisted Treatment */}
-            {record.medicationAssistedTreatment && renderSection('Medication-Assisted Treatment', [
-              { label: 'Medication', value: record.medicationAssistedTreatment.medication },
-              { label: 'Induction Dose', value: record.medicationAssistedTreatment.inductionDose },
-              { label: 'Induction Date', value: record.medicationAssistedTreatment.inductionDate },
-              { label: 'Induction Protocol', value: record.medicationAssistedTreatment.inductionProtocol, splitter: splitBySemi },
-              { label: 'Target Maintenance Dose', value: record.medicationAssistedTreatment.targetMaintenanceDose },
-              { label: 'Target Dose', value: record.medicationAssistedTreatment.targetDose },
-              { label: 'Titration Plan', value: record.medicationAssistedTreatment.titrationPlan, splitter: splitBySemi },
-              { label: 'Maintenance Duration', value: record.medicationAssistedTreatment.maintenanceDuration, splitter: splitBySemi },
-              { label: 'Prior MAT', value: record.medicationAssistedTreatment.priorMAT },
-              { label: 'Adjunct Medications', items: record.medicationAssistedTreatment.adjunctMedications },
-            ])}
-
-            {/* 5. Urine Drug Screening */}
-            {record.urineDrugScreening?.length > 0 && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Urine Drug Screening</Text>
-                  <Text style={styles.listItem}>
-                    1. {safeString(record.urineDrugScreening[0])}
-                  </Text>
-                </View>
-                {record.urineDrugScreening.slice(1).map((item, i) => (
-                  <Text key={i} style={styles.listItem}>
-                    {i + 2}. {safeString(item)}
-                  </Text>
-                ))}
-              </View>
-            )}
-
-            {/* 6. Relapse Prevention */}
-            {record.relapsePrevention && renderSection('Relapse Prevention', [
-              { label: 'High-Risk Situations', items: record.relapsePrevention.highRiskSituations },
-              { label: 'Triggers', items: record.relapsePrevention.triggers },
-              { label: 'Coping Strategies', items: record.relapsePrevention.copingStrategies },
-              { label: 'Coping Skills', items: record.relapsePrevention.copingSkills },
-              { label: 'Emergency Plan', items: record.relapsePrevention.emergencyPlan },
-              { label: 'Support Network', items: record.relapsePrevention.supportNetwork },
-              { label: 'Environmental Modifications', items: record.relapsePrevention.environmentalModifications },
-            ])}
-
-            {/* 7. Recovery Programs */}
-            {record.recoveryPrograms?.length > 0 && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Recovery Programs</Text>
-                  <Text style={styles.listItem}>
-                    1. {safeString(record.recoveryPrograms[0])}
-                  </Text>
-                </View>
-                {record.recoveryPrograms.slice(1).map((item, i) => (
-                  <Text key={i} style={styles.listItem}>
-                    {i + 2}. {safeString(item)}
-                  </Text>
-                ))}
-              </View>
-            )}
-
-            {/* 8. Harm Reduction Counseling */}
-            {record.harmReductionCounseling && renderSection('Harm Reduction Counseling', [
-              { label: 'Naloxone Provided', value: record.harmReductionCounseling.naloxoneProvided !== undefined ? (record.harmReductionCounseling.naloxoneProvided ? 'Yes' : 'No') : undefined },
-              { label: 'Naloxone Kits', value: record.harmReductionCounseling.naloxoneKits },
-              { label: 'Syringe Services Referral', value: record.harmReductionCounseling.syringeServicesReferral !== undefined ? (record.harmReductionCounseling.syringeServicesReferral ? 'Yes' : 'No') : undefined },
-              { label: 'Naloxone Training', value: record.harmReductionCounseling.naloxoneTraining, splitter: splitSemiComma },
-              { label: 'Fentanyl Education', value: record.harmReductionCounseling.fentanylEducation, splitter: splitSemiComma },
-              { label: 'Safer Use Education', value: record.harmReductionCounseling.saferUseEducation, splitter: splitSemiComma },
-              { label: 'Needle Exchange', value: record.harmReductionCounseling.needleExchange, splitter: splitSemiComma },
-              { label: 'Safe Use Counseling', items: record.harmReductionCounseling.safeUseCounseling },
-            ])}
-
-            {/* 9. Psychiatric Comorbidities */}
-            {record.psychiatricComorbidities?.length > 0 && (
-              <View style={styles.section}>
-                <View wrap={false}>
-                  <Text style={styles.sectionTitle}>Psychiatric Comorbidities</Text>
-                  <Text style={styles.listItem}>
-                    1. {safeString(record.psychiatricComorbidities[0])}
-                  </Text>
-                </View>
-                {record.psychiatricComorbidities.slice(1).map((item, i) => (
-                  <Text key={i} style={styles.listItem}>
-                    {i + 2}. {safeString(item)}
-                  </Text>
-                ))}
-              </View>
-            )}
-
-            {/* 10. Social Determinants */}
-            {record.socialDeterminants && renderSection('Social Determinants', [
-              { label: 'Housing', value: record.socialDeterminants.housing, splitter: splitSemiComma },
-              { label: 'Employment', value: record.socialDeterminants.employment, splitter: splitSemiComma },
-              { label: 'Income', value: record.socialDeterminants.income, splitter: splitSemiComma },
-              { label: 'Family Support', value: record.socialDeterminants.familySupport, splitter: splitSemiComma },
-              { label: 'Legal Issues', value: record.socialDeterminants.legalIssues, splitter: splitSemiComma },
-              { label: 'Legal History', value: record.socialDeterminants.legalHistory, splitter: splitSemiComma },
-            ])}
-
-            {/* 11. Treatment Plan */}
-            {record.treatmentPlan && renderSection('Treatment Plan', [
-              { label: 'Level of Care', value: record.treatmentPlan.levelOfCare },
-              { label: 'Backup Plan', value: record.treatmentPlan.backupPlan },
-              { label: 'Phase 1', value: record.treatmentPlan.phase1 },
-              { label: 'Phase 2', value: record.treatmentPlan.phase2 },
-              { label: 'Phase 3', value: record.treatmentPlan.phase3 },
-              { label: 'Psychiatric Treatment', value: record.treatmentPlan.psychiatricTreatment },
-              { label: 'Counseling', value: record.treatmentPlan.counseling },
-              { label: 'Components', items: record.treatmentPlan.components },
-            ])}
-
-            {/* 12. Prognosis */}
-            {record.prognosis && renderSection('Prognosis', [
-              { label: 'Overall', value: record.prognosis.overall },
-              { label: 'With MAT', value: record.prognosis.withMAT },
-              { label: 'Without MAT', value: record.prognosis.withoutMAT },
-              { label: 'Favorable Factors', items: record.prognosis.favorableFactors },
-              { label: 'Unfavorable Factors', items: record.prognosis.unfavorableFactors },
-              { label: 'Critical Inflection Points', items: record.prognosis.criticalInflectionPoints },
-            ])}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
-};
-
 export default AddictionMedicineConsultationsDocumentPDFTemplate;

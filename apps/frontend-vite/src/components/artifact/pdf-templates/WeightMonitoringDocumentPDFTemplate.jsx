@@ -7,23 +7,24 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 13, lineHeight: 1.5, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 24 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 4, paddingBottom: 6, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  sectionLead: { marginBottom: 0 },
+  sectionSpacer: { height: 8 },
+  fieldBox: { marginBottom: 10, padding: 8, borderWidth: 0.5, borderColor: '#cccccc', borderStyle: 'solid' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 5, paddingBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
   noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
 });
 
 /* ======= UTILS ======= */
@@ -77,7 +78,15 @@ const fmtVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/;\s+|(?<!\d)\.(?:\s+|$)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+};
+
+const COMMA_ARRAY_FIELDS = new Set(['nutritionalStatus', 'weightVariabilityPattern']);
+
+const splitFieldValue = (field, text) => {
+  const clauses = splitBySentence(String(text || ''));
+  if (!COMMA_ARRAY_FIELDS.has(field)) return clauses;
+  return clauses.flatMap(clause => splitByComma(clause)).map(item => item.trim()).filter(Boolean);
 };
 
 const parseLabel = (text) => {
@@ -105,17 +114,17 @@ const splitByComma = (text) => {
 const renderFieldRow = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
+      <Text style={styles.fieldValue}>1. {safeString(fmtVal(value))}</Text>
     </View>
   );
 };
 
 /* renderSentenceField: parseLabel + comma-split */
-const renderSentenceField = (label, text) => {
+const renderSentenceField = (field, label, text) => {
   if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
+  const sentences = splitFieldValue(field, fmtVal(text));
   if (sentences.length === 0) return null;
 
   const rows = [];
@@ -135,10 +144,8 @@ const renderSentenceField = (label, text) => {
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {rows.map((row, i) => {
         if (row.type === 'subtitle') {
@@ -157,7 +164,7 @@ const renderArrayFieldPDF = (label, items) => {
   if (safeItems.length === 0) return null;
 
   return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {safeItems.map((item, i) => (
         <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
@@ -230,17 +237,20 @@ const SECTION_CONFIGS = [
 ];
 
 /* ======= COMPONENT ======= */
-const WeightMonitoringDocumentPDFTemplate = ({ document: data }) => {
+const WeightMonitoringDocumentPDFTemplate = ({ document: documentProp, data: dataProp, templateData }) => {
   const records = React.useMemo(() => {
+    const data = documentProp ?? dataProp ?? templateData;
     if (!data) return [];
     let arr = Array.isArray(data) ? data : [data];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.records)) return r.records;
+      if (Array.isArray(r?._records)) return r._records;
       if (r?.weight_monitoring) return Array.isArray(r.weight_monitoring) ? r.weight_monitoring : [r.weight_monitoring];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.weight_monitoring) return Array.isArray(dd.weight_monitoring) ? dd.weight_monitoring : [dd.weight_monitoring]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [documentProp, dataProp, templateData]);
 
   if (!records || records.length === 0) {
     return (
@@ -257,65 +267,37 @@ const WeightMonitoringDocumentPDFTemplate = ({ document: data }) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Weight Monitoring</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.createdAt && (
-                  <Text style={styles.recordDate}>{formatDate(record.createdAt)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {`Weight Monitoring ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections — title grouped with first field to prevent orphaning */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const presentFields = sectionConfig.fields.filter(f => fieldShows(f.key, record[f.key]));
-              if (presentFields.length === 0) return null;
-
-              const renderField = (field) => {
-                const val = record[field.key];
-                if (field.isDate) {
-                  return (
-                    <View style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>{field.label}</Text>
-                      <Text style={styles.fieldValue}>{formatDate(val)}</Text>
-                    </View>
-                  );
-                }
-                if (field.isArray) return renderArrayFieldPDF(field.label, val);
-                if (field.isSentence) return renderSentenceField(field.label, val);
-                return renderFieldRow(field.label, val);
-              };
-
-              return (
-                <View key={sIdx} style={styles.section}>
-                  {/* Title + first field together — prevents orphaned titles */}
-                  <View style={styles.fieldBox} wrap={false}>
-                    <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                    {renderField(presentFields[0])}
-                  </View>
-                  {/* Remaining fields */}
-                  {presentFields.slice(1).map((field, fIdx) => (
-                    <View key={fIdx}>{renderField(field)}</View>
-                  ))}
-                </View>
-              );
-            })}
+      {records.map((record, index) => (
+        <Page key={index} size="LETTER" style={styles.page}>
+          <View style={styles.documentHeader}>
+            <Text style={styles.documentTitle}>Weight Monitoring</Text>
           </View>
-        ))}
-      </Page>
+          <View style={styles.recordHeader} wrap={false}>
+            <Text style={styles.recordTitle}>{`Weight Monitoring ${index + 1}`}</Text>
+          </View>
+          {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
+            const presentFields = sectionConfig.fields.filter(field => fieldShows(field.key, record[field.key]));
+            if (!presentFields.length) return null;
+            const renderField = (field, fieldIndex) => {
+              const value = record[field.key];
+              if (field.isDate) return <View key={`${field.key}-${fieldIndex}`} style={styles.fieldBox} wrap={false}><Text style={styles.fieldLabel}>{field.label}</Text><Text style={styles.fieldValue}>1. {formatDate(value)}</Text></View>;
+              if (field.isArray) return <View key={`${field.key}-${fieldIndex}`}>{renderArrayFieldPDF(field.label, value)}</View>;
+              if (field.isSentence) return <View key={`${field.key}-${fieldIndex}`}>{renderSentenceField(field.key, field.label, value)}</View>;
+              return <View key={`${field.key}-${fieldIndex}`}>{renderFieldRow(field.label, value)}</View>;
+            };
+            return (
+              <React.Fragment key={sIdx}>
+                <View style={styles.sectionLead} wrap={false}>
+                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
+                  {renderField(presentFields[0], 0)}
+                </View>
+                {presentFields.slice(1).map((field, fieldIndex) => renderField(field, fieldIndex + 1))}
+                <View style={styles.sectionSpacer} />
+              </React.Fragment>
+            );
+          })}
+        </Page>
+      ))}
     </Document>
   );
 };

@@ -35,6 +35,7 @@ function toObjectId(str) {
 }
 
 const ALLOWED_FIELDS = [
+  'createdAt',
   'currentWeight',
   'previousWeight',
   'weightChangeKg',

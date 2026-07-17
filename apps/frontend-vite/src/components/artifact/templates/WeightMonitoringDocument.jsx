@@ -15,6 +15,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import WeightMonitoringDocumentPDFTemplate from '../pdf-templates/WeightMonitoringDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './WeightMonitoringDocument.css';
 
@@ -84,10 +86,11 @@ const SECTION_FIELDS = {
 const NUMBER_FIELDS = ['currentWeight', 'previousWeight', 'weightChangeKg', 'bodyMassIndex', 'idealBodyWeight', 'dailyFluidIntake', 'urineOutput24hr', 'sodiumRestriction', 'fluidRestriction', 'abdominalGirth', 'weightLossGoal', 'serumSodium', 'serumCreatinine', 'bntProBnp'];
 /* MEANINGFUL_ZERO_FIELDS: numerics where 0 is a valid clinical finding (weightChangeKg 0 = weight stable). All other weight/measurement numerics use 0 as a "not recorded" sentinel → hidden. */
 const MEANINGFUL_ZERO_FIELDS = ['weightChangeKg'];
-const DATE_FIELDS = [];
+const DATE_FIELDS = ['createdAt'];
 const BOOLEAN_FIELDS = ['fluidRetention', 'jugularVenousDistention'];
 const ARRAY_FIELDS = ['diureticMedications'];
 const STRING_FIELDS = ['nyhaClassification', 'weightMonitoringFrequency', 'peripheralEdema', 'nutritionalStatus', 'weightVariabilityPattern', 'medicationCompliance'];
+const COMMA_ARRAY_FIELDS = new Set(['nutritionalStatus', 'weightVariabilityPattern']);
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -117,8 +120,13 @@ const formatDate = (dateValue) => {
   try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
 };
 
+const toInputDate = (dateValue) => {
+  if (!dateValue) return '';
+  try { return new Date(dateValue.$date || dateValue).toISOString().slice(0, 10); } catch { return ''; }
+};
+
 /* ═══════ COMPONENT ═══════ */
-const WeightMonitoringDocument = ({ document: docProp }) => {
+const WeightMonitoringDocument = ({ document: docProp, data: dataProp, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -131,21 +139,24 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
   const [editedFields, setEditedFields] = useState({});
   const [editedSentences, setEditedSentences] = useState({});
   const [approvedSections, setApprovedSections] = useState({});
-  const [saving, setSaving] = useState(false);
+  const saving = false;
   const [saveError, setSaveError] = useState(null);
   const containerRef = useRef(null);
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? dataProp ?? templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.records)) return r.records;
+      if (Array.isArray(r?._records)) return r._records;
       if (r?.weight_monitoring) return Array.isArray(r.weight_monitoring) ? r.weight_monitoring : [r.weight_monitoring];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.weight_monitoring) return Array.isArray(dd.weight_monitoring) ? dd.weight_monitoring : [dd.weight_monitoring]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, dataProp, templateData]);
 
   // Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF).
   useEffect(() => {
@@ -186,10 +197,12 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
       });
     });
     if (Object.keys(nPending).length === 0) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time local draft hydration from external storage */
     setLocalEdits(prev => ({ ...nLocal, ...prev }));
     setPendingEdits(prev => ({ ...nPending, ...prev }));
     setEditedFields(prev => ({ ...nFields, ...prev }));
     setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [records]);
 
   /* ═══════ UTILS ═══════ */
@@ -198,8 +211,14 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/;\s+|(?<!\d)\.(?:\s+|$)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
+
+  const splitFieldValue = useCallback((field, text) => {
+    const clauses = splitBySentence(String(text || ''));
+    if (!COMMA_ARRAY_FIELDS.has(field)) return clauses;
+    return clauses.flatMap(clause => splitByComma(clause)).map(item => item.trim()).filter(Boolean);
+  }, [splitBySentence]);
 
   const splitBySemicolon = useCallback((text) => {
     if (!text || typeof text !== 'string') return [text || ''];
@@ -430,8 +449,7 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
         const isArrayElem = dotIdx !== -1 && /^\d+$/.test(tail);
         const baseField = isArrayElem ? fieldPart.slice(0, dotIdx) : fieldPart;
         if (!fields.includes(baseField)) continue;
-        const payload = { field: baseField, value };
-        if (isArrayElem) payload.arrayIndex = parseInt(tail, 10);
+        const payload = { field: isArrayElem ? fieldPart : baseField, value };
         const resp = await secureApiClient.put(`/api/edit/weight_monitoring/${id}/edit`, payload);
         if (resp && resp.success === false) throw new Error(resp.error || 'save failed');
         committedFields.push(fieldPart);
@@ -468,6 +486,7 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
+  // eslint-disable-next-line no-unused-vars -- retained for the superseded legacy renderer below
   const formatSentenceFieldLines = useCallback((text) => {
     const sentences = splitBySentence(text);
     const lines = []; let n = 1;
@@ -491,36 +510,58 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
-      const showLabelCopy = label.toLowerCase() !== (title || '').toLowerCase();
       const val = getFieldValue(record, f, idx);
       if (NUMBER_FIELDS.includes(f)) {
         if (!numberShows(record, f, idx)) return;
       } else if (!hasVal(val)) return;
-      if (f === 'createdAt') {
-        text += showLabelCopy ? `${label}\n${formatDate(val)}\n\n` : `${formatDate(val)}\n\n`;
-      } else if (NUMBER_FIELDS.includes(f)) {
-        text += `${label}: ${val}\n\n`;
-      } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += showLabelCopy ? `${label}: ${val ? 'Yes' : 'No'}\n\n` : `${val ? 'Yes' : 'No'}\n\n`;
-      } else if (ARRAY_FIELDS.includes(f)) {
-        const items = Array.isArray(val) ? val : [val];
-        text += `${label}\n${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
-      } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          if (showLabelCopy) text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          text += showLabelCopy ? `${label}\n${strVal}\n\n` : `${strVal}\n\n`;
-        }
-      } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
-      }
+      const rows = DATE_FIELDS.includes(f)
+        ? [formatDate(val)]
+        : BOOLEAN_FIELDS.includes(f)
+          ? [val ? 'Yes' : 'No']
+          : ARRAY_FIELDS.includes(f)
+            ? (Array.isArray(val) ? val : [val]).map(String)
+            : STRING_FIELDS.includes(f)
+              ? splitFieldValue(f, fmtVal(val))
+              : [fmtVal(val)];
+      text += `${label}\n${'-'.repeat(40)}\n`;
+      rows.forEach((row, rowIndex) => { text += `${rowIndex + 1}. ${row}\n`; });
+      text += '\n';
     });
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+  }, [getFieldValue, hasVal, fmtVal, splitFieldValue, numberShows]);
+
+  const renderDateField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const isModified = editedFields[editKey];
+    const label = FIELD_LABELS[fn] || fn;
+    const displayVal = formatDate(val);
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div data-edit-field={fn}>
+          <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
+            {isEditing ? (
+              <div className="edit-field-container">
+                <BlueDatePicker value={editValue} onSelect={nextValue => setEditValue(nextValue || '')} />
+                <div className="edit-actions">
+                  <button className="save-btn" onClick={event => { event.stopPropagation(); if (!editValue || Number.isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, `${editValue}T00:00:00.000Z`); }}>Save</button>
+                  <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
+                <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(displayVal, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              </>
+            )}
+          </div>
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
 
   const copyAllText = useCallback(async () => {
     let text = '=== WEIGHT MONITORING ===\n\n';
@@ -547,12 +588,16 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
+        <div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step="any" className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <div className="number-edit-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button>
+                <input type="text" inputMode="decimal" className="edit-input" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const numVal = parseFloat(editValue); if (isNaN(numVal)) { setSaveError('Please enter a valid number'); return; } handleSaveField(record, fn, idx, sid, null, numVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -562,10 +607,10 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(displayVal, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
-        </div>
+        </div></div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
@@ -583,15 +628,12 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
+        <div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -601,10 +643,10 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(displayVal, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
-        </div>
+        </div></div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
@@ -620,7 +662,7 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, itemIdx) => {
           const editKey = `${fn}.${itemIdx}-${idx}`;
@@ -636,7 +678,7 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
 
           return (
             <div key={itemIdx}>
-              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
+              <div data-edit-field={`${fn}.${itemIdx}`}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
@@ -652,7 +694,7 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
                     <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(itemStr, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                   </>
                 )}
-              </div>
+              </div></div>
               {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
             </div>
           );
@@ -662,7 +704,8 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
   };
 
   /* ═══════ RENDER: STRING FIELD with splitBySentence ═══════ */
-  const renderStringField = (record, fn, idx, sid) => {
+  // eslint-disable-next-line no-unused-vars -- retained only as a reference for the superseded renderer path
+  const renderStringFieldLegacy = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
     const sentences = splitBySentence(strVal);
@@ -789,36 +832,51 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
     );
   };
 
+  const renderStringField = (record, fn, idx, sid) => {
+    const value = getFieldValue(record, fn, idx); if (!hasVal(value)) return null;
+    const label = FIELD_LABELS[fn] || fn;
+    const clauses = splitFieldValue(fn, fmtVal(value));
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card">
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        {clauses.map((clause, clauseIndex) => {
+          const rowKey = `${fn}-${idx}-clause-${clauseIndex}`;
+          const isEditing = editingField === rowKey;
+          const badge = editedSentences[rowKey];
+          return (
+            <div key={rowKey}>
+              <div data-edit-field={fn}>
+                <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(rowKey); setEditValue(clause); setSaveError(null); } }}>
+                  {isEditing ? (
+                    <div className="edit-field-container">
+                      <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />
+                      <div className="edit-actions">
+                        <button className="save-btn" onClick={event => { event.stopPropagation(); const updated = [...clauses]; updated[clauseIndex] = editValue.trim(); const fullText = updated.filter(Boolean).join('. '); stageSentenceDraft(record, fn, idx, sid, fullText, { [rowKey]: 'edited' }); }}>Save</button>
+                        <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(clause)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[rowKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(clause, rowKey); }}>{copiedItems[rowKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+              </div>
+              {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: GENERIC SECTION ═══════ */
   const renderSection = (record, idx, sid) => {
     const title = SECTION_TITLES[sid];
     if (!shouldShowSection(record, sid)) return null;
     const fields = SECTION_FIELDS[sid] || [];
-
-    /* record-info: display-only createdAt */
-    if (sid === 'record-info') {
-      const createdAt = record.createdAt;
-      if (!hasVal(createdAt)) return null;
-      const copyId = `${sid}-${idx}`;
-      return (
-        <div key={sid} className="section">
-          <div className="mini-cards-container">
-            <div className="section-header">
-              <h4 className="section-title">{highlightText(title)}</h4>
-              <div className="header-right-actions">
-                <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => copySectionText(`${title}\n${'='.repeat(40)}\n\nDate\n${formatDate(createdAt)}\n\n`, copyId)}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
-              </div>
-            </div>
-            <div className="rec-mini-card">
-              <div className="nested-subtitle">{highlightText('Date')}</div>
-              <div className="numbered-row">
-                <div className="row-content"><span className="content-value">{highlightText(formatDate(createdAt))}</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
 
     const hasAnyVal = fields.some(f => {
       if (NUMBER_FIELDS.includes(f)) return numberShows(record, f, idx);
@@ -838,6 +896,7 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
+            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (NUMBER_FIELDS.includes(f)) return renderNumberField(record, f, idx, sid);
             if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
@@ -864,7 +923,7 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
         <h2 className="document-title">Weight Monitoring</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<WeightMonitoringDocumentPDFTemplate document={pdfData} />} fileName={`weight-monitoring-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<WeightMonitoringDocumentPDFTemplate document={pdfData} />} fileName="Weight_Monitoring.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -877,11 +936,6 @@ const WeightMonitoringDocument = ({ document: docProp }) => {
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
             <div className="record-header">
-              {hasVal(record.createdAt) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{highlightText(formatDate(record.createdAt))}</span>
-                </div>
-              )}
               <h3 className="record-name">{highlightText(`Weight Monitoring ${idx + 1}`)}</h3>
             </div>
             {renderSection(record, idx, 'record-info')}

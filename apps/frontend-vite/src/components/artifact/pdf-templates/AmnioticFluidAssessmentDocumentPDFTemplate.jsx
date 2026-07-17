@@ -10,20 +10,19 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentTitle: { fontSize: 22, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 20 },
+  page: { padding: 42, fontFamily: 'Helvetica', fontSize: 13, lineHeight: 1.35, backgroundColor: '#ffffff', color: '#111827' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#0f172a', paddingBottom: 9, borderBottom: '2pt solid #000000', marginBottom: 10 },
   recordContainer: { marginBottom: 20 },
-  recordDate: { fontSize: 12, color: '#000000', marginBottom: 4 },
-  recordTitle: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#1e3a8a', marginBottom: 10 },
   fieldBox: { marginBottom: 10 },
-  sectionTitle: { fontSize: 15, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#000000', marginBottom: 3 },
-  subLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 2 },
-  fieldValue: { fontSize: 12, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 10 },
-  nestedSubtitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1d4ed8', paddingBottom: 5, borderBottom: '1pt solid #000000', marginBottom: 6 },
+  fieldLabel: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e3a8a', paddingBottom: 3, borderBottom: '0.5pt solid #999999', marginBottom: 3 },
+  subLabel: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#334155', marginTop: 4, marginBottom: 2 },
+  fieldValue: { fontSize: 13, color: '#111827' },
+  listItem: { fontSize: 13, color: '#111827', marginBottom: 2, paddingLeft: 10 },
+  nestedSubtitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#334155', marginTop: 6, marginBottom: 3 },
   nested: { marginLeft: 10, marginTop: 2 },
-  noDataText: { fontSize: 12, color: '#000000', textAlign: 'center', marginTop: 40 },
+  noDataText: { fontSize: 13, color: '#111827', textAlign: 'center', marginTop: 40 },
 });
 
 /* ======= UTILS (mirror the JSX exactly) ======= */
@@ -66,7 +65,7 @@ const parseLabel = (text) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/)
+  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+|$)/)
     .map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
 
@@ -89,21 +88,23 @@ const splitOnChar = (text, sep) => {
 
 // Semicolon = explicit list separator (always safe). Comma split ONLY for LABELED values (genuine
 // lists, >=3) — NEVER comma-split unlabeled narrative ("Robert Yamashiro, MD, FACOG" stays whole).
-const clausesOf = (base, isLabeled) => {
-  const semi = splitOnChar(base, ';');
+const COMMA_SPLIT_FIELDS = new Set([]);
+const SEMICOLON_SEPARATOR = /;\s+/;
+const clausesOf = (base, fieldName) => {
+  const semi = SEMICOLON_SEPARATOR.test(base) ? splitOnChar(base, ';') : [base];
   if (semi.length >= 2) return { sep: '; ', items: semi };
-  if (isLabeled) { const c = splitOnChar(base, ','); if (c.length >= 3) return { sep: ', ', items: c }; }
+  if (COMMA_SPLIT_FIELDS.has(fieldName)) { const c = splitOnChar(base, ','); if (c.length >= 2) return { sep: ', ', items: c }; }
   return { sep: null, items: [String(base || '').trim()] };
 };
 
 // Sentences -> units; a labeled value = its own unit (sub-label); consecutive unlabeled merge.
-const buildUnits = (value) => {
+const buildUnits = (value, fieldName) => {
   const sentences = splitBySentence(String(value || ''));
   const units = [];
   sentences.forEach((sentence) => {
     const p = parseLabel(sentence);
     const base = p.isLabeled ? p.value : sentence;
-    const { items } = clausesOf(base, p.isLabeled);
+    const { items } = clausesOf(base, fieldName);
     const rows = items.map((t) => STRIP(t));
     const last = units[units.length - 1];
     if (!p.isLabeled && last && !last.label) last.rows.push(...rows);
@@ -172,6 +173,7 @@ const SECTION_TITLES = {
 
 const FIELD_LABELS = {
   date: 'Date',
+  type: 'Type',
   provider: 'Provider',
   facility: 'Facility',
   status: 'Status',
@@ -188,7 +190,7 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
-  'header-info': ['date', 'provider', 'facility', 'status'],
+  'header-info': ['date', 'type', 'provider', 'facility', 'status'],
   'monitoring-config': ['frequency', 'startingWeek', 'method'],
   'clinical-findings': ['findings', 'assessment'],
   'plan-notes': ['plan', 'notes'],
@@ -199,7 +201,7 @@ const SECTION_FIELDS = {
 
 const SECTION_ORDER = ['header-info', 'monitoring-config', 'clinical-findings', 'plan-notes', 'thresholds-data', 'results-data', 'recommendations-data'];
 const DATE_FIELDS = ['date'];
-const NUMBER_FIELDS = ['startingWeek'];
+const NUMBER_FIELDS = [];
 const OBJECT_FIELDS = ['results'];
 const OBJECT_ARRAY_FIELDS = ['recommendations'];
 
@@ -244,8 +246,8 @@ const renderField = (record, fn, sectionTitle, isFirst) => {
         {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
         {groups.map((group, gIdx) => (
           <View key={gIdx}>
-            {group.date ? <Text style={styles.subLabel}>{group.date}</Text> : null}
-            {group.items.map((r, i) => (<Text key={i} style={styles.listItem}>{i + 1}. {(r?.recommendation || '').trim()}</Text>))}
+            {group.date ? <Text style={styles.subLabel}>{formatDate(group.date)}</Text> : null}
+            {group.items.flatMap((r) => clausesOf((r?.recommendation || '').trim(), fn).items.map(STRIP)).map((row, i) => (<Text key={i} style={styles.listItem}>{i + 1}. {row}</Text>))}
           </View>
         ))}
       </View>
@@ -294,7 +296,7 @@ const renderField = (record, fn, sectionTitle, isFirst) => {
   }
 
   /* String fields — clause units (mirror JSX buildUnits): semicolon list / labeled comma list. */
-  const units = buildUnits(safeString(val));
+  const units = buildUnits(safeString(val), fn);
   if (units.length === 0) return [];
   const totalRows = units.reduce((a, u) => a + u.rows.length, 0);
   return [(
@@ -322,21 +324,25 @@ const renderSection = (record, sid) => {
   return <React.Fragment key={sid}>{views}</React.Fragment>;
 };
 
+const unwrap = (source) => {
+  if (!source) return [];
+  let records = Array.isArray(source) ? source : [source];
+  records = records.flatMap(record => {
+    if (record?.amniotic_fluid_assessment) return Array.isArray(record.amniotic_fluid_assessment) ? record.amniotic_fluid_assessment : [record.amniotic_fluid_assessment];
+    if (record?.documentData) {
+      const nested = record.documentData;
+      if (Array.isArray(nested)) return nested;
+      if (nested?.amniotic_fluid_assessment) return Array.isArray(nested.amniotic_fluid_assessment) ? nested.amniotic_fluid_assessment : [nested.amniotic_fluid_assessment];
+      return [nested];
+    }
+    return [record];
+  });
+  return records.filter(record => record && typeof record === 'object');
+};
+
 /* ======= MAIN COMPONENT ======= */
 const AmnioticFluidAssessmentDocumentPDFTemplate = ({ document: docProp }) => {
-  let records = [];
-  if (Array.isArray(docProp)) {
-    if (docProp.length > 0 && docProp[0].amniotic_fluid_assessment && Array.isArray(docProp[0].amniotic_fluid_assessment)) {
-      records = docProp[0].amniotic_fluid_assessment;
-    } else {
-      records = docProp;
-    }
-  } else if (docProp && docProp.amniotic_fluid_assessment) {
-    records = Array.isArray(docProp.amniotic_fluid_assessment) ? docProp.amniotic_fluid_assessment : [docProp.amniotic_fluid_assessment];
-  } else if (docProp) {
-    records = [docProp];
-  }
-  records = records.filter(r => r && typeof r === 'object');
+  const records = unwrap(docProp);
 
   if (!records || records.length === 0) {
     return (
@@ -356,7 +362,6 @@ const AmnioticFluidAssessmentDocumentPDFTemplate = ({ document: docProp }) => {
         {records.map((record, idx) => (
           <View key={idx} style={styles.recordContainer} break={idx > 0}>
             <View wrap={false}>
-              {hasVal(record.date) && <Text style={styles.recordDate}>{formatDate(record.date)}</Text>}
               <Text style={styles.recordTitle}>Amniotic Fluid Assessment {idx + 1}</Text>
             </View>
             {SECTION_ORDER.map(sid => renderSection(record, sid))}

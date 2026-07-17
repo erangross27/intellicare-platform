@@ -2,26 +2,26 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, color: '#000000', backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 20, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 12 },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1 },
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 13, color: '#000000', backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 20, textAlign: 'center', paddingBottom: 12 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', borderBottom: '2pt solid #000000' },
   recordContainer: { marginBottom: 24, paddingBottom: 16 },
-  recordHeader: { marginBottom: 12, backgroundColor: '#f0f0f0', padding: 10, borderWidth: 1, borderColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', textTransform: 'uppercase' },
-  recordSubtitle: { fontSize: 12, fontFamily: 'Helvetica', color: '#333333', marginTop: 2 },
-  recordMeta: { flexDirection: 'row', gap: 16, marginTop: 4 },
-  metaText: { fontSize: 10, color: '#333333' },
+  recordHeader: { marginBottom: 12, paddingBottom: 8 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  recordSubtitle: { fontSize: 13, fontFamily: 'Helvetica', color: '#333333', marginTop: 2 },
+  recordMeta: { flexDirection: 'column', gap: 2, marginTop: 6 },
+  metaText: { fontSize: 13, color: '#333333' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', textTransform: 'uppercase', borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4, marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', borderBottom: '1pt solid #000000', paddingBottom: 4, marginBottom: 8 },
   fieldBlock: { marginBottom: 8, paddingLeft: 12 },
-  fieldLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#333333', textTransform: 'uppercase', marginBottom: 2 },
-  fieldValue: { fontSize: 12, color: '#000000', lineHeight: 1.4 },
-  listItem: { fontSize: 12, color: '#000000', marginLeft: 15, marginBottom: 4 },
+  fieldLabel: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 2, paddingBottom: 2, borderBottom: '0.5pt solid #999999' },
+  fieldValue: { fontSize: 13, color: '#000000', lineHeight: 1.4 },
+  listItem: { fontSize: 13, color: '#000000', marginLeft: 15, marginBottom: 4 },
   noData: { fontSize: 12, color: '#666666', textAlign: 'center', marginTop: 40 },
 });
 
 const chartStyles = StyleSheet.create({
-  chartSection: { marginBottom: 16, padding: 12, backgroundColor: '#f8f9fa', borderWidth: 1, borderColor: '#dee2e6', borderRadius: 4 },
+  chartSection: { marginBottom: 16 },
   chartTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', textTransform: 'uppercase', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4 },
   categoryHeader: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#757575', textTransform: 'uppercase', marginBottom: 8, marginTop: 8, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   legendContainer: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#dee2e6' },
@@ -60,7 +60,7 @@ const formatDate = (dateString) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<=[.;])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+  return text.split(/[.;]\s+/).map(s => s.trim()).filter(s => s.length > 0);
 };
 
 const formatKey = (key) => {
@@ -257,7 +257,15 @@ const renderObjectFields = (obj) => {
           <Text style={styles.fieldLabel}>{label}</Text>
           {Object.entries(value).map(([nk, nv]) => {
             if (!hasValue(nv)) return null;
-            return <Text key={nk} style={styles.listItem}>{n++}. {formatKey(nk)}: {toSafeString(nv)}</Text>;
+            if (nv && typeof nv === 'object' && !Array.isArray(nv)) {
+              return <View key={nk}>{renderObjectFields({ [nk]: nv })}</View>;
+            }
+            return (
+              <View key={nk} style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>{formatKey(nk)}</Text>
+                <Text style={styles.fieldValue}>{toSafeString(nv)}</Text>
+              </View>
+            );
           })}
         </View>
       );
@@ -331,15 +339,25 @@ const renderSection = (title, content) => {
 const AnesthesiologyAssessmentDocumentPDFTemplate = ({ document: data }) => {
   if (!data) return null;
 
+  const normalizedData = Array.isArray(data) && data.length === 1 && (
+    data[0]?.anesthesiology_assessment || data[0]?.data || data[0]?.documentData?.records
+  ) ? data[0] : data;
+
   let recordsArray = [];
-  if (Array.isArray(data)) {
-    recordsArray = data;
-  } else if (data.anesthesiology_assessment && Array.isArray(data.anesthesiology_assessment)) {
-    recordsArray = data.anesthesiology_assessment;
-  } else if (data.documentData && data.documentData.records) {
-    recordsArray = Array.isArray(data.documentData.records) ? data.documentData.records : [data.documentData.records];
+  if (normalizedData.anesthesiology_assessment) {
+    recordsArray = Array.isArray(normalizedData.anesthesiology_assessment)
+      ? normalizedData.anesthesiology_assessment
+      : [normalizedData.anesthesiology_assessment];
+  } else if (normalizedData.documentData?.records) {
+    recordsArray = Array.isArray(normalizedData.documentData.records)
+      ? normalizedData.documentData.records
+      : [normalizedData.documentData.records];
+  } else if (Array.isArray(normalizedData)) {
+    recordsArray = normalizedData;
+  } else if (normalizedData.data) {
+    recordsArray = Array.isArray(normalizedData.data) ? normalizedData.data : [normalizedData.data];
   } else {
-    recordsArray = [data];
+    recordsArray = [normalizedData];
   }
 
   if (recordsArray.length === 0) {
@@ -375,7 +393,7 @@ const AnesthesiologyAssessmentDocumentPDFTemplate = ({ document: data }) => {
               </Text>
               {record.asaClassification && <Text style={styles.recordSubtitle}>{String(record.asaClassification)}</Text>}
               <View style={styles.recordMeta}>
-                <Text style={styles.metaText}>Date: {formatDate(record.date)}</Text>
+                {record.date && <Text style={styles.metaText}>Date: {formatDate(record.date)}</Text>}
                 {record.provider && <Text style={styles.metaText}>Provider: {String(record.provider)}</Text>}
                 {record.facility && <Text style={styles.metaText}>Facility: {String(record.facility)}</Text>}
                 {record.status && <Text style={styles.metaText}>Status: {String(record.status)}</Text>}
@@ -384,26 +402,26 @@ const AnesthesiologyAssessmentDocumentPDFTemplate = ({ document: data }) => {
 
             {/* Score Overview */}
             {hasChartData && (
-              <View style={chartStyles.chartSection} wrap={false}>
+              <View style={chartStyles.chartSection} wrap>
                 <Text style={chartStyles.chartTitle}>Score Overview</Text>
                 <PDFLegend />
                 {riskCharts.length > 0 && (
-                  <>
+                  <View wrap={false}>
                     <Text style={chartStyles.categoryHeader}>Risk Assessment</Text>
                     {riskCharts.map((chart) => <PDFBarChart key={chart.key} {...chart} />)}
-                  </>
+                  </View>
                 )}
                 {airwayCharts.length > 0 && (
-                  <>
+                  <View wrap={false}>
                     <Text style={chartStyles.categoryHeader}>Airway Assessment</Text>
                     {airwayCharts.map((chart) => <PDFBarChart key={chart.key} {...chart} />)}
-                  </>
+                  </View>
                 )}
                 {painCharts.length > 0 && (
-                  <>
+                  <View wrap={false}>
                     <Text style={chartStyles.categoryHeader}>Pain Management</Text>
                     {painCharts.map((chart) => <PDFBarChart key={chart.key} {...chart} />)}
-                  </>
+                  </View>
                 )}
               </View>
             )}
@@ -430,11 +448,24 @@ const AnesthesiologyAssessmentDocumentPDFTemplate = ({ document: data }) => {
             {renderSection('Results', renderObjectFields(record.results))}
 
             {/* Recommendations */}
-            {renderSection('Recommendations', (record.recommendations || []).map((rec2, i) => (
-              <Text key={i} style={styles.listItem}>
-                {i + 1}. {String(rec2.recommendation || rec2)}
-              </Text>
-            )))}
+            {renderSection('Recommendations', (() => {
+              const groups = [];
+              (record.recommendations || []).forEach((rec2) => {
+                const rawDate = rec2 && typeof rec2 === 'object' ? rec2.date : '';
+                const dateKey = rawDate ? formatDate(rawDate) : '';
+                let group = groups.find(candidate => candidate.dateKey === dateKey);
+                if (!group) { group = { dateKey, items: [] }; groups.push(group); }
+                group.items.push(rec2);
+              });
+              return groups.map((group, groupIndex) => (
+                <View key={`${group.dateKey}-${groupIndex}`} style={styles.fieldBlock} wrap={false}>
+                  {group.dateKey && <Text style={styles.fieldLabel}>{group.dateKey}</Text>}
+                  {group.items.map((rec2, itemIndex) => (
+                    <Text key={itemIndex} style={styles.listItem}>{itemIndex + 1}. {String(rec2.recommendation || rec2)}</Text>
+                  ))}
+                </View>
+              ));
+            })())}
 
             {/* Notes */}
             {renderSection('Notes', renderNarrativeField(record.notes))}

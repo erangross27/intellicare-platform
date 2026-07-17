@@ -1,303 +1,173 @@
-/**
- * AthleteSpecificDataDocumentPDFTemplate.jsx
- * PDFDownloadLink + pdfData memo pattern
- * ASCII separators only (no unicode box-drawing)
- */
-
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'athlete_specific_data';
+const COMMA_SPLIT_FIELDS = ['assessment'];
+const DISPLAY_FIELDS = ['date', 'type', 'provider', 'facility', 'status', 'sport', 'position', 'professionalLevel', 'teamSupport', 'previousInjuries', 'psychologicalSupport', 'antiDopingNotification', 'findings', 'assessment', 'plan', 'recommendations', 'results', 'notes'];
+
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontSize: 12,
-    fontFamily: 'Helvetica',
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 24,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  recordSection: {
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#cccccc',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
-    backgroundColor: '#f0f0f0',
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#000000',
-  },
-  recordMeta: {
-    fontSize: 11,
-    marginBottom: 4,
-    color: '#333333',
-    paddingLeft: 4,
-  },
-  fieldContainer: { marginBottom: 14 },
-  sectionTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase',
-    marginBottom: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-    paddingBottom: 4,
-  },
-  subSectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#333333', marginTop: 4, marginBottom: 2 },
-  fieldValue: { fontSize: 12, color: '#000000', lineHeight: 1.5, paddingLeft: 12, marginBottom: 2 },
-  listItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 4 },
-  injuryBlock: {
-    marginBottom: 10,
-    paddingLeft: 8,
-    borderLeftWidth: 2,
-    borderLeftColor: '#cccccc',
-    paddingTop: 4,
-    paddingBottom: 4,
-  },
-  injuryTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', marginBottom: 4 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
-  separator: { fontSize: 10, color: '#999999', marginBottom: 8, textAlign: 'center' },
-  recItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 4 },
-  recDate: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#333333', marginTop: 4, marginBottom: 2 },
-  objLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#3f3f3f', marginBottom: 2 },
-  objGroup: { paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: '#cccccc', marginBottom: 4 },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldRow: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32 },
+  listItem: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  groupedListItem: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 20 },
+  noData: { fontSize: 14, textAlign: 'center', marginTop: 40, color: '#555555' },
 });
 
-const humanizeKey = (key) => {
-  if (key === null || key === undefined || key === '') return '';
-  const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  return s.charAt(0).toUpperCase() + s.slice(1);
+const hasValue = value => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasValue);
+  if (typeof value === 'object') return Object.values(value).some(hasValue);
+  return true;
 };
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
-  return false;
+const safeString = value => String(value ?? '')
+  .replace(/μm|µm/g, 'um').replace(/μL|µL/g, 'uL').replace(/°/g, ' deg')
+  .replace(/±/g, '+/-').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/→/g, '->');
+const humanize = value => {
+  const text = String(value ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return text ? text[0].toUpperCase() + text.slice(1) : '';
 };
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-const isScalar = (v) => v === null || typeof v !== 'object';
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
+const displayScalar = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : safeString(value);
+const formatDate = value => {
+  if (!value) return '';
+  const raw = value.$date || value;
+  if (/^\d{4}$/.test(String(raw))) return String(raw);
   try {
-    return new Date(dateString.$date || dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateString); }
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? safeString(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return safeString(raw); }
 };
-
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  // Abbreviation-safe: do NOT split after a title/abbreviation period (Dr. Mr. Mrs. St. etc.)
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|Prof|Rev|Sr|Jr|St|Gen|Col|Sgt|Lt|Capt|vs|etc)\.)(?<=[.!?])\s+|(?<=;)\s+/).filter(s => {
-    const trimmed = s.trim();
-    return trimmed.length > 0 && trimmed.replace(/[.!?;,]+/g, '').trim().length > 0;
-  });
+const toInputDate = value => {
+  if (!value) return '';
+  const raw = value.$date || value;
+  if (!/^\d{4}-\d{2}-\d{2}/.test(String(raw))) return '';
+  try { const date = new Date(raw); return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10); } catch { return ''; }
 };
-
-const displayBoolean = (val) => {
-  if (val === true || val === 'true' || val === 'Yes') return 'Yes';
-  if (val === false || val === 'false' || val === 'No') return 'No';
-  return '';
+const parseLabel = text => {
+  const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&(),.'"<>-]{1,80}?):\s+([\s\S]+)$/);
+  return match ? { label: match[1].trim(), value: match[2].trim(), labeled: true }
+    : { label: '', value: String(text || '').trim(), labeled: false };
 };
-
-const AthleteSpecificDataDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => {
-      if (r?.athlete_specific_data) return Array.isArray(r.athlete_specific_data) ? r.athlete_specific_data : [r.athlete_specific_data];
-      if (r?.documentData) {
-        const dd = r.documentData;
-        if (Array.isArray(dd)) return dd;
-        if (dd?.athlete_specific_data) return Array.isArray(dd.athlete_specific_data) ? dd.athlete_specific_data : [dd.athlete_specific_data];
-        return [dd];
-      }
-      return r;
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  // stacked label-above-value (mirrors the JSX nested-subtitle + value) — never side-by-side "Label: value".
-  const renderField = (label, value) => {
-    if (!value || (Array.isArray(value) && value.length === 0) || String(value).trim() === '') return null;
-    return (
-      <View style={{ marginBottom: 6 }} wrap={false}>
-        <Text style={styles.subSectionTitle}>{label}</Text>
-        <Text style={styles.fieldValue}>{String(value)}</Text>
-      </View>
-    );
-  };
-
-  const renderSentenceField = (label, value) => {
-    if (!value || String(value).trim() === '') return null;
-    const sentences = splitBySentence(String(value));
-    if (sentences.length <= 1) return renderField(label, value);
-    return (
-      <View style={styles.fieldContainer}>
-        <Text style={styles.sectionTitle}>{label}</Text>
-        {sentences.map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {s}</Text>)}
-      </View>
-    );
-  };
-
-  // Recursive grayscale OBJECT renderer
-  const renderObjectNode = (label, value, depth, keyPrefix) => {
-    if (isEmptyDeep(value)) return null;
-    if (isScalar(value)) {
-      return (
-        <View key={keyPrefix} style={{ marginBottom: 2 }} wrap={false}>
-          <Text style={styles.subSectionTitle}>{label}</Text>
-          <Text style={styles.fieldValue}>{fmtScalar(value)}</Text>
-        </View>
-      );
+const splitNarrative = (field, text) => {
+  const source = String(text || '');
+  if (!source.trim()) return [];
+  const output = [];
+  let current = '';
+  let depth = 0;
+  const push = () => { const value = current.trim(); if (value) output.push(value); current = ''; };
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    const sentenceBreak = depth === 0 && (char === '.' || char === ';') && (index + 1 === source.length || /\s/.test(source[index + 1]));
+    let commaBreak = false;
+    if (depth === 0 && char === ',' && COMMA_SPLIT_FIELDS.includes(field)) {
+      const before = current.trim();
+      const after = source.slice(index + 1);
+      const next = after.trimStart();
+      const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(next)) || /^(?:and|or)\b/i.test(next) || after.length === next.length;
+      commaBreak = !protectedComma;
     }
-    const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return null;
-    return (
-      <View key={keyPrefix} style={depth > 0 ? styles.objGroup : undefined}>
-        {label && depth > 0 && <Text style={styles.objLabel}>{label}</Text>}
-        {entries.map(([k, v]) => (
-          isScalar(v)
-            ? renderObjectNode(humanizeKey(k), v, depth + 1, `${keyPrefix}.${k}`)
-            : renderObjectNode(humanizeKey(k), v, depth + 1, `${keyPrefix}.${k}`)
-        ))}
-      </View>
-    );
-  };
-
-  const renderObjectField = (label, value) => {
-    if (isEmptyDeep(value) || isScalar(value)) return null;
-    const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return null;
-    const leafCount = JSON.stringify(value).split(':').length - 1;
-    return (
-      <View style={styles.fieldContainer} wrap={leafCount > 8}>
-        <Text style={styles.sectionTitle}>{label}</Text>
-        {entries.map(([k, v]) => (
-          isScalar(v)
-            ? renderObjectNode(humanizeKey(k), v, 1, k)
-            : renderObjectNode(humanizeKey(k), v, 1, k)
-        ))}
-      </View>
-    );
-  };
-
-  const renderRecommendationsField = (recommendations) => {
-    const recs = Array.isArray(recommendations) ? recommendations.filter(r => !isEmptyDeep(r?.recommendation)) : [];
-    if (recs.length === 0) return null;
-    const groups = [];
-    recs.forEach((rec) => {
-      const d = (rec?.date || '').trim();
-      const last = groups[groups.length - 1];
-      if (last && last.date === d) last.items.push(rec);
-      else groups.push({ date: d, items: [rec] });
-    });
-    return (
-      <View style={styles.fieldContainer} wrap={recs.length > 8}>
-        <Text style={styles.sectionTitle}>Recommendations</Text>
-        {groups.map((group, gIdx) => (
-          <View key={gIdx}>
-            {group.date && <Text style={styles.recDate}>{group.date}</Text>}
-            {group.items.map((rec, i) => (
-              <Text key={i} style={styles.recItem}>- {String(rec?.recommendation || '')}</Text>
-            ))}
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <Text style={styles.documentTitle}>Athlete Specific Data</Text>
-          <Text style={styles.emptyState}>No records available</Text>
-        </Page>
-      </Document>
-    );
+    if (sentenceBreak || commaBreak) { push(); continue; }
+    current += char;
   }
+  push();
+  return output;
+};
+const unwrapRecords = source => {
+  if (!source) return [];
+  const queue = Array.isArray(source) ? [...source] : [source];
+  const records = [];
+  while (queue.length) {
+    const value = queue.shift();
+    if (!value) continue;
+    if (Array.isArray(value)) { queue.unshift(...value); continue; }
+    if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; }
+    if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; }
+    if (value.data !== undefined && !DISPLAY_FIELDS.some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; }
+    if (value.records !== undefined) { queue.unshift(value.records); continue; }
+    if (typeof value === 'object') records.push(value);
+  }
+  return records.filter(record => DISPLAY_FIELDS.some(field => hasValue(record[field])));
+};
 
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Athlete Specific Data</Text>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordSection}>
-            <View wrap={false}>
-              <Text style={styles.recordTitle}>{`Athlete Specific Data ${idx + 1}`}</Text>
-              {record.date && <Text style={styles.recordMeta}>Date: {formatDate(record.date)}</Text>}
-            </View>
-            {idx > 0 && <Text style={styles.separator}>{'='.repeat(60)}</Text>}
+const fieldRow = (label, value, key) => <View style={styles.fieldRow} key={key || label} wrap={false}><Text style={styles.fieldLabel}>{safeString(label)}</Text><Text style={styles.fieldValue}>{displayScalar(value)}</Text></View>;
+const valueRow = (value, key, grouped = false) => <Text style={grouped ? styles.groupedListItem : styles.listItem} key={key}>{safeString(value)}</Text>;
+const narrativeRows = (field, value, fallbackLabel) => {
+  const groups = [];
+  let current = null;
+  splitNarrative(field, value).forEach(clause => {
+    const parsed = parseLabel(clause);
+    if (parsed.labeled) { current = { subtitle: parsed.label, items: [parsed.value] }; groups.push(current); }
+    else if (current?.subtitle) current.items.push(parsed.value);
+    else { if (!current || current.subtitle) { current = { subtitle: null, items: [] }; groups.push(current); } current.items.push(parsed.value); }
+  });
+  return groups.map((group, groupIndex) => <View style={styles.fieldRow} key={`${field}-${groupIndex}`} wrap={false}>{fallbackLabel && groupIndex === 0 && group.subtitle && <Text style={styles.fieldLabel}>{fallbackLabel}</Text>}{(group.subtitle || fallbackLabel) && <Text style={styles.fieldLabel}>{safeString(group.subtitle || fallbackLabel)}</Text>}{group.items.map((item, itemIndex) => valueRow(`${itemIndex + 1}. ${item}`, itemIndex, !!(group.subtitle || fallbackLabel)))}</View>);
+};
+const renderSection = (title, rows, key) => {
+  const visible = rows.flat().filter(Boolean);
+  if (!visible.length) return null;
+  const [first, ...rest] = visible;
+  return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{first}</View>{rest}</View>;
+};
+const groupByDate = values => {
+  const groups = new Map();
+  values.forEach((value, index) => {
+    if (!hasValue(value)) return;
+    const key = toInputDate(value.date) || String(value.date || 'no-date');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ value, index });
+  });
+  return [...groups.entries()];
+};
+const injuryRows = injuries => groupByDate(Array.isArray(injuries) ? injuries : []).map(([dateKey, entries], groupIndex) => {
+  const rows = [];
+  if (dateKey !== 'no-date') rows.push(fieldRow('Date', formatDate(entries[0].value.date), `date-${groupIndex}`));
+  entries.forEach(({ value, index }) => {
+    if (hasValue(value.injury)) rows.push(fieldRow(`Injury ${index + 1}`, value.injury, `injury-${index}`));
+    if (hasValue(value.recovery)) rows.push(fieldRow('Recovery', value.recovery, `recovery-${index}`));
+  });
+  return <View key={`injury-group-${groupIndex}`} wrap={false}>{rows}</View>;
+});
+const recommendationRows = recommendations => groupByDate(Array.isArray(recommendations) ? recommendations : []).map(([dateKey, entries], groupIndex) => {
+  const rows = [];
+  if (dateKey !== 'no-date') rows.push(fieldRow('Date', formatDate(entries[0].value.date), `rec-date-${groupIndex}`));
+  entries.forEach(({ value, index }) => rows.push(...narrativeRows('recommendations', value.recommendation, null).map((row, rowIndex) => React.cloneElement(row, { key: `rec-${index}-${rowIndex}` }))));
+  return <View key={`recommendation-group-${groupIndex}`} wrap={false}>{rows}</View>;
+});
+const objectRows = (value, path = '') => {
+  if (!hasValue(value)) return [];
+  if (value === null || typeof value !== 'object') return [fieldRow(humanize(path.split('.').pop()), toInputDate(value) ? formatDate(value) : value, path)];
+  return Object.entries(value).filter(([, child]) => hasValue(child)).flatMap(([key, child]) => objectRows(child, path ? `${path}.${key}` : key));
+};
 
-            {(record.provider || record.facility || record.status) && (
-              <View style={styles.fieldContainer}>
-                <Text style={styles.sectionTitle}>Record Information</Text>
-                {renderField('Provider', record.provider)}
-                {renderField('Facility', record.facility)}
-                {renderField('Status', record.status)}
-              </View>
-            )}
-
-            {(record.sport || record.position || record.professionalLevel !== undefined) && (
-              <View style={styles.fieldContainer}>
-                <Text style={styles.sectionTitle}>Sport Profile</Text>
-                {renderField('Sport', record.sport)}
-                {renderField('Position', record.position)}
-                {renderField('Professional Level', displayBoolean(record.professionalLevel))}
-                {renderField('Team Support', displayBoolean(record.teamSupport))}
-              </View>
-            )}
-
-            {record.previousInjuries && record.previousInjuries.length > 0 && (
-              <View style={styles.fieldContainer}>
-                <Text style={styles.sectionTitle}>Previous Injuries</Text>
-                {record.previousInjuries.map((inj, injIdx) => (
-                  <View key={injIdx} style={styles.injuryBlock} wrap={false}>
-                    <Text style={styles.injuryTitle}>Injury {injIdx + 1}</Text>
-                    {inj.injury && (<><Text style={styles.subSectionTitle}>Injury</Text><Text style={styles.fieldValue}>{String(inj.injury)}</Text></>)}
-                    {inj.date && (<><Text style={styles.subSectionTitle}>Date</Text><Text style={styles.fieldValue}>{String(inj.date)}</Text></>)}
-                    {inj.recovery && (<><Text style={styles.subSectionTitle}>Recovery</Text><Text style={styles.fieldValue}>{String(inj.recovery)}</Text></>)}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {(record.psychologicalSupport !== undefined || record.antiDopingNotification !== undefined) && (
-              <View style={styles.fieldContainer}>
-                <Text style={styles.sectionTitle}>Support and Compliance</Text>
-                {renderField('Psychological Support', displayBoolean(record.psychologicalSupport))}
-                {renderField('Anti-Doping Notification', displayBoolean(record.antiDopingNotification))}
-              </View>
-            )}
-
-            {renderSentenceField('Findings', record.findings)}
-            {renderSentenceField('Assessment', record.assessment)}
-            {renderSentenceField('Plan', record.plan)}
-            {renderRecommendationsField(record.recommendations)}
-            {renderObjectField('Results', record.results)}
-            {renderSentenceField('Notes', record.notes)}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const AthleteSpecificDataDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Athlete Specific Data</Text><Text style={styles.noData}>No athlete specific data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Athlete Specific Data</Text>{records.map((record, index) => {
+    const recordRows = [];
+    if (hasValue(record.date)) recordRows.push(fieldRow('Date', formatDate(record.date), 'date'));
+    if (hasValue(record.type)) recordRows.push(fieldRow('Type', record.type, 'type'));
+    if (hasValue(record.provider)) recordRows.push(fieldRow('Provider', record.provider, 'provider'));
+    if (hasValue(record.facility)) recordRows.push(fieldRow('Facility', record.facility, 'facility'));
+    if (hasValue(record.status)) recordRows.push(fieldRow('Status', record.status, 'status'));
+    const sportRows = [];
+    if (hasValue(record.sport)) sportRows.push(fieldRow('Sport', record.sport, 'sport'));
+    if (hasValue(record.position)) sportRows.push(fieldRow('Position', record.position, 'position'));
+    if (hasValue(record.professionalLevel)) sportRows.push(fieldRow('Professional Level', record.professionalLevel, 'professionalLevel'));
+    if (hasValue(record.teamSupport)) sportRows.push(fieldRow('Team Support', record.teamSupport, 'teamSupport'));
+    const supportRows = [];
+    if (hasValue(record.psychologicalSupport)) supportRows.push(fieldRow('Psychological Support', record.psychologicalSupport, 'psychologicalSupport'));
+    if (hasValue(record.antiDopingNotification)) supportRows.push(fieldRow('Anti-Doping Notification', record.antiDopingNotification, 'antiDopingNotification'));
+    return <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Athlete Specific Data {index + 1}</Text></View>{renderSection('Record Information', recordRows, 'recordInfo')}{renderSection('Sport Profile', sportRows, 'sportProfile')}{renderSection('Previous Injuries', injuryRows(record.previousInjuries), 'previousInjuries')}{renderSection('Support & Compliance', supportRows, 'supportCompliance')}{hasValue(record.findings) && renderSection('Findings', narrativeRows('findings', record.findings, null), 'findings')}{hasValue(record.assessment) && renderSection('Assessment', narrativeRows('assessment', record.assessment, null), 'assessment')}{hasValue(record.plan) && renderSection('Plan', narrativeRows('plan', record.plan, null), 'plan')}{renderSection('Recommendations', recommendationRows(record.recommendations), 'recommendations')}{renderSection('Results', objectRows(record.results), 'results')}{hasValue(record.notes) && renderSection('Notes', narrativeRows('notes', record.notes, null), 'notes')}</React.Fragment>;
+  })}</Page></Document>;
 };
 
 export default AthleteSpecificDataDocumentPDFTemplate;

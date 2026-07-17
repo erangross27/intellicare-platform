@@ -1,5 +1,6 @@
 /* AorticAneurysmSurveillanceDocument.css — June 2026 Blue glow editing theme */
-.aortic-aneurysm-surveillance-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.aortic-aneurysm-surveillance-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; }
+.aortic-aneurysm-surveillance-document * { direction: ltr; }
 .aortic-aneurysm-surveillance-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .aortic-aneurysm-surveillance-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .aortic-aneurysm-surveillance-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -8,7 +9,6 @@
 .aortic-aneurysm-surveillance-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .aortic-aneurysm-surveillance-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
 .aortic-aneurysm-surveillance-document .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
-.aortic-aneurysm-surveillance-document .date-badge { background: rgba(37, 99, 235, 0.2); color: #60a5fa; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600; }
 .aortic-aneurysm-surveillance-document .status-badge { background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600; text-transform: capitalize; margin-left: auto; }
 .aortic-aneurysm-surveillance-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .aortic-aneurysm-surveillance-document .section { margin-top: 16px; }
@@ -37,6 +37,8 @@
 .aortic-aneurysm-surveillance-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
 .aortic-aneurysm-surveillance-document .edit-select option { background: #0F1B33; color: #ececf1; }
 .aortic-aneurysm-surveillance-document .edit-number { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.aortic-aneurysm-surveillance-document .number-edit-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px; gap: 8px; align-items: stretch; }
+.aortic-aneurysm-surveillance-document .num-step { border: 2px solid #60a5fa; border-radius: 6px; background: rgba(96, 165, 250, 0.15); color: #ececf1; font: 700 20px/1 'Comfortaa', sans-serif; cursor: pointer; }
 .aortic-aneurysm-surveillance-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
 .aortic-aneurysm-surveillance-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .aortic-aneurysm-surveillance-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }

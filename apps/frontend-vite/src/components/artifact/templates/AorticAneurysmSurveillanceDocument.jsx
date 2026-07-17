@@ -15,6 +15,7 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import AorticAneurysmSurveillanceDocumentPDFTemplate from '../pdf-templates/AorticAneurysmSurveillanceDocumentPDFTemplate';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './AorticAneurysmSurveillanceDocument.css';
 
@@ -78,7 +79,7 @@ const BOOLEAN_FIELDS = ['saccularMorphology', 'intraluminalThrombus', 'penetrati
 /* Numeric fields where 0 means "not assessed" — hidden when exactly 0 in all 4 areas
    (JSX, Copy Section, Copy All, PDF). Explicit value check via hasFieldVal — never truthiness. */
 const HIDE_ZERO_FIELDS = ['aneurysmMaxDiameter', 'previousDiameterMeasurement', 'annualGrowthRate', 'aorticNeckLength', 'aorticNeckAngulation', 'iliacArteryDiameter', 'aorticRootDiameter', 'sinotubularJunctionDiameter', 'maxThrombusBurden', 'peakWallStress', 'recommendedSurveillanceInterval', 'ruptureRiskScore', 'graftMigration'];
-/* NUMBER_FIELDS: numeric measurements edited with an <input type="number"> stepper (saves a REAL number,
+/* NUMBER_FIELDS: numeric measurements edited with the custom minus/input/plus control (saves a REAL number,
    not a string). The unit lives in the FIELD_LABEL (e.g. "(cm)"), so the value itself is a bare number. */
 const NUMBER_FIELDS = ['aneurysmMaxDiameter', 'previousDiameterMeasurement', 'annualGrowthRate', 'aorticNeckLength', 'aorticNeckAngulation', 'iliacArteryDiameter', 'aorticRootDiameter', 'sinotubularJunctionDiameter', 'maxThrombusBurden', 'peakWallStress', 'recommendedSurveillanceInterval', 'ruptureRiskScore', 'graftMigration'];
 
@@ -150,6 +151,7 @@ const AorticAneurysmSurveillanceDocument = ({ document: docProp, data, templateD
     let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
       if (r?.aortic_aneurysm_surveillance) return Array.isArray(r.aortic_aneurysm_surveillance) ? r.aortic_aneurysm_surveillance : [r.aortic_aneurysm_surveillance];
+      if (r?.data) { const rd = r.data; if (Array.isArray(rd)) return rd; if (rd?.aortic_aneurysm_surveillance) return Array.isArray(rd.aortic_aneurysm_surveillance) ? rd.aortic_aneurysm_surveillance : [rd.aortic_aneurysm_surveillance]; return [rd]; }
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.aortic_aneurysm_surveillance) return Array.isArray(dd.aortic_aneurysm_surveillance) ? dd.aortic_aneurysm_surveillance : [dd.aortic_aneurysm_surveillance]; return [dd]; }
       return [r];
     });
@@ -191,7 +193,8 @@ const AorticAneurysmSurveillanceDocument = ({ document: docProp, data, templateD
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    const protectedText = text.replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)\./gi, '$1<dot>');
+    return protectedText.split(/[.;]\s+/).map(s => s.replace(/<dot>/g, '.').replace(/[;.]+$/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   const splitBySemicolon = useCallback((text) => {
@@ -498,7 +501,7 @@ const AorticAneurysmSurveillanceDocument = ({ document: docProp, data, templateD
       if (!hasFieldVal(f, val)) return;
       const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
       if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        text += `${label}\n1. ${val ? 'Yes' : 'No'}\n\n`;
       } else if (SENTENCE_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const periodItems = splitBySentence(strVal);
@@ -522,14 +525,15 @@ const AorticAneurysmSurveillanceDocument = ({ document: docProp, data, templateD
               text += '\n';
             } else {
               if (showLabel) text += `${label}\n`;
-              text += `${strVal}\n\n`;
+              text += `1. ${strVal}\n\n`;
             }
           }
         }
       } else {
-        text += `${label}: ${fmtVal(val)}\n\n`;
+        text += `${label}\n1. ${fmtVal(val)}\n\n`;
       }
     });
+    text += `${'-'.repeat(40)}\n\n`;
     return text;
   }, [getFieldValue, hasFieldVal, fmtVal, splitBySentence, splitBySemicolon, formatSentenceFieldLines]);
 
@@ -559,7 +563,7 @@ const AorticAneurysmSurveillanceDocument = ({ document: docProp, data, templateD
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
           {isEditing ? (
@@ -583,7 +587,7 @@ const AorticAneurysmSurveillanceDocument = ({ document: docProp, data, templateD
     );
   };
 
-  /* ═══════ RENDER: BOOLEAN FIELD (Yes/No select — saves a REAL boolean) ═══════ */
+  /* ═══════ RENDER: BOOLEAN FIELD (custom Yes/No dropdown — saves a REAL boolean) ═══════ */
   const renderBooleanField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
@@ -595,15 +599,12 @@ const AorticAneurysmSurveillanceDocument = ({ document: docProp, data, templateD
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -622,215 +623,78 @@ const AorticAneurysmSurveillanceDocument = ({ document: docProp, data, templateD
     );
   };
 
-  /* ═══════ RENDER: SENTENCE FIELD with splitBySentence / splitBySemicolon ═══════ */
+  /* ═══════ RENDER: NARRATIVE FIELD — labeled groups and consecutive unlabeled runs ═══════ */
   const renderSentenceField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
     const strVal = fmtVal(val);
-    const periodItems = splitBySentence(strVal);
-    const isSemicolon = periodItems.length < 2;
-    const sentences = isSemicolon ? splitBySemicolon(strVal) : periodItems;
     const label = FIELD_LABELS[fn] || fn;
     const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
-    /* Multi-sentence: render with period-first splitting, parseLabel for subtitles */
-    if (sentences.length > 1) {
-      const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
-      const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
+    const groups = [];
+    splitBySentence(strVal).forEach((part) => {
+      const parsed = parseLabel(part);
+      const commaItems = fn === 'endoleakSurveillance' && parsed.isLabeled ? splitByComma(parsed.value) : [parsed.isLabeled ? parsed.value : part];
+      const hasOxfordComma = commaItems.some(item => item.trim().toLowerCase().startsWith('and '));
+      const items = commaItems.length > 1 && !hasOxfordComma ? commaItems : [parsed.isLabeled ? parsed.value : part];
+      const leaves = items.map(item => ({ text: item, source: item }));
+      if (parsed.isLabeled) groups.push({ label: parsed.label, leaves });
+      else if (groups.length > 0 && groups[groups.length - 1].label === null) groups[groups.length - 1].leaves.push(...leaves);
+      else groups.push({ label: null, leaves });
+    });
 
-      return (
-        <div key={fn}>
-          <div className="rec-mini-card">
-            {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-            {sentences.map((sentence, sIdx) => {
-              const sentenceKey = `${fn}-${idx}-s${sIdx}`;
-              const isEditing = editingField === sentenceKey;
-              const badge = editedSentences[sentenceKey];
-              const sentenceMatches = phraseMatch || labelMatch || (searchTerm.trim() && sentence.toLowerCase().includes(searchTerm.toLowerCase().trim()));
-              if (!sentenceMatches && searchTerm.trim()) return null;
-
-              const parsed = parseLabel(sentence);
-              if (parsed.isLabeled) {
-                const semiItems2 = splitBySemicolon(parsed.value);
-                const commaItems = semiItems2.length >= 2 ? semiItems2 : splitByComma(parsed.value);
-                const hasOxfordComma = commaItems.some(ci => ci.trim().toLowerCase().startsWith('and '));
-                const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-                if (commaItems.length >= 2 && !hasOxfordComma) {
-                  return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                      <div className="nested-subtitle">{highlightText(parsed.label)}</div>
-                      {commaItems.map((ci, ciIdx) => {
-                        const commaKey = `${sentenceKey}-c${ciIdx}`;
-                        const ciEditing = editingField === commaKey;
-                        const ciBadge = editedSentences[commaKey];
-                        const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
-                        if (!ciMatches && searchTerm.trim()) return null;
-                        return (
-                          <div key={ciIdx}>
-                            <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
-                              {ciEditing ? (
-                                <div className="edit-field-container">
-                                  <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { saveCommaItem(record, fn, idx, sid, sIdx, ciIdx); } }} />
-                                  {saveError && <div className="save-error">{saveError}</div>}
-                                  <div className="edit-actions">
-                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveCommaItem(record, fn, idx, sid, sIdx, ciIdx); }}>{saving ? 'Saving...' : 'Save'}</button>
-                                    <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="row-content"><span className="content-value">{highlightText(ci)}</span><span className="edit-indicator">&#9998;</span></div>
-                                  <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(ci, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                                </>
-                              )}
-                            </div>
-                            {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                }
-              }
-
-              /* Regular sentence row — saveThisSentence shared by Save button AND Ctrl+Enter (both restore periods via reconstructFullText) */
-              const saveThisSentence = () => { if (parsed.isLabeled) { const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const currentSentences = isSemicolon ? splitBySemicolon(String(getFieldValue(record, fn, idx) || '')) : splitBySentence(String(getFieldValue(record, fn, idx) || '')); currentSentences[sIdx] = reconstructed; const fullText = reconstructFullText(currentSentences, isSemicolon); setSaveError(null); stageDraft(record, fn, idx, sid, fullText); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setEditingField(null); setEditValue(''); } else { saveSentence(record, fn, idx, sid, sIdx); } };
-              return (
-                <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
-                  {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
-                  <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
-                    {isEditing ? (
-                      <div className="edit-field-container">
-                        <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { saveThisSentence(); } }} />
-                        {saveError && <div className="save-error">{saveError}</div>}
-                        <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveThisSentence(); }}>{saving ? 'Saving...' : 'Save'}</button>
-                          <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="row-content"><span className="content-value">{highlightText(parsed.isLabeled ? parsed.value : sentence)}</span><span className="edit-indicator">&#9998;</span></div>
-                        <button className={`copy-btn ${copiedItems[sentenceKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(sentence, sentenceKey); }}>{copiedItems[sentenceKey] ? 'Copied!' : 'Copy'}</button>
-                      </>
-                    )}
-                  </div>
-                  {badge && <span className={`modified-badge ${badge === 'added' ? 'added' : ''}`}>{badge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    /* Single-value: split comma items into separate rows (labeled or not) */
-    const singleCommaItems = splitByComma(strVal);
-    const hasOxfordComma = singleCommaItems.some(ci => ci.trim().toLowerCase().startsWith('and '));
-
-    if (singleCommaItems.length >= 2 && !hasOxfordComma) {
-      const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
-      const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-
-      return (
-        <div key={fn}>
-          <div className="rec-mini-card">
-            {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-            {singleCommaItems.map((ci, ciIdx) => {
-              const ciParsed = parseLabel(ci);
-              const commaKey = `${fn}-${idx}-s0-c${ciIdx}`;
-              const ciEditing = editingField === commaKey;
-              const ciBadge = editedSentences[commaKey];
-              const ciMatches = phraseMatch || labelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
-              if (!ciMatches && searchTerm.trim()) return null;
-
-              if (ciParsed.isLabeled) {
-                const saveLabeledCommaItem = () => { const id = safeId(record); if (!id) return; const allItems = splitByComma(String(getFieldValue(record, fn, idx) || '')); allItems[ciIdx] = `${ciParsed.label}: ${editValue.trim()}`; const fullText = allItems.join(', '); setSaveError(null); stageDraft(record, fn, idx, sid, fullText); setEditedSentences(prev => ({ ...prev, [commaKey]: 'edited' })); setEditingField(null); setEditValue(''); };
-                return (
-                  <div key={ciIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                    <div className="nested-subtitle">{highlightText(ciParsed.label)}</div>
-                    <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ciParsed.value); setSaveError(null); } }}>
-                      {ciEditing ? (
-                        <div className="edit-field-container">
-                          <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { saveLabeledCommaItem(); } }} />
-                          {saveError && <div className="save-error">{saveError}</div>}
-                          <div className="edit-actions">
-                            <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveLabeledCommaItem(); }}>{saving ? 'Saving...' : 'Save'}</button>
-                            <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="row-content"><span className="content-value">{highlightText(ciParsed.value)}</span><span className="edit-indicator">&#9998;</span></div>
-                          <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${ciParsed.label}: ${ciParsed.value}`, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                        </>
-                      )}
-                    </div>
-                    {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added' : 'edited'} - click Pending Approve to save</span>}
-                  </div>
-                );
-              }
-
-              const savePlainCommaItem = () => { const id = safeId(record); if (!id) return; const allItems = splitByComma(String(getFieldValue(record, fn, idx) || '')); allItems[ciIdx] = editValue.trim(); const fullText = allItems.join(', '); setSaveError(null); stageDraft(record, fn, idx, sid, fullText); setEditedSentences(prev => ({ ...prev, [commaKey]: 'edited' })); setEditingField(null); setEditValue(''); };
-              return (
-                <div key={ciIdx}>
-                  <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
-                    {ciEditing ? (
-                      <div className="edit-field-container">
-                        <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { savePlainCommaItem(); } }} />
-                        {saveError && <div className="save-error">{saveError}</div>}
-                        <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); savePlainCommaItem(); }}>{saving ? 'Saving...' : 'Save'}</button>
-                          <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="row-content"><span className="content-value">{highlightText(ci)}</span><span className="edit-indicator">&#9998;</span></div>
-                        <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(ci, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                      </>
-                    )}
-                  </div>
-                  {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added' : 'edited'} - click Pending Approve to save</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    /* Single-value string (no comma items): saveSentence editable */
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const isModified = editedFields[editKey] || editedSentences[`${fn}-${idx}-s0`];
+    const saveLeaf = (leaf, editKey) => {
+      const trimmed = editValue.trim();
+      if (!trimmed) { setSaveError('Please enter a value'); return; }
+      const current = String(getFieldValue(record, fn, idx) || '');
+      const next = current.replace(leaf.source, trimmed);
+      stageDraft(record, fn, idx, sid, next);
+      setEditedSentences(prev => ({ ...prev, [editKey]: 'edited' }));
+      setEditingField(null);
+      setEditValue('');
+      setSaveError(null);
+    };
 
     return (
       <div key={fn} className="rec-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { saveSentence(record, fn, idx, sid, 0); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSentence(record, fn, idx, sid, 0); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(strVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${strVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {editedSentences[`${fn}-${idx}-s0`] && <span className={`modified-badge ${editedSentences[`${fn}-${idx}-s0`] === 'added' ? 'added' : ''}`}>{editedSentences[`${fn}-${idx}-s0`] === 'added' ? 'added' : 'edited'} - click Pending Approve to save</span>}
+        {groups.map((group, groupIdx) => (
+          <div key={groupIdx} className={`nested-mini-card${group.label === null ? ' regular-row-group' : ''}`}>
+            {group.label !== null && <div className="nested-subtitle">{highlightText(group.label)}</div>}
+            {group.leaves.map((leaf, leafIdx) => {
+              const editKey = `${fn}-${idx}-g${groupIdx}-l${leafIdx}`;
+              const isEditing = editingField === editKey;
+              const badge = editedSentences[editKey] || editedFields[`${fn}-${idx}`];
+              return (
+                <div key={editKey} data-edit-field={fn}>
+                  <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(leaf.text); setSaveError(null); } }}>
+                    {isEditing ? (
+                      <div className="edit-field-container">
+                        <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveLeaf(leaf, editKey); }} />
+                        {saveError && <div className="save-error">{saveError}</div>}
+                        <div className="edit-actions">
+                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveLeaf(leaf, editKey); }}>{saving ? 'Saving...' : 'Save'}</button>
+                          <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="row-content"><span className="content-value">{highlightText(leaf.text)}</span><span className="edit-indicator">&#9998;</span></div>
+                        <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(leaf.text, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                      </>
+                    )}
+                  </div>
+                  {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     );
   };
 
-  /* ═══════ RENDER: NUMBER FIELD (numeric measurement — <input type="number"> stepper, saves a REAL number) ═══════ */
+  /* ═══════ RENDER: NUMBER FIELD (custom minus/input/plus stepper, saves a REAL number) ═══════ */
   const renderNumberField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasFieldVal(fn, val)) return null;
     const editKey = `${fn}-${idx}`;
@@ -851,12 +715,16 @@ const AorticAneurysmSurveillanceDocument = ({ document: docProp, data, templateD
     };
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(String(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="number" step={step} className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { e.stopPropagation(); saveNum(); } }} />
+              <div className="number-edit-row">
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String((Number(editValue) || 0) - step)); }}>−</button>
+                <input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value.replace(/[^0-9.\-]/g, ''))} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') { e.stopPropagation(); saveNum(); } }} />
+                <button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String((Number(editValue) || 0) + step)); }}>+</button>
+              </div>
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveNum(); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -925,7 +793,7 @@ const AorticAneurysmSurveillanceDocument = ({ document: docProp, data, templateD
         <h2 className="document-title">Aortic Aneurysm Surveillance</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<AorticAneurysmSurveillanceDocumentPDFTemplate document={pdfData} />} fileName={`aortic-aneurysm-surveillance-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<AorticAneurysmSurveillanceDocumentPDFTemplate document={pdfData} />} fileName="Aortic_Aneurysm_Surveillance.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>

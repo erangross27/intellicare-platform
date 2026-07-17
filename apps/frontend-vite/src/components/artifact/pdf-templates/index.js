@@ -27,7 +27,7 @@ import CaseSummariesTemplate from './CaseSummariesTemplate';
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
 import PrognosisTemplate from './PrognosisDocumentPDFTemplate';
 import CareCoordinationNotesTemplate from './CareCoordinationNotesTemplate';
-import AssessmentPlansTemplate from './AssessmentPlansPDFTemplate';
+import AssessmentPlansDocumentPDFTemplate from './AssessmentPlansDocumentPDFTemplate';
 import TreatmentCoursesDocumentPDFTemplate from './TreatmentCoursesDocumentPDFTemplate';
 import TreatmentGoalsDocumentPDFTemplate from './TreatmentGoalsDocumentPDFTemplate';
 import TreatmentPlansDocumentPDFTemplate from './TreatmentPlansDocumentPDFTemplate';
@@ -225,7 +225,7 @@ const templateRegistry = {
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,
   'care_coordination_notes': CareCoordinationNotesTemplate,
-  'assessment_plans': AssessmentPlansTemplate,
+  'assessment_plans': AssessmentPlansDocumentPDFTemplate,
   'treatment_courses': TreatmentCoursesDocumentPDFTemplate,
   'treatment_goals': TreatmentGoalsDocumentPDFTemplate,
   'treatment_plans': TreatmentPlansDocumentPDFTemplate,

@@ -7,6 +7,11 @@
   padding: 24px;
   font-family: 'Comfortaa', sans-serif;
   border-radius: 8px;
+  direction: ltr;
+}
+
+.assessment-plans-document * {
+  direction: ltr;
 }
 
 /* ========== DOCUMENT HEADER - Column Layout ========== */
@@ -140,21 +145,6 @@
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(96, 165, 250, 0.3);
-}
-
-.assessment-plans-document .header-top-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-
-.assessment-plans-document .date-badge {
-  background: rgba(96, 165, 250, 0.15);
-  color: #93c5fd;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .assessment-plans-document .record-title {
@@ -437,7 +427,12 @@
 .assessment-plans-document .edit-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
+}
+
+.assessment-plans-document .save-error {
+  color: #fca5a5;
+  font-size: 12px;
 }
 
 .assessment-plans-document .edit-save-btn {

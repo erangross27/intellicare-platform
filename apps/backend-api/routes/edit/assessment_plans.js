@@ -51,6 +51,8 @@ const ALLOWED_FIELDS = [
   'patientEducation',
   'followUp',
   'provider',
+  'facility',
+  'status',
   'notes',
   'diagnoses',
   'medications',

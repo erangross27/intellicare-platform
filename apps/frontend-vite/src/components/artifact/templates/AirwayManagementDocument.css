@@ -9,6 +9,11 @@
   background: #0F1B33;
   overflow-x: hidden;
   box-sizing: border-box;
+  direction: ltr;
+}
+
+.airway-management-document * {
+  direction: ltr;
 }
 
 /* Document Header */
@@ -107,15 +112,6 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 6px;
-}
-
-.airway-management-document .date-badge {
-  background: rgba(37, 99, 235, 0.2);
-  color: #60a5fa;
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .airway-management-document .record-title {
@@ -333,7 +329,34 @@
 .airway-management-document .edit-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
+}
+
+.airway-management-document .edit-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #f8fafc;
+  font: inherit;
+}
+
+.airway-management-document .num-step {
+  width: 36px;
+  min-width: 36px;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  background: rgba(37, 99, 235, 0.22);
+  color: #bfdbfe;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.airway-management-document .save-error {
+  color: #fca5a5;
+  font-size: 12px;
 }
 
 .airway-management-document .save-btn {

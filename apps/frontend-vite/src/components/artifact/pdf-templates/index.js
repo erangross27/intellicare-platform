@@ -92,7 +92,7 @@ import LabResultsTemplate from './LabResultsTemplate';
 import AdditionalDataPDFTemplate from './AdditionalDataPDFTemplate';
 import IntraoperativeMonitoringDocumentPDFTemplate from './IntraoperativeMonitoringDocumentPDFTemplate';
 import ImagingReportsPDFTemplate from './ImagingReportsPDFTemplate';
-import AirwayManagementPDFTemplate from './AirwayManagementPDFTemplate';
+import AirwayManagementDocumentPDFTemplate from './AirwayManagementDocumentPDFTemplate';
 import RegionalAnesthesiaDocumentPDFTemplate from './RegionalAnesthesiaDocumentPDFTemplate';
 import RehabilitationGoalsDocumentPDFTemplate from './RehabilitationGoalsDocumentPDFTemplate';
 import RehabilitationProgressNotesDocumentPDFTemplate from './RehabilitationProgressNotesDocumentPDFTemplate';
@@ -266,7 +266,7 @@ const templateRegistry = {
   'additional_data': AdditionalDataPDFTemplate,
   'intraoperative_monitoring': IntraoperativeMonitoringDocumentPDFTemplate,
   'imaging_reports': ImagingReportsPDFTemplate,
-  'airway_management_records': AirwayManagementPDFTemplate,
+  'airway_management_records': AirwayManagementDocumentPDFTemplate,
   'regional_anesthesia_records': RegionalAnesthesiaDocumentPDFTemplate,
   'rehabilitation_goals': RehabilitationGoalsDocumentPDFTemplate,
   'rehabilitation_progress_notes': RehabilitationProgressNotesDocumentPDFTemplate,

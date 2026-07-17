@@ -24,6 +24,7 @@ router.use(practiceModels);
 router.use(practiceAuth);
 
 const ALLOWED_FIELDS = [
+  'date',
   'airwayAssessmentScore',
   'thyromentalDistance',
   'mouthOpeningDistance',
@@ -50,6 +51,19 @@ const ALLOWED_FIELDS = [
   'extubationTime',
   'complicationsDuringIntubation',
 ];
+const ARRAY_FIELDS = new Set([
+  'inductionAgents',
+  'alternativeAirwayDevices',
+  'tubePlacementConfirmation',
+  'complicationsDuringIntubation',
+]);
+
+function isAllowedFieldPath(field) {
+  const parts = String(field).split('.');
+  if (!ALLOWED_FIELDS.includes(parts[0])) return false;
+  if (parts.length === 1) return true;
+  return parts.length === 2 && ARRAY_FIELDS.has(parts[0]) && /^\d+$/.test(parts[1]);
+}
 
 function buildContext(req, operation = 'read') {
   return {
@@ -78,7 +92,7 @@ router.put('/:id/edit', async (req, res) => {
       return res.status(400).json({ success: false, error: 'field and value are required' });
     }
 
-    if (!ALLOWED_FIELDS.includes(field)) {
+    if (!isAllowedFieldPath(field)) {
       return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     }
 

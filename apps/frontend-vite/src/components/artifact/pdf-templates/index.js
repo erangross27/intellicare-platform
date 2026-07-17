@@ -81,7 +81,7 @@ import RecommendationsTemplate from './RecommendationsTemplate';
 // Single source of truth: route to the same box-free template the Document's Export button imports
 // (the legacy ./ClinicalScoresTemplate diverged — boxed, small fonts, no numbering).
 import ClinicalScoresTemplate from './ClinicalScoresDocumentPDFTemplate';
-import AdministrativeDataTemplate from './AdministrativeDataTemplate';
+import AdministrativeDataDocumentPDFTemplate from './AdministrativeDataDocumentPDFTemplate';
 import MedicalProceduresTemplate from './MedicalProceduresTemplate';
 import LabResultsTemplate from './LabResultsTemplate';
 import AdditionalDataPDFTemplate from './AdditionalDataPDFTemplate';
@@ -250,7 +250,7 @@ const templateRegistry = {
   'anesthesia_records': AnesthesiaRecordsTemplate,
   'recommendations': RecommendationsTemplate,
   'clinical_scores': ClinicalScoresTemplate,
-  'administrative_data': AdministrativeDataTemplate,
+  'administrative_data': AdministrativeDataDocumentPDFTemplate,
   'medical_procedures': MedicalProceduresTemplate,
   'lab_results': LabResultsTemplate,
   'additional_data': AdditionalDataPDFTemplate,

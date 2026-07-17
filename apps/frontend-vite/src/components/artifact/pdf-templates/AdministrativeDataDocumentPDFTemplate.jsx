@@ -1,518 +1,80 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
-const filterNulls = (arr) => Array.isArray(arr) ? arr.filter(item => item !== null && item !== undefined) : [];
-
-// Parse text into individual items - handles both numbered points and sentences
-const parseTextIntoRows = (text) => {
-  if (!text) return [];
-  
-  // Check for pattern: (1) text (2) text OR 1. text 2. text
-  const numberedPattern = /(?:^|\s)\(?\d+[.)]\s+/g;
-  const hasNumbering = numberedPattern.test(text);
-  
-  if (hasNumbering) {
-    // Split by numbering patterns and filter empty
-    const parts = text.split(numberedPattern).map(p => p.trim()).filter(p => p.length > 0);
-    return parts;
-  }
-  
-  // Otherwise split by sentences
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.\s+/).map(s => s.trim()).filter(s => s.length > 0);
-};
-
-// Split a comma-separated value into items (parenthesis-aware) — for "Label: a, b, c" fields like Plan
-const splitByCommaAware = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    // Oxford comma: do NOT split on a comma immediately before "and" (keep "..., and Z" as one trailing item)
-    else if (ch === ',' && depth === 0 && !/^\s*and\s/i.test(text.slice(i + 1))) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
-};
-
-// Detect embedded "Label: value" (colon + SPACE required so "14:28"/"Dr." are NOT labels)
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
-};
-
-// Stacked field (mirrors the JSX mini-card): field label on top, value below — NEVER side-by-side.
-// If the value is an embedded "Label: value", the embedded label renders as a sub-label line.
-const renderStackedField = (label, value, key) => {
-  if (value === null || value === undefined || value === '') return null;
-  const sval = String(value);
-  const p = parseLabel(sval);
-  return (
-    <View key={key} style={styles.stackedItem}>
-      <Text style={styles.stackedLabel}>{label}</Text>
-      {p.isLabeled && <Text style={styles.stackedSubLabel}>{p.label}</Text>}
-      <Text style={styles.stackedValue}>{p.isLabeled ? p.value : sval}</Text>
-    </View>
-  );
-};
-
-// December 2025 standards: BLACK & WHITE, Helvetica font, 14pt minimum
-// Professional medical document - no decorative colors
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 14,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 24,
-    color: '#000000',
-    textAlign: 'center',
-    borderBottom: '2px solid #000000',
-    paddingBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 10,
-    marginTop: 16,
-    color: '#000000',
-    borderBottom: '1px solid #000000',
-    paddingBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  // Standard row layout for simple fields
-  fieldRow: {
-    marginBottom: 6,
-    flexDirection: 'row',
-    paddingLeft: 8,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    marginRight: 12,
-    minWidth: 180,
-    color: '#000000',
-  },
-  fieldValue: {
-    flex: 1,
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 1.5,
-  },
-  // Stacked layout for label:value items with long text (Assessment, Findings, etc.)
-  stackedItem: {
-    marginBottom: 10,
-    flexDirection: 'column',
-    paddingLeft: 8,
-  },
-  stackedLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  stackedValue: {
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 1.5,
-    paddingLeft: 20,
-  },
-  stackedSubLabel: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 3,
-    paddingLeft: 10,
-  },
-  textBlock: {
-    marginBottom: 14,
-    lineHeight: 1.5,
-  },
-  textContent: {
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 1.5,
-    paddingLeft: 8,
-  },
-  recommendationItem: {
-    marginBottom: 8,
-    flexDirection: 'row',
-    paddingLeft: 8,
-  },
-  recommendationNumber: {
-    minWidth: 28,
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-  },
-  recommendationText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#000000',
-    lineHeight: 1.5,
-  },
-  divider: {
-    borderBottom: '1px solid #cccccc',
-    marginVertical: 16,
-  },
+  page: { paddingTop: 38, paddingBottom: 42, paddingHorizontal: 42, fontFamily: 'Helvetica', color: '#111827', fontSize: 14 },
+  documentHeader: { marginBottom: 18 }, documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#2563eb' },
+  recordHeader: { marginBottom: 16 }, recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold' },
+  section: { marginTop: 11, flexDirection: 'column', width: 528 }, sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, marginBottom: 7, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldBox: { marginTop: 4, marginBottom: 8, flexDirection: 'column', width: 528 }, fieldHeader: { marginTop: 8, marginBottom: 6, width: 528 }, fieldLabel: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 3, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  nestedSubtitle: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 4, marginBottom: 6, color: '#1d4ed8' }, rowBlock: { width: 528, alignSelf: 'stretch', minHeight: 24, marginBottom: 8, flexDirection: 'column' }, fieldValue: { width: 528, fontSize: 14, lineHeight: 1.45 }, noData: { fontSize: 14, color: '#6b7280', marginTop: 16 },
 });
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+const SECTIONS = [
+  { title: 'Patient Identifiers', fields: [['patientName', 'Patient Name'], ['mrn', 'MRN'], ['accountNumber', 'Account Number'], ['insurance', 'Insurance'], ['category', 'Category']] },
+  { title: 'Contacts & Legal', fields: [['primaryCareProvider', 'Primary Care Provider'], ['emergencyContact', 'Emergency Contact'], ['codeStatus', 'Code Status'], ['advancedDirectives', 'Advanced Directives', 'boolean'], ['powerOfAttorney', 'Power of Attorney']] },
+  { title: 'Hospital Stay', fields: [['admissionDate', 'Admission Date', 'date'], ['dischargeDate', 'Discharge Date', 'date'], ['lengthOfStay', 'Length of Stay', 'number'], ['disposition', 'Disposition'], ['conditionAtDischarge', 'Condition at Discharge'], ['admittingDiagnosis', 'Admitting Diagnosis'], ['dietaryInstructions', 'Dietary Instructions', 'sentence']] },
+  { title: 'Consultation & Referral', fields: [['consultingPhysician', 'Consulting Physician'], ['consultingSpecialty', 'Consulting Specialty'], ['referringPhysician', 'Referring Physician'], ['referringSpecialty', 'Referring Specialty'], ['consultDate', 'Consult Date', 'date'], ['reasonForConsult', 'Reason for Consult']] },
+  { title: 'Clinical Documentation', fields: [['date', 'Date', 'date'], ['type', 'Type'], ['provider', 'Provider'], ['facility', 'Facility'], ['findings', 'Findings', 'sentence'], ['assessment', 'Assessment', 'sentence']] },
+  { title: 'Review & Results', fields: [['plan', 'Plan', 'sentence'], ['results', 'Results', 'object'], ['notes', 'Notes', 'sentence'], ['status', 'Status']] },
+  { title: 'Recommendations', fields: [['recommendations', 'Recommendations', 'recommendationGroups']] },
+  { title: 'Facility & Signatures', fields: [['facilityName', 'Facility Name'], ['facilityAddress', 'Facility Address'], ['electronicSignature', 'Electronic Signature'], ['electronicSignatureFull', 'Electronic Signature Full']] },
+];
+const PAGE_GROUPS = SECTIONS.map((_, index) => [index]);
+const hasVal = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasVal)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasVal));
+const humanize = key => String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, char => char.toUpperCase());
+const formatDate = value => { if (!value) return ''; try { const raw = value?.$date?.$numberLong ?? value?.$date ?? value?.$numberLong ?? value, normalized = typeof raw === 'string' && /^-?\d+$/.test(raw) ? Number(raw) : raw, date = new Date(normalized); return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(value); } };
+const parseLabel = value => { const text = String(value || ''), match = text.match(/^([^:]{1,60}):\s+(.+)$/); return match && !/[([\]]/.test(match[1]) ? { subtitle: match[1].trim(), content: match[2].trim() } : { subtitle: '', content: text }; };
+const splitComma = value => { const rows = []; let current = '', depth = 0; for (const char of String(value || '')) { if (char === '(') depth += 1; if (char === ')') depth = Math.max(0, depth - 1); if (char === ',' && depth === 0) { if (current.trim()) rows.push(current.trim()); current = ''; } else current += char; } if (current.trim()) rows.push(current.trim()); return rows; };
+const splitSentence = value => String(value || '').split(/;\s+|\.(?!\d)(?:\s+|$)/).map(row => row.trim()).filter(row => row && !/^[;.,!?]+$/.test(row));
+const textRows = (value, { sentences = false, commas = false, commasWhenLabeled = false } = {}) => { const initial = parseLabel(String(value || '').trim()), source = initial.subtitle ? initial.content : String(value || '').trim(); return (sentences ? splitSentence(source) : [source]).flatMap(part => { const parsed = initial.subtitle ? { subtitle: initial.subtitle, content: part } : parseLabel(part), clauses = commas && (!commasWhenLabeled || parsed.subtitle) ? splitComma(parsed.content) : [parsed.content]; return clauses.filter(Boolean).map(row => ({ subtitle: parsed.subtitle, value: row })); }); };
+const SENTENCE_OBJECT_PATHS = new Set();
+const COMMA_OBJECT_PATHS = new Set();
+const normalizeIndexedPath = path => path.replace(/\.\d+(?=\.|$)/g, '.*');
+const pathIsDeclared = (set, path) => set.has(path) || set.has(normalizeIndexedPath(path));
+const isDatePath = path => /date/i.test(String(path || '').split('.').pop());
+const isDateObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && Object.hasOwn(value, '$date');
+const EXTENDED_NUMBER_KEYS = ['$numberInt', '$numberLong', '$numberDouble', '$numberDecimal'];
+const isExtendedNumberObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && EXTENDED_NUMBER_KEYS.includes(Object.keys(value)[0]);
+const unwrapExtendedNumber = value => { if (!isExtendedNumberObject(value)) return value; const raw = value[Object.keys(value)[0]], number = Number(raw); return Number.isFinite(number) ? number : raw; };
+const OBJECT_ARRAY_ITEM_LABELS = {};
+const flattenObject = (value, pathPrefix = '', labelPrefix = '') => {
+  if (Array.isArray(value)) return value.flatMap((child, index) => {
+    const path = pathPrefix ? `${pathPrefix}.${index}` : String(index), label = `${labelPrefix || 'Item'} ${index + 1}`;
+    return child && typeof child === 'object' && !isDateObject(child) && !isExtendedNumberObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: unwrapExtendedNumber(child) }] : [];
+  });
+  return Object.entries(value || {}).flatMap(([key, child]) => {
+    const path = pathPrefix ? `${pathPrefix}.${key}` : key, label = labelPrefix ? `${labelPrefix} — ${humanize(key)}` : humanize(key);
+    return child && typeof child === 'object' && !isDateObject(child) && !isExtendedNumberObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: unwrapExtendedNumber(child) }] : [];
   });
 };
-
-const AdministrativeDataDocumentPDFTemplate = ({ documents }) => {
-  // Data unwrapping - handle wrapped structure from backend
-  // CRITICAL FIX: AIDocumentRenderer passes array directly for wrapped collections!
-  let templateData;
-  if (Array.isArray(documents)) {
-    // AIDocumentRenderer passed array directly: [{...fields}]
-    templateData = documents[0];  // Extract first element
-  } else {
-    // Standard unwrapping for other formats
-    templateData = documents?.documentData || documents?.data || documents;
-  }
-
-  // Handle additional wrapper formats:
-  // 1. Wrapped: { administrative_data: [{...fields}] }
-  // 2. Direct: { mrn: "...", category: "...", ...fields }
-  const adminData = templateData?.administrative_data;
-  const data = Array.isArray(adminData)
-    ? adminData[0]  // Wrapped as array
-    : (adminData || templateData);  // Direct object or fallback to templateData
-
-  if (!data) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <Text style={styles.title}>Administrative Data</Text>
-          <Text>No data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>Administrative Data</Text>
-
-        {/* 1. Patient Identifiers - Who is the patient? */}
-        {(data.patientName || data.mrn || data.accountNumber || data.insurance) && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Patient Identifiers</Text>
-            {renderStackedField('Patient Name', data.patientName)}
-            {renderStackedField('MRN', data.mrn)}
-            {renderStackedField('Account Number', data.accountNumber)}
-            {renderStackedField('Insurance', data.insurance)}
-          </View>
-        )}
-
-        {/* 2. Findings - What did we observe? */}
-        {data.findings && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Findings</Text>
-            {(() => {
-              const items = parseTextIntoRows(data.findings);
-              if (items.length > 1) {
-                return items.map((item, idx) => {
-                  // Check if label:value format
-                  const colonIndex = item.indexOf(':');
-                  if (colonIndex > 0) {
-                    const label = item.substring(0, colonIndex).trim();
-                    const value = item.substring(colonIndex + 1).trim();
-                    const parts = splitByCommaAware(value);
-                    const valueRows = parts.length >= 2 ? parts : [value];
-                    return (
-                      <View key={idx} style={styles.stackedItem}>
-                        <Text style={styles.stackedLabel}>{label}:</Text>
-                        {valueRows.map((p, pi) => (
-                          <Text key={pi} style={styles.stackedValue}>{pi + 1}. {p}</Text>
-                        ))}
-                      </View>
-                    );
-                  }
-                  return (
-                    <View key={idx} style={styles.recommendationItem}>
-                      <Text style={styles.recommendationNumber}>{idx + 1}.</Text>
-                      <Text style={styles.recommendationText}>{item}</Text>
-                    </View>
-                  );
-                });
-              }
-              return <Text style={styles.textContent}>{data.findings}</Text>;
-            })()}
-          </View>
-        )}
-
-        {/* 3. Assessment - What's our interpretation? */}
-        {data.assessment && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Assessment</Text>
-            {(() => {
-              const items = parseTextIntoRows(data.assessment);
-              if (items.length > 1) {
-                return items.map((item, idx) => {
-                  // Check if label:value format
-                  const colonIndex = item.indexOf(':');
-                  if (colonIndex > 0) {
-                    const label = item.substring(0, colonIndex).trim();
-                    const value = item.substring(colonIndex + 1).trim();
-                    const parts = splitByCommaAware(value);
-                    const valueRows = parts.length >= 2 ? parts : [value];
-                    return (
-                      <View key={idx} style={styles.stackedItem}>
-                        <Text style={styles.stackedLabel}>{label}:</Text>
-                        {valueRows.map((p, pi) => (
-                          <Text key={pi} style={styles.stackedValue}>{pi + 1}. {p}</Text>
-                        ))}
-                      </View>
-                    );
-                  }
-                  return (
-                    <View key={idx} style={styles.recommendationItem}>
-                      <Text style={styles.recommendationNumber}>{idx + 1}.</Text>
-                      <Text style={styles.recommendationText}>{item}</Text>
-                    </View>
-                  );
-                });
-              }
-              return <Text style={styles.textContent}>{data.assessment}</Text>;
-            })()}
-          </View>
-        )}
-
-        {/* 4. Plan - What are we going to do? */}
-        {data.plan && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Plan</Text>
-            {(() => {
-              const items = parseTextIntoRows(data.plan);
-              if (items.length > 1) {
-                let n = 0;
-                const blocks = [];
-                items.forEach((item, idx) => {
-                  // Check if label:value format
-                  const colonIndex = item.indexOf(':');
-                  if (colonIndex > 0) {
-                    const label = item.substring(0, colonIndex).trim();
-                    const value = item.substring(colonIndex + 1).trim();
-                    const parts = splitByCommaAware(value);
-                    const valueRows = parts.length >= 2 ? parts : [value];
-                    blocks.push(
-                      <View key={idx} style={styles.stackedItem}>
-                        <Text style={styles.stackedLabel}>{label}:</Text>
-                        {valueRows.map((p, pi) => (
-                          <Text key={pi} style={styles.stackedValue}>{(n += 1)}. {p}</Text>
-                        ))}
-                      </View>
-                    );
-                  } else {
-                    // Non-labeled row (e.g. "Referrals to A, B, ..., and Z") → comma-split (Oxford-aware), numbered.
-                    const parts = splitByCommaAware(item);
-                    const rows = parts.length >= 2 ? parts : [item];
-                    rows.forEach((r, ri) => {
-                      const num = (n += 1);
-                      blocks.push(
-                        <View key={`${idx}-${ri}`} style={styles.recommendationItem}>
-                          <Text style={styles.recommendationNumber}>{num}.</Text>
-                          <Text style={styles.recommendationText}>{r}</Text>
-                        </View>
-                      );
-                    });
-                  }
-                });
-                return blocks;
-              }
-              return <Text style={styles.textContent}>{data.plan}</Text>;
-            })()}
-          </View>
-        )}
-
-        {/* 5. Recommendations - Specific actions recommended (skip if empty array) */}
-        {data.recommendations && (Array.isArray(data.recommendations) ? data.recommendations.length > 0 : true) && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Recommendations</Text>
-            {Array.isArray(data.recommendations) ? (
-              filterNulls(data.recommendations).map((rec, recIdx) => (
-                <View key={recIdx} style={styles.recommendationItem}>
-                  <Text style={styles.recommendationNumber}>{recIdx + 1}.</Text>
-                  <Text style={styles.recommendationText}>
-                    {rec.recommendation || rec}
-                    {rec.date ? ` (${formatDate(rec.date)})` : ''}
-                  </Text>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.textContent}>{data.recommendations}</Text>
-            )}
-          </View>
-        )}
-
-        {/* 6. Clinical Status - Current patient state */}
-        {(data.disposition || data.conditionAtDischarge || data.dietaryInstructions || data.status) && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Clinical Status</Text>
-            {renderStackedField('Disposition', data.disposition)}
-            {renderStackedField('Condition at Discharge', data.conditionAtDischarge)}
-            {renderStackedField('Dietary Instructions', data.dietaryInstructions)}
-            {renderStackedField('Status', data.status)}
-          </View>
-        )}
-
-        {/* 7. Hospital Stay - Admission/discharge details */}
-        {(data.admissionDate || data.dischargeDate || data.lengthOfStay || data.admittingDiagnosis) && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Hospital Stay</Text>
-            {renderStackedField('Admission Date', data.admissionDate && formatDate(data.admissionDate))}
-            {renderStackedField('Discharge Date', data.dischargeDate && formatDate(data.dischargeDate))}
-            {renderStackedField('Length of Stay', data.lengthOfStay && `${data.lengthOfStay} days`)}
-            {renderStackedField('Admitting Diagnosis', data.admittingDiagnosis)}
-          </View>
-        )}
-
-        {/* 8. Consultation & Referral - Specialist involvement */}
-        {(data.consultingPhysician || data.consultingSpecialty || data.referringPhysician ||
-          data.referringSpecialty || data.consultDate || data.reasonForConsult) && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Consultation & Referral</Text>
-            {renderStackedField('Consulting Physician', data.consultingPhysician)}
-            {renderStackedField('Consulting Specialty', data.consultingSpecialty)}
-            {renderStackedField('Referring Physician', data.referringPhysician)}
-            {renderStackedField('Referring Specialty', data.referringSpecialty)}
-            {renderStackedField('Consult Date', data.consultDate && formatDate(data.consultDate))}
-            {renderStackedField('Reason for Consult', data.reasonForConsult)}
-          </View>
-        )}
-
-        {/* 9. Results - Test/procedure results - only render if has actual data */}
-        {(() => {
-          if (!data.results) return null;
-
-          // Check if results has actual data
-          let hasData = false;
-
-          if (typeof data.results === 'object' && data.results !== null) {
-            // Check if object has any non-null values
-            hasData = Object.entries(data.results).some(([key, value]) => value !== null && value !== undefined);
-          } else if (typeof data.results === 'string') {
-            // Check if string has content
-            hasData = data.results.trim().length > 0;
-          } else if (Array.isArray(data.results)) {
-            // Check if array has items
-            hasData = data.results.length > 0;
-          }
-
-          if (!hasData) return null;
-
-          return (
-            <View style={styles.textBlock} wrap={false}>
-              <Text style={styles.sectionTitle}>Results</Text>
-              {typeof data.results === 'object' && data.results !== null ? (
-                Object.entries(data.results).map(([key, value]) => {
-                  if (value === null || value === undefined) return null;
-                  const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-                  return renderStackedField(label, String(value), key);
-                })
-              ) : (
-                <Text style={styles.textContent}>{String(data.results)}</Text>
-              )}
-            </View>
-          );
-        })()}
-
-        {/* 10. Emergency Contacts & Legal - Critical contacts and directives */}
-        {(data.primaryCareProvider || data.emergencyContact || data.codeStatus ||
-          data.advancedDirectives || data.powerOfAttorney) && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Emergency Contacts & Legal</Text>
-            {renderStackedField('Primary Care Provider', data.primaryCareProvider)}
-            {renderStackedField('Emergency Contact', data.emergencyContact)}
-            {renderStackedField('Code Status', data.codeStatus)}
-            {data.advancedDirectives !== undefined && renderStackedField('Advanced Directives', data.advancedDirectives ? 'Yes' : 'No')}
-            {renderStackedField('Power of Attorney', data.powerOfAttorney)}
-          </View>
-        )}
-
-        {/* 11. Notes - Additional clinical notes */}
-        {data.notes && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Notes</Text>
-            {(() => {
-              const items = parseTextIntoRows(data.notes);
-              if (items.length > 1) {
-                return items.map((item, idx) => {
-                  // Check if label:value format
-                  const colonIndex = item.indexOf(':');
-                  if (colonIndex > 0) {
-                    const label = item.substring(0, colonIndex).trim();
-                    const value = item.substring(colonIndex + 1).trim();
-                    const parts = splitByCommaAware(value);
-                    const valueRows = parts.length >= 2 ? parts : [value];
-                    return (
-                      <View key={idx} style={styles.stackedItem}>
-                        <Text style={styles.stackedLabel}>{label}:</Text>
-                        {valueRows.map((p, pi) => (
-                          <Text key={pi} style={styles.stackedValue}>{pi + 1}. {p}</Text>
-                        ))}
-                      </View>
-                    );
-                  }
-                  return (
-                    <View key={idx} style={styles.recommendationItem}>
-                      <Text style={styles.recommendationNumber}>{idx + 1}.</Text>
-                      <Text style={styles.recommendationText}>{item}</Text>
-                    </View>
-                  );
-                });
-              }
-              return <Text style={styles.textContent}>{data.notes}</Text>;
-            })()}
-          </View>
-        )}
-
-        {/* 12. Signatures & Documentation - Document metadata and signatures */}
-        {(data.category || data.type || data.provider || data.date || data.facility ||
-          data.facilityName || data.facilityAddress || data.electronicSignature ||
-          data.electronicSignatureFull) && (
-          <View style={styles.textBlock} wrap={false}>
-            <Text style={styles.sectionTitle}>Signatures & Documentation</Text>
-            {renderStackedField('Category', data.category)}
-            {renderStackedField('Type', data.type)}
-            {renderStackedField('Provider', data.provider)}
-            {renderStackedField('Date', data.date && formatDate(data.date))}
-            {renderStackedField('Facility', data.facility)}
-            {renderStackedField('Facility Name', data.facilityName)}
-            {renderStackedField('Facility Address', data.facilityAddress)}
-            {renderStackedField('Electronic Signature', data.electronicSignature)}
-            {renderStackedField('Electronic Signature Full', data.electronicSignatureFull)}
-          </View>
-        )}
-      </Page>
-    </Document>
-  );
+const formatLeaf = leaf => ({ subtitle: leaf.subtitle, value: isDatePath(leaf.path) ? formatDate(leaf.value) : typeof leaf.value === 'boolean' ? (leaf.value ? 'Yes' : 'No') : String(leaf.value) });
+const objectLeafRows = (field, leaf, subtitlePrefix = '') => {
+  const path = `${field}.${leaf.path}`, subtitle = subtitlePrefix ? `${subtitlePrefix} — ${leaf.subtitle}` : leaf.subtitle;
+  if (typeof leaf.value === 'string' && (pathIsDeclared(SENTENCE_OBJECT_PATHS, path) || pathIsDeclared(COMMA_OBJECT_PATHS, path))) return textRows(leaf.value, { sentences: pathIsDeclared(SENTENCE_OBJECT_PATHS, path), commas: pathIsDeclared(COMMA_OBJECT_PATHS, path) }).map(row => ({ ...row, subtitle: row.subtitle ? `${subtitle} — ${row.subtitle}` : subtitle }));
+  return [{ ...formatLeaf({ ...leaf, subtitle }), path }];
+};
+const rowsFor = ([field, , type], value) => {
+  if (type === 'date') return [{ value: formatDate(value) }]; if (type === 'boolean') return [{ value: value ? 'Yes' : 'No' }]; if (type === 'number') return [{ value: String(value) }]; if (type === 'sentence') return textRows(value, { sentences: true }); if (type === 'sentenceComma') return textRows(value, { sentences: true, commas: true }); if (type === 'comma') return textRows(value, { commas: true });
+  if (type === 'recommendationGroups') { const groups = []; (Array.isArray(value) ? value : []).forEach(item => { if (!hasVal(item)) return; const dateValue = item && typeof item === 'object' ? item.date : null, dateKey = dateValue ? formatDate(dateValue) : 'no-date'; let group = groups.find(candidate => candidate.dateKey === dateKey); if (!group) { group = { dateKey, dateValue, items: [] }; groups.push(group); } group.items.push(item); }); return groups.flatMap(group => { const rows = []; if (group.dateValue) rows.push({ subtitle: 'Date', value: formatDate(group.dateValue) }); group.items.forEach(item => { const objectItem = item && typeof item === 'object', raw = objectItem ? (item.recommendation ?? item.text ?? item.value) : item; if (hasVal(raw)) rows.push({ value: String(raw) }); }); return rows; }); }
+  if (type === 'arrayConditional') return (Array.isArray(value) ? value : []).flatMap(item => { const parsed = parseLabel(item); return parsed.subtitle ? textRows(item, { commas: true }) : [{ value: String(item) }]; });
+  if (type === 'arrayKeep') return (Array.isArray(value) ? value : []).map(item => ({ value: String(item) }));
+  if (type === 'arrayComma') return (Array.isArray(value) ? value : []).flatMap(item => textRows(item, { commas: true }));
+  if (type === 'arrayLabeledKeep') return (Array.isArray(value) ? value : []).map(item => { const parsed = parseLabel(item); return { subtitle: parsed.subtitle, value: parsed.content }; });
+  if (type === 'objectSplit') return flattenObject(value).flatMap(leaf => leaf.path === 'description' && typeof leaf.value === 'string' ? textRows(leaf.value, { sentences: true, commas: true }).map(row => ({ ...row, subtitle: row.subtitle ? `${leaf.subtitle} — ${row.subtitle}` : leaf.subtitle })) : [formatLeaf(leaf)]);
+  if (type === 'objectArray') return (Array.isArray(value) ? value : []).flatMap((item, index) => flattenObject(item).flatMap(leaf => objectLeafRows(`${field}.${index}`, leaf, `${OBJECT_ARRAY_ITEM_LABELS[field]} ${index + 1}`)));
+  if (type === 'object') return flattenObject(value).flatMap(leaf => objectLeafRows(field, leaf)); return textRows(value);
+};
+const renderField = (config, value, key, sectionTitle) => {
+  const [, label] = config, rows = rowsFor(config, value), showLabel = label !== sectionTitle;
+  if (!rows.length) return null;
+  const renderRow = (row, index, priorSubtitle) => { const showSubtitle = row.subtitle && row.subtitle !== priorSubtitle; return <View key={`${key}-${index}`} style={styles.rowBlock} wrap={false}>{showSubtitle && <Text style={styles.nestedSubtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}{'\n'}</Text></View>; };
+  const first = rows[0];
+  return <React.Fragment key={key}>{showLabel ? <View wrap={false}><View style={styles.fieldHeader}><Text style={styles.fieldLabel}>{label}</Text></View>{renderRow(first, 0, '')}</View> : renderRow(first, 0, '')}{rows.slice(1).map((row, offset) => renderRow(row, offset + 1, rows[offset].subtitle || ''))}</React.Fragment>;
 };
 
+const AdministrativeDataDocumentPDFTemplate = ({ document: documentProp, data: dataProp, templateData }) => {
+  const records = React.useMemo(() => { const source = documentProp ?? dataProp ?? templateData; if (!source) return []; let rows = Array.isArray(source) ? source : [source]; rows = rows.flatMap(row => { if (Array.isArray(row?.records)) return row.records; if (Array.isArray(row?._records)) return row._records; if (row?.administrative_data) return Array.isArray(row.administrative_data) ? row.administrative_data : [row.administrative_data]; if (row?.documentData) { const nested = row.documentData; if (Array.isArray(nested)) return nested; if (nested?.administrative_data) return Array.isArray(nested.administrative_data) ? nested.administrative_data : [nested.administrative_data]; return [nested]; } return [row]; }); return rows.filter(row => row && typeof row === 'object'); }, [documentProp, dataProp, templateData]);
+  if (!records.length) return <Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.documentTitle}>Administrative Data</Text></View><Text style={styles.noData}>No administrative data available</Text></Page></Document>;
+  return <Document>{records.flatMap((record, recordIndex) => PAGE_GROUPS.map((indexes, pageIndex) => { const visible = indexes.map(index => ({ section: SECTIONS[index], index, fields: SECTIONS[index].fields.filter(([field]) => hasVal(record[field])) })).filter(item => item.fields.length); if (!visible.length) return null; return <Page key={`${recordIndex}-${pageIndex}`} size="LETTER" style={styles.page}>{pageIndex === 0 && <View style={styles.documentHeader}><Text style={styles.documentTitle}>Administrative Data</Text></View>}{pageIndex === 0 && <View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>{record.patientName || record.category || `Administrative Data ${recordIndex + 1}`}</Text></View>}{visible.map(({ section, index, fields }) => <View key={`${index}-${section.title}`} style={styles.section}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text></View>{fields.map((config, fieldIndex) => renderField(config, record[config[0]], `${index}-${fieldIndex}`, section.title))}</View>)}</Page>; }))}</Document>;
+};
 export default AdministrativeDataDocumentPDFTemplate;

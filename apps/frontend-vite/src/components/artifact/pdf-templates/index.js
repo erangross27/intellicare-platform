@@ -156,6 +156,7 @@ import VitalSignsTableDocumentPDFTemplate from './VitalSignsTableDocumentPDFTemp
 import WeeklyVirtualCheckInsDocumentPDFTemplate from './WeeklyVirtualCheckInsDocumentPDFTemplate';
 import WeightMeasurementsDocumentPDFTemplate from './WeightMeasurementsDocumentPDFTemplate';
 import WeightMonitoringDocumentPDFTemplate from './WeightMonitoringDocumentPDFTemplate';
+import WellChildExaminationsDocumentPDFTemplate from './WellChildExaminationsDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -301,6 +302,7 @@ const templateRegistry = {
   'weekly_virtual_check_ins': WeeklyVirtualCheckInsDocumentPDFTemplate,
   'weight_measurements': WeightMeasurementsDocumentPDFTemplate,
   'weight_monitoring': WeightMonitoringDocumentPDFTemplate,
+  'well_child_examinations': WellChildExaminationsDocumentPDFTemplate,
 };
 
 /**

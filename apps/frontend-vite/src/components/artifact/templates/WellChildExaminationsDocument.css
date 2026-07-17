@@ -7,7 +7,8 @@
  */
 
 /* ========== DOCUMENT CONTAINER ========== */
-.well-child-examinations-document { font-family: 'Comfortaa', 'Segoe UI', sans-serif; background: #0F1B33; color: #ececf1; padding: 24px; min-height: 100%; }
+.well-child-examinations-document { font-family: 'Comfortaa', 'Segoe UI', sans-serif; background: #0F1B33; color: #ececf1; padding: 24px; min-height: 100%; direction: ltr; text-align: left; }
+.well-child-examinations-document * { direction: ltr; text-align: left; }
 
 /* ========== DOCUMENT HEADER ========== */
 .well-child-examinations-document .document-header { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #565869; }
@@ -36,8 +37,6 @@
 /* ========== RECORD CARD ========== */
 .well-child-examinations-document .record-card { background: rgba(96, 165, 250, 0.05); border: 2px solid rgba(96, 165, 250, 0.2); border-radius: 12px; padding: 20px; }
 .well-child-examinations-document .record-header { margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(96, 165, 250, 0.3); }
-.well-child-examinations-document .record-meta-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
-.well-child-examinations-document .record-date { background: rgba(96, 165, 250, 0.15); color: #60a5fa; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 1px solid rgba(96, 165, 250, 0.3); }
 .well-child-examinations-document .record-name { font-size: 23px; font-weight: 700; color: #ececf1; margin: 0; text-transform: none !important; font-family: 'Comfortaa', sans-serif; }
 
 /* ========== SECTION ========== */
@@ -93,6 +92,10 @@
 .well-child-examinations-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
 .well-child-examinations-document .modified-badge.added { color: #4ade80; }
 .well-child-examinations-document .edit-field-container { width: 100%; }
+.well-child-examinations-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.well-child-examinations-document .edit-input { flex: 1; min-width: 0; height: 40px; padding: 8px 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font: inherit; box-sizing: border-box; }
+.well-child-examinations-document .edit-unit { color: #93c5fd; font-size: 14px; white-space: nowrap; }
+.well-child-examinations-document .num-step { width: 40px; height: 40px; border: 1px solid #60a5fa; border-radius: 6px; background: rgba(96, 165, 250, 0.14); color: #ececf1; cursor: pointer; font-size: 20px; text-align: center; }
 .well-child-examinations-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
 .well-child-examinations-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
 .well-child-examinations-document .edit-select option { background: #0F1B33; color: #ececf1; }
@@ -102,6 +105,7 @@
 .well-child-examinations-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .well-child-examinations-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .well-child-examinations-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.well-child-examinations-document .approve-btn { text-transform: capitalize; }
 .well-child-examinations-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .well-child-examinations-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 

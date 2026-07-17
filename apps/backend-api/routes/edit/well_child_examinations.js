@@ -23,7 +23,7 @@ function buildContext(req, operation = 'read') {
 function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
-const ALLOWED_FIELDS = ['visitDate', 'age', 'weight', 'weight.value', 'weight.percentile', 'height', 'height.value', 'height.percentile', 'headCircumference', 'headCircumference.value', 'headCircumference.percentile', 'bmi', 'bmi.value', 'bmi.percentile', 'bmi.category', 'developmentalScreening', 'developmentalScreening.result', 'developmentalScreening.notes', 'visionScreening', 'visionScreening.result', 'visionScreening.acuity', 'hearingScreening', 'hearingScreening.result', 'leadScreening', 'leadScreening.result', 'immunizationsGiven', 'anticipatoryGuidance', 'nextWellVisit'];
+const ALLOWED_FIELDS = ['visitDate', 'age', 'weight', 'weight.value', 'weight.percentile', 'height', 'height.value', 'height.percentile', 'headCircumference', 'headCircumference.value', 'headCircumference.percentile', 'bmi', 'bmi.value', 'bmi.percentile', 'bmi.category', 'developmentalScreening', 'developmentalScreening.result', 'developmentalScreening.notes', 'developmentalScreening.grossMotor', 'developmentalScreening.fineMotor', 'developmentalScreening.language', 'developmentalScreening.socialEmotional', 'visionScreening', 'visionScreening.result', 'visionScreening.method', 'visionScreening.acuity', 'hearingScreening', 'hearingScreening.result', 'hearingScreening.method', 'leadScreening', 'leadScreening.result', 'immunizationsGiven', 'anticipatoryGuidance', 'nextWellVisit'];
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params;

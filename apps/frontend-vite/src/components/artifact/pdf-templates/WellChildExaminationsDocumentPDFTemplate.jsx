@@ -1,139 +1,183 @@
-/**
- * WellChildExaminationsDocumentPDFTemplate.jsx
- * March 2026 -- Helvetica -- LETTER size -- well child examinations
- * Collection: well_child_examinations
- */
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
-  chartSection: { marginBottom: 16, padding: 12, backgroundColor: '#ffffff', borderRadius: 4, border: '1px solid #e5e7eb' },
-  chartLegend: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #e5e7eb' },
-  legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 16, marginBottom: 4 },
-  legendColor: { width: 10, height: 10, borderRadius: 2, marginRight: 4 },
-  legendText: { fontSize: 9, color: '#000000' },
-  barRow: { marginBottom: 12 },
-  barLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 4 },
-  barContainer: { flexDirection: 'row', alignItems: 'center' },
-  barBackground: { flex: 1, height: 16, backgroundColor: '#e5e5e5', borderRadius: 4, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 4 },
-  barValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#000000', marginLeft: 8, width: 45, textAlign: 'right' },
-  barMeasurement: { fontSize: 9, color: '#000000', marginTop: 2, paddingLeft: 4 },
+  page: { paddingTop: 38, paddingBottom: 42, paddingHorizontal: 42, fontFamily: 'Helvetica', color: '#111827', fontSize: 14 },
+  documentHeader: { marginBottom: 18 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#2563eb' },
+  recordHeader: { marginBottom: 16 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold' },
+  sectionBlock: { marginTop: 11 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, marginBottom: 7, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  sectionSpacer: { height: 4 },
+  fieldBox: { marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 3, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 2, marginBottom: 2, color: '#1d4ed8' },
+  rowBlock: { marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.35, marginBottom: 2 },
+  noDataText: { fontSize: 14, marginTop: 16, color: '#6b7280' },
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try { const d = new Date(dateStr.$date || dateStr); if (isNaN(d.getTime())) return String(dateStr); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateStr); }
-};
+const SECTION_CONFIGS = [
+  {
+    title: 'Visit Information',
+    fields: [
+      { key: 'visitDate', label: 'Visit Date', date: true },
+      { key: 'age', label: 'Age' },
+      { key: 'nextWellVisit', label: 'Next Well Visit' },
+    ],
+  },
+  {
+    title: 'Growth Parameters',
+    fields: [
+      { key: 'weight.value', label: 'Weight' },
+      { key: 'weight.percentile', label: 'Weight Percentile' },
+      { key: 'height.value', label: 'Height' },
+      { key: 'height.percentile', label: 'Height Percentile' },
+      { key: 'headCircumference.value', label: 'Head Circumference' },
+      { key: 'headCircumference.percentile', label: 'Head Circumference Percentile' },
+      { key: 'bmi.value', label: 'BMI' },
+      { key: 'bmi.percentile', label: 'BMI Percentile' },
+      { key: 'bmi.category', label: 'BMI Category' },
+    ],
+  },
+  {
+    title: 'Developmental Screening',
+    fields: [
+      { key: 'developmentalScreening.result', label: 'Result' },
+      { key: 'developmentalScreening.notes', label: 'Notes' },
+      { key: 'developmentalScreening.grossMotor', label: 'Gross Motor', comma: true },
+      { key: 'developmentalScreening.fineMotor', label: 'Fine Motor' },
+      { key: 'developmentalScreening.language', label: 'Language' },
+      { key: 'developmentalScreening.socialEmotional', label: 'Social & Emotional' },
+    ],
+  },
+  {
+    title: 'Screenings',
+    fields: [
+      { key: 'visionScreening.result', label: 'Vision Result' },
+      { key: 'visionScreening.method', label: 'Vision Method' },
+      { key: 'visionScreening.acuity', label: 'Vision Acuity' },
+      { key: 'hearingScreening.result', label: 'Hearing Result' },
+      { key: 'hearingScreening.method', label: 'Hearing Method' },
+      { key: 'leadScreening.result', label: 'Lead Screening Result' },
+    ],
+  },
+  {
+    title: 'Immunizations Given',
+    fields: [{ key: 'immunizationsGiven', label: 'Immunizations Given', array: true }],
+  },
+  {
+    title: 'Anticipatory Guidance',
+    fields: [{ key: 'anticipatoryGuidance', label: 'Anticipatory Guidance', anticipatory: true }],
+  },
+];
 
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  let str = typeof val === 'string' ? val : String(val);
-  str = str.replace(/[\u03BC\u00B5]m/g, 'um');
-  str = str.replace(/\u00B0/g, ' deg');
-  str = str.replace(/\u00B1/g, '+/-');
-  str = str.replace(/\u2265/g, '>=');
-  str = str.replace(/\u2264/g, '<=');
-  str = str.replace(/\u2192/g, '->');
-  return str;
-};
+const PAGE_SECTION_GROUPS = [[0], [1], [2], [3, 4], [5]];
 
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
+const hasVal = value => {
+  if (value === null || value === undefined || value === '') return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasVal);
+  if (typeof value === 'object') return Object.keys(value).length > 0;
   return true;
 };
 
-const extractPercentile = (percentileStr) => {
-  if (!percentileStr || typeof percentileStr !== 'string') return null;
-  const match = percentileStr.match(/(\d+)(?:th|st|nd|rd)/i);
-  return match ? parseInt(match[1], 10) : null;
+const getPath = (record, path) => path.split('.').reduce((value, part) => value?.[part], record);
+
+const formatDate = value => {
+  if (!value) return '';
+  try { return new Date(value.$date || value).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
+  catch { return String(value); }
 };
 
-const getPercentileColor = (percentile) => {
-  if (percentile === null) return '#6b7280';
-  if (percentile >= 75) return '#898989';
-  if (percentile >= 50) return '#7a7a7a';
-  if (percentile >= 25) return '#a7a7a7';
-  return '#777777';
-};
-
-const parseAnticipatory = (text) => {
-  if (!text || typeof text !== 'string') return { topic: null, content: text };
-  const colonIdx = text.indexOf(':');
-  if (colonIdx > 0 && colonIdx <= 25) {
-    return { topic: text.substring(0, colonIdx).trim(), content: text.substring(colonIdx + 1).trim() };
+const splitByComma = text => {
+  const rows = [];
+  let current = '';
+  let depth = 0;
+  for (const character of String(text || '')) {
+    if (character === '(') depth += 1;
+    if (character === ')') depth = Math.max(0, depth - 1);
+    if (character === ',' && depth === 0) {
+      if (current.trim()) rows.push(current.trim());
+      current = '';
+    } else current += character;
   }
-  return { topic: null, content: text };
+  if (current.trim()) rows.push(current.trim());
+  return rows;
 };
 
-/* ======= LEGEND ======= */
-const Legend = () => (
-  <View style={styles.chartLegend}>
-    <View style={styles.legendItem}><View style={[styles.legendColor, { backgroundColor: '#898989' }]} /><Text style={styles.legendText}>75th+ percentile</Text></View>
-    <View style={styles.legendItem}><View style={[styles.legendColor, { backgroundColor: '#7a7a7a' }]} /><Text style={styles.legendText}>50-74th percentile</Text></View>
-    <View style={styles.legendItem}><View style={[styles.legendColor, { backgroundColor: '#a7a7a7' }]} /><Text style={styles.legendText}>25-49th percentile</Text></View>
-    <View style={styles.legendItem}><View style={[styles.legendColor, { backgroundColor: '#777777' }]} /><Text style={styles.legendText}>Below 25th</Text></View>
-  </View>
-);
+const splitBySentence = text => String(text || '')
+  .split(/;\s+|(?<!\d)\.(?:\s+|$)/)
+  .map(value => value.trim())
+  .filter(value => value && !/^[;.,!?]+$/.test(value));
 
-/* ======= BAR CHART ROW ======= */
-const BarChartRow = ({ label, percentile, value }) => {
-  const percentage = percentile !== null ? Math.min(100, Math.max(0, percentile)) : 0;
-  const color = getPercentileColor(percentile);
+const splitFieldValue = (value, comma) => {
+  const clauses = splitBySentence(value);
+  return comma ? clauses.flatMap(splitByComma).filter(Boolean) : clauses;
+};
+
+const parseAnticipatory = value => {
+  const text = String(value || '');
+  const colon = text.indexOf(':');
+  if (colon > 0 && colon <= 30) return { topic: text.slice(0, colon).trim(), content: text.slice(colon + 1).trim() };
+  return { topic: '', content: text };
+};
+
+const fieldRows = (field, value) => {
+  if (field.date) return [{ value: formatDate(value) }];
+  if (field.anticipatory) {
+    return (Array.isArray(value) ? value : []).flatMap(item => {
+      const parsed = parseAnticipatory(item);
+      return splitByComma(parsed.content).map(clause => ({ subtitle: parsed.topic, value: clause }));
+    });
+  }
+  if (field.array) return (Array.isArray(value) ? value : []).filter(hasVal).map(item => ({ value: String(item) }));
+  return splitFieldValue(String(value), field.comma).map(item => ({ value: item }));
+};
+
+const renderField = (field, value, key, sectionTitle) => {
+  const rows = fieldRows(field, value);
+  if (!rows.length) return null;
+  let previousSubtitle = '';
   return (
-    <View style={styles.barRow} wrap={false}>
-      <Text style={styles.barLabel}>{safeString(label)}</Text>
-      <View style={styles.barContainer}>
-        <View style={styles.barBackground}>
-          {percentile !== null && <View style={[styles.barFill, { width: `${percentage}%`, backgroundColor: color }]} />}
-        </View>
-        <Text style={[styles.barValue, { color }]}>{percentile !== null ? `${percentile}th` : 'N/A'}</Text>
-      </View>
-      {value && <Text style={styles.barMeasurement}>{safeString(value)}</Text>}
+    <View key={key} style={styles.fieldBox}>
+      {field.label !== sectionTitle && <Text style={styles.fieldLabel}>{field.label}</Text>}
+      {rows.map((row, rowIndex) => {
+        const subtitleChanged = row.subtitle && row.subtitle !== previousSubtitle;
+        previousSubtitle = row.subtitle || '';
+        return (
+          <View key={`${key}-${rowIndex}`} style={styles.rowBlock}>
+            {subtitleChanged && <Text style={styles.nestedSubtitle}>{row.subtitle}</Text>}
+            <Text style={styles.fieldValue}>{rowIndex + 1}. {row.value}</Text>
+          </View>
+        );
+      })}
     </View>
   );
 };
 
-/* ======= COMPONENT ======= */
-const WellChildExaminationsDocumentPDFTemplate = ({ document: docProp }) => {
-  const records = (() => {
-    if (!docProp) return [];
-    if (Array.isArray(docProp)) return docProp.flatMap(item => {
-      if (item.well_child_examinations) return item.well_child_examinations;
-      if (item.records) return item.records;
-      return item;
+const WellChildExaminationsDocumentPDFTemplate = ({ document: documentProp, data: dataProp, templateData }) => {
+  const records = React.useMemo(() => {
+    const source = documentProp ?? dataProp ?? templateData;
+    if (!source) return [];
+    let rows = Array.isArray(source) ? source : [source];
+    rows = rows.flatMap(row => {
+      if (Array.isArray(row?.records)) return row.records;
+      if (Array.isArray(row?._records)) return row._records;
+      if (row?.well_child_examinations) return Array.isArray(row.well_child_examinations) ? row.well_child_examinations : [row.well_child_examinations];
+      if (row?.documentData) {
+        const nested = row.documentData;
+        if (Array.isArray(nested)) return nested;
+        if (nested?.well_child_examinations) return Array.isArray(nested.well_child_examinations) ? nested.well_child_examinations : [nested.well_child_examinations];
+        return [nested];
+      }
+      return [row];
     });
-    if (docProp.data) {
-      if (Array.isArray(docProp.data)) return docProp.data.flatMap(item => {
-        if (item.well_child_examinations) return item.well_child_examinations;
-        if (item.records) return item.records;
-        return item;
-      });
-      return [docProp.data];
-    }
-    return [docProp];
-  })();
+    return rows.filter(row => row && typeof row === 'object');
+  }, [documentProp, dataProp, templateData]);
 
-  if (!records || records.length === 0) {
+  if (!records.length) {
     return (
       <Document>
         <Page size="LETTER" style={styles.page}>
@@ -146,101 +190,25 @@ const WellChildExaminationsDocumentPDFTemplate = ({ document: docProp }) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.documentTitle}>Well Child Examinations</Text></View>
-
-        {records.map((record, idx) => {
-          const heightPercentile = extractPercentile(record.height?.percentile);
-          const weightPercentile = extractPercentile(record.weight?.percentile);
-          const bmiPercentile = extractPercentile(record.bmi?.percentile);
-          const hasGrowthData = heightPercentile !== null || weightPercentile !== null || bmiPercentile !== null;
-
-          return (
-            <View key={idx} style={styles.recordContainer}>
-              <View style={styles.recordHeader}>
-                <View style={styles.recordDateRow}>
-                  <Text style={styles.recordTitle}>Well Child Examination {idx + 1}</Text>
-                  {record.visitDate && <Text style={styles.recordDate}>{formatDate(record.visitDate)}</Text>}
-                </View>
+      {records.flatMap((record, recordIndex) => PAGE_SECTION_GROUPS.map((sectionIndexes, pageIndex) => {
+        const visibleSections = sectionIndexes.map(sectionIndex => ({ sectionIndex, section: SECTION_CONFIGS[sectionIndex] }))
+          .map(item => ({ ...item, presentFields: item.section.fields.filter(field => hasVal(getPath(record, field.key))) }))
+          .filter(item => item.presentFields.length);
+        if (!visibleSections.length) return null;
+        return (
+          <Page key={`${recordIndex}-${pageIndex}`} size="LETTER" style={styles.page}>
+            {pageIndex === 0 && <View style={styles.documentHeader}><Text style={styles.documentTitle}>Well Child Examinations</Text></View>}
+            {pageIndex === 0 && <View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Well Child Examination {recordIndex + 1}</Text></View>}
+            {visibleSections.map(({ sectionIndex, section, presentFields }) => (
+              <View key={`${section.title}-${sectionIndex}`} style={styles.sectionBlock} wrap={false}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                {presentFields.map((field, fieldIndex) => renderField(field, getPath(record, field.key), `${sectionIndex}-${fieldIndex}`, section.title))}
+                <View style={styles.sectionSpacer} />
               </View>
-
-              {/* Visit Information */}
-              {(hasVal(record.age) || hasVal(record.nextWellVisit)) && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Visit Information</Text>
-                  {hasVal(record.age) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Age</Text><Text style={styles.fieldValue}>{safeString(record.age)}</Text></View>}
-                  {hasVal(record.nextWellVisit) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Next Well Visit</Text><Text style={styles.fieldValue}>{safeString(record.nextWellVisit)}</Text></View>}
-                </View>
-              )}
-
-              {/* Growth Parameters */}
-              {hasGrowthData && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Growth Parameters</Text>
-                  <View style={styles.chartSection}>
-                    <Legend />
-                    {heightPercentile !== null && <BarChartRow label="Height" percentile={heightPercentile} value={record.height?.value} />}
-                    {weightPercentile !== null && <BarChartRow label="Weight" percentile={weightPercentile} value={record.weight?.value} />}
-                    {bmiPercentile !== null && <BarChartRow label="BMI" percentile={bmiPercentile} value={`${record.bmi?.value}${record.bmi?.category ? ` (${record.bmi.category})` : ''}`} />}
-                  </View>
-                </View>
-              )}
-
-              {/* Developmental Screening */}
-              {hasVal(record.developmentalScreening) && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Developmental Screening</Text>
-                  {hasVal(record.developmentalScreening?.result) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Result</Text><Text style={styles.fieldValue}>{safeString(record.developmentalScreening.result)}</Text></View>}
-                  {hasVal(record.developmentalScreening?.notes) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Notes</Text><Text style={styles.fieldValue}>{safeString(record.developmentalScreening.notes)}</Text></View>}
-                </View>
-              )}
-
-              {/* Screenings */}
-              {(hasVal(record.visionScreening) || hasVal(record.hearingScreening) || hasVal(record.leadScreening)) && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Screenings</Text>
-                  {hasVal(record.visionScreening) && (
-                    <View style={styles.fieldBox}>
-                      <Text style={styles.fieldLabel}>Vision</Text>
-                      <Text style={styles.fieldValue}>{safeString(record.visionScreening.result)}{record.visionScreening.acuity ? ` - ${safeString(record.visionScreening.acuity)}` : ''}</Text>
-                    </View>
-                  )}
-                  {hasVal(record.hearingScreening) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Hearing</Text><Text style={styles.fieldValue}>{safeString(record.hearingScreening.result)}</Text></View>}
-                  {hasVal(record.leadScreening) && <View style={styles.fieldBox}><Text style={styles.fieldLabel}>Lead</Text><Text style={styles.fieldValue}>{safeString(record.leadScreening.result)}</Text></View>}
-                </View>
-              )}
-
-              {/* Immunizations Given */}
-              {record.immunizationsGiven?.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Immunizations Given</Text>
-                  {record.immunizationsGiven.map((imm, immIdx) => (
-                    <Text key={immIdx} style={styles.listItem} wrap={false}>{immIdx + 1}. {safeString(imm)}</Text>
-                  ))}
-                </View>
-              )}
-
-              {/* Anticipatory Guidance */}
-              {record.anticipatoryGuidance?.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Anticipatory Guidance</Text>
-                  {record.anticipatoryGuidance.map((item, gIdx) => {
-                    const parsed = parseAnticipatory(item);
-                    return (
-                      <View key={gIdx} style={styles.fieldBox} wrap={false}>
-                        {parsed.topic && <Text style={styles.fieldLabel}>{safeString(parsed.topic)}</Text>}
-                        <Text style={styles.fieldValue}>{gIdx + 1}. {safeString(parsed.content)}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-
-              {idx < records.length - 1 && <View style={styles.separator} />}
-            </View>
-          );
-        })}
-      </Page>
+            ))}
+          </Page>
+        );
+      }))}
     </Document>
   );
 };

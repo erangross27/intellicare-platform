@@ -101,6 +101,7 @@ import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTempla
 import AcmgGuidelinesReferenceDocumentPDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
 import AcuteKidneyInjuryDocumentPDFTemplate from './AcuteKidneyInjuryDocumentPDFTemplate';
 import AddictionMedicineConsultationsDocumentPDFTemplate from './AddictionMedicineConsultationsDocumentPDFTemplate';
+import ADHDAssessmentDocumentPDFTemplate from './ADHDAssessmentDocumentPDFTemplate';
 import StagingSummaryDocumentPDFTemplate from './StagingSummaryDocumentPDFTemplate';
 import StemCellTransplantAssessmentDocumentPDFTemplate from './StemCellTransplantAssessmentDocumentPDFTemplate';
 import TransplantAssessmentDocumentPDFTemplate from './TransplantAssessmentDocumentPDFTemplate';
@@ -181,6 +182,7 @@ const templateRegistry = {
   'acmg_guidelines_reference': AcmgGuidelinesReferenceDocumentPDFTemplate,
   'acute_kidney_injury': AcuteKidneyInjuryDocumentPDFTemplate,
   'addiction_medicine_consultations': AddictionMedicineConsultationsDocumentPDFTemplate,
+  'adhd_assessment': ADHDAssessmentDocumentPDFTemplate,
   'allergy_assessment': AllergyAssessmentTemplate,
   'allergy_immunology_assessment': AllergyImmunologyAssessmentTemplate,
   'asthma_assessments': AsthmaAssessmentsPDFTemplate,

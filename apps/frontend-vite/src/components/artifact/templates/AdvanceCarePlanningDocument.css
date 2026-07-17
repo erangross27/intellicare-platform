@@ -1,460 +1,59 @@
-/**
- * Advance Care Planning Document CSS
- * Blue-only color scheme, Comfortaa font, text-transform: none !important
- * Editing styles: textarea, save/cancel, modified badge, approve button
- */
-
-.advance-care-planning-document {
-  padding: 24px;
-  color: #ececf1;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-/* Document Title - 31px BIGGEST */
-.advance-care-planning-document .document-title {
-  font-size: 31px;
-  font-weight: 700;
-  color: #ececf1;
-  margin: 0 0 20px 0;
-  text-transform: none !important;
-}
-
-/* Document Header */
-.advance-care-planning-document .document-header {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #565869;
-}
-
-.advance-care-planning-document .header-actions {
-  display: flex !important;
-  gap: 12px;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  flex-direction: row !important;
-}
-
-/* Search Container */
-.advance-care-planning-document .search-container {
-  position: relative;
-  margin-bottom: 24px;
-}
-
-.advance-care-planning-document .search-input {
-  width: 100%;
-  padding: 12px 40px 12px 16px;
-  background: #0d1929;
-  border: 1px solid #565869;
-  border-radius: 8px;
-  color: #ececf1;
-  font-size: 17px;
-  font-family: 'Comfortaa', sans-serif;
-  box-sizing: border-box;
-}
-
-.advance-care-planning-document .search-input:focus {
-  outline: none;
-  border-color: #60a5fa;
-}
-
-.advance-care-planning-document .search-input::placeholder {
-  color: #9ca3af;
-}
-
-.advance-care-planning-document .clear-search {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 23px;
-  cursor: pointer;
-  padding: 4px 8px;
-}
-
-.advance-care-planning-document .clear-search:hover {
-  color: #ececf1;
-}
-
-/* Empty State */
-.advance-care-planning-document .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-}
-
-.advance-care-planning-document .empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.advance-care-planning-document .empty-text {
-  color: #9ca3af;
-  font-size: 19px;
-}
-
-/* No Results */
-.advance-care-planning-document .no-results {
-  text-align: center;
-  padding: 40px 20px;
-  color: #9ca3af;
-}
-
-/* Records List */
-.advance-care-planning-document .records-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-/* Record Card */
-.advance-care-planning-document .record-card {
-  background: #1e1f2e;
-  border: 1px solid rgba(96, 165, 250, 0.2);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-/* Card Header */
-.advance-care-planning-document .card-header {
-  display: flex;
-  flex-direction: column !important;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(96, 165, 250, 0.08) 100%);
-  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
-}
-
-.advance-care-planning-document .header-top-row {
-  display: flex !important;
-  flex-direction: row !important;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  gap: 8px !important;
-  margin-bottom: 8px !important;
-  width: 100% !important;
-}
-
-.advance-care-planning-document .card-title {
-  font-size: 23px;
-  font-weight: 700;
-  color: #ececf1;
-  margin: 0;
-  text-transform: none !important;
-}
-
-/* Card Content */
-.advance-care-planning-document .card-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Badges */
-.advance-care-planning-document .date-badge {
-  background: rgba(96, 165, 250, 0.2);
-  color: #60a5fa;
-  padding: 5px 14px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* Mini Cards Container */
-.advance-care-planning-document .mini-cards-container {
-  background: rgba(96, 165, 250, 0.08);
-  border: 2px solid rgba(96, 165, 250, 0.3);
-  border-radius: 10px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Individual Mini Card */
-.advance-care-planning-document .rec-mini-card {
-  background: rgba(96, 165, 250, 0.08);
-  border: 2px solid rgba(96, 165, 250, 0.3);
-  border-radius: 10px;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Numbered Row */
-.advance-care-planning-document .numbered-row {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: flex-start;
-  background: #0d1929;
-  padding: 12px 16px;
-  border-radius: 6px;
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  gap: 12px;
-}
-
-.advance-care-planning-document .row-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-/* Nested Subtitle - 17px LIGHT BRIGHT BLUE */
-.advance-care-planning-document .nested-subtitle {
-  font-size: 17px;
-  font-weight: 700;
-  color: #93c5fd;
-  text-transform: none !important;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
-  padding-bottom: 6px;
-  margin-bottom: 2px;
-}
-
-/* Content Value - 17px WHITE */
-.advance-care-planning-document .content-value {
-  font-size: 17px;
-  color: #ececf1;
-  line-height: 1.6;
-}
-
-/* Section Title - 19px BLUE */
-.advance-care-planning-document .section-title {
-  font-size: 19px;
-  font-weight: 700;
-  color: #60a5fa;
-  margin: 0;
-  text-transform: none !important;
-}
-
-/* Section Header */
-.advance-care-planning-document .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
-}
-
-/* Copy Button — DEFAULT state */
-.advance-care-planning-document .copy-btn {
-  background: rgba(96, 165, 250, 0.15);
-  color: #93c5fd;
-  border: 1px solid rgba(96, 165, 250, 0.4);
-  border-radius: 4px;
-  padding: 5px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: 'Comfortaa', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.advance-care-planning-document .copy-btn:hover {
-  background: rgba(96, 165, 250, 0.25);
-  border-color: #60a5fa;
-}
-
-/* Copy Button — COPIED state (SOLID BLUE) */
-.advance-care-planning-document .copy-btn.copied {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
-}
-
-/* Search Highlight */
-.advance-care-planning-document mark {
-  background: #fbbf24;
-  color: #000000;
-  padding: 0 2px;
-  border-radius: 2px;
-}
-
-/* ─── Editing Styles ────────────────────────────────────────── */
-
-/* Header right actions — column layout: copy on top, approve below */
-.advance-care-planning-document .header-right-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  margin-left: auto;
-}
-
-/* Edit field container — MUST have width: 100% */
-.advance-care-planning-document .edit-field-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
-/* Edit textarea */
-.advance-care-planning-document .edit-textarea {
-  width: 100%;
-  min-height: 60px;
-  padding: 10px 12px;
-  background: #0d1929;
-  color: #ececf1;
-  border: 2px solid #2563eb;
-  border-radius: 6px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.advance-care-planning-document .edit-textarea:focus {
-  outline: none;
-  border-color: #60a5fa;
-  box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
-}
-
-/* Edit actions (Save / Cancel) */
-.advance-care-planning-document .edit-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.advance-care-planning-document .save-btn {
-  padding: 6px 16px;
-  background: #2563eb;
-  color: #ffffff;
-  border: none;
-  border-radius: 6px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.advance-care-planning-document .save-btn:hover {
-  background: #1d4ed8;
-}
-
-.advance-care-planning-document .save-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.advance-care-planning-document .cancel-btn {
-  padding: 6px 16px;
-  background: transparent;
-  color: #9ca3af;
-  border: 1px solid #4b5563;
-  border-radius: 6px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.advance-care-planning-document .cancel-btn:hover {
-  background: rgba(75, 85, 99, 0.2);
-  color: #ececf1;
-}
-
-/* Editable row content — cursor pointer + edit indicator */
-.advance-care-planning-document .row-content.editable {
-  cursor: pointer;
-  position: relative;
-}
-
-.advance-care-planning-document .row-content.editable:hover {
-  background: rgba(96, 165, 250, 0.05);
-  border-radius: 4px;
-}
-
-.advance-care-planning-document .edit-indicator {
-  margin-left: 8px;
-  color: rgba(96, 165, 250, 0.4);
-  font-size: 14px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.advance-care-planning-document .row-content.editable:hover .edit-indicator {
-  opacity: 1;
-}
-
-/* Modified row — yellow border + tint */
-.advance-care-planning-document .numbered-row.modified {
-  border-color: rgba(234, 179, 8, 0.4);
-  background: rgba(234, 179, 8, 0.05);
-}
-
-/* Modified badge — styled badge below numbered-row */
-.advance-care-planning-document .modified-badge {
-  font-size: 11px;
-  font-family: 'Comfortaa', sans-serif;
-  font-weight: 600;
-  color: #eab308;
-  background: rgba(234, 179, 8, 0.12);
-  border: 1px solid rgba(234, 179, 8, 0.3);
-  padding: 4px 10px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-align: center;
-  margin-top: 6px;
-}
-
-.advance-care-planning-document .modified-badge.added {
-  color: #22c55e;
-  background: rgba(34, 197, 94, 0.12);
-  border-color: rgba(34, 197, 94, 0.3);
-}
-
-/* Approve button — base */
-.advance-care-planning-document .approve-btn {
-  margin-top: 4px;
-  border-radius: 6px;
-  padding: 5px 14px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: capitalize;
-  letter-spacing: 0.3px;
-  transition: all 0.2s ease;
-}
-
-/* Pending Approve — YELLOW */
-.advance-care-planning-document .approve-btn.pending {
-  background: rgba(234, 179, 8, 0.15);
-  border: 1px solid rgba(234, 179, 8, 0.5);
-  color: #eab308;
-}
-
-.advance-care-planning-document .approve-btn.pending:hover {
-  background: rgba(234, 179, 8, 0.25);
-  border-color: rgba(234, 179, 8, 0.7);
-  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
-}
-
-/* Approved — GREEN */
-.advance-care-planning-document .approve-btn.approved {
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  color: #22c55e;
-}
-
-.advance-care-planning-document .approve-btn.approved:hover {
-  background: rgba(34, 197, 94, 0.25);
-  border-color: rgba(34, 197, 94, 0.6);
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
-}
+/* AdvanceCarePlanningDocument.css — March 2026 blue-glow editing theme */
+.advance-care-planning-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; text-align: left; }
+.advance-care-planning-document * { direction: ltr; text-align: left; }
+.advance-care-planning-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
+.advance-care-planning-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
+.advance-care-planning-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
+.advance-care-planning-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+.advance-care-planning-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
+.advance-care-planning-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
+.advance-care-planning-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
+.advance-care-planning-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
+.advance-care-planning-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
+.advance-care-planning-document .section { margin-top: 16px; }
+.advance-care-planning-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
+.advance-care-planning-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
+.advance-care-planning-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
+.advance-care-planning-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+.advance-care-planning-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.advance-care-planning-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
+.advance-care-planning-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
+.advance-care-planning-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
+.advance-care-planning-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
+.advance-care-planning-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
+.advance-care-planning-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
+.advance-care-planning-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
+.advance-care-planning-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
+.advance-care-planning-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: white; }
+.advance-care-planning-document .editable-row { cursor: pointer; }
+.advance-care-planning-document .editable-row:hover .edit-indicator { opacity: 1; }
+.advance-care-planning-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.advance-care-planning-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.advance-care-planning-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.advance-care-planning-document .modified-badge.added { color: #4ade80; }
+.advance-care-planning-document .edit-field-container { width: 100%; }
+.advance-care-planning-document .edit-input { flex: 1; min-width: 0; height: 40px; padding: 8px 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font: inherit; box-sizing: border-box; }
+.advance-care-planning-document .num-step { width: 40px; height: 40px; border: 1px solid #60a5fa; border-radius: 6px; background: rgba(96, 165, 250, 0.14); color: #ececf1; cursor: pointer; font-size: 20px; text-align: center; }
+.advance-care-planning-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.advance-care-planning-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.advance-care-planning-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.advance-care-planning-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.advance-care-planning-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.advance-care-planning-document .approve-btn { text-transform: capitalize; }
+.advance-care-planning-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.advance-care-planning-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.advance-care-planning-document .search-container { margin-bottom: 20px; }
+.advance-care-planning-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.advance-care-planning-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.advance-care-planning-document .search-input::placeholder { color: #9ca3af; }
+.advance-care-planning-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
+.advance-care-planning-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
+.advance-care-planning-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
+/* nested OBJECT renderer (results) */
+.advance-care-planning-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.advance-care-planning-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.advance-care-planning-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.advance-care-planning-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.advance-care-planning-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.advance-care-planning-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
+@media (max-width: 768px) { .advance-care-planning-document .document-header { padding-bottom: 12px; } .advance-care-planning-document .document-title { font-size: 24px; } .advance-care-planning-document .header-actions { flex-direction: column; } }

@@ -57,6 +57,7 @@ import EmergencyDischargeSummariesTemplate from './EmergencyDischargeSummariesDo
 import EmergencyReportsTemplate from './EmergencyReportsDocumentPDFTemplate';
 import AdmissionRecommendationsDocumentPDFTemplate from './AdmissionRecommendationsDocumentPDFTemplate';
 import AdultDayProgramInfoDocumentPDFTemplate from './AdultDayProgramInfoDocumentPDFTemplate';
+import AdvanceCarePlanningDocumentPDFTemplate from './AdvanceCarePlanningDocumentPDFTemplate';
 import TriageDataTemplate from './TriageDataDocumentPDFTemplate';
 import EdCourseTemplate from './EdCourseDocumentPDFTemplate';
 import EdDispositionTemplate from './EdDispositionDocumentPDFTemplate';
@@ -229,6 +230,7 @@ const templateRegistry = {
   'emergency_reports': EmergencyReportsTemplate,
   'admission_recommendations': AdmissionRecommendationsDocumentPDFTemplate,
   'adult_day_program_info': AdultDayProgramInfoDocumentPDFTemplate,
+  'advance_care_planning': AdvanceCarePlanningDocumentPDFTemplate,
   'triage_data': TriageDataTemplate,
   'ed_course': EdCourseTemplate,
   'ed_disposition': EdDispositionTemplate,

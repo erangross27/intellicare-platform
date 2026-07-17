@@ -13,6 +13,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ApgarScoresDocumentPDFTemplate from '../pdf-templates/ApgarScoresDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueTimePicker from '../components/BlueTimePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './ApgarScoresDocument.css';
 
@@ -65,7 +67,7 @@ const SECTION_FIELDS = {
 };
 
 const DATE_FIELDS = ['birthDate'];
-const NUMBER_FIELDS = [];
+const SCORE_FIELDS = ['apgar1Minute', 'apgar5Minutes', 'apgar10Minutes'];
 const ARRAY_FIELDS = ['recommendations'];
 const STRING_FIELDS = ['birthTime', 'apgar1Minute', 'apgar5Minutes', 'apgar10Minutes', 'appearance', 'pulse', 'grimace', 'activity', 'respiration', 'interventions', 'assessor'];
 /* COMPONENT_FIELDS: APGAR component scores whose value is semicolon-separated timepoints
@@ -131,7 +133,7 @@ const toInputDate = (dateValue) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const ApgarScoresDocument = ({ document: docProp }) => {
+const ApgarScoresDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -150,15 +152,17 @@ const ApgarScoresDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp || data || templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
       if (r?.apgar_scores) return Array.isArray(r.apgar_scores) ? r.apgar_scores : [r.apgar_scores];
+      if (r?.data) { const rd = r.data; if (Array.isArray(rd)) return rd; if (rd?.apgar_scores) return Array.isArray(rd.apgar_scores) ? rd.apgar_scores : [rd.apgar_scores]; return [rd]; }
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.apgar_scores) return Array.isArray(dd.apgar_scores) ? dd.apgar_scores : [dd.apgar_scores]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   /* ═══════ REHYDRATE PENDING DRAFTS ═══════ */
   // Repopulate staged drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF).
@@ -189,7 +193,8 @@ const ApgarScoresDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    const protectedText = text.replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)\./gi, '$1<dot>');
+    return protectedText.split(/[.;]\s+/).map(s => s.replace(/<dot>/g, '.').replace(/[;.]+$/, '').trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -291,12 +296,14 @@ const ApgarScoresDocument = ({ document: docProp }) => {
   /* ═══════ PDF DATA ═══════ */
   const pdfData = useMemo(() => {
     return filteredRecords.map((record, idx) => {
-      const merged = { ...record };
+      const merged = { ...record, recommendations: Array.isArray(record.recommendations) ? record.recommendations.map(item => item && typeof item === 'object' ? { ...item } : item) : record.recommendations };
       Object.keys(localEdits).forEach(key => {
         if (pendingEdits[key]) return; // pending drafts stay OUT of the PDF until approved
         const m = key.match(/^(.+)-(\d+)$/);
         if (m && parseInt(m[2]) === idx) {
-          merged[m[1]] = localEdits[key];
+          const path = m[1].split('.'); let target = merged;
+          path.slice(0, -1).forEach(part => { if (target[part] == null) target[part] = /^\d+$/.test(part) ? [] : {}; target = target[part]; });
+          target[path[path.length - 1]] = localEdits[key];
         }
       });
       return merged;
@@ -454,8 +461,9 @@ const ApgarScoresDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
+    if (!fields.some(field => hasVal(getFieldValue(record, field, idx)))) return '';
+    let text = `${title}\n${'='.repeat(40)}\n\n`;
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
@@ -463,47 +471,49 @@ const ApgarScoresDocument = ({ document: docProp }) => {
       const showLabelCopy = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
       if (DATE_FIELDS.includes(f)) {
         if (showLabelCopy) text += `${label}\n`;
-        text += `${formatDate(val)}\n\n`;
-      } else if (NUMBER_FIELDS.includes(f)) {
-        text += showLabelCopy ? `${label}: ${val}\n\n` : `${val}\n\n`;
+        text += `1. ${formatDate(val)}\n\n`;
       } else if (f === 'recommendations') {
-        const items = Array.isArray(val) ? val : [val];
         if (showLabelCopy) text += `${label}\n`;
-        text += `${items.map((item, i) => {
-          if (typeof item === 'object' && item.recommendation) {
-            return `${i + 1}. ${item.recommendation}${item.date ? ` (${formatDate(item.date)})` : ''}`;
-          }
-          return `${i + 1}. ${item}`;
-        }).join('\n')}\n\n`;
+        const groups = new Map();
+        (Array.isArray(val) ? val : [val]).forEach(item => {
+          const date = typeof item === 'object' ? item.date : null;
+          const dateKey = toInputDate(date) || 'no-date';
+          if (!groups.has(dateKey)) groups.set(dateKey, { date, items: [] });
+          groups.get(dateKey).items.push(typeof item === 'object' ? item.recommendation : String(item));
+        });
+        let n = 1;
+        groups.forEach(group => {
+          if (group.date) text += `${formatDate(group.date)}\n`;
+          group.items.forEach(item => splitBySentence(item).forEach(clause => { text += `${n++}. ${clause}\n`; }));
+        });
+        text += '\n';
       } else if (ARRAY_FIELDS.includes(f)) {
         const items = Array.isArray(val) ? val : [val];
         if (showLabelCopy) text += `${label}\n`;
         text += `${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
       } else if (COMPONENT_FIELDS.includes(f)) {
         if (showLabelCopy) text += `${label}\n`;
+        let n = 1;
         splitBySemicolon(fmtVal(val)).forEach(tp => {
           const { tlabel, value } = splitFirstColon(tp);
-          text += tlabel ? `${tlabel}: ${value}\n` : `${value}\n`;
+          if (tlabel) text += `${tlabel}\n`;
+          text += `${n++}. ${value}\n`;
         });
         text += '\n';
       } else if (STRING_FIELDS.includes(f)) {
         const strVal = fmtVal(val);
         const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          if (showLabelCopy) text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          if (showLabelCopy) text += `${label}\n`;
-          text += `${strVal}\n\n`;
-        }
+        if (showLabelCopy) text += `${label}\n`;
+        sentences.forEach((sentence, sentenceIndex) => { text += `${sentenceIndex + 1}. ${sentence}\n`; });
+        text += '\n';
       } else {
         if (showLabelCopy) text += `${label}\n`;
-        text += `${fmtVal(val)}\n\n`;
+        text += `1. ${fmtVal(val)}\n\n`;
       }
     });
+    text += `${'-'.repeat(40)}\n\n`;
     return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+  }, [getFieldValue, hasVal, fmtVal, splitBySentence]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== APGAR SCORES ===\n\n';
@@ -530,12 +540,12 @@ const ApgarScoresDocument = ({ document: docProp }) => {
     const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -548,6 +558,49 @@ const ApgarScoresDocument = ({ document: docProp }) => {
               <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: BIRTH TIME (custom blue time control; exact stored display is preserved) ═══════ */
+  const renderTimeField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = FIELD_LABELS[fn] || fn;
+    const displayVal = String(val);
+    const pickerVal = ((String(val).match(/^(\d{1,2}):(\d{2})/) || []).slice(1).join(':')) || '';
+    const isModified = editedFields[editKey];
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(pickerVal); setSaveError(null); } }}>
+          {isEditing ? <div className="edit-field-container"><BlueTimePicker value={editValue} onChange={setEditValue} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (!editValue) { setSaveError('Please choose a time'); return; } handleSaveField(record, fn, idx, sid, null, editValue); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(displayVal, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: APGAR SCORE (custom minus/input/plus, stored as a string) ═══════ */
+  const renderScoreField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const label = FIELD_LABELS[fn] || fn;
+    const displayVal = String(val);
+    const isModified = editedFields[editKey];
+    const clamp = value => String(Math.max(0, Math.min(10, Number(value) || 0)));
+    const saveScore = () => { if (!/^\d+$/.test(editValue) || Number(editValue) > 10) { setSaveError('Enter a score from 0 to 10'); return; } handleSaveField(record, fn, idx, sid, null, String(Number(editValue))); };
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        <div className="nested-subtitle">{highlightText(label)}</div>
+        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayVal); setSaveError(null); } }}>
+          {isEditing ? <div className="edit-field-container"><div className="number-edit-row"><button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(clamp(Number(editValue) - 1)); }}>−</button><input type="text" inputMode="numeric" className="edit-score" value={editValue} onChange={e => setEditValue(e.target.value.replace(/\D/g, ''))} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } if (e.key === 'Enter') saveScore(); }} /><button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(clamp(Number(editValue) + 1)); }}>+</button></div>{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveScore(); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(displayVal, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
@@ -681,6 +734,41 @@ const ApgarScoresDocument = ({ document: docProp }) => {
     );
   };
 
+  /* ═══════ RENDER: NARRATIVE/ASSESSOR FIELD — one grouped unlabeled run ═══════ */
+  const renderNarrativeField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const strVal = fmtVal(val);
+    const label = FIELD_LABELS[fn] || fn;
+    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
+    const clauses = splitBySentence(strVal);
+    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+    const saveClause = (clause, editKey) => {
+      const next = String(getFieldValue(record, fn, idx) || '').replace(clause, editValue.trim());
+      handleSaveField(record, fn, idx, sid, null, next, editKey);
+      setEditedSentences(prev => ({ ...prev, [editKey]: 'edited' }));
+    };
+    return (
+      <div key={fn} className="rec-mini-card">
+        {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div className="nested-mini-card regular-row-group">
+          {clauses.map((clause, clauseIndex) => {
+            const editKey = `${fn}-${idx}-s${clauseIndex}`;
+            const isEditing = editingField === editKey;
+            const badge = editedSentences[editKey] || editedFields[`${fn}-${idx}`];
+            return (
+              <div key={editKey} data-edit-field={fn}>
+                <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(clause); setSaveError(null); } }}>
+                  {isEditing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveClause(clause, editKey); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(clause)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(clause, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}
+                </div>
+                {badge && <span className="modified-badge">edited - click Pending Approve to save</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: RECOMMENDATIONS (array of objects with recommendation+date) ═══════ */
   const renderRecommendationsField = (record, idx, sid) => {
     const val = getFieldValue(record, 'recommendations', idx);
@@ -737,6 +825,69 @@ const ApgarScoresDocument = ({ document: docProp }) => {
     );
   };
 
+  /* ═══════ RENDER: RECOMMENDATIONS grouped by normalized date ═══════ */
+  const renderGroupedRecommendationsField = (record, idx, sid) => {
+    const val = getFieldValue(record, 'recommendations', idx);
+    const entries = (Array.isArray(val) ? val : []).map((item, itemIndex) => ({ item, itemIndex })).filter(({ item }) => item && (typeof item === 'object' ? item.recommendation : item));
+    if (entries.length === 0) return null;
+    if (searchTerm.trim() && !fieldMatches(record, 'recommendations', idx) && !sectionTitleMatches(sid)) return null;
+    const groups = new Map();
+    entries.forEach(entry => {
+      const dateKey = toInputDate(typeof entry.item === 'object' ? entry.item.date : null) || 'no-date';
+      if (!groups.has(dateKey)) groups.set(dateKey, []);
+      groups.get(dateKey).push(entry);
+    });
+    const saveGroupDate = (groupEntries) => {
+      const id = safeId(record); if (!id) return;
+      const current = [...(Array.isArray(getFieldValue(record, 'recommendations', idx)) ? getFieldValue(record, 'recommendations', idx) : [])];
+      const nextDate = editValue ? `${editValue}T00:00:00.000Z` : '';
+      groupEntries.forEach(({ itemIndex }) => { current[itemIndex] = { ...current[itemIndex], date: nextDate }; });
+      const paths = groupEntries.map(({ itemIndex }) => `recommendations.${itemIndex}.date`);
+      setLocalEdits(prev => ({ ...prev, ...Object.fromEntries(paths.map(path => [`${path}-${idx}`, nextDate])) }));
+      setPendingEdits(prev => ({ ...prev, ...Object.fromEntries(paths.map(path => [`${path}-${idx}`, true])) }));
+      setEditedFields(prev => ({ ...prev, ...Object.fromEntries(groupEntries.map(({ itemIndex }) => [`recommendations.${itemIndex}.date-${idx}`, 'edited'])) }));
+      clearApprovedForField('recommendations', idx); paths.forEach(path => stageDraft(id, path, nextDate));
+      setEditingField(null); setEditValue(''); setSaveError(null);
+    };
+    const saveRecommendationClause = (itemIndex, sourceClause, editKey) => {
+      const id = safeId(record); if (!id) return;
+      const current = [...(Array.isArray(getFieldValue(record, 'recommendations', idx)) ? getFieldValue(record, 'recommendations', idx) : [])];
+      const sourceText = typeof current[itemIndex] === 'object' ? String(current[itemIndex].recommendation || '') : String(current[itemIndex] || '');
+      const nextText = sourceText.replace(sourceClause, editValue.trim());
+      current[itemIndex] = typeof current[itemIndex] === 'object' ? { ...current[itemIndex], recommendation: nextText } : nextText;
+      const fieldPath = `recommendations.${itemIndex}.recommendation`;
+      setLocalEdits(prev => ({ ...prev, [`${fieldPath}-${idx}`]: nextText }));
+      setPendingEdits(prev => ({ ...prev, [`${fieldPath}-${idx}`]: true }));
+      setEditedFields(prev => ({ ...prev, [editKey]: 'edited' }));
+      clearApprovedForField('recommendations', idx); stageDraft(id, fieldPath, nextText);
+      setEditingField(null); setEditValue(''); setSaveError(null);
+    };
+    return (
+      <div key="recommendations" className="rec-mini-card">
+        {[...groups.entries()].map(([dateKey, groupEntries], groupIndex) => {
+          const datePaths = groupEntries.filter(({ item }) => typeof item === 'object' && item.date).map(({ itemIndex }) => `recommendations.${itemIndex}.date`);
+          const dateEditKey = `recommendations-date-${groupIndex}-${idx}`;
+          const isDateEditing = editingField === dateEditKey;
+          return (
+            <div key={`${dateKey}-${groupIndex}`} className="nested-mini-card recommendation-group">
+              {dateKey !== 'no-date' && <div className="editable-date-subtitle" data-edit-field={datePaths[0]} data-edit-fields={datePaths.join(',')}><div className="nested-subtitle date-subtitle editable-row" onClick={() => { if (!isDateEditing) { setEditingField(dateEditKey); setEditValue(dateKey); setSaveError(null); } }}>{isDateEditing ? <div className="edit-field-container"><BlueDatePicker value={editValue} onSelect={setEditValue} /><div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveGroupDate(groupEntries); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><span className="content-value">{highlightText(formatDate(groupEntries[0].item.date))}</span><span className="edit-indicator">&#9998;</span></>}</div></div>}
+              {groupEntries.flatMap(({ item, itemIndex }) => {
+                const recText = typeof item === 'object' ? String(item.recommendation || '') : String(item);
+                return splitBySentence(recText).map((clause, clauseIndex) => {
+                  const fieldPath = `recommendations.${itemIndex}.recommendation`;
+                  const editKey = `${fieldPath}-${idx}-s${clauseIndex}`;
+                  const isEditing = editingField === editKey;
+                  const badge = editedFields[editKey];
+                  return <div key={editKey} data-edit-field={fieldPath}><div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(clause); setSaveError(null); } }}>{isEditing ? <div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus /><div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveRecommendationClause(itemIndex, clause, editKey); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(clause)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(clause, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}</div>{badge && <span className="modified-badge">edited - click Pending Approve to save</span>}</div>;
+                });
+              })}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   /* ═══════ RENDER: COMPONENT FIELD (semicolon timepoints → nested-subtitle + nested-mini-cards) ═══════ */
   const renderComponentField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
@@ -774,7 +925,7 @@ const ApgarScoresDocument = ({ document: docProp }) => {
             setEditingField(null); setEditValue(''); setSaveError(null);
           };
           return (
-            <div key={i} className="nested-mini-card">
+            <div key={i} className="nested-mini-card" data-edit-field={fn}>
               {it.tlabel && <div className="nested-subtitle sub-label">{highlightText(it.tlabel)}</div>}
               <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(tpKey); setEditValue(it.value); setSaveError(null); } }}>
                 {isEditing ? (
@@ -825,10 +976,12 @@ const ApgarScoresDocument = ({ document: docProp }) => {
             </div>
           </div>
           {fields.map(f => {
-            if (f === 'recommendations') return renderRecommendationsField(record, idx, sid);
+            if (f === 'recommendations') return renderGroupedRecommendationsField(record, idx, sid);
             if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             if (COMPONENT_FIELDS.includes(f)) return renderComponentField(record, f, idx, sid);
-            return renderStringField(record, f, idx, sid);
+            if (f === 'birthTime') return renderTimeField(record, f, idx, sid);
+            if (SCORE_FIELDS.includes(f)) return renderScoreField(record, f, idx, sid);
+            return renderNarrativeField(record, f, idx, sid);
           })}
         </div>
       </div>
@@ -908,7 +1061,7 @@ const ApgarScoresDocument = ({ document: docProp }) => {
         <h2 className="document-title">APGAR Scores</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<ApgarScoresDocumentPDFTemplate document={pdfData} />} fileName={`apgar-scores-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<ApgarScoresDocumentPDFTemplate document={pdfData} />} fileName="APGAR_Scores.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -920,14 +1073,7 @@ const ApgarScoresDocument = ({ document: docProp }) => {
       <div className="records-container">
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
-            <div className="record-header">
-              {hasVal(record.birthDate) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{formatDate(record.birthDate)}</span>
-                </div>
-              )}
-              <h3 className="record-name">{highlightText(`APGAR Score ${idx + 1}`)}</h3>
-            </div>
+            <div className="record-header"><h3 className="record-name">{highlightText(`APGAR Score ${idx + 1}`)}</h3></div>
             {renderApgarChart(record, idx)}
             {renderSection(record, idx, 'birth-info')}
             {renderSection(record, idx, 'apgar-scores')}

@@ -99,6 +99,7 @@ import AnticipatoryGuidanceDocumentPDFTemplate from './AnticipatoryGuidanceDocum
 import AnticoagulationManagementDocumentPDFTemplate from './AnticoagulationManagementDocumentPDFTemplate';
 import AntimicrobialSusceptibilityDocumentPDFTemplate from './AntimicrobialSusceptibilityDocumentPDFTemplate';
 import AorticAneurysmSurveillanceDocumentPDFTemplate from './AorticAneurysmSurveillanceDocumentPDFTemplate';
+import ApgarScoresDocumentPDFTemplate from './ApgarScoresDocumentPDFTemplate';
 import RecommendationsTemplate from './RecommendationsTemplate';
 // Single source of truth: route to the same box-free template the Document's Export button imports
 // (the legacy ./ClinicalScoresTemplate diverged — boxed, small fonts, no numbering).
@@ -289,6 +290,7 @@ const templateRegistry = {
   'anticoagulation_management': AnticoagulationManagementDocumentPDFTemplate,
   'antimicrobial_susceptibility': AntimicrobialSusceptibilityDocumentPDFTemplate,
   'aortic_aneurysm_surveillance': AorticAneurysmSurveillanceDocumentPDFTemplate,
+  'apgar_scores': ApgarScoresDocumentPDFTemplate,
   'recommendations': RecommendationsTemplate,
   'clinical_scores': ClinicalScoresTemplate,
   'administrative_data': AdministrativeDataDocumentPDFTemplate,

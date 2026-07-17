@@ -125,7 +125,7 @@ import RenalAnemiaDocumentPDFTemplate from './RenalAnemiaDocumentPDFTemplate';
 import RenalNutritionDocumentPDFTemplate from './RenalNutritionDocumentPDFTemplate';
 import RenalProtectionPlanDocumentPDFTemplate from './RenalProtectionPlanDocumentPDFTemplate';
 import ChronicPainAssessmentPDFTemplate from './ChronicPainAssessmentPDFTemplate';
-import AsthmaAssessmentsPDFTemplate from './AsthmaAssessmentsPDFTemplate';
+import AsthmaAssessmentsDocumentPDFTemplate from './AsthmaAssessmentsDocumentPDFTemplate';
 import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTemplate';
 import AcmgGuidelinesReferenceDocumentPDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
 import AcuteKidneyInjuryDocumentPDFTemplate from './AcuteKidneyInjuryDocumentPDFTemplate';
@@ -221,7 +221,7 @@ const templateRegistry = {
   'anatomy_scan_result': AnatomyScanResultDocumentPDFTemplate,
   'anesthesia_consent': AnesthesiaConsentDocumentPDFTemplate,
   'asthma_action_plan': AsthmaActionPlanDocumentPDFTemplate,
-  'asthma_assessments': AsthmaAssessmentsPDFTemplate,
+  'asthma_assessments': AsthmaAssessmentsDocumentPDFTemplate,
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsTemplate,
   'case_summaries': CaseSummariesTemplate,

@@ -130,6 +130,7 @@ import AsthmaManagementNotesDocumentPDFTemplate from './AsthmaManagementNotesDoc
 import AthleteSpecificDataDocumentPDFTemplate from './AthleteSpecificDataDocumentPDFTemplate';
 import AthleticInjuryAssessmentDocumentPDFTemplate from './AthleticInjuryAssessmentDocumentPDFTemplate';
 import AudiometryReportsDocumentPDFTemplate from './AudiometryReportsDocumentPDFTemplate';
+import AutoantibodyProfileDocumentPDFTemplate from './AutoantibodyProfileDocumentPDFTemplate';
 import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTemplate';
 import AcmgGuidelinesReferenceDocumentPDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
 import AcuteKidneyInjuryDocumentPDFTemplate from './AcuteKidneyInjuryDocumentPDFTemplate';
@@ -230,6 +231,7 @@ const templateRegistry = {
   'athlete_specific_data': AthleteSpecificDataDocumentPDFTemplate,
   'athletic_injury_assessment': AthleticInjuryAssessmentDocumentPDFTemplate,
   'audiometry_reports': AudiometryReportsDocumentPDFTemplate,
+  'autoantibody_profile': AutoantibodyProfileDocumentPDFTemplate,
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsTemplate,
   'case_summaries': CaseSummariesTemplate,

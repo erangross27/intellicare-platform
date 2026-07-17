@@ -5,22 +5,23 @@ const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'Helvetica',
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 1.5,
     backgroundColor: '#ffffff',
     color: '#000000',
   },
   header: {
     marginBottom: 24,
     paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
   },
   documentTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     fontFamily: 'Helvetica-Bold',
     marginBottom: 4,
     textAlign: 'center',
+    borderBottom: '2pt solid #000000',
+    paddingBottom: 8,
   },
   recordCard: {
     marginBottom: 20,
@@ -29,7 +30,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#cccccc',
   },
   recordTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: 'bold',
     fontFamily: 'Helvetica-Bold',
     marginBottom: 12,
@@ -45,36 +46,37 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
     color: '#000000',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#999999',
+    borderBottom: '1pt solid #000000',
     paddingBottom: 4,
   },
   fieldBlock: {
     marginBottom: 8,
     paddingLeft: 8,
   },
-  fieldSubtitle: {
+  fieldLabel: {
     fontSize: 14,
     fontWeight: 'bold',
     fontFamily: 'Helvetica-Bold',
     marginBottom: 2,
     color: '#333333',
+    borderBottom: '0.5pt solid #999999',
+    paddingBottom: 2,
   },
   fieldValue: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 1.5,
     marginBottom: 4,
     color: '#000000',
   },
   listItem: {
-    fontSize: 14,
+    fontSize: 13,
     paddingLeft: 12,
     marginBottom: 4,
     lineHeight: 1.5,
     color: '#000000',
   },
   contentText: {
-    fontSize: 14,
+    fontSize: 13,
     marginBottom: 6,
     paddingLeft: 8,
     lineHeight: 1.5,
@@ -100,7 +102,7 @@ const styles = StyleSheet.create({
 /* recursive object node: label = bold heading; value = plain line below (B&W only) */
 const renderObjectNode = (label, value, keyPath, depth) => {
   if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldSubtitle;
+  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
   if (isScalar(value)) {
     return (
       <View key={keyPath}>
@@ -146,6 +148,72 @@ const humanizeKey = (key) => {
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
+const visibleArrayValue = (item) => {
+  const text = safeString(item);
+  const match = text.match(/^([A-Z][A-Za-z0-9 &/()>=<+%.#-]+):\s*(.+)$/);
+  return match ? match[2].trim() : text;
+};
+
+const visibleSentenceValue = (text) => {
+  const value = safeString(text);
+  const match = value.match(/^([A-Z][A-Za-z0-9 &/()>=<+%.#-]+):\s*(.+)$/);
+  return match ? match[2].trim() : value;
+};
+
+const splitTopLevelCommas = (text) => {
+  const source = String(text || ''); const parts = []; let current = ''; let depth = 0;
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i];
+    if (char === '(') depth += 1;
+    if (char === ')') depth = Math.max(0, depth - 1);
+    if (char === ',' && depth === 0) {
+      const before = current.trim(); const remainder = source.slice(i + 1); const after = remainder.trimStart();
+      const next = (after.match(/^([A-Za-z]+)/) || [])[1]?.toLowerCase();
+      const previous = (before.match(/([A-Za-z]+)$/) || [])[1]?.toLowerCase();
+      const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(after)) || remainder.length === after.length
+        || ['and', 'or', 'then'].includes(next) || ['and', 'or'].includes(previous);
+      if (!protectedComma) { if (before) parts.push(before); current = ''; continue; }
+    }
+    current += char;
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts.length ? parts : [source];
+};
+
+const LABELED_COMMA_ARRAY_FIELDS = new Set(['nutrition', 'physicalActivity', 'safety', 'socialDevelopment', 'discipline', 'recommendations', 'sleep.concerns']);
+
+const arrayItemShape = (item) => {
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return { text: safeString(item), date: null };
+  const textKey = ['recommendation', 'text', 'value'].find(key => Object.hasOwn(item, key));
+  return { text: textKey ? safeString(item[textKey]) : '', date: item.date || null };
+};
+
+const arrayDisplayParts = (fieldName, item) => {
+  const { text } = arrayItemShape(item);
+  const match = text.match(/^([A-Z][A-Za-z0-9 &/()>=<+%.#-]+):\s*(.+)$/);
+  if (!match) return [text];
+  return LABELED_COMMA_ARRAY_FIELDS.has(fieldName) ? splitTopLevelCommas(match[2].trim()) : [match[2].trim()];
+};
+
+const sentenceDisplayParts = (text) => safeString(text).split(/(?<=[.;])\s+/).map(value => value.trim()).filter(Boolean).flatMap(value => {
+  const match = value.match(/^([A-Z][A-Za-z0-9 &/()>=<+%.#-]+):\s*(.+)$/);
+  return match ? splitTopLevelCommas(match[2].trim()) : [value];
+});
+
+const recommendationDateKey = (value) => {
+  if (!value) return 'no-date';
+  try { return new Date(value.$date || value).toISOString().slice(0, 10); }
+  catch { return String(value); }
+};
+
+const groupRecommendations = (items) => items.reduce((groups, item) => {
+  const shape = arrayItemShape(item); const key = recommendationDateKey(shape.date);
+  const group = groups.find(entry => entry.key === key);
+  if (group) group.items.push(item);
+  else groups.push({ key, date: shape.date, items: [item] });
+  return groups;
+}, []);
+
 /* count rows for wrap heuristic (Rule #74) */
 const countRows = (val) => {
   if (isEmptyDeep(val)) return 0;
@@ -166,7 +234,7 @@ const safeString = (val) => {
 const formatDate = (dateVal) => {
   if (!dateVal) return '';
   try {
-    const d = new Date(dateVal);
+      const d = new Date(dateVal.$date || dateVal);
     if (isNaN(d.getTime())) return String(dateVal);
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   } catch {
@@ -182,10 +250,15 @@ const AnticipatoryGuidanceDocumentPDFTemplate = ({ document: docProp, data }) =>
     records = templateData.flatMap(item => {
       if (item.anticipatory_guidance) return item.anticipatory_guidance;
       if (item.records) return item.records;
+      if (item.data) return item.data;
+      if (item.documentData?.anticipatory_guidance) return item.documentData.anticipatory_guidance;
+      if (item.documentData) return item.documentData;
       return item;
     });
   } else if (templateData?.anticipatory_guidance) {
     records = Array.isArray(templateData.anticipatory_guidance) ? templateData.anticipatory_guidance : [templateData.anticipatory_guidance];
+  } else if (templateData?.data) {
+    records = Array.isArray(templateData.data) ? templateData.data : [templateData.data];
   } else if (templateData?.documentData?.anticipatory_guidance) {
     records = Array.isArray(templateData.documentData.anticipatory_guidance) ? templateData.documentData.anticipatory_guidance : [templateData.documentData.anticipatory_guidance];
   } else if (templateData?.documentData) {
@@ -195,14 +268,19 @@ const AnticipatoryGuidanceDocumentPDFTemplate = ({ document: docProp, data }) =>
   }
   records = records.filter(r => r && Object.keys(r).length > 0);
 
-  const renderArraySection = (title, arr) => {
+  const renderArraySection = (title, arr, fieldName) => {
     if (!arr || !Array.isArray(arr) || arr.length === 0) return null;
+    const rows = arr.flatMap(item => arrayDisplayParts(fieldName, item)).filter(Boolean);
+    if (rows.length === 0) return null;
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {arr.map((item, i) => (
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          <Text style={styles.listItem}>1. {rows[0]}</Text>
+        </View>
+        {rows.slice(1).map((item, i) => (
           <Text key={i} style={styles.listItem}>
-            {i + 1}. {safeString(item)}
+            {i + 2}. {item}
           </Text>
         ))}
       </View>
@@ -217,7 +295,7 @@ const AnticipatoryGuidanceDocumentPDFTemplate = ({ document: docProp, data }) =>
     if (entries.length === 0) return null;
     const rows = countRows(obj);
     return (
-      <View style={styles.section} wrap={rows > 8 ? undefined : false}>
+      <View style={styles.section} wrap={rows > 8}>
         <Text style={styles.sectionTitle}>{title}</Text>
         {entries.map(([k, v]) => (
           <View key={k} style={styles.fieldBlock}>
@@ -230,25 +308,42 @@ const AnticipatoryGuidanceDocumentPDFTemplate = ({ document: docProp, data }) =>
 
   const renderTextSection = (title, text) => {
     if (!hasValue(text)) return null;
-    const str = safeString(text);
-    const sentences = str.split(/(?<=[.;])\s+/).map(s => s.trim()).filter(Boolean);
+    const sentences = sentenceDisplayParts(text);
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{title}</Text>
         {sentences.length > 1 ? (
-          sentences.map((s, i) => (
-            <Text key={i} style={styles.listItem}>{i + 1}. {s}</Text>
-          ))
+          <>
+            <View wrap={false}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.listItem}>1. {visibleSentenceValue(sentences[0])}</Text></View>
+            {sentences.slice(1).map((s, i) => <Text key={i} style={styles.listItem}>{i + 2}. {visibleSentenceValue(s)}</Text>)}
+          </>
         ) : (
-          <Text style={styles.contentText}>{str}</Text>
+          <View wrap={false}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.contentText}>{sentences[0]}</Text></View>
         )}
+      </View>
+    );
+  };
+
+  const renderRecommendationsSection = (items) => {
+    if (!Array.isArray(items) || items.length === 0) return null;
+    const rows = groupRecommendations(items).flatMap(group => [
+      ...(group.date ? [{ type: 'date', value: formatDate(group.date) }] : []),
+      ...group.items.flatMap(item => arrayDisplayParts('recommendations', item).map(value => ({ type: 'value', value }))),
+    ]);
+    if (rows.length === 0) return null;
+    return (
+      <View style={styles.section}>
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>Recommendations</Text>
+          <Text style={rows[0].type === 'date' ? styles.fieldLabel : styles.listItem}>{rows[0].type === 'date' ? rows[0].value : `1. ${rows[0].value}`}</Text>
+        </View>
+        {rows.slice(1).map((row, index) => <Text key={index} style={row.type === 'date' ? styles.fieldLabel : styles.listItem}>{row.type === 'date' ? row.value : `${rows.slice(0, index + 2).filter(entry => entry.type === 'value').length}. ${row.value}`}</Text>)}
       </View>
     );
   };
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.documentTitle}>Anticipatory Guidance</Text>
         </View>
@@ -266,68 +361,64 @@ const AnticipatoryGuidanceDocumentPDFTemplate = ({ document: docProp, data }) =>
                   <Text style={styles.sectionTitle}>Guidance Information</Text>
                   {hasValue(record.date) && (
                     <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Date</Text>
+                      <Text style={styles.fieldLabel}>Date</Text>
                       <Text style={styles.fieldValue}>{formatDate(record.date)}</Text>
                     </View>
                   )}
                   {hasValue(record.provider) && (
                     <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Provider</Text>
+                      <Text style={styles.fieldLabel}>Provider</Text>
                       <Text style={styles.fieldValue}>{safeString(record.provider)}</Text>
                     </View>
                   )}
                   {hasValue(record.facility) && (
                     <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Facility</Text>
+                      <Text style={styles.fieldLabel}>Facility</Text>
                       <Text style={styles.fieldValue}>{safeString(record.facility)}</Text>
                     </View>
                   )}
                 </View>
               )}
 
-              {renderArraySection('Nutrition', record.nutrition)}
-              {renderArraySection('Physical Activity', record.physicalActivity)}
+              {renderArraySection('Nutrition', record.nutrition, 'nutrition')}
+              {renderArraySection('Physical Activity', record.physicalActivity, 'physicalActivity')}
               {renderTextSection('Screen Time', record.screenTime)}
 
               {/* Sleep */}
               {sleep && (hasValue(sleep.hoursRecommended) || hasValue(sleep.currentPattern) || (Array.isArray(sleep.concerns) && sleep.concerns.length > 0)) && (
-                <View style={styles.section}>
+                <View style={styles.section} wrap={false}>
                   <Text style={styles.sectionTitle}>Sleep</Text>
                   {hasValue(sleep.hoursRecommended) && (
                     <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Hours Recommended</Text>
+                      <Text style={styles.fieldLabel}>Hours Recommended</Text>
                       <Text style={styles.fieldValue}>{safeString(sleep.hoursRecommended)}</Text>
                     </View>
                   )}
                   {hasValue(sleep.currentPattern) && (
                     <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Current Pattern</Text>
-                      <Text style={styles.fieldValue}>{safeString(sleep.currentPattern)}</Text>
+                      <Text style={styles.fieldLabel}>Current Pattern</Text>
+                      {splitTopLevelCommas(visibleSentenceValue(sleep.currentPattern)).map((part, i) => <Text key={i} style={styles.listItem}>{i + 1}. {part}</Text>)}
                     </View>
                   )}
                   {Array.isArray(sleep.concerns) && sleep.concerns.length > 0 && (
                     <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldSubtitle}>Concerns</Text>
-                      {sleep.concerns.map((item, i) => (
-                        <Text key={i} style={styles.listItem}>
-                          {i + 1}. {safeString(item)}
-                        </Text>
-                      ))}
+                      <Text style={styles.fieldLabel}>Concerns</Text>
+                      {sleep.concerns.flatMap(item => arrayDisplayParts('sleep.concerns', item)).map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>)}
                     </View>
                   )}
                 </View>
               )}
 
-              {renderArraySection('Safety', record.safety)}
-              {renderArraySection('Dental Care', record.dental)}
-              {renderArraySection('Social Development', record.socialDevelopment)}
+              {renderArraySection('Safety', record.safety, 'safety')}
+              {renderArraySection('Dental Care', record.dental, 'dental')}
+              {renderArraySection('Social Development', record.socialDevelopment, 'socialDevelopment')}
               {renderTextSection('Toileting', record.toileting)}
-              {renderArraySection('Discipline', record.discipline)}
+              {renderArraySection('Discipline', record.discipline, 'discipline')}
               {renderTextSection('Findings', record.findings)}
               {renderTextSection('Assessment', record.assessment)}
               {renderTextSection('Plan', record.plan)}
               {renderResultsSection('Results', record.results)}
-              {renderArraySection('Recommendations', record.recommendations)}
+              {renderRecommendationsSection(record.recommendations)}
               {renderTextSection('Notes', record.notes)}
               {renderTextSection('Status', record.status)}
             </View>

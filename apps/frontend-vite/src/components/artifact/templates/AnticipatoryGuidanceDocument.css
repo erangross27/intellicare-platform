@@ -10,7 +10,9 @@
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
   min-height: 100%;
+  direction: ltr;
 }
+.anticipatory-guidance-document * { direction: ltr; }
 
 /* Header — block layout, buttons below title */
 .anticipatory-guidance-document .document-header {
@@ -64,15 +66,6 @@
   margin: 0;
 }
 
-.anticipatory-guidance-document .date-badge {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.3);
-}
 
 /* Section */
 .anticipatory-guidance-document .section {
@@ -244,6 +237,49 @@
   box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
 }
 
+.anticipatory-guidance-document .num-stepper-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.anticipatory-guidance-document .num-step {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  background: #0d1929;
+  color: #60a5fa;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.anticipatory-guidance-document .edit-number {
+  flex: 1;
+  min-width: 0;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.anticipatory-guidance-document .recommendation-groups,
+.anticipatory-guidance-document .recommendation-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anticipatory-guidance-document .editable-date-subtitle {
+  display: block;
+}
+
 .anticipatory-guidance-document .edit-date {
   width: 100%;
   background: #0d1929;
@@ -272,7 +308,7 @@
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .anticipatory-guidance-document .save-btn {

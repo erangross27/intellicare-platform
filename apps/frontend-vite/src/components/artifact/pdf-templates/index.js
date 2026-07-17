@@ -12,6 +12,7 @@ import AllergyImmunologyAssessmentDocumentPDFTemplate from './AllergyImmunologyA
 import AllergySkinTestingDocumentPDFTemplate from './AllergySkinTestingDocumentPDFTemplate';
 import AmniocentesisReportsDocumentPDFTemplate from './AmniocentesisReportsDocumentPDFTemplate';
 import AmnioticFluidAssessmentDocumentPDFTemplate from './AmnioticFluidAssessmentDocumentPDFTemplate';
+import AmnioticFluidIndexCurrentDocumentPDFTemplate from './AmnioticFluidIndexCurrentDocumentPDFTemplate';
 import AllergiesDocumentPDFTemplate from './AllergiesDocumentPDFTemplate';
 import AllergiesAssessmentDocumentPDFTemplate from './AllergiesAssessmentDocumentPDFTemplate';
 import AllergyAssessmentsDocumentPDFTemplate from './AllergyAssessmentsDocumentPDFTemplate';
@@ -199,6 +200,7 @@ const templateRegistry = {
   'allergy_skin_testing': AllergySkinTestingDocumentPDFTemplate,
   'amniocentesis_reports': AmniocentesisReportsDocumentPDFTemplate,
   'amniotic_fluid_assessment': AmnioticFluidAssessmentDocumentPDFTemplate,
+  'amniotic_fluid_index_current': AmnioticFluidIndexCurrentDocumentPDFTemplate,
   'asthma_assessments': AsthmaAssessmentsPDFTemplate,
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsTemplate,

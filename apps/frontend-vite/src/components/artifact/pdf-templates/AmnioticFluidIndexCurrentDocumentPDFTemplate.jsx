@@ -12,22 +12,21 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 13, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 14 },
-  title: { fontSize: 24, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1, color: '#000000' },
+  page: { padding: 42, fontFamily: 'Helvetica', fontSize: 13, lineHeight: 1.35, backgroundColor: '#ffffff', color: '#111827' },
+  documentHeader: { marginBottom: 10 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#0f172a', paddingBottom: 9, borderBottom: '2pt solid #000000', marginBottom: 10 },
   recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 8 },
-  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordMeta: { fontSize: 13, color: '#000000', marginTop: 3 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#1e3a8a' },
   section: { marginBottom: 16 },
   fieldGroup: { marginBottom: 8 },
-  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 2, textTransform: 'uppercase' },
-  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  value: { fontSize: 13, lineHeight: 1.5, color: '#000000', marginBottom: 1 },
-  listItem: { fontSize: 13, lineHeight: 1.5, color: '#000000', marginBottom: 1, paddingLeft: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1d4ed8', paddingBottom: 5, borderBottom: '1pt solid #000000', marginBottom: 6 },
+  fieldLabel: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e3a8a', paddingBottom: 3, borderBottom: '0.5pt solid #999999', marginTop: 6, marginBottom: 3 },
+  subLabel: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#334155', marginTop: 4, marginBottom: 2 },
+  value: { fontSize: 13, color: '#111827', marginBottom: 1 },
+  listItem: { fontSize: 13, color: '#111827', marginBottom: 2, paddingLeft: 10 },
   nested: { marginLeft: 10, marginTop: 2 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 16, color: '#000000' },
+  emptyState: { textAlign: 'center', padding: 40, fontSize: 13, color: '#111827' },
   pageNumber: { position: 'absolute', bottom: 20, right: 40, fontSize: 11, color: '#000000' },
 });
 
@@ -46,7 +45,7 @@ const FIELD_LABELS = {
   facility: 'Facility', notes: 'Notes', quadrants: 'Quadrants',
 };
 const SECTION_FIELDS = {
-  'afi-measurement': ['afiValue', 'mvp', 'priorAfi', 'gestationalAge'],
+  'afi-measurement': ['date', 'afiValue', 'mvp', 'priorAfi', 'gestationalAge'],
   'quadrants-section': ['quadrants'],
   'interpretation-section': ['interpretation', 'clinicalSignificance', 'recommendations'],
   'provider-facility': ['obstetrician', 'sonographer', 'facility'],
@@ -56,6 +55,9 @@ const SECTION_ORDER = ['afi-measurement', 'quadrants-section', 'interpretation-s
 const DATE_FIELDS = ['date'];
 const NUMBER_UNIT_FIELDS = ['afiValue'];
 const OBJECT_FIELDS = ['quadrants'];
+const COMMA_SPLIT_FIELDS = new Set([]);
+const SEMICOLON_SPLIT_FIELDS = new Set(['interpretation', 'priorAfi', 'clinicalSignificance', 'recommendations']);
+const SEMICOLON_SEPARATOR = /;\s+/;
 
 const KEY_OVERRIDES = {
   afi: 'AFI', mvp: 'MVP', sdp: 'SDP', ul: 'Upper Left', ur: 'Upper Right', ll: 'Lower Left', lr: 'Lower Right',
@@ -86,7 +88,7 @@ const parseLabel = (text) => {
   if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
   return { isLabeled: false, label: '', value: text };
 };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
+const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+|$)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
 const splitOnChar = (text, sep) => {
   if (!text || typeof text !== 'string') return [text || ''];
   const out = []; let cur = ''; let depth = 0;
@@ -102,29 +104,28 @@ const splitOnChar = (text, sep) => {
   const t = cur.trim(); if (t) out.push(t);
   return out;
 };
-// Semicolon = explicit list separator (always safe). Comma split ONLY for LABELED values (>=3) —
-// never comma-split unlabeled narrative ("Riverside Women's Health Center, Division ..." stays whole).
-const clausesOf = (base, isLabeled) => {
-  const semi = splitOnChar(base, ';');
+// Delimiter decisions mirror the field-specific JSX inventory.
+const clausesOf = (base, fieldName) => {
+  const semi = SEMICOLON_SPLIT_FIELDS.has(fieldName) && SEMICOLON_SEPARATOR.test(base) ? splitOnChar(base, ';') : [base];
   if (semi.length >= 2) return { sep: '; ', items: semi };
-  if (isLabeled) { const c = splitOnChar(base, ','); if (c.length >= 3) return { sep: ', ', items: c }; }
+  if (COMMA_SPLIT_FIELDS.has(fieldName)) { const c = splitOnChar(base, ','); if (c.length >= 2) return { sep: ', ', items: c }; }
   return { sep: null, items: [String(base || '').trim()] };
 };
 // Decompose ONE sentence into {label, sep, items}. A semicolon list (>=2) is treated as a list FIRST
 // (each clause kept whole, no leading-label hoist) — so "Date1: m1; Date2: m2; Date3: m3" yields
 // 3 symmetric rows, not label=Date1 + asymmetric rows. Otherwise parseLabel → clausesOf (labeled-gated comma).
-const segmentSentence = (sentence) => {
-  const semi = splitOnChar(sentence, ';');
+const segmentSentence = (sentence, fieldName) => {
+  const semi = SEMICOLON_SPLIT_FIELDS.has(fieldName) && SEMICOLON_SEPARATOR.test(sentence) ? splitOnChar(sentence, ';') : [sentence];
   if (semi.length >= 2) return { label: null, sep: '; ', items: semi.map(s => s.trim()) };
   const p = parseLabel(sentence);
-  const { sep, items } = clausesOf(p.isLabeled ? p.value : sentence, p.isLabeled);
+  const { sep, items } = clausesOf(p.isLabeled ? p.value : sentence, fieldName);
   return { label: p.isLabeled ? p.label : null, sep, items };
 };
-const buildUnits = (value) => {
+const buildUnits = (value, fieldName) => {
   const sentences = splitBySentence(String(value || ''));
   const units = [];
   sentences.forEach((sentence) => {
-    const { label, items } = segmentSentence(sentence);
+    const { label, items } = segmentSentence(sentence, fieldName);
     const rows = items.map((t) => STRIP(t));
     const last = units[units.length - 1];
     if (!label && last && !last.label) last.rows.push(...rows);
@@ -210,7 +211,7 @@ const renderField = (record, field, sectionTitle, isFirst) => {
   }
 
   /* string — clause units (mirror JSX buildUnits) */
-  const units = buildUnits(fmtVal(val));
+  const units = buildUnits(fmtVal(val), field);
   if (units.length === 0) return [];
   const totalRows = units.reduce((a, u) => a + u.rows.length, 0);
   return [(
@@ -227,29 +228,37 @@ const renderField = (record, field, sectionTitle, isFirst) => {
   )];
 };
 
+const unwrap = (source) => {
+  if (!source) return [];
+  let records = Array.isArray(source) ? source : [source];
+  records = records.flatMap(record => {
+    if (record?.amniotic_fluid_index_current) return Array.isArray(record.amniotic_fluid_index_current) ? record.amniotic_fluid_index_current : [record.amniotic_fluid_index_current];
+    if (record?.documentData) {
+      const nested = record.documentData;
+      if (Array.isArray(nested)) return nested.flatMap(item => item?.amniotic_fluid_index_current ? (Array.isArray(item.amniotic_fluid_index_current) ? item.amniotic_fluid_index_current : [item.amniotic_fluid_index_current]) : [item]);
+      if (nested?.amniotic_fluid_index_current) return Array.isArray(nested.amniotic_fluid_index_current) ? nested.amniotic_fluid_index_current : [nested.amniotic_fluid_index_current];
+      return [nested];
+    }
+    return [record];
+  });
+  return records.filter(record => record && typeof record === 'object');
+};
+
 const AmnioticFluidIndexCurrentDocumentPDFTemplate = ({ document: data }) => {
-  let records = [];
-  if (Array.isArray(data)) {
-    if (data.length === 1 && data[0]?.amniotic_fluid_index_current) records = Array.isArray(data[0].amniotic_fluid_index_current) ? data[0].amniotic_fluid_index_current : [data[0].amniotic_fluid_index_current];
-    else records = data;
-  } else if (data?.amniotic_fluid_index_current) records = Array.isArray(data.amniotic_fluid_index_current) ? data.amniotic_fluid_index_current : [data.amniotic_fluid_index_current];
-  else if (data?.documentData) { const dd = data.documentData; if (Array.isArray(dd)) records = dd; else if (dd?.amniotic_fluid_index_current) records = Array.isArray(dd.amniotic_fluid_index_current) ? dd.amniotic_fluid_index_current : [dd.amniotic_fluid_index_current]; else if (dd && typeof dd === 'object') records = [dd]; }
-  else if (data && typeof data === 'object') records = [data];
-  records = (records || []).filter(r => r && typeof r === 'object');
+  const records = unwrap(data);
 
   if (records.length === 0) {
-    return (<Document><Page size="A4" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Amniotic Fluid Index</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
+    return (<Document><Page size="A4" style={styles.page}><View style={styles.documentHeader}><Text style={styles.documentTitle}>Amniotic Fluid Index</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
   }
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Amniotic Fluid Index</Text></View>
+        <View style={styles.documentHeader}><Text style={styles.documentTitle}>Amniotic Fluid Index</Text></View>
         {records.map((record, idx) => (
           <View key={idx} style={styles.recordContainer} break={idx > 0}>
             <View style={styles.recordHeader} wrap={false}>
               <Text style={styles.recordTitle}>{`Amniotic Fluid Index ${String(record._recordNumber || idx + 1)}`}</Text>
-              {hasVal(record.date) && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
             </View>
 
             {/* Rule #74 per-field gating: section View only spaces & flows; each field is its own

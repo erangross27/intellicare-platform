@@ -23,7 +23,7 @@ function buildContext(req, operation = 'read') {
 function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
-const ALLOWED_FIELDS = ['provider', 'facility', 'childAge', 'dateOfBirth', 'gestationalAgeAtBirth', 'weightMeasurement', 'weightPercentile', 'heightMeasurement', 'heightPercentile', 'headCircumference', 'headCircumferencePercentile', 'bodyMassIndex', 'bmiPercentile', 'vaccinesAdministered', 'vaccinesDue', 'developmentalMilestones', 'visionScreeningResult', 'hearingScreeningResult', 'hemoglobinLevel', 'leadScreeningResult', 'nutritionCounseling', 'safetyGuidanceProvided', 'parentalConcerns', 'nextVisitScheduled'];
+const ALLOWED_FIELDS = ['date', 'provider', 'facility', 'childAge', 'dateOfBirth', 'gestationalAgeAtBirth', 'weightMeasurement', 'weightPercentile', 'heightMeasurement', 'heightPercentile', 'headCircumference', 'headCircumferencePercentile', 'bodyMassIndex', 'bmiPercentile', 'vaccinesAdministered', 'vaccinesDue', 'developmentalMilestones', 'visionScreeningResult', 'hearingScreeningResult', 'hemoglobinLevel', 'leadScreeningResult', 'nutritionCounseling', 'safetyGuidanceProvided', 'parentalConcerns', 'nextVisitScheduled'];
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params;

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ArthritisAssessmentsDocumentPDFTemplate from '../pdf-templates/ArthritisAssessmentsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
 import secureApiClient from '../../../services/secureApiClient';
 import './ArthritisAssessmentsDocument.css';
 
@@ -30,6 +31,7 @@ const writeDrafts = (store) => {
 
 /* ======= CONSTANTS ======= */
 const SECTION_TITLES = {
+  date: 'Assessment Date',
   arthritisType: 'Arthritis Type',
   affectedJoints: 'Affected Joints',
   painLevel: 'Pain Level',
@@ -52,6 +54,7 @@ const SECTION_TITLES = {
 };
 
 const FIELD_LABELS = {
+  date: 'Assessment Date',
   arthritisType: 'Arthritis Type',
   affectedJoints: 'Affected Joints',
   painLevel: 'Pain Level',
@@ -74,6 +77,7 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
+  date: ['date'],
   arthritisType: ['arthritisType'],
   affectedJoints: ['affectedJoints'],
   painLevel: ['painLevel'],
@@ -101,16 +105,22 @@ const SENTENCE_FIELDS = [
   'medicationResponse',
   'treatmentPlan',
   'diseaseActivity',
+  'swelling',
+  'serology',
+  'imaging',
+  'sideEffects',
+  'physicalTherapy',
   'notes',
 ];
 
 /* Array fields stored as arrays in MongoDB */
 const ARRAY_FIELDS = ['affectedJoints', 'currentMedications'];
+const DATE_FIELDS = ['date'];
 
 /* Comma-list fields: a single STRING holding a genuine comma-separated list → one row per item
    (paren-aware so "(labs - CBC, CMP, MTX monitoring, DAS28 score)" stays one row). Scoped WHITELIST —
    NOT arthritisType ("…Moderate-severe, seropositive") or rheumatologist ("Dr. Rachel Kim, MD"). */
-const COMMA_SPLIT_FIELDS = ['followUp'];
+const COMMA_SPLIT_FIELDS = ['followUp', 'inflammatoryMarkers'];
 
 /* parseLabel: detect "Label: value" patterns */
 const parseLabel = (text) => {
@@ -144,7 +154,7 @@ const formatDate = (dateValue) => {
 };
 
 /* ======= COMPONENT ======= */
-const ArthritisAssessmentsDocument = ({ document: docProp }) => {
+const ArthritisAssessmentsDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -163,8 +173,9 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
 
   /* ======= DATA UNWRAP ======= */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp || data || templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
       if (r?.arthritis_assessments) return Array.isArray(r.arthritis_assessments) ? r.arthritis_assessments : [r.arthritis_assessments];
       if (r?.documentData) {
@@ -173,10 +184,16 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
         if (dd?.arthritis_assessments) return Array.isArray(dd.arthritis_assessments) ? dd.arthritis_assessments : [dd.arthritis_assessments];
         return [dd];
       }
+      if (r?.data) {
+        const dd = r.data;
+        if (Array.isArray(dd)) return dd;
+        if (dd?.arthritis_assessments) return Array.isArray(dd.arthritis_assessments) ? dd.arthritis_assessments : [dd.arthritis_assessments];
+        return [dd];
+      }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
@@ -232,8 +249,9 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/)
-      .map(s => s.trim())
+    const protectedText = text.replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc)\./gi, '$1<dot>');
+    return protectedText.split(/[.;]\s+/)
+      .map(s => s.replace(/<dot>/g, '.').replace(/[;.]+$/, '').trim())
       .filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
@@ -482,7 +500,9 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
     const id = safeId(record); if (!id) return;
     const currentVal = String(getFieldValue(record, fn, idx) || '');
     const items = splitByComma(currentVal);
-    const edited = editValue.trim().replace(/[;.]+$/, '');
+    const originalParsed = parseLabel(items[ciIdx] || '');
+    const editedRaw = editValue.trim().replace(/[;.]+$/, '');
+    const edited = originalParsed.isLabeled && editedRaw ? `${originalParsed.label}: ${editedRaw}` : editedRaw;
     if (!edited) {
       items.splice(ciIdx, 1);
     } else {
@@ -583,11 +603,11 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
     const hasEdits = sectionHasEdits(idx, sid);
     const isApproved = approvedSections[`${sid}-${idx}`];
     if (hasEdits) return (
-      <button className="approve-badge pending" onClick={e => { e.stopPropagation(); handleApproveSection(record, sid, idx); }}>
+      <button className="approve-btn pending" onClick={e => { e.stopPropagation(); handleApproveSection(record, sid, idx); }}>
         Pending Approve
       </button>
     );
-    if (isApproved) return <span className="approve-badge approved">Approved</span>;
+    if (isApproved) return <span className="approve-btn approved">Approved</span>;
     return null;
   }, [sectionHasEdits, approvedSections, handleApproveSection]);
 
@@ -614,15 +634,18 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid] || sid;
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
     const fields = SECTION_FIELDS[sid] || [];
+    if (!fields.some(f => hasVal(getFieldValue(record, f, idx)))) return '';
+    let text = `${title}\n${'='.repeat(40)}\n\n`;
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
       // Single-name section: the field label duplicates the section title → omit it (title is the header).
       const prefix = SECTION_TITLES[sid] !== label ? `${label}\n` : '';
-      if (Array.isArray(val)) {
+      if (DATE_FIELDS.includes(f)) {
+        text += `${prefix}1. ${formatDate(val)}\n\n`;
+      } else if (Array.isArray(val)) {
         text += prefix;
         val.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
         text += '\n';
@@ -630,7 +653,7 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
         const items = splitByComma(fmtVal(val));
         if (items.length > 1) {
           text += prefix;
-          items.forEach((item, i) => { text += `${i + 1}. ${item}\n`; });
+          items.forEach((item, i) => { const parsedItem = parseLabel(item); if (parsedItem.isLabeled) text += `${parsedItem.label}\n`; text += `${i + 1}. ${parsedItem.isLabeled ? parsedItem.value : item}\n`; });
           text += '\n';
         } else {
           text += `${prefix}${fmtVal(val)}\n\n`;
@@ -640,7 +663,7 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
         const sentences = splitBySentence(strVal);
         if (sentences.length > 1) {
           text += prefix;
-          sentences.forEach((s, i) => { text += `${i + 1}. ${s}\n`; });
+          sentences.forEach((s, i) => { const parsedSentence = parseLabel(s); if (parsedSentence.isLabeled) text += `${parsedSentence.label}\n`; text += `${i + 1}. ${parsedSentence.isLabeled ? parsedSentence.value : s}\n`; });
           text += '\n';
         } else {
           // "Label: value" → label on its own line, value below (mirrors the JSX nested-subtitle).
@@ -657,7 +680,6 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
     let text = '=== ARTHRITIS ASSESSMENTS ===\n\n';
     pdfData.forEach((r, idx) => {
       text += `Arthritis Assessment ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      if (r.date) text += `Date: ${formatDate(r.date)}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => { text += buildSectionCopyText(r, idx, sid); });
       text += '\n';
     });
@@ -683,25 +705,29 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
     const subtitle = parsed.isLabeled ? parsed.label : label;
     const showSubtitle = parsed.isLabeled || SECTION_TITLES[sid] !== label;
     const rowValue = parsed.isLabeled ? parsed.value : strVal;
+    const ratio = fn === 'painLevel' ? rowValue.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/) : null;
+    const numberUnit = fn === 'stiffness' ? rowValue.match(/^(-?\d+(?:\.\d+)?)\s+(.+)$/) : null;
+    const editStartValue = ratio ? ratio[1] : numberUnit ? numberUnit[1] : rowValue;
     const commitEdit = () => {
-      const newVal = parsed.isLabeled ? `${parsed.label}: ${editValue.trim()}` : editValue;
+      const editedValue = ratio ? `${editValue.trim()}/${ratio[2]}` : numberUnit ? `${editValue.trim()} ${numberUnit[2]}` : editValue.trim();
+      const newVal = parsed.isLabeled ? `${parsed.label}: ${editedValue}` : editedValue;
       handleSaveField(record, fn, idx, sid, null, newVal, editKey);
     };
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
         {showSubtitle && <div className="nested-subtitle">{highlightText(subtitle)}</div>}
         <div className={`numbered-row${isModified ? ' modified' : ''} editable-row`}
-          onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(rowValue); setSaveError(null); } }}>
+          onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(editStartValue); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <textarea
+              {(ratio || numberUnit) ? <div className="number-edit-row num-step"><button type="button" className="stepper-btn" onClick={e => { e.stopPropagation(); setEditValue(current => String((parseFloat(current) || 0) - 1)); }}>−</button><input type="text" inputMode="decimal" className="edit-number stepper-input" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus /><button type="button" className="stepper-btn" onClick={e => { e.stopPropagation(); setEditValue(current => String((parseFloat(current) || 0) + 1)); }}>+</button><span className="number-edit-unit">{ratio ? `/ ${ratio[2]}` : numberUnit[2]}</span></div> : <textarea
                 className="edit-textarea"
                 value={editValue}
                 onChange={e => setEditValue(e.target.value)}
                 autoFocus
                 onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}
-              />
+              />}
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving}
@@ -729,6 +755,24 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
     );
   };
 
+  const renderDateField = (record, fn, idx, sid) => {
+    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
+    const editKey = `${fn}-${idx}`;
+    const isEditing = editingField === editKey;
+    const isModified = editedFields[editKey];
+    const displayValue = formatDate(val);
+    let inputValue = '';
+    try { inputValue = new Date(val.$date || val).toISOString().slice(0, 10); } catch { inputValue = ''; }
+    return (
+      <div key={fn} className="rec-mini-card nested-mini-card" data-edit-field={fn}>
+        <div className="numbered-row editable-row" onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(inputValue); setSaveError(null); } }}>
+          {isEditing ? <div className="edit-field-container"><BlueDatePicker value={editValue} onSelect={setEditValue} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={e => { e.stopPropagation(); if (!editValue) { setSaveError('Please choose a valid date'); return; } handleSaveField(record, fn, idx, sid, null, `${editValue}T00:00:00.000Z`, editKey); }}>Save</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn${copiedItems[editKey] ? ' copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(displayValue, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>}
+        </div>
+        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+      </div>
+    );
+  };
+
   /* ======= RENDER: SENTENCE FIELD (multi-sentence text) ======= */
   const renderSentenceField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
@@ -746,7 +790,7 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
 
     return (
       <div key={fn}>
-        <div className="rec-mini-card">
+        <div className={`rec-mini-card nested-mini-card${sentences.some(sentence => parseLabel(sentence).isLabeled) ? '' : ' regular-row-group'}`}>
           {SECTION_TITLES[sid] !== label && <div className="nested-subtitle">{highlightText(label)}</div>}
           {sentences.map((sentence, sIdx) => {
             const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -764,7 +808,7 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
               const commaItems = splitByComma(parsed.value);
               if (commaItems.length >= 2) {
                 return (
-                  <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+                  <div key={sIdx} className="rec-mini-card nested-mini-card" style={{ marginTop: 8 }}>
                     <div className="nested-subtitle">{highlightText(parsed.label)}</div>
                     {commaItems.map((ci, ciIdx) => {
                       const commaKey = `${sentenceKey}-c${ciIdx}`;
@@ -775,7 +819,7 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
                         !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
                       if (!ciMatches && searchTerm.trim()) return null;
                       return (
-                        <div key={ciIdx}>
+                        <div key={ciIdx} data-edit-field={fn}>
                           <div className={`numbered-row${ciBadge ? ' modified' : ''} editable-row`}
                             onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                             {ciEditing ? (
@@ -843,7 +887,7 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
 
             /* Regular sentence row */
             return (
-              <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
+              <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card nested-mini-card' : ''} data-edit-field={fn} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                 {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
                 <div className={`numbered-row${badge ? ' modified' : ''} editable-row`}
                   onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
@@ -893,7 +937,7 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card regular-row-group">
         {SECTION_TITLES[sid] !== label && <div className="nested-subtitle">{highlightText(label)}</div>}
         {arr.map((item, itemIdx) => {
           const editKey = `${fn}-${idx}-${itemIdx}`;
@@ -909,7 +953,7 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
           }
 
           return (
-            <div key={itemIdx}>
+            <div key={itemIdx} data-edit-field={fn}>
               <div className={`numbered-row${isModified ? ' modified' : ''} editable-row`}
                 onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strItem); setSaveError(null); } }}>
                 {isEditing ? (
@@ -958,9 +1002,11 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
     const phrase = searchTerm.toLowerCase().trim();
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className={`rec-mini-card nested-mini-card${items.some(item => parseLabel(item).isLabeled) ? '' : ' regular-row-group'}`}>
         {SECTION_TITLES[sid] !== label && <div className="nested-subtitle">{highlightText(label)}</div>}
         {items.map((item, ciIdx) => {
+          const parsedItem = parseLabel(item);
+          const displayItem = parsedItem.isLabeled ? parsedItem.value : item;
           const commaKey = `${fn}-${idx}-c${ciIdx}`;
           const isEditing = editingField === commaKey;
           const isModified = editedFields[commaKey];
@@ -970,9 +1016,10 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
             if (!labelLower.includes(phrase) && !phrase.includes(labelLower) && !String(item).toLowerCase().includes(phrase)) return null;
           }
           return (
-            <div key={ciIdx}>
+            <div key={ciIdx} className={parsedItem.isLabeled ? 'rec-mini-card nested-mini-card' : ''} data-edit-field={fn}>
+              {parsedItem.isLabeled && <div className="nested-subtitle">{highlightText(parsedItem.label)}</div>}
               <div className={`numbered-row${isModified ? ' modified' : ''} editable-row`}
-                onClick={() => { if (!isEditing) { setEditingField(commaKey); setEditValue(item); setSaveError(null); } }}>
+                onClick={() => { if (!isEditing) { setEditingField(commaKey); setEditValue(displayItem); setSaveError(null); } }}>
                 {isEditing ? (
                   <div className="edit-field-container">
                     <textarea className="edit-textarea" value={editValue}
@@ -990,11 +1037,11 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
                 ) : (
                   <>
                     <div className="row-content">
-                      <span className="content-value">{highlightText(item)}</span>
+                      <span className="content-value">{highlightText(displayItem)}</span>
                       <span className="edit-indicator">&#9998;</span>
                     </div>
                     <button className={`copy-btn${copiedItems[commaKey] ? ' copied' : ''}`}
-                      onClick={e => { e.stopPropagation(); copyItem(String(item), commaKey); }}>
+                      onClick={e => { e.stopPropagation(); copyItem(String(displayItem), commaKey); }}>
                       {copiedItems[commaKey] ? 'Copied!' : 'Copy'}
                     </button>
                   </>
@@ -1020,6 +1067,7 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
     const copyId = `${sid}-${idx}`;
 
     const fieldNodes = fields.map(f => {
+      if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
       if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
       if (COMMA_SPLIT_FIELDS.includes(f)) return renderCommaField(record, f, idx, sid);
       if (SENTENCE_FIELDS.includes(f)) return renderSentenceField(record, f, idx, sid);
@@ -1071,7 +1119,7 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
           </button>
           <PDFDownloadLink
             document={<ArthritisAssessmentsDocumentPDFTemplate document={pdfData} />}
-            fileName={`arthritis-assessments-${new Date().toISOString().split('T')[0]}.pdf`}
+            fileName="Arthritis_Assessments.pdf"
             className="copy-btn"
           >
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
@@ -1111,9 +1159,6 @@ const ArthritisAssessmentsDocument = ({ document: docProp }) => {
             <div key={idx} className="record-section">
               {/* Record Header */}
               <div className="record-header">
-                <div className="record-meta-row">
-                  {record.date && <span className="date-badge">{highlightText(formatDate(record.date))}</span>}
-                </div>
                 <h2 className="record-name">{highlightText(`Arthritis Assessment ${idx + 1}`)}</h2>
               </div>
 

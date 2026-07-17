@@ -11,7 +11,10 @@
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
   min-height: 100%;
+  direction: ltr;
 }
+
+.arthritis-assessments-document * { direction: ltr; }
 
 /* ========== DOCUMENT HEADER ========== */
 .arthritis-assessments-document .document-header {
@@ -133,16 +136,6 @@
   text-transform: none !important;
 }
 
-.arthritis-assessments-document .date-badge {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.3);
-}
-
 /* ========== FIELD SECTIONS ========== */
 .arthritis-assessments-document .field-container {
   margin-bottom: 20px;
@@ -220,6 +213,9 @@
   flex-direction: column;
   gap: 8px;
 }
+
+.arthritis-assessments-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.arthritis-assessments-document .regular-row-group { display: flex; flex-direction: column; gap: 8px; }
 
 .arthritis-assessments-document .nested-subtitle {
   font-size: 17px;
@@ -350,11 +346,16 @@
   box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
 }
 
+.arthritis-assessments-document .number-edit-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.arthritis-assessments-document .stepper-btn { width: 34px; height: 34px; border: 1px solid #60a5fa; border-radius: 6px; background: rgba(96, 165, 250, 0.15); color: #dbeafe; font-size: 20px; cursor: pointer; }
+.arthritis-assessments-document .stepper-input { width: 90px; padding: 8px; border: 2px solid #2563eb; border-radius: 6px; background: #0d1929; color: #ececf1; text-align: center; }
+.arthritis-assessments-document .number-edit-unit { color: #93c5fd; font-size: 14px; }
+
 .arthritis-assessments-document .edit-actions {
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .arthritis-assessments-document .save-btn {
@@ -405,7 +406,7 @@
 }
 
 /* ========== APPROVE BUTTON ========== */
-.arthritis-assessments-document .approve-badge {
+.arthritis-assessments-document .approve-btn {
   margin-top: 4px;
   border-radius: 6px;
   padding: 3px 12px;
@@ -420,20 +421,20 @@
 }
 
 /* Pending — YELLOW */
-.arthritis-assessments-document .approve-badge.pending {
+.arthritis-assessments-document .approve-btn.pending {
   background: rgba(234, 179, 8, 0.15);
   border: 1px solid rgba(234, 179, 8, 0.5);
   color: #eab308;
 }
 
-.arthritis-assessments-document .approve-badge.pending:hover {
+.arthritis-assessments-document .approve-btn.pending:hover {
   background: rgba(234, 179, 8, 0.25);
   border-color: rgba(234, 179, 8, 0.7);
   box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
 }
 
 /* Approved — GREEN */
-.arthritis-assessments-document .approve-badge.approved {
+.arthritis-assessments-document .approve-btn.approved {
   background: rgba(34, 197, 94, 0.15);
   border: 1px solid rgba(34, 197, 94, 0.4);
   color: #22c55e;

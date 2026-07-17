@@ -153,6 +153,7 @@ import VisualAcuityReportsDocumentPDFTemplate from './VisualAcuityReportsDocumen
 import VitalSignsDocumentPDFTemplate from './VitalSignsDocumentPDFTemplate';
 import VitalSignsMonitoringDocumentPDFTemplate from './VitalSignsMonitoringDocumentPDFTemplate';
 import VitalSignsTableDocumentPDFTemplate from './VitalSignsTableDocumentPDFTemplate';
+import WeeklyVirtualCheckInsDocumentPDFTemplate from './WeeklyVirtualCheckInsDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -295,6 +296,7 @@ const templateRegistry = {
   'vital_signs': VitalSignsDocumentPDFTemplate,
   'vital_signs_monitoring': VitalSignsMonitoringDocumentPDFTemplate,
   'vital_signs_table': VitalSignsTableDocumentPDFTemplate,
+  'weekly_virtual_check_ins': WeeklyVirtualCheckInsDocumentPDFTemplate,
 };
 
 /**

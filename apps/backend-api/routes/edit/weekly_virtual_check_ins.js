@@ -48,6 +48,7 @@ const ALLOWED_FIELDS = [
   'assessment',
   'plan',
   'recommendations',
+  'results',
   'notes',
 ];
 

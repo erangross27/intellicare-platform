@@ -7,21 +7,22 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
+  page: { padding: 40, paddingBottom: 64, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, backgroundColor: '#ffffff' },
+  documentHeader: { marginBottom: 18 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordContainer: { marginBottom: 24 },
   recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
   recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
+  fieldBox: { marginBottom: 8, padding: 8, borderWidth: 1, borderColor: '#cccccc', backgroundColor: '#fafafa' },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 6, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999', borderBottomStyle: 'solid' },
+  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
+  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
+  nestedSubtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
+  trailingSpacer: { height: 1 },
   separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
   noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
 });
@@ -63,8 +64,10 @@ const fmtVal = (v) => {
 
 const splitBySentence = (text) => {
   if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+  return text.split(/;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
 };
+
+const COMMA_ARRAY_FIELDS = new Set(['purpose', 'findings', 'assessment', 'notes']);
 
 /* parseLabel: colon in char class for patterns like "Week 1 Baseline (February 12, 2026):" */
 const parseLabel = (text) => {
@@ -96,9 +99,9 @@ const splitByComma = (text) => {
 const renderFieldRow = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
+      <Text style={styles.listItem}>1. {safeString(fmtVal(value))}</Text>
     </View>
   );
 };
@@ -107,9 +110,9 @@ const renderFieldRow = (label, value) => {
 const renderDateFieldPDF = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{formatDate(value)}</Text>
+      <Text style={styles.listItem}>1. {formatDate(value)}</Text>
     </View>
   );
 };
@@ -118,17 +121,17 @@ const renderDateFieldPDF = (label, value) => {
 const renderBooleanFieldPDF = (label, value) => {
   if (!hasVal(value)) return null;
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{value ? 'Yes' : 'No'}</Text>
+      <Text style={styles.listItem}>1. {value ? 'Yes' : 'No'}</Text>
     </View>
   );
 };
 
 /* renderSentenceSection: parseLabel + comma-split */
-const renderSentenceSection = (label, text) => {
+const renderSentenceSection = (field, label, text) => {
   if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
+  const sentences = splitBySentence(fmtVal(text)).flatMap(sentence => COMMA_ARRAY_FIELDS.has(field) ? splitByComma(sentence) : [sentence]);
   if (sentences.length === 0) return null;
 
   const rows = [];
@@ -141,17 +144,16 @@ const renderSentenceSection = (label, text) => {
         rows.push({ type: 'subtitle', text: safeString(parsed.label) });
         commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
       } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
+        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
+        rows.push({ type: 'item', text: safeString(parsed.value), num: n++ });
       }
     } else {
       rows.push({ type: 'item', text: safeString(s), num: n++ });
     }
   });
 
-  const wrapProp = rows.length > 8 ? undefined : false;
-
   return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {rows.map((row, i) => {
         if (row.type === 'subtitle') {
@@ -174,7 +176,7 @@ const renderRecommendationsPDF = (recs) => {
   safeRecs.forEach(r => { const d = r.date ? formatDate(r.date) : 'No Date'; if (!groups[d]) groups[d] = []; groups[d].push(r); });
 
   return (
-    <View style={styles.fieldBox}>
+    <View style={styles.fieldBox} wrap={false}>
       <Text style={styles.fieldLabel}>RECOMMENDATIONS</Text>
       {Object.entries(groups).map(([date, items], gIdx) => (
         <View key={gIdx}>
@@ -188,6 +190,21 @@ const renderRecommendationsPDF = (recs) => {
   );
 };
 
+const renderResultsPDF = (results) => {
+  if (!results || typeof results !== 'object' || Array.isArray(results) || Object.keys(results).length === 0) return null;
+  return (
+    <View style={styles.fieldBox} wrap={false}>
+      <Text style={styles.fieldLabel}>RESULTS</Text>
+      {Object.entries(results).map(([key, value], index) => (
+        <View key={key}>
+          <Text style={styles.nestedSubtitle}>{key}</Text>
+          <Text style={styles.listItem}>{index + 1}. {safeString(fmtVal(value))}</Text>
+        </View>
+      ))}
+    </View>
+  );
+};
+
 /* SECTION CONFIGS */
 const SECTION_TITLES = {
   'record-info': 'Record Information',
@@ -195,15 +212,17 @@ const SECTION_TITLES = {
   'findings-assessment': 'Findings & Assessment',
   'plan': 'Plan',
   'recommendations': 'Recommendations',
+  'results': 'Results',
   'notes': 'Notes',
 };
 
 const SECTION_FIELDS = {
-  'record-info': ['provider', 'facility', 'type', 'platform', 'frequency', 'status', 'scheduled'],
+  'record-info': ['date', 'provider', 'facility', 'type', 'platform', 'frequency', 'status', 'scheduled'],
   'purpose': ['purpose'],
   'findings-assessment': ['findings', 'assessment'],
   'plan': ['plan'],
   'recommendations': ['recommendations'],
+  'results': ['results'],
   'notes': ['notes'],
 };
 
@@ -212,26 +231,26 @@ const BOOLEAN_FIELDS = ['scheduled'];
 const DATE_FIELDS_LIST = ['date'];
 
 /* renderField: dispatch to correct renderer */
-const renderField = (record, f, sectionTitle) => {
+const renderField = (record, f) => {
   if (!hasVal(record[f])) return null;
   const label = {
     provider: 'Provider', facility: 'Facility', type: 'Type', platform: 'Platform',
-    frequency: 'Frequency', status: 'Status', scheduled: 'Scheduled',
+    date: 'Date', frequency: 'Frequency', status: 'Status', scheduled: 'Scheduled',
     purpose: 'Purpose', findings: 'Findings', assessment: 'Assessment',
-    plan: 'Plan', recommendations: 'Recommendations', notes: 'Notes',
+    plan: 'Plan', recommendations: 'Recommendations', results: 'Results', notes: 'Notes',
   }[f] || f;
-  const showLabel = label.toLowerCase() !== (sectionTitle || '').toLowerCase();
 
   if (f === 'recommendations') return renderRecommendationsPDF(record[f]);
-  if (BOOLEAN_FIELDS.includes(f)) return renderBooleanFieldPDF(showLabel ? label : '', record[f]);
-  if (DATE_FIELDS_LIST.includes(f)) return renderDateFieldPDF(showLabel ? label : '', record[f]);
+  if (f === 'results') return renderResultsPDF(record[f]);
+  if (BOOLEAN_FIELDS.includes(f)) return renderBooleanFieldPDF(label, record[f]);
+  if (DATE_FIELDS_LIST.includes(f)) return renderDateFieldPDF(label, record[f]);
   if (STRING_FIELDS.includes(f)) {
     const strVal = fmtVal(record[f]);
-    const sentences = splitBySentence(strVal);
-    if (sentences.length > 1) return renderSentenceSection(showLabel ? label : '', strVal);
-    return renderFieldRow(showLabel ? label : '', strVal);
+    const sentences = splitBySentence(strVal).flatMap(sentence => COMMA_ARRAY_FIELDS.has(f) ? splitByComma(sentence) : [sentence]);
+    if (sentences.length > 1) return renderSentenceSection(f, label, strVal);
+    return renderFieldRow(label, strVal);
   }
-  return renderFieldRow(showLabel ? label : '', record[f]);
+  return renderFieldRow(label, record[f]);
 };
 
 /* renderSection with presentFields */
@@ -240,30 +259,34 @@ const renderSection = (record, sid) => {
   const fields = SECTION_FIELDS[sid] || [];
   const presentFields = fields.filter(f => hasVal(record[f]));
   if (presentFields.length === 0) return null;
+  const [firstField, ...remainingFields] = presentFields;
 
   return (
-    <View key={sid} style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {fields.map((f, fIdx) => {
-        if (!hasVal(record[f])) return null;
-        return <View key={fIdx}>{renderField(record, f, title)}</View>;
-      })}
-    </View>
+    <React.Fragment key={sid}>
+      <View style={styles.section} wrap={false}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {renderField(record, firstField)}
+      </View>
+      {remainingFields.map((field) => <View key={field}>{renderField(record, field)}</View>)}
+    </React.Fragment>
   );
 };
 
 /* ======= COMPONENT ======= */
-const WeeklyVirtualCheckInsDocumentPDFTemplate = ({ document: data }) => {
+const WeeklyVirtualCheckInsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const source = documentProp ?? data ?? templateData;
   const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.weekly_virtual_check_ins) return Array.isArray(r.weekly_virtual_check_ins) ? r.weekly_virtual_check_ins : [r.weekly_virtual_check_ins];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.weekly_virtual_check_ins) return Array.isArray(dd.weekly_virtual_check_ins) ? dd.weekly_virtual_check_ins : [dd.weekly_virtual_check_ins]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
+  }, [source]);
 
   if (!records || records.length === 0) {
     return (
@@ -280,38 +303,27 @@ const WeeklyVirtualCheckInsDocumentPDFTemplate = ({ document: data }) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Weekly Virtual Check-Ins</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <View style={styles.recordDateRow}>
-                {record.date && (
-                  <Text style={styles.recordDate}>{formatDate(record.date)}</Text>
-                )}
-              </View>
-              <Text style={styles.recordTitle}>
-                {`Weekly Virtual Check-In ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections */}
-            {renderSection(record, 'record-info')}
-            {renderSection(record, 'purpose')}
-            {renderSection(record, 'findings-assessment')}
-            {renderSection(record, 'plan')}
-            {renderSection(record, 'recommendations')}
-            {renderSection(record, 'notes')}
+      {records.map((record, index) => (
+        <Page key={index} size="LETTER" style={styles.page}>
+          <View style={styles.documentHeader}>
+            <Text style={styles.documentTitle}>Weekly Virtual Check-Ins</Text>
           </View>
-        ))}
-      </Page>
+          <View style={styles.recordHeader} wrap={false}>
+            <Text style={styles.recordTitle}>
+              {`Weekly Virtual Check-In ${index + 1}`}
+            </Text>
+          </View>
+
+          {renderSection(record, 'record-info')}
+          {renderSection(record, 'purpose')}
+          {renderSection(record, 'findings-assessment')}
+          {renderSection(record, 'plan')}
+          {renderSection(record, 'recommendations')}
+          {renderSection(record, 'results')}
+          {renderSection(record, 'notes')}
+          <View style={styles.trailingSpacer} />
+        </Page>
+      ))}
     </Document>
   );
 };

@@ -14,6 +14,8 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import WeeklyVirtualCheckInsDocumentPDFTemplate from '../pdf-templates/WeeklyVirtualCheckInsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './WeeklyVirtualCheckInsDocument.css';
 
@@ -39,6 +41,7 @@ const SECTION_TITLES = {
   'findings-assessment': 'Findings & Assessment',
   'plan': 'Plan',
   'recommendations': 'Recommendations',
+  'results': 'Results',
   'notes': 'Notes',
 };
 
@@ -55,15 +58,17 @@ const FIELD_LABELS = {
   assessment: 'Assessment',
   plan: 'Plan',
   recommendations: 'Recommendations',
+  results: 'Results',
   notes: 'Notes',
 };
 
 const SECTION_FIELDS = {
-  'record-info': ['provider', 'facility', 'type', 'platform', 'frequency', 'status', 'scheduled'],
+  'record-info': ['date', 'provider', 'facility', 'type', 'platform', 'frequency', 'status', 'scheduled'],
   'purpose': ['purpose'],
   'findings-assessment': ['findings', 'assessment'],
   'plan': ['plan'],
   'recommendations': ['recommendations'],
+  'results': ['results'],
   'notes': ['notes'],
 };
 
@@ -71,6 +76,8 @@ const STRING_FIELDS = ['frequency', 'purpose', 'platform', 'type', 'provider', '
 const BOOLEAN_FIELDS = ['scheduled'];
 const DATE_FIELDS = ['date'];
 const ARRAY_FIELDS = ['recommendations'];
+const OBJECT_FIELDS = ['results'];
+const COMMA_ARRAY_FIELDS = new Set(['purpose', 'findings', 'assessment', 'notes']);
 
 /* parseLabel: detect "Label: value" patterns — colon in char class for patterns like "Week 1 Baseline (February 12, 2026):" */
 const parseLabel = (text) => {
@@ -111,7 +118,7 @@ const toInputDate = (dateValue) => {
 };
 
 /* ═══════ COMPONENT ═══════ */
-const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
+const WeeklyVirtualCheckInsDocument = ({ document: docProp, data, templateData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedItems, setCopiedItems] = useState({});
@@ -130,15 +137,18 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
 
   /* ═══════ DATA UNWRAP ═══════ */
   const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
+    const source = docProp ?? data ?? templateData;
+    if (!source) return [];
+    let arr = Array.isArray(source) ? source : [source];
     arr = arr.flatMap(r => {
+      if (Array.isArray(r?.wrapRecordsIntoSingleDocument)) return r.wrapRecordsIntoSingleDocument;
+      if (Array.isArray(r?.records || r?._records)) return r.records || r._records;
       if (r?.weekly_virtual_check_ins) return Array.isArray(r.weekly_virtual_check_ins) ? r.weekly_virtual_check_ins : [r.weekly_virtual_check_ins];
       if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.weekly_virtual_check_ins) return Array.isArray(dd.weekly_virtual_check_ins) ? dd.weekly_virtual_check_ins : [dd.weekly_virtual_check_ins]; return [dd]; }
       return [r];
     });
     return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
+  }, [docProp, data, templateData]);
 
   /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
@@ -161,10 +171,15 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
       });
     });
     if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
-    setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLocalEdits(prev => ({ ...nLocal, ...prev }));
+      setPendingEdits(prev => ({ ...nPending, ...prev }));
+      setEditedFields(prev => ({ ...nFields, ...prev }));
+      setEditedSentences(prev => ({ ...nSentences, ...prev }));
+    });
+    return () => { cancelled = true; };
   }, [records]);
 
   /* ═══════ UTILS ═══════ */
@@ -173,7 +188,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
 
   const splitBySentence = useCallback((text) => {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+    return text.split(/;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
   }, []);
 
   function reconstructFullText(sentences) {
@@ -282,7 +297,17 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
         if (pendingEdits[key]) return; // pending drafts stay OUT of the PDF/Copy All until approved
         const m = key.match(/^(.+)-(\d+)$/);
         if (m && parseInt(m[2]) === idx) {
-          merged[m[1]] = localEdits[key];
+          const fieldPath = m[1];
+          const parts = fieldPath.split('.');
+          if (parts[0] === 'results' && parts.length > 1) {
+            merged.results = { ...(merged.results || {}), [parts.slice(1).join('.')]: localEdits[key] };
+          } else if (parts[0] === 'recommendations' && parts.length === 3) {
+            const recommendationIndex = Number(parts[1]);
+            merged.recommendations = [...(merged.recommendations || [])];
+            merged.recommendations[recommendationIndex] = { ...merged.recommendations[recommendationIndex], [parts[2]]: localEdits[key] };
+          } else {
+            merged[fieldPath] = localEdits[key];
+          }
         }
       });
       return merged;
@@ -309,43 +334,24 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
     setEditingField(null); setEditValue(''); setSaveError(null);
   }, [editValue, safeId]);
 
-  // Stage a sentence edit as a DRAFT (no DB write). localStorage keeps it across refresh; Approve commits.
-  function saveSentence(record, fn, idx, sid, sentenceIdx) {
+  function saveVisibleClause(record, fn, idx, sid, originalClause, replacementClause, trackingKey) {
     const id = safeId(record); if (!id) return;
-    const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const sentences = splitBySentence(currentVal);
-    const editedVal = editValue.trim();
+    const currentValue = String(getFieldValue(record, fn, idx) || '');
+    const position = currentValue.indexOf(originalClause);
+    const replacement = replacementClause.trim();
+    if (!replacement) { setSaveError('Please enter a value'); return; }
+    const updatedValue = position >= 0
+      ? `${currentValue.slice(0, position)}${replacement}${currentValue.slice(position + originalClause.length)}`
+      : replacement;
     const editKey = `${fn}-${idx}`;
-    const stage = (fullText) => {
-      setLocalEdits(prev => ({ ...prev, [editKey]: fullText }));
-      setPendingEdits(prev => ({ ...prev, [editKey]: true }));
-      const store = readDrafts();
-      if (!store[id]) store[id] = {};
-      store[id][fn] = fullText;
-      writeDrafts(store);
-      if (sid) setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-    };
-    if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
-      const updated = [...sentences]; updated.splice(sentenceIdx, 1);
-      const fullText = reconstructFullText(updated);
-      stage(fullText);
-      setEditedSentences(prev => ({ ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }));
-      setEditingField(null); setEditValue(''); setSaveError(null);
-      return;
-    }
-    const newSentences = splitBySentence(editedVal);
-    const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
-    const fullText = reconstructFullText(updated);
-    stage(fullText);
-    const orig = sentences[sentenceIdx] || '';
-    const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
-    setEditedSentences(prev => {
-      const n = { ...prev };
-      if (changed) n[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
-      const extra = newSentences.length - 1;
-      for (let ei = 0; ei < extra; ei++) n[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added';
-      return n;
-    });
+    setLocalEdits(prev => ({ ...prev, [editKey]: updatedValue }));
+    setPendingEdits(prev => ({ ...prev, [editKey]: true }));
+    setEditedSentences(prev => ({ ...prev, [trackingKey]: 'edited' }));
+    const store = readDrafts();
+    if (!store[id]) store[id] = {};
+    store[id][fn] = updatedValue;
+    writeDrafts(store);
+    if (sid) setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const next = { ...prev }; delete next[`${sid}-${idx}`]; return next; });
     setEditingField(null); setEditValue(''); setSaveError(null);
   }
 
@@ -393,6 +399,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
   // committed values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
   const handleApproveSection = useCallback(async (record, sid, idx) => {
     const id = safeId(record); if (!id) return;
+    setSaving(true);
     const fields = SECTION_FIELDS[sid] || [];
     const suffix = `-${idx}`;
     // Pending localEdits keys belonging to this section: fieldPart's base field is in this section.
@@ -424,12 +431,12 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
       setPendingEdits(prev => { const next = { ...prev }; toCommit.forEach(k => delete next[k]); return next; });
       // Drop this record's committed drafts from localStorage
       const store = readDrafts();
-      if (store[id]) { fields.forEach(f => { delete store[id][f]; }); if (Object.keys(store[id]).length === 0) delete store[id]; writeDrafts(store); }
+      if (store[id]) { fields.forEach(f => { Object.keys(store[id]).forEach(key => { if (key === f || key.startsWith(`${f}.`)) delete store[id][key]; }); }); if (Object.keys(store[id]).length === 0) delete store[id]; writeDrafts(store); }
 
       setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
       setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) delete n[k]; }); }); return n; });
       setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); } finally { setSaving(false); }
   }, [safeId, localEdits, pendingEdits]);
 
   const renderApproveButton = useCallback((record, sid, idx) => {
@@ -446,61 +453,55 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
   const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
 
   /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatSentenceFieldLines = useCallback((text) => {
-    const sentences = splitBySentence(text);
-    const lines = []; let n = 1;
-    sentences.forEach(s => {
-      const parsed = parseLabel(s);
-      if (parsed.isLabeled) {
-        const parts = splitByComma(parsed.value);
-        if (parts.length >= 2) {
-          lines.push(parsed.label + ':');
-          parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
-        } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
-      } else { lines.push(`${n++}. ${s}`); }
+  const stringDisplayRows = useCallback((field, text) => {
+    const clauses = splitBySentence(text).flatMap(sentence => COMMA_ARRAY_FIELDS.has(field) ? splitByComma(sentence) : [sentence]);
+    return clauses.flatMap(clause => {
+      const parsed = parseLabel(clause);
+      if (!parsed.isLabeled) return [clause];
+      const values = splitByComma(parsed.value);
+      return values.length > 0 ? values : [parsed.value];
     });
-    return lines;
   }, [splitBySentence]);
 
   const buildSectionCopyText = useCallback((record, idx, sid) => {
     const title = SECTION_TITLES[sid];
     let text = `${title}\n${'='.repeat(40)}\n\n`;
+    let hasContent = false;
     const fields = SECTION_FIELDS[sid] || [];
     fields.forEach(f => {
       const label = FIELD_LABELS[f] || f;
-      const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
       const val = getFieldValue(record, f, idx);
       if (!hasVal(val)) return;
+      let rows;
       if (DATE_FIELDS.includes(f)) {
-        if (showLabel) text += `${label}\n`;
-        text += `${formatDate(val)}\n\n`;
+        rows = [formatDate(val)];
       } else if (BOOLEAN_FIELDS.includes(f)) {
-        text += `${label}: ${val ? 'Yes' : 'No'}\n\n`;
+        rows = [val ? 'Yes' : 'No'];
       } else if (f === 'recommendations' && Array.isArray(val)) {
-        if (showLabel) text += `${label}\n`;
-        val.forEach((rec, i) => {
-          if (rec?.recommendation) {
-            text += `${rec.date ? formatDate(rec.date) + ': ' : ''}${rec.recommendation}\n`;
+        const seenDates = new Set();
+        rows = [];
+        val.filter(rec => rec?.recommendation).forEach(rec => {
+          if (rec.date) {
+            const date = formatDate(rec.date);
+            if (!seenDates.has(date)) { seenDates.add(date); rows.push(date); }
           }
+          rows.push(rec.recommendation);
         });
-        text += '\n';
+      } else if (OBJECT_FIELDS.includes(f) && val && typeof val === 'object' && !Array.isArray(val)) {
+        rows = Object.values(val).map(value => fmtVal(value));
       } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        const sentences = splitBySentence(strVal);
-        if (sentences.length > 1) {
-          if (showLabel) text += `${label}\n`;
-          formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-          text += '\n';
-        } else {
-          if (showLabel) text += `${label}\n`;
-          text += `${strVal}\n\n`;
-        }
+        rows = stringDisplayRows(f, fmtVal(val));
       } else {
-        text += `${label}\n${fmtVal(val)}\n\n`;
+        rows = [fmtVal(val)];
       }
+      if (rows.length === 0) return;
+      hasContent = true;
+      text += `${label}\n${'-'.repeat(40)}\n`;
+      rows.forEach((row, rowIndex) => { text += `${rowIndex + 1}. ${row}\n`; });
+      text += '\n';
     });
-    return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, formatSentenceFieldLines]);
+    return hasContent ? text : '';
+  }, [getFieldValue, hasVal, fmtVal, stringDisplayRows]);
 
   const copyAllText = useCallback(async () => {
     let text = '=== WEEKLY VIRTUAL CHECK-INS ===\n\n';
@@ -527,15 +528,13 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <BlueSelect value={editValue} options={['Yes', 'No']} onChange={setEditValue} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
                 <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
@@ -545,9 +544,10 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
           ) : (
             <>
               <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(displayVal, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
+        </div>
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
@@ -566,15 +566,16 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
+              <BlueDatePicker value={editValue} onSelect={nextValue => setEditValue(nextValue || '')} />
               {saveError && <div className="save-error">{saveError}</div>}
               <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
+                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (!editValue || Number.isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, `${editValue}T00:00:00.000Z`); }}>{saving ? 'Saving...' : 'Save'}</button>
                 <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
               </div>
             </div>
@@ -585,6 +586,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
             </>
           )}
         </div>
+        </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
     );
@@ -592,10 +594,8 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
 
   /* ═══════ RENDER: RECOMMENDATIONS (array of objects [{recommendation, date}]) ═══════ */
   const renderRecommendationsField = (record, idx, sid) => {
-    const recs = Array.isArray(record.recommendations) ? record.recommendations.filter(r => r?.recommendation) : [];
+    const recs = Array.isArray(record.recommendations) ? record.recommendations.map((recommendation, originalIndex) => ({ ...recommendation, originalIndex })).filter(r => r?.recommendation) : [];
     if (recs.length === 0) return null;
-    const label = FIELD_LABELS.recommendations;
-    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, 'recommendations', idx) && !sectionTitleMatches(sid)) return null;
 
     /* Group by date */
@@ -607,40 +607,126 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
 
     return (
       <div key="recommendations">
-        {Object.entries(groups).map(([date, items]) => (
-          <div key={date} className="rec-mini-card">
-            <div className="nested-subtitle">{highlightText(date)}</div>
+        {Object.entries(groups).map(([date, items]) => {
+          const representedIndexes = items.map(item => item.originalIndex);
+          const datePaths = representedIndexes.map(itemIndex => `recommendations.${itemIndex}.date`);
+          const dateEditKey = `recommendations-date-${idx}-${representedIndexes.join('-')}`;
+          const isDateEditing = editingField === dateEditKey;
+          return (
+          <div key={date} className="rec-mini-card nested-mini-card recommendation-group">
+            {date === 'No Date' ? <div className="nested-subtitle">No Date</div> : (
+              <div className="editable-date-subtitle" data-edit-field={datePaths[0]} data-edit-fields={datePaths.join(',')}>
+                <div className="date-subtitle nested-subtitle editable-row" onClick={() => { if (!isDateEditing) { setEditingField(dateEditKey); setEditValue(toInputDate(items[0].date)); setSaveError(null); } }}>
+                  {isDateEditing ? (
+                    <div className="edit-field-container">
+                      <BlueDatePicker value={editValue} onSelect={nextValue => setEditValue(nextValue || '')} />
+                      <div className="edit-actions">
+                        <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); const id = safeId(record); if (!id || !editValue) return; const nextDate = `${editValue}T00:00:00.000Z`; const nextLocal = {}; const nextPending = {}; const nextEdited = {}; const store = readDrafts(); if (!store[id]) store[id] = {}; datePaths.forEach(path => { const localKey = `${path}-${idx}`; nextLocal[localKey] = nextDate; nextPending[localKey] = true; nextEdited[localKey] = 'edited'; store[id][path] = nextDate; }); setLocalEdits(prev => ({ ...prev, ...nextLocal })); setPendingEdits(prev => ({ ...prev, ...nextPending })); setEditedFields(prev => ({ ...prev, ...nextEdited })); writeDrafts(store); setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const next = { ...prev }; delete next[`${sid}-${idx}`]; return next; }); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
+                        <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : <div className="row-content"><span className="content-value">{highlightText(date)}</span><span className="edit-indicator">&#9998;</span></div>}
+                </div>
+              </div>
+            )}
             {items.map((rec, ri) => {
               if (!sa && !rec.recommendation.toLowerCase().includes(searchTerm.toLowerCase().trim()) && !date.toLowerCase().includes(searchTerm.toLowerCase().trim())) return null;
-              const editKey = `recommendations.${recs.indexOf(rec)}.recommendation-${idx}`;
+              const fieldPath = `recommendations.${rec.originalIndex}.recommendation`;
+              const editKey = `${fieldPath}-${idx}`;
               const isEditing = editingField === editKey;
               const isModified = editedFields[editKey];
+              const displayRecommendation = localEdits[editKey] ?? rec.recommendation;
 
               return (
                 <div key={ri}>
-                  <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(rec.recommendation); setSaveError(null); } }}>
+                  <div data-edit-field={fieldPath}>
+                  <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(displayRecommendation); setSaveError(null); } }}>
                     {isEditing ? (
                       <div className="edit-field-container">
                         <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                         {saveError && <div className="save-error">{saveError}</div>}
                         <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; const recIdx = recs.indexOf(rec); const currentArr = [...(Array.isArray(getFieldValue(record, 'recommendations', idx)) ? getFieldValue(record, 'recommendations', idx) : [])]; currentArr[recIdx] = { ...currentArr[recIdx], recommendation: editValue }; const editKey2 = `recommendations-${idx}`; setLocalEdits(prev => ({ ...prev, [editKey2]: currentArr })); setPendingEdits(prev => ({ ...prev, [editKey2]: true })); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); const store = readDrafts(); if (!store[id2]) store[id2] = {}; store[id2].recommendations = currentArr; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(null); }}>{saving ? 'Saving...' : 'Save'}</button>
+                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; setLocalEdits(prev => ({ ...prev, [editKey]: editValue })); setPendingEdits(prev => ({ ...prev, [editKey]: true })); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const next = { ...prev }; delete next[`${sid}-${idx}`]; return next; }); const store = readDrafts(); if (!store[id2]) store[id2] = {}; store[id2][fieldPath] = editValue; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(null); }}>{saving ? 'Saving...' : 'Save'}</button>
                           <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                         </div>
                       </div>
                     ) : (
                       <>
-                        <div className="row-content"><span className="content-value">{highlightText(rec.recommendation)}</span><span className="edit-indicator">&#9998;</span></div>
-                        <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(rec.recommendation, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                        <div className="row-content"><span className="content-value">{highlightText(displayRecommendation)}</span><span className="edit-indicator">&#9998;</span></div>
+                        <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(displayRecommendation, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
                       </>
                     )}
+                  </div>
                   </div>
                   {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
                 </div>
               );
             }).filter(Boolean)}
           </div>
-        ))}
+        );})}
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: RESULTS (object key/value leaves) ═══════ */
+  const renderResultsField = (record, idx, sid) => {
+    const results = { ...(getFieldValue(record, 'results', idx) || {}) };
+    Object.entries(localEdits).forEach(([editKey, value]) => {
+      const match = editKey.match(/^results\.(.+)-(\d+)$/);
+      if (match && Number(match[2]) === idx) results[match[1]] = value;
+    });
+    if (!results || typeof results !== 'object' || Array.isArray(results) || Object.keys(results).length === 0) return null;
+    if (searchTerm.trim() && !fieldMatches(record, 'results', idx) && !sectionTitleMatches(sid)) return null;
+    return (
+      <div key="results">
+        {Object.entries(results).map(([key, value]) => {
+          const editKey = `results.${key}-${idx}`;
+          const isEditing = editingField === editKey;
+          const isModified = editedFields[editKey];
+          const displayValue = fmtVal(value);
+          const scoreMatch = displayValue.match(/^(-?\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)(.*)$/);
+          const saveResultValue = (nextValue) => {
+            const id = safeId(record); if (!id) return;
+            const fieldPath = `results.${key}`;
+            const fieldKey = `${fieldPath}-${idx}`;
+            setLocalEdits(prev => ({ ...prev, [fieldKey]: nextValue }));
+            setPendingEdits(prev => ({ ...prev, [fieldKey]: true }));
+            setEditedFields(prev => ({ ...prev, [editKey]: 'edited' }));
+            const store = readDrafts(); if (!store[id]) store[id] = {}; store[id][fieldPath] = nextValue; writeDrafts(store);
+            setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const next = { ...prev }; delete next[`${sid}-${idx}`]; return next; });
+            setEditingField(null); setEditValue('');
+          };
+          return (
+            <div key={key} className="rec-mini-card nested-mini-card">
+              <div className="nested-subtitle">{highlightText(key)}</div>
+              <div data-edit-field={`results.${key}`}>
+                <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(scoreMatch ? scoreMatch[1] : displayValue); setSaveError(null); } }}>
+                  {isEditing ? (
+                    <div className="edit-field-container">
+                      {scoreMatch ? (
+                        <div className="number-edit-row">
+                          <button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>−</button>
+                          <input type="text" inputMode="decimal" className="edit-input" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />
+                          <button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button>
+                        </div>
+                      ) : <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />}
+                      <div className="edit-actions">
+                        <button className="save-btn" disabled={saving} onClick={event => { event.stopPropagation(); const nextValue = scoreMatch ? `${editValue}/${scoreMatch[2]}${scoreMatch[3]}` : editValue; saveResultValue(nextValue); }}>{saving ? 'Saving...' : 'Save'}</button>
+                        <button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="row-content"><span className="content-value">{highlightText(displayValue)}</span><span className="edit-indicator">&#9998;</span></div>
+                      <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyItem(displayValue, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
+                    </>
+                  )}
+                </div>
+              </div>
+              {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -649,7 +735,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
   const renderStringField = (record, fn, idx, sid) => {
     const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
     const strVal = fmtVal(val);
-    const sentences = splitBySentence(strVal);
+    const sentences = splitBySentence(strVal).flatMap(sentence => COMMA_ARRAY_FIELDS.has(fn) ? splitByComma(sentence) : [sentence]);
     const label = FIELD_LABELS[fn] || fn;
     const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
@@ -661,7 +747,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
 
       return (
         <div key={fn}>
-          <div className="rec-mini-card">
+          <div className="rec-mini-card nested-mini-card">
             {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
             {sentences.map((sentence, sIdx) => {
               const sentenceKey = `${fn}-${idx}-s${sIdx}`;
@@ -686,6 +772,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
                         if (!ciMatches && searchTerm.trim()) return null;
                         return (
                           <div key={ciIdx}>
+                            <div data-edit-field={fn}>
                             <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                               {ciEditing ? (
                                 <div className="edit-field-container">
@@ -703,6 +790,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
                                 </>
                               )}
                             </div>
+                            </div>
                             {ciBadge && <span className="modified-badge">edited - click Pending Approve to save</span>}
                           </div>
                         );
@@ -716,13 +804,14 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
               return (
                 <div key={sIdx} className={parsed.isLabeled ? 'rec-mini-card' : ''} style={parsed.isLabeled ? { marginTop: 8 } : undefined}>
                   {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
+                  <div data-edit-field={fn}>
                   <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>
                     {isEditing ? (
                       <div className="edit-field-container">
                         <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
                         {saveError && <div className="save-error">{saveError}</div>}
                         <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { const id3 = safeId(record); if (!id3) return; const trimmed = editValue.trim(); const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const sentences2 = splitBySentence(String(getFieldValue(record, fn, idx) || '')); sentences2[sIdx] = reconstructed; const fullText = reconstructFullText(sentences2); const editKey3 = `${fn}-${idx}`; setLocalEdits(prev => ({ ...prev, [editKey3]: fullText })); setPendingEdits(prev => ({ ...prev, [editKey3]: true })); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; }); const store = readDrafts(); if (!store[id3]) store[id3] = {}; store[id3][fn] = fullText; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(null); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
+                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const replacement = parsed.isLabeled ? `${parsed.label}: ${editValue}` : editValue; saveVisibleClause(record, fn, idx, sid, sentence, replacement, sentenceKey); }}>{saving ? 'Saving...' : 'Save'}</button>
                           <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
                         </div>
                       </div>
@@ -732,6 +821,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
                         <button className={`copy-btn ${copiedItems[sentenceKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(sentence, sentenceKey); }}>{copiedItems[sentenceKey] ? 'Copied!' : 'Copy'}</button>
                       </>
                     )}
+                  </div>
                   </div>
                   {badge && <span className={`modified-badge ${badge === 'added' ? 'added' : ''}`}>{badge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
                 </div>
@@ -748,8 +838,9 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
     const isModified = editedFields[editKey];
 
     return (
-      <div key={fn} className="rec-mini-card">
+      <div key={fn} className="rec-mini-card nested-mini-card">
         {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
+        <div data-edit-field={fn}>
         <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(strVal); setSaveError(null); } }}>
           {isEditing ? (
             <div className="edit-field-container">
@@ -766,6 +857,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
               <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${strVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
             </>
           )}
+        </div>
         </div>
         {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
       </div>
@@ -797,6 +889,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
           </div>
           {fields.map(f => {
             if (f === 'recommendations') return renderRecommendationsField(record, idx, sid);
+            if (OBJECT_FIELDS.includes(f)) return renderResultsField(record, idx, sid);
             if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
             if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
             return renderStringField(record, f, idx, sid);
@@ -822,7 +915,7 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
         <h2 className="document-title">Weekly Virtual Check-Ins</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<WeeklyVirtualCheckInsDocumentPDFTemplate document={pdfData} />} fileName={`weekly-virtual-check-ins-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+          <PDFDownloadLink document={<WeeklyVirtualCheckInsDocumentPDFTemplate document={pdfData} />} fileName="Weekly_Virtual_Check_Ins.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -834,19 +927,13 @@ const WeeklyVirtualCheckInsDocument = ({ document: docProp }) => {
       <div className="records-container">
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
-            <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{highlightText(formatDate(record.date))}</span>
-                </div>
-              )}
-              <h3 className="record-name">{highlightText(`Weekly Virtual Check-In ${idx + 1}`)}</h3>
-            </div>
+            <div className="record-header"><h3 className="record-name">{highlightText(`Weekly Virtual Check-In ${idx + 1}`)}</h3></div>
             {renderSection(record, idx, 'record-info')}
             {renderSection(record, idx, 'purpose')}
             {renderSection(record, idx, 'findings-assessment')}
             {renderSection(record, idx, 'plan')}
             {renderSection(record, idx, 'recommendations')}
+            {renderSection(record, idx, 'results')}
             {renderSection(record, idx, 'notes')}
           </div>
         ))}

@@ -15,6 +15,7 @@ import AmnioticFluidAssessmentDocumentPDFTemplate from './AmnioticFluidAssessmen
 import AmnioticFluidIndexCurrentDocumentPDFTemplate from './AmnioticFluidIndexCurrentDocumentPDFTemplate';
 import AnatomyScanResultDocumentPDFTemplate from './AnatomyScanResultDocumentPDFTemplate';
 import AnesthesiaConsentDocumentPDFTemplate from './AnesthesiaConsentDocumentPDFTemplate';
+import ArterialBloodGasesDocumentPDFTemplate from './ArterialBloodGasesDocumentPDFTemplate';
 import AllergiesDocumentPDFTemplate from './AllergiesDocumentPDFTemplate';
 import AllergiesAssessmentDocumentPDFTemplate from './AllergiesAssessmentDocumentPDFTemplate';
 import AllergyAssessmentsDocumentPDFTemplate from './AllergyAssessmentsDocumentPDFTemplate';
@@ -293,6 +294,7 @@ const templateRegistry = {
   'aortic_aneurysm_surveillance': AorticAneurysmSurveillanceDocumentPDFTemplate,
   'apgar_scores': ApgarScoresDocumentPDFTemplate,
   'appetite_stimulants': AppetiteStimulantsDocumentPDFTemplate,
+  'arterial_blood_gases': ArterialBloodGasesDocumentPDFTemplate,
   'recommendations': RecommendationsTemplate,
   'clinical_scores': ClinicalScoresTemplate,
   'administrative_data': AdministrativeDataDocumentPDFTemplate,

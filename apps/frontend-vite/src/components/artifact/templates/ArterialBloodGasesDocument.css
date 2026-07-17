@@ -9,6 +9,11 @@
   font-family: 'Comfortaa', sans-serif;
   min-height: 100%;
   padding: 24px;
+  direction: ltr;
+}
+
+.arterial-blood-gases-document * {
+  direction: ltr;
 }
 
 /* ============== DOCUMENT HEADER ============== */
@@ -160,15 +165,6 @@
   text-transform: none !important;
 }
 
-.arterial-blood-gases-document .record-date {
-  font-size: 16px;
-  color: #a1a1aa;
-  background: rgba(37, 99, 235, 0.1);
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid rgba(37, 99, 235, 0.3);
-}
-
 /* ============== SECTION ============== */
 
 .arterial-blood-gases-document .section {
@@ -225,6 +221,29 @@
   gap: 8px;
   flex: 1;
   min-width: 200px;
+}
+
+.arterial-blood-gases-document .nested-mini-card {
+  background: rgba(96, 165, 250, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.arterial-blood-gases-document .regular-row-group,
+.arterial-blood-gases-document .recommendation-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.arterial-blood-gases-document .editable-date-subtitle {
+  width: 100%;
+}
+
+.arterial-blood-gases-document .date-subtitle.editable-row {
+  cursor: pointer;
 }
 
 /* Nested Subtitle - Level 2: MEDIUM (17px) - LIGHT BRIGHT BLUE #93c5fd */
@@ -488,7 +507,7 @@
 .arterial-blood-gases-document .edit-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .arterial-blood-gases-document .save-btn {

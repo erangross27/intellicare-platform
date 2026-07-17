@@ -1,1046 +1,373 @@
-/**
- * AthleticInjuryAssessmentDocument.jsx
- * March 2026 — Complete rewrite with inline editing, blue glow theme
- * Collection: athletic_injury_assessment
- *
- * 7 Sections:
- *   1. record-info: date, sportActivity, competitionLevel
- *   2. injury-details: injuryMechanism, anatomicLocation, injuryClassification, severityGrade, timeOfInjury
- *   3. immediate-response: immediateSymptoms, abilityToContinuePlay, sidelineInterventions, concussionScreenPerformed
- *   4. physical-exam: swellingPresent, ecchymosisPresent, rangeOfMotionLimitations, strengthDeficit, neurovascularStatus, weightBearingStatus
- *   5. special-tests: specialTestsPerformed, specialTestsPositive
- *   6. imaging-rehab: imagingOrdered, rehabilitationPhase, functionalLimitations, priorInjurySameSite
- *   7. return-to-play: returnToPlayCriteria, estimatedRecoveryTime
- */
-import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import AthleticInjuryAssessmentDocumentPDFTemplate from '../pdf-templates/AthleticInjuryAssessmentDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import secureApiClient from '../../../services/secureApiClient';
 import './AthleticInjuryAssessmentDocument.css';
 
-/* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
-   written to MongoDB and NOT shown in the PDF until the user clicks Pending Approve.
-   Kept in a SEPARATE key (NOT artifactGridData) so drafts never leak into the PDF/DB source.
-   Shape: { [recordId]: { [fieldPart]: value } }  (fieldPart = "field" or "field.arrayIndex") */
-const DRAFT_KEY = 'athletic_injury_assessmentPendingEdits';
+const COLLECTION = 'athletic_injury_assessment';
+const DRAFT_KEY = `${COLLECTION}PendingEdits`;
+const COMMA_ARRAY_FIELDS = [];
+const COMMA_SPLIT_FIELDS = ['sportActivity', 'rangeOfMotionLimitations', 'strengthDeficit', 'weightBearingStatus'];
+
+const SECTIONS = [
+  { id: 'recordInfo', title: 'Record Information', fields: ['date', 'sportActivity', 'competitionLevel'] },
+  { id: 'injuryDetails', title: 'Injury Details', fields: ['injuryMechanism', 'anatomicLocation', 'injuryClassification', 'severityGrade', 'timeOfInjury'] },
+  { id: 'immediateResponse', title: 'Immediate Response', fields: ['immediateSymptoms', 'abilityToContinuePlay', 'sidelineInterventions', 'concussionScreenPerformed'] },
+  { id: 'physicalExam', title: 'Physical Examination', fields: ['swellingPresent', 'ecchymosisPresent', 'rangeOfMotionLimitations', 'strengthDeficit', 'neurovascularStatus', 'weightBearingStatus'] },
+  { id: 'specialTests', title: 'Special Tests', fields: ['specialTestsPerformed', 'specialTestsPositive'] },
+  { id: 'imagingRehab', title: 'Imaging & Rehabilitation', fields: ['imagingOrdered', 'rehabilitationPhase', 'functionalLimitations', 'priorInjurySameSite'] },
+  { id: 'returnToPlay', title: 'Return to Play', fields: ['returnToPlayCriteria', 'estimatedRecoveryTime'] },
+];
+
+const FIELD_LABELS = {
+  date: 'Date', sportActivity: 'Sport / Activity', competitionLevel: 'Competition Level', injuryMechanism: 'Injury Mechanism',
+  anatomicLocation: 'Anatomic Location', injuryClassification: 'Injury Classification', severityGrade: 'Severity Grade',
+  timeOfInjury: 'Time of Injury', immediateSymptoms: 'Immediate Symptoms', abilityToContinuePlay: 'Ability to Continue Play',
+  sidelineInterventions: 'Sideline Interventions', concussionScreenPerformed: 'Concussion Screen Performed',
+  swellingPresent: 'Swelling Present', ecchymosisPresent: 'Ecchymosis Present', rangeOfMotionLimitations: 'Range of Motion Limitations',
+  strengthDeficit: 'Strength Deficit', neurovascularStatus: 'Neurovascular Status', weightBearingStatus: 'Weight Bearing Status',
+  specialTestsPerformed: 'Special Tests Performed', specialTestsPositive: 'Special Tests Positive', imagingOrdered: 'Imaging Ordered',
+  rehabilitationPhase: 'Rehabilitation Phase', functionalLimitations: 'Functional Limitations', priorInjurySameSite: 'Prior Injury Same Site',
+  returnToPlayCriteria: 'Return to Play Criteria', estimatedRecoveryTime: 'Estimated Recovery Time',
+};
+const DISPLAY_FIELDS = Object.keys(FIELD_LABELS);
+const DATE_FIELDS = new Set(['date', 'timeOfInjury']);
+const BOOLEAN_FIELDS = new Set(['abilityToContinuePlay', 'concussionScreenPerformed', 'swellingPresent', 'ecchymosisPresent', 'priorInjurySameSite']);
+const ARRAY_FIELDS = new Set(['immediateSymptoms', 'sidelineInterventions', 'specialTestsPerformed', 'specialTestsPositive', 'imagingOrdered', 'functionalLimitations', 'returnToPlayCriteria']);
+const NARRATIVE_FIELDS = new Set(['sportActivity', 'injuryMechanism', 'rangeOfMotionLimitations', 'strengthDeficit', 'neurovascularStatus', 'weightBearingStatus', 'rehabilitationPhase']);
+
 const readDrafts = () => {
   try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; }
 };
-const writeDrafts = (store) => {
+const writeDrafts = store => {
   try {
-    if (store && Object.keys(store).length > 0) localStorage.setItem(DRAFT_KEY, JSON.stringify(store));
+    if (store && Object.keys(store).length) localStorage.setItem(DRAFT_KEY, JSON.stringify(store));
     else localStorage.removeItem(DRAFT_KEY);
-  } catch { /* ignore quota/availability errors */ }
+  } catch { /* local drafts are best effort */ }
 };
-
-/* ═══════ CONSTANTS ═══════ */
-const SECTION_TITLES = {
-  'record-info': 'Record Information',
-  'injury-details': 'Injury Details',
-  'immediate-response': 'Immediate Response',
-  'physical-exam': 'Physical Examination',
-  'special-tests': 'Special Tests',
-  'imaging-rehab': 'Imaging & Rehabilitation',
-  'return-to-play': 'Return to Play',
+const hasValue = value => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.some(hasValue);
+  if (typeof value === 'object') return Object.values(value).some(hasValue);
+  return true;
 };
-
-const FIELD_LABELS = {
-  date: 'Date',
-  sportActivity: 'Sport / Activity',
-  competitionLevel: 'Competition Level',
-  injuryMechanism: 'Injury Mechanism',
-  anatomicLocation: 'Anatomic Location',
-  injuryClassification: 'Injury Classification',
-  severityGrade: 'Severity Grade',
-  timeOfInjury: 'Time of Injury',
-  immediateSymptoms: 'Immediate Symptoms',
-  abilityToContinuePlay: 'Ability to Continue Play',
-  sidelineInterventions: 'Sideline Interventions',
-  concussionScreenPerformed: 'Concussion Screen Performed',
-  swellingPresent: 'Swelling Present',
-  ecchymosisPresent: 'Ecchymosis Present',
-  rangeOfMotionLimitations: 'Range of Motion Limitations',
-  strengthDeficit: 'Strength Deficit',
-  neurovascularStatus: 'Neurovascular Status',
-  weightBearingStatus: 'Weight Bearing Status',
-  specialTestsPerformed: 'Special Tests Performed',
-  specialTestsPositive: 'Special Tests Positive',
-  imagingOrdered: 'Imaging Ordered',
-  rehabilitationPhase: 'Rehabilitation Phase',
-  functionalLimitations: 'Functional Limitations',
-  priorInjurySameSite: 'Prior Injury Same Site',
-  returnToPlayCriteria: 'Return to Play Criteria',
-  estimatedRecoveryTime: 'Estimated Recovery Time',
+const recordIdOf = record => {
+  if (!record?._id) return null;
+  if (typeof record._id === 'string') return record._id;
+  if (record._id.$oid) return record._id.$oid;
+  return String(record._id);
 };
-
-const SECTION_FIELDS = {
-  'record-info': ['date', 'sportActivity', 'competitionLevel'],
-  'injury-details': ['injuryMechanism', 'anatomicLocation', 'injuryClassification', 'severityGrade', 'timeOfInjury'],
-  'immediate-response': ['immediateSymptoms', 'abilityToContinuePlay', 'sidelineInterventions', 'concussionScreenPerformed'],
-  'physical-exam': ['swellingPresent', 'ecchymosisPresent', 'rangeOfMotionLimitations', 'strengthDeficit', 'neurovascularStatus', 'weightBearingStatus'],
-  'special-tests': ['specialTestsPerformed', 'specialTestsPositive'],
-  'imaging-rehab': ['imagingOrdered', 'rehabilitationPhase', 'functionalLimitations', 'priorInjurySameSite'],
-  'return-to-play': ['returnToPlayCriteria', 'estimatedRecoveryTime'],
+const formatDate = value => {
+  if (!value) return '';
+  const raw = value.$date || value;
+  try {
+    const match = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return String(raw);
+    const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`);
+    return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+  } catch { return String(raw); }
 };
-
-const DATE_FIELDS = ['date', 'timeOfInjury'];
-const BOOLEAN_FIELDS = ['swellingPresent', 'ecchymosisPresent', 'abilityToContinuePlay', 'concussionScreenPerformed', 'priorInjurySameSite'];
-const ARRAY_FIELDS = ['immediateSymptoms', 'specialTestsPerformed', 'specialTestsPositive', 'returnToPlayCriteria', 'imagingOrdered', 'functionalLimitations', 'sidelineInterventions'];
-const STRING_FIELDS = ['injuryMechanism', 'sportActivity', 'anatomicLocation', 'injuryClassification', 'severityGrade', 'rangeOfMotionLimitations', 'strengthDeficit', 'neurovascularStatus', 'weightBearingStatus', 'estimatedRecoveryTime', 'competitionLevel', 'rehabilitationPhase'];
-
-/* parseLabel: detect "Label: value" patterns */
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
+const toInputDate = value => {
+  if (!value) return '';
+  const raw = value.$date || value;
+  const match = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : '';
 };
-
-/* splitByComma: parenthesis-aware, date-aware comma split */
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) {
-      const rest = text.slice(i + 1).trimStart();
-      if (/^\d{4}\b/.test(rest)) { current += ch; }
-      else { const t = current.trim(); if (t) result.push(t); current = ''; }
+const displayText = value => String(value ?? '').replace(/≥/g, '>=').replace(/≤/g, '<=');
+const getAtPath = (source, path) => path.split('.').reduce((value, part) => value?.[/^\d+$/.test(part) ? Number(part) : part], source);
+const setAtPath = (source, path, value) => {
+  const parts = path.split('.');
+  let node = source;
+  parts.forEach((part, index) => {
+    const key = /^\d+$/.test(part) ? Number(part) : part;
+    if (index === parts.length - 1) node[key] = value;
+    else {
+      const nextIsIndex = /^\d+$/.test(parts[index + 1]);
+      if (node[key] === undefined || node[key] === null) node[key] = nextIsIndex ? [] : {};
+      node = node[key];
     }
-    else { current += ch; }
+  });
+};
+const parseLabel = text => {
+  const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/);
+  return match ? { label: match[1].trim(), value: match[2].trim(), labeled: true }
+    : { label: '', value: String(text || '').trim(), labeled: false };
+};
+const splitClauses = (field, text) => {
+  const source = String(text || '');
+  if (!source.trim()) return [];
+  const clauses = [];
+  let start = 0;
+  let depth = 0;
+  const push = end => {
+    let left = start;
+    let right = end;
+    while (left < right && /\s/.test(source[left])) left += 1;
+    while (right > left && /\s/.test(source[right - 1])) right -= 1;
+    if (right > left) clauses.push({ text: source.slice(left, right), start: left, end: right });
+  };
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); continue; }
+    if (depth > 0) continue;
+    const sentenceBreak = (char === '.' || char === ';') && (index + 1 === source.length || /\s/.test(source[index + 1]));
+    let commaBreak = false;
+    if (char === ',' && COMMA_SPLIT_FIELDS.includes(field)) {
+      const before = source.slice(start, index).trim();
+      const after = source.slice(index + 1);
+      const next = after.trimStart();
+      const protectedComma = (/\d$/.test(before) && /^\d{3}\b/.test(next)) || /^(?:and|or)\b/i.test(next) || after.length === next.length;
+      commaBreak = !protectedComma;
+    }
+    if (!sentenceBreak && !commaBreak) continue;
+    push(index);
+    start = index + 1;
   }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
+  push(source.length);
+  return clauses;
+};
+const groupClauses = clauses => {
+  const groups = [];
+  let current = null;
+  clauses.forEach((clause, index) => {
+    const parsed = parseLabel(clause.text);
+    const item = { ...clause, ...parsed, index };
+    if (parsed.labeled) { current = { subtitle: parsed.label, items: [item] }; groups.push(current); }
+    else if (current?.subtitle) current.items.push(item);
+    else {
+      if (!current || current.subtitle) { current = { subtitle: null, items: [] }; groups.push(current); }
+      current.items.push(item);
+    }
+  });
+  return groups;
+};
+const unwrapRecords = source => {
+  if (!source) return [];
+  const queue = Array.isArray(source) ? [...source] : [source];
+  const records = [];
+  while (queue.length) {
+    const value = queue.shift();
+    if (!value) continue;
+    if (Array.isArray(value)) { queue.unshift(...value); continue; }
+    if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; }
+    if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; }
+    if (value.data !== undefined && !DISPLAY_FIELDS.some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; }
+    if (value.records !== undefined) { queue.unshift(value.records); continue; }
+    if (typeof value === 'object') records.push(value);
+  }
+  return records.filter(record => DISPLAY_FIELDS.some(field => hasValue(record[field])));
 };
 
-const formatDate = (dateValue) => {
-  if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateValue); }
-};
-
-const toInputDate = (dateValue) => {
-  if (!dateValue) return '';
-  try { const d = new Date(dateValue.$date || dateValue); return d.toISOString().split('T')[0]; } catch { return ''; }
-};
-
-/* stripTime: a date / ISO datetime ("2025-11-28T00:00:00Z") → date-only display ("November 28, 2025"),
-   formatted in UTC so a midnight-UTC timestamp never shifts back a day. Non-date text passes through
-   unchanged and an already-formatted date is idempotent. Used for all date-field display + Copy. */
-const stripTime = (val) => {
-  const s = String(val == null ? '' : val);
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ]|$)/);
-  if (!m) return s;
-  const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00Z`);
-  if (isNaN(d.getTime())) return `${m[1]}-${m[2]}-${m[3]}`;
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
-};
-
-/* ═══════ COMPONENT ═══════ */
-const AthleticInjuryAssessmentDocument = ({ document: docProp }) => {
+const AthleticInjuryAssessmentDocument = ({ document: documentProp, data, templateData }) => {
+  const records = useMemo(() => unwrapRecords(documentProp || data || templateData), [documentProp, data, templateData]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [copiedSection, setCopiedSection] = useState(null);
-  const [copiedItems, setCopiedItems] = useState({});
-  const [showCopied, setShowCopied] = useState(false);
-  const [localEdits, setLocalEdits] = useState({});
+  const [copied, setCopied] = useState(null);
   const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState('');
-  const [editedFields, setEditedFields] = useState({});
-  const [editedSentences, setEditedSentences] = useState({});
-  const [approvedSections, setApprovedSections] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(null);
-  // editKeys (`${fn}-${idx}`) that are staged drafts (saved locally, NOT yet committed to DB/PDF). Cleared on Approve.
+  const [saveError, setSaveError] = useState('');
+  const [localEdits, setLocalEdits] = useState({});
   const [pendingEdits, setPendingEdits] = useState({});
-  const containerRef = useRef(null);
+  const [approvedSections, setApprovedSections] = useState({});
+  const [approving, setApproving] = useState(false);
 
-  /* ═══════ DATA UNWRAP ═══════ */
-  const records = useMemo(() => {
-    if (!docProp) return [];
-    let arr = Array.isArray(docProp) ? docProp : [docProp];
-    arr = arr.flatMap(r => {
-      if (r?.athletic_injury_assessment) return Array.isArray(r.athletic_injury_assessment) ? r.athletic_injury_assessment : [r.athletic_injury_assessment];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.athletic_injury_assessment) return Array.isArray(dd.athletic_injury_assessment) ? dd.athletic_injury_assessment : [dd.athletic_injury_assessment]; return [dd]; }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [docProp]);
-
-  /* Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF). */
   useEffect(() => {
     const store = readDrafts();
-    if (!store || Object.keys(store).length === 0) return;
-    const recIdOf = (r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); };
-    const nLocal = {}, nPending = {}, nFields = {};
-    records.forEach((record, idx) => {
-      const rid = recIdOf(record);
-      const recDrafts = rid ? store[rid] : null;
-      if (!recDrafts) return;
-      Object.entries(recDrafts).forEach(([fieldPart, value]) => {
-        const dotIdx = fieldPart.lastIndexOf('.');
-        const isArrayItem = dotIdx !== -1 && /^\d+$/.test(fieldPart.slice(dotIdx + 1));
-        if (isArrayItem) {
-          const fn = fieldPart.slice(0, dotIdx);
-          const arrayIndex = parseInt(fieldPart.slice(dotIdx + 1), 10);
-          const localKey = `${fn}-${idx}`;
-          const baseArr = Array.isArray(nLocal[localKey])
-            ? [...nLocal[localKey]]
-            : [...(Array.isArray(record[fn]) ? record[fn] : [])];
-          baseArr[arrayIndex] = value;
-          nLocal[localKey] = baseArr;
-          nPending[localKey] = true;
-          nFields[`${fn}.${arrayIndex}-${idx}`] = 'edited';
-        } else {
-          const fn = fieldPart;
-          const localKey = `${fn}-${idx}`;
-          nLocal[localKey] = value;
-          nPending[localKey] = true;
-          nFields[localKey] = 'edited';
-        }
+    const nextLocal = {};
+    const nextPending = {};
+    records.forEach((record, index) => {
+      const drafts = store[recordIdOf(record)] || {};
+      Object.entries(drafts).forEach(([path, value]) => {
+        nextLocal[`${path}-${index}`] = value;
+        nextPending[`${path}-${index}`] = true;
       });
     });
-    if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
+    if (Object.keys(nextLocal).length) {
+      setLocalEdits(previous => ({ ...nextLocal, ...previous }));
+      setPendingEdits(previous => ({ ...nextPending, ...previous }));
+    }
   }, [records]);
 
-  /* ═══════ UTILS ═══════ */
-  const hasVal = useCallback((v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; }, []);
-  const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
-
-  const splitBySentence = useCallback((text) => {
-    if (!text || typeof text !== 'string') return [];
-    return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
-  }, []);
-
-  const splitBySemicolon = useCallback((text) => {
-    if (!text || typeof text !== 'string') return [];
-    return text.split(/;\s*/).map(s => s.trim()).filter(Boolean);
-  }, []);
-
-  function reconstructFullText(sentences, isSemicolon) {
-    if (!sentences || sentences.length === 0) return '';
-    if (isSemicolon) return sentences.join('; ');
-    return sentences.map((s, i) => {
-      let c = s.replace(/[;.]+$/, '').trim();
-      if (i < sentences.length - 1) c += '.';
-      return c;
-    }).join(' ');
-  }
-
-  const getFieldValue = useCallback((record, fn, idx) => {
-    const k = `${fn}-${idx}`;
-    if (localEdits[k] !== undefined) return localEdits[k];
-    return record[fn];
+  const valueAt = useCallback((record, path, index) => {
+    const key = `${path}-${index}`;
+    return localEdits[key] !== undefined ? localEdits[key] : getAtPath(record, path);
   }, [localEdits]);
-
-  const safeId = useCallback((r) => { if (!r?._id) return null; if (typeof r._id === 'string') return r._id; if (r._id.$oid) return r._id.$oid; return String(r._id); }, []);
-
-  const highlightText = useCallback((text) => {
-    if (!searchTerm.trim() || !text) return text;
-    const phrase = searchTerm.trim();
-    const regex = new RegExp(`(${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    const parts = String(text).split(regex);
-    return parts.map((part, i) => regex.test(part) ? <mark key={i}>{part}</mark> : part);
-  }, [searchTerm]);
-
-  const sectionTitleMatches = useCallback((sid) => {
-    if (!searchTerm.trim()) return false;
-    const p = searchTerm.toLowerCase().trim();
-    const t = (SECTION_TITLES[sid] || '').toLowerCase();
-    return t.includes(p) || p.includes(t);
-  }, [searchTerm]);
-
-  /* ═══════ SEARCH — 4-LEVEL ═══════ */
-  const shouldShowSection = useCallback((record, sid) => {
-    if (!searchTerm.trim() || record._showAllSections) return true;
-    const phrase = searchTerm.toLowerCase().trim();
-    const title = (SECTION_TITLES[sid] || '').toLowerCase();
-    if (title.includes(phrase) || phrase.includes(title)) return true;
-    const fields = SECTION_FIELDS[sid] || [];
-    for (const f of fields) {
-      const label = (FIELD_LABELS[f] || f).toLowerCase();
-      if (label.includes(phrase) || phrase.includes(label)) return true;
-      const val = getFieldValue(record, f, 0);
-      if (val !== null && val !== undefined) {
-        if (Array.isArray(val)) { if (val.some(item => String(item).toLowerCase().includes(phrase))) return true; }
-        else if (typeof val === 'object') { if (Object.entries(val).some(([k, v]) => String(k).toLowerCase().includes(phrase) || String(v).toLowerCase().includes(phrase))) return true; }
-        else if (fmtVal(val).toLowerCase().includes(phrase)) return true;
-      }
-    }
-    return false;
-  }, [searchTerm, getFieldValue, fmtVal]);
-
-  const fieldMatches = useCallback((record, fn, idx) => {
-    if (!searchTerm.trim() || record._showAllSections) return true;
-    const phrase = searchTerm.toLowerCase().trim();
-    const label = (FIELD_LABELS[fn] || fn).toLowerCase();
-    if (label.includes(phrase) || phrase.includes(label)) return true;
-    const val = getFieldValue(record, fn, idx);
-    if (val !== null && val !== undefined) {
-      if (Array.isArray(val)) return val.some(item => String(item).toLowerCase().includes(phrase));
-      if (typeof val === 'object') return Object.entries(val).some(([k, v]) => String(k).toLowerCase().includes(phrase) || String(v).toLowerCase().includes(phrase));
-      return fmtVal(val).toLowerCase().includes(phrase);
-    }
-    return false;
-  }, [searchTerm, getFieldValue, fmtVal]);
-
-  const filteredRecords = useMemo(() => {
-    if (!searchTerm.trim()) return records;
-    const phrase = searchTerm.toLowerCase().trim();
-    return records.filter((record, idx) => {
-      record._showAllSections = false;
-      const rt = `Athletic Injury Assessment ${idx + 1}`.toLowerCase();
-      if (rt.includes(phrase) || phrase.includes(rt)) { record._showAllSections = true; return true; }
-      for (const t of Object.values(SECTION_TITLES)) { if (t.toLowerCase().includes(phrase) || phrase.includes(t.toLowerCase())) return true; }
-      for (const l of Object.values(FIELD_LABELS)) { if (l.toLowerCase().includes(phrase) || phrase.includes(l.toLowerCase())) return true; }
-      for (const fields of Object.values(SECTION_FIELDS)) {
-        for (const f of fields) {
-          const val = getFieldValue(record, f, idx);
-          if (val && (Array.isArray(val) ? val.some(item => String(item).toLowerCase().includes(phrase)) : typeof val === 'object' ? Object.entries(val).some(([k, v]) => String(k).toLowerCase().includes(phrase) || String(v).toLowerCase().includes(phrase)) : fmtVal(val).toLowerCase().includes(phrase))) return true;
-        }
-      }
-      return false;
-    });
-  }, [records, searchTerm, getFieldValue, fmtVal]);
-
-  /* ═══════ PDF DATA ═══════ */
-  const pdfData = useMemo(() => {
-    return filteredRecords.map((record, idx) => {
-      const merged = { ...record };
-      Object.keys(localEdits).forEach(key => {
-        if (pendingEdits[key]) return; // pending drafts stay OUT of the PDF/Copy All until approved
-        const m = key.match(/^(.+)-(\d+)$/);
-        if (m && parseInt(m[2]) === idx) {
-          merged[m[1]] = localEdits[key];
-        }
-      });
-      return merged;
-    });
-  }, [filteredRecords, localEdits, pendingEdits]);
-
-  /* ═══════ EDIT HANDLERS ═══════ */
-  /* stageDraft: persist a single fieldPart draft into the localStorage draft store + clear the
-     owning section's approved flag so re-edit returns to yellow "Pending Approve". NO DB write. */
-  const stageDraft = useCallback((record, fieldPart, value, sid, idx) => {
-    const id = safeId(record); if (!id) return;
+  const stageDraft = useCallback((record, path, index, value) => {
+    const id = recordIdOf(record);
+    if (!id) return;
+    const key = `${path}-${index}`;
+    setLocalEdits(previous => ({ ...previous, [key]: value }));
+    setPendingEdits(previous => ({ ...previous, [key]: true }));
     const store = readDrafts();
-    if (!store[id]) store[id] = {};
-    store[id][fieldPart] = value;
+    store[id] = { ...(store[id] || {}), [path]: value };
     writeDrafts(store);
-    if (sid !== undefined && sid !== null) {
-      setApprovedSections(prev => {
-        const key = `${sid}-${idx}`;
-        if (!prev[key]) return prev;
-        const n = { ...prev }; delete n[key]; return n;
-      });
-    }
-  }, [safeId]);
-
-  // Save = stage a DRAFT locally + localStorage (survives refresh). NOT written to MongoDB and
-  // NOT shown in the PDF until the user clicks Pending Approve (handleApproveSection commits).
-  const handleSaveField = useCallback((record, fn, idx, sid, sentIdx, valueOverride, editTrackingKey) => {
-    const id = safeId(record); if (!id) return;
-    const saveVal = valueOverride !== undefined ? valueOverride : editValue;
-    setSaveError(null);
-    setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: saveVal }));
-    setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true }));
-    const trackKey = editTrackingKey || `${fn}-${idx}`;
-    setEditedFields(prev => ({ ...prev, [trackKey]: 'edited' }));
-    stageDraft(record, fn, saveVal, sid, idx);
-    setEditingField(null); setEditValue('');
-  }, [editValue, safeId, stageDraft]);
-
-  function saveSentence(record, fn, idx, sid, sentenceIdx) {
-    const id = safeId(record); if (!id) return;
-    const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const semiItems = splitBySemicolon(currentVal);
-    const isSemicolon = semiItems.length >= 2;
-    const sentences = isSemicolon ? semiItems : splitBySentence(currentVal);
-    const editedVal = editValue.trim();
-    if (!editedVal || /^[;.,!?]+$/.test(editedVal)) {
-      const updated = [...sentences]; updated.splice(sentenceIdx, 1);
-      const fullText = reconstructFullText(updated, isSemicolon);
-      setSaveError(null);
-      setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullText }));
-      setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true }));
-      setEditedSentences(prev => ({ ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }));
-      stageDraft(record, fn, fullText, sid, idx);
-      setEditingField(null); setEditValue('');
-      return;
-    }
-    const newSentences = isSemicolon ? splitBySemicolon(editedVal) : splitBySentence(editedVal);
-    const updated = [...sentences]; updated.splice(sentenceIdx, 1, ...newSentences);
-    const fullText = reconstructFullText(updated, isSemicolon);
-    setSaveError(null);
-    setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullText }));
-    setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true }));
-    const orig = sentences[sentenceIdx] || '';
-    const changed = newSentences[0].replace(/[;.]+$/, '').trim() !== orig.replace(/[;.]+$/, '').trim();
-    setEditedSentences(prev => {
-      const n = { ...prev };
-      if (changed) n[`${fn}-${idx}-s${sentenceIdx}`] = 'edited';
-      const extra = newSentences.length - 1;
-      for (let ei = 0; ei < extra; ei++) n[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added';
-      return n;
+    setEditingField(null);
+    setEditValue('');
+    setSaveError('');
+  }, []);
+  const mergedRecord = useCallback((record, index, includePending) => {
+    const merged = JSON.parse(JSON.stringify(record));
+    Object.entries(localEdits).forEach(([key, value]) => {
+      if (!key.endsWith(`-${index}`) || (!includePending && pendingEdits[key])) return;
+      setAtPath(merged, key.slice(0, -String(index).length - 1), value);
     });
-    stageDraft(record, fn, fullText, sid, idx);
-    setEditingField(null); setEditValue('');
-  }
+    return merged;
+  }, [localEdits, pendingEdits]);
+  const pdfData = useMemo(() => records.map((record, index) => mergedRecord(record, index, false)), [records, mergedRecord]);
 
-  function saveCommaItem(record, fn, idx, sid, sIdx, ciIdx) {
-    const id = safeId(record); if (!id) return;
-    const currentVal = String(getFieldValue(record, fn, idx) || '');
-    const semiTop = splitBySemicolon(currentVal);
-    const isSemicolon = semiTop.length >= 2;
-    const sentences = isSemicolon ? semiTop : splitBySentence(currentVal);
-    const s = sentences[sIdx] || '';
-    const p = parseLabel(s);
-    if (!p.isLabeled) return;
-    const semiSub = splitBySemicolon(p.value);
-    const useSemicolon = semiSub.length >= 2;
-    const items = useSemicolon ? semiSub : splitByComma(p.value);
-    const trimmed = editValue.trim();
-    const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp);
-    if (subParts.length > 1) { items.splice(ciIdx, 1, ...subParts); } else { items[ciIdx] = trimmed.replace(/[;.]+$/, '').trim(); }
-    const joiner = useSemicolon ? '; ' : ', ';
-    const rebuilt = `${p.label}: ${items.join(joiner)}.`;
-    const allS = [...sentences]; allS[sIdx] = rebuilt;
-    const fullText = reconstructFullText(allS, isSemicolon);
-    setSaveError(null);
-    setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullText }));
-    setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true }));
-    const sentenceKey = `${fn}-${idx}-s${sIdx}`;
-    const commaKey = `${sentenceKey}-c${ciIdx}`;
-    const marks = { [commaKey]: 'edited' };
-    for (let ei = 1; ei < subParts.length; ei++) marks[`${sentenceKey}-c${ciIdx + ei}`] = 'added';
-    setEditedSentences(prev => ({ ...prev, ...marks }));
-    stageDraft(record, fn, fullText, sid, idx);
-    setEditingField(null); setEditValue('');
-  }
-
-  /* ═══════ APPROVE ═══════ */
-  const sectionHasEdits = useCallback((idx, sid) => {
-    const fields = SECTION_FIELDS[sid] || [];
-    return fields.some(f =>
-      Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) ||
-      Object.keys(editedSentences).some(k => k.startsWith(`${f}-${idx}`))
-    );
-  }, [editedFields, editedSentences]);
-
-  // Approve = COMMIT this section's staged drafts to MongoDB, then clear pending so the committed
-  // values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
-  const handleApproveSection = useCallback(async (record, sid, idx) => {
-    const id = safeId(record); if (!id) return;
-    const fields = SECTION_FIELDS[sid] || [];
-    setSaving(true); setSaveError(null);
+  const copyText = async (text, id) => {
+    await navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2500);
+  };
+  const highlight = value => {
+    const text = String(value ?? '');
+    const query = searchTerm.trim();
+    if (!query) return text;
+    const index = text.toLowerCase().indexOf(query.toLowerCase());
+    if (index < 0) return text;
+    return <>{text.slice(0, index)}<mark>{text.slice(index, index + query.length)}</mark>{text.slice(index + query.length)}</>;
+  };
+  const startEdit = (key, value) => { setEditingField(key); setEditValue(String(value ?? '')); setSaveError(''); };
+  const cancelEdit = () => { setEditingField(null); setEditValue(''); setSaveError(''); };
+  const sectionPending = (section, index) => Object.keys(pendingEdits).some(key => {
+    if (!pendingEdits[key] || !key.endsWith(`-${index}`)) return false;
+    const path = key.slice(0, -String(index).length - 1);
+    return section.fields.includes(path.split('.')[0]);
+  });
+  const approveSection = async (record, index, section) => {
+    const id = recordIdOf(record);
+    if (!id) return;
+    const keys = Object.keys(pendingEdits).filter(key => {
+      if (!pendingEdits[key] || !key.endsWith(`-${index}`)) return false;
+      const path = key.slice(0, -String(index).length - 1);
+      return section.fields.includes(path.split('.')[0]);
+    });
+    if (!keys.length) return;
+    setApproving(true);
     try {
-      // Source of truth for what to write = the per-record localStorage draft store.
-      const store = readDrafts();
-      const recDrafts = (store && store[id]) ? store[id] : {};
-      // fieldParts belonging to this section ("fn" or "fn.arrayIndex" where fn ∈ section fields)
-      const sectionParts = Object.keys(recDrafts).filter(fieldPart => {
-        const dotIdx = fieldPart.lastIndexOf('.');
-        const isArrayItem = dotIdx !== -1 && /^\d+$/.test(fieldPart.slice(dotIdx + 1));
-        const baseField = isArrayItem ? fieldPart.slice(0, dotIdx) : fieldPart;
-        return fields.includes(baseField);
-      });
-      for (const fieldPart of sectionParts) {
-        const dotIdx = fieldPart.lastIndexOf('.');
-        const isArrayItem = dotIdx !== -1 && /^\d+$/.test(fieldPart.slice(dotIdx + 1));
-        const payload = { field: isArrayItem ? fieldPart.slice(0, dotIdx) : fieldPart, value: recDrafts[fieldPart] };
-        if (isArrayItem) payload.arrayIndex = parseInt(fieldPart.slice(dotIdx + 1), 10);
-        const resp = await secureApiClient.put(`/api/edit/athletic_injury_assessment/${id}/edit`, payload);
-        if (resp && resp.success === false) throw new Error(resp.error || 'save failed');
+      for (const key of keys) {
+        const path = key.slice(0, -String(index).length - 1);
+        const response = await secureApiClient.put(`/api/edit/${COLLECTION}/${id}/edit`, { field: path, value: localEdits[key] });
+        if (!response?.success) throw new Error(response?.error || 'save failed');
       }
-      // Flag the record/section approved (audit trail)
-      await secureApiClient.put(`/api/edit/athletic_injury_assessment/${id}/approve`, { sectionId: sid, approved: true });
-
-      // Clear pending → committed edits now flow into pdfData/PDF (localEdits keyed `${fn}-${idx}`)
-      setPendingEdits(prev => { const n = { ...prev }; fields.forEach(f => delete n[`${f}-${idx}`]); return n; });
-      // Drop this section's drafts from localStorage (now committed)
-      if (store && store[id]) {
-        sectionParts.forEach(fp => delete store[id][fp]);
-        if (Object.keys(store[id]).length === 0) delete store[id];
+      const response = await secureApiClient.put(`/api/edit/${COLLECTION}/${id}/approve`, { sectionId: section.id, approved: true });
+      if (!response?.success) throw new Error(response?.error || 'approval failed');
+      setPendingEdits(previous => { const next = { ...previous }; keys.forEach(key => delete next[key]); return next; });
+      const store = readDrafts();
+      if (store[id]) {
+        keys.forEach(key => delete store[id][key.slice(0, -String(index).length - 1)]);
+        if (!Object.keys(store[id]).length) delete store[id];
         writeDrafts(store);
       }
+      setApprovedSections(previous => ({ ...previous, [`${section.id}-${index}`]: true }));
+    } catch (error) { setSaveError(error.message || 'Unable to approve changes'); }
+    finally { setApproving(false); }
+  };
 
-      setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
-      setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`) || (k.startsWith(`${f}.`) && k.endsWith(`-${idx}`))) delete n[k]; }); }); return n; });
-      setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { fields.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
-    } catch (err) {
-      console.error('[AthleticInjuryAssessment] Approve error:', err);
-      setSaveError('Approve failed. Please try again.');
-    } finally { setSaving(false); }
-  }, [safeId]);
+  const renderApproveButton = (record, index, section) => {
+    const pending = sectionPending(section, index);
+    const approved = approvedSections[`${section.id}-${index}`];
+    if (!pending && !approved) return null;
+    return <button className={`approve-btn${approved && !pending ? ' approved' : ' pending'}`} disabled={approving || !pending} onClick={() => approveSection(record, index, section)}>{approving ? 'Approving...' : approved && !pending ? 'Approved' : 'Pending Approve'}</button>;
+  };
+  const editControl = (widget, options = []) => {
+    if (widget === 'date') return <BlueDatePicker value={editValue} onSelect={setEditValue} />;
+    if (widget === 'boolean') return <BlueSelect value={editValue} options={options} onChange={setEditValue} />;
+    return <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />;
+  };
+  const renderLeaf = ({ record, index, path, displayValue, initialValue, saveValue, widget = 'text', options = [], leafKey }) => {
+    const editKey = leafKey || `${path}-${index}`;
+    const editing = editingField === editKey;
+    const modified = !!pendingEdits[`${path}-${index}`];
+    const shown = displayText(displayValue);
+    const save = event => {
+      event?.stopPropagation();
+      if (widget === 'date' && (!/^\d{4}-\d{2}-\d{2}$/.test(editValue) || Number.isNaN(new Date(editValue).getTime()))) { setSaveError('Please choose a valid date'); return; }
+      if (widget !== 'boolean' && !String(editValue).trim()) { setSaveError('Please enter a value'); return; }
+      let next;
+      if (saveValue) next = saveValue(editValue);
+      else if (widget === 'date') next = `${editValue}T00:00:00.000Z`;
+      else if (widget === 'boolean') next = String(editValue).toLowerCase() === 'yes';
+      else next = String(editValue).trim();
+      stageDraft(record, path, index, next);
+    };
+    return <div data-edit-field={path} key={editKey}><div className={`numbered-row editable-row${modified ? ' modified' : ''}`} onClick={() => !editing && startEdit(editKey, initialValue ?? shown)}>{editing ? <div className="edit-field-container" onClick={event => event.stopPropagation()}>{editControl(widget, options)}{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={save}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); cancelEdit(); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlight(shown)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copied === editKey ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyText(shown, editKey); }}>{copied === editKey ? 'Copied!' : 'Copy'}</button></>}</div>{modified && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>;
+  };
+  const renderSimplePath = (record, index, path, label, widget = 'text', options = []) => {
+    const value = valueAt(record, path, index);
+    if (!hasValue(value)) return null;
+    const shown = widget === 'date' ? formatDate(value) : widget === 'boolean' ? (value ? 'Yes' : 'No') : String(value);
+    const initial = widget === 'date' ? toInputDate(value) : shown;
+    return <div className="rec-mini-card nested-mini-card" key={path}><div className="nested-subtitle field-label">{label}</div>{renderLeaf({ record, index, path, displayValue: shown, initialValue: initial, widget, options })}</div>;
+  };
+  const renderArrayPath = (record, index, path, label) => {
+    const values = getAtPath(mergedRecord(record, index, true), path);
+    if (!Array.isArray(values) || !values.some(hasValue)) return null;
+    return <div className="rec-mini-card nested-mini-card" key={path}><div className="nested-subtitle field-label">{label}</div>{values.map((value, itemIndex) => {
+      if (!hasValue(value)) return null;
+      const itemPath = `${path}.${itemIndex}`;
+      const shown = valueAt(record, itemPath, index);
+      return renderLeaf({ record, index, path: itemPath, displayValue: shown, initialValue: shown, leafKey: `${itemPath}-${index}` });
+    })}</div>;
+  };
+  const renderNarrativePath = (record, index, path, label) => {
+    const source = String(valueAt(record, path, index) || '');
+    if (!source.trim()) return null;
+    const groups = groupClauses(splitClauses(path, source));
+    return <div className="narrative-field-group" key={path}><div className="field-heading">{highlight(label)}</div>{groups.map((group, groupIndex) => <div className={`rec-mini-card nested-mini-card${group.subtitle ? '' : ' regular-row-group'}`} key={`${path}-${groupIndex}`}>{group.subtitle && <div className="nested-subtitle">{highlight(group.subtitle)}</div>}{group.items.map(item => renderLeaf({ record, index, path, leafKey: `${path}-${index}-clause-${item.index}`, displayValue: item.value, initialValue: item.value, saveValue: next => source.slice(0, item.start) + (item.labeled ? `${item.label}: ${String(next).trim()}` : String(next).trim()) + source.slice(item.end) }))}</div>)}</div>;
+  };
 
-  const renderApproveButton = useCallback((record, sid, idx) => {
-    const hasEdits = sectionHasEdits(idx, sid);
-    const isApproved = approvedSections[`${sid}-${idx}`];
-    if (hasEdits) return (<button className="approve-btn pending" onClick={e => { e.stopPropagation(); handleApproveSection(record, sid, idx); }}>Pending Approve</button>);
-    if (isApproved) return <span className="approve-btn approved">Approved</span>;
-    return null;
-  }, [sectionHasEdits, approvedSections, handleApproveSection]);
-
-  /* ═══════ COPY ═══════ */
-  const copyToClipboard = useCallback(async (text) => { try { await navigator.clipboard.writeText(text); return true; } catch { const ta = window.document.createElement('textarea'); ta.value = text; ta.style.position = 'absolute'; ta.style.left = '-9999px'; (containerRef.current || window.document.body).appendChild(ta); ta.select(); window.document.execCommand('copy'); (containerRef.current || window.document.body).removeChild(ta); return true; } }, []);
-  const copySectionText = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedSection(id); setTimeout(() => setCopiedSection(null), 2000); } }, [copyToClipboard]);
-  const copyItem = useCallback(async (text, id) => { const ok = await copyToClipboard(text); if (ok) { setCopiedItems(prev => ({ ...prev, [id]: true })); setTimeout(() => setCopiedItems(prev => ({ ...prev, [id]: false })), 2000); } }, [copyToClipboard]);
-
-  /* ═══════ FORMAT HELPERS FOR COPY ═══════ */
-  const formatSentenceFieldLines = useCallback((text) => {
-    const sentences = splitBySentence(text);
-    const lines = []; let n = 1;
-    sentences.forEach(s => {
-      const parsed = parseLabel(s);
-      if (parsed.isLabeled) {
-        const parts = splitByComma(parsed.value);
-        if (parts.length >= 2) {
-          lines.push(parsed.label + ':');
-          parts.forEach(item => { lines.push(`  ${n++}. ${item}`); });
-        } else { lines.push(parsed.label + ':'); lines.push(`  ${n++}. ${parsed.value}`); }
-      } else { lines.push(`${n++}. ${s}`); }
+  const sectionLines = (record, section) => {
+    const lines = [section.title.toUpperCase(), '-'.repeat(40)];
+    section.fields.forEach(field => {
+      const value = record[field];
+      if (!hasValue(value)) return;
+      lines.push(FIELD_LABELS[field]);
+      if (DATE_FIELDS.has(field)) lines.push(formatDate(value));
+      else if (BOOLEAN_FIELDS.has(field)) lines.push(value ? 'Yes' : 'No');
+      else if (ARRAY_FIELDS.has(field)) value.filter(hasValue).forEach((item, itemIndex) => lines.push(`${itemIndex + 1}. ${displayText(item)}`));
+      else if (NARRATIVE_FIELDS.has(field)) splitClauses(field, value).forEach((clause, clauseIndex) => { const parsed = parseLabel(clause.text); if (parsed.labeled) lines.push(parsed.label); lines.push(`${clauseIndex + 1}. ${displayText(parsed.value)}`); });
+      else lines.push(displayText(value));
     });
     return lines;
-  }, [splitBySentence]);
-
-  const buildSectionCopyText = useCallback((record, idx, sid) => {
-    const title = SECTION_TITLES[sid];
-    let text = `${title}\n${'='.repeat(40)}\n\n`;
-    const fields = SECTION_FIELDS[sid] || [];
-    fields.forEach(f => {
-      const label = FIELD_LABELS[f] || f;
-      const val = getFieldValue(record, f, idx);
-      if (!hasVal(val)) return;
-      const showLabelCopy = true;
-      if (DATE_FIELDS.includes(f)) {
-        if (showLabelCopy) text += `${label}\n`;
-        text += `${stripTime(val)}\n\n`;
-      } else if (BOOLEAN_FIELDS.includes(f)) {
-        const boolDisplay = val ? 'Yes' : 'No';
-        text += showLabelCopy ? `${label}: ${boolDisplay}\n\n` : `${boolDisplay}\n\n`;
-      } else if (ARRAY_FIELDS.includes(f)) {
-        const items = Array.isArray(val) ? val : [val];
-        if (showLabelCopy) text += `${label}\n`;
-        text += `${items.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n`;
-      } else if (STRING_FIELDS.includes(f)) {
-        const strVal = fmtVal(val);
-        /* splitBySemicolon pre-split before comma split */
-        const scItems = splitBySemicolon(strVal);
-        if (scItems.length >= 2) {
-          if (showLabelCopy) text += `${label}\n`;
-          let n = 1;
-          scItems.forEach((item) => {
-            const parsed = parseLabel(item);
-            if (parsed.isLabeled) {
-              const commaItems = splitByComma(parsed.value);
-              if (commaItems.length >= 2) {
-                commaItems.forEach((ci, ciIdx) => {
-                  const cp = ciIdx === 0 ? { isLabeled: true, label: parsed.label, value: ci } : parseLabel(ci);
-                  text += cp.isLabeled ? `${n++}. ${cp.label}: ${cp.value}\n` : `${n++}. ${ci}\n`;
-                });
-              } else { text += `${n++}. ${parsed.label}: ${parsed.value}\n`; }
-            } else { text += `${n++}. ${item}\n`; }
-          });
-          text += '\n';
-        } else {
-          const sentences = splitBySentence(strVal);
-          if (sentences.length > 1) {
-            if (showLabelCopy) text += `${label}\n`;
-            formatSentenceFieldLines(strVal).forEach(l => { text += `${l}\n`; });
-            text += '\n';
-          } else {
-            if (showLabelCopy) text += `${label}\n`;
-            text += `${strVal}\n\n`;
-          }
-        }
-      } else {
-        if (showLabelCopy) text += `${label}\n`;
-        text += `${fmtVal(val)}\n\n`;
-      }
-    });
-    return text;
-  }, [getFieldValue, hasVal, fmtVal, splitBySentence, splitBySemicolon, formatSentenceFieldLines]);
-
-  const copyAllText = useCallback(async () => {
-    let text = '=== ATHLETIC INJURY ASSESSMENT ===\n\n';
-    pdfData.forEach((r, idx) => {
-      text += `Athletic Injury Assessment ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      Object.keys(SECTION_FIELDS).forEach(sid => {
-        text += buildSectionCopyText(r, idx, sid);
-      });
-      text += '\n';
-    });
-    const ok = await copyToClipboard(text);
-    if (ok) { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); }
-  }, [pdfData, copyToClipboard, buildSectionCopyText]);
-
-  /* ═══════ RENDER: DATE FIELD ═══════ */
-  const renderDateField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
-    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
-    const displayVal = stripTime(val); // UTC-safe date-only (no midnight timezone shift)
-    const isModified = editedFields[editKey];
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    return (
-      <div key={fn} className="rec-mini-card">
-        {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(toInputDate(val)); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (isNaN(new Date(editValue).getTime())) { setSaveError('Please enter a valid date'); return; } handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
+  };
+  const allText = (record, index) => {
+    const merged = mergedRecord(record, index, true);
+    const lines = [`ATHLETIC INJURY ASSESSMENT ${index + 1}`, '='.repeat(40)];
+    SECTIONS.forEach(section => { const output = sectionLines(merged, section); if (output.length > 2) lines.push('', ...output); });
+    return lines.join('\n');
+  };
+  const renderSection = (record, index, section) => {
+    const merged = mergedRecord(record, index, true);
+    if (!section.fields.some(field => hasValue(merged[field]))) return null;
+    const body = section.fields.flatMap(field => {
+      const value = merged[field];
+      if (!hasValue(value)) return [];
+      if (DATE_FIELDS.has(field)) return [renderSimplePath(record, index, field, FIELD_LABELS[field], 'date')];
+      if (BOOLEAN_FIELDS.has(field)) return [renderSimplePath(record, index, field, FIELD_LABELS[field], 'boolean', ['Yes', 'No'])];
+      if (ARRAY_FIELDS.has(field)) return [renderArrayPath(record, index, field, FIELD_LABELS[field])];
+      if (NARRATIVE_FIELDS.has(field)) return renderNarrativePath(record, index, field, FIELD_LABELS[field]);
+      return [renderSimplePath(record, index, field, FIELD_LABELS[field])];
+    }).filter(Boolean);
+    if (!body.length) return null;
+    const copyId = `${recordIdOf(record) || index}-${section.id}`;
+    return <div className="section" key={section.id}><div className="mini-cards-container"><div className="section-header"><h3 className="section-title">{section.title}</h3><div className="header-right-actions"><button className={`copy-btn ${copied === copyId ? 'copied' : ''}`} onClick={() => copyText(sectionLines(merged, section).join('\n'), copyId)}>{copied === copyId ? 'Copied!' : 'Copy Section'}</button>{renderApproveButton(record, index, section)}</div></div>{body}</div></div>;
   };
 
-  /* ═══════ RENDER: BOOLEAN FIELD ═══════ */
-  const renderBooleanField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
-    const editKey = `${fn}-${idx}`;
-    const isEditing = editingField === editKey;
-    const label = FIELD_LABELS[fn] || fn;
-    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
-    const displayVal = val ? 'Yes' : 'No';
-    const isModified = editedFields[editKey];
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
+  const filtered = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    const values = records.map((record, index) => ({ record, index }));
+    if (!query) return values;
+    return values.filter(({ record, index }) => JSON.stringify(mergedRecord(record, index, true)).toLowerCase().includes(query) || 'athletic injury assessment'.includes(query));
+  }, [records, searchTerm, mergedRecord]);
 
-    return (
-      <div key={fn} className="rec-mini-card">
-        {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(val ? 'Yes' : 'No'); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const boolVal = editValue === 'Yes'; handleSaveField(record, fn, idx, sid, null, boolVal); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}: ${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
-
-  /* ═══════ RENDER: ARRAY FIELD (per-item editing with dot-path keys) ═══════ */
-  const renderArrayField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx);
-    const items = Array.isArray(val) ? val.filter(Boolean) : [];
-    if (items.length === 0) return null;
-    const label = FIELD_LABELS[fn] || fn;
-    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    return (
-      <div key={fn} className="rec-mini-card">
-        {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        {items.map((item, itemIdx) => {
-          const editKey = `${fn}.${itemIdx}-${idx}`;
-          const isEditing = editingField === editKey;
-          const isModified = editedFields[editKey];
-          const itemStr = String(item);
-
-          if (searchTerm.trim() && !sectionTitleMatches(sid) && !record._showAllSections) {
-            const phrase = searchTerm.toLowerCase().trim();
-            const labelLower = label.toLowerCase();
-            if (!labelLower.includes(phrase) && !phrase.includes(labelLower) && !itemStr.toLowerCase().includes(phrase)) return null;
-          }
-
-          return (
-            <div key={itemIdx}>
-              <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(editKey); setEditValue(itemStr); setSaveError(null); } }}>
-                {isEditing ? (
-                  <div className="edit-field-container">
-                    <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                    {saveError && <div className="save-error">{saveError}</div>}
-                    <div className="edit-actions">
-                      <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id2 = safeId(record); if (!id2) return; setSaveError(null); const currentArr = [...(Array.isArray(getFieldValue(record, fn, idx)) ? getFieldValue(record, fn, idx) : [])]; currentArr[itemIdx] = editValue; setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: currentArr })); setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true })); setEditedFields(prev => ({ ...prev, [editKey]: 'edited' })); stageDraft(record, `${fn}.${itemIdx}`, editValue, sid, idx); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
-                      <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="row-content"><span className="content-value">{highlightText(itemStr)}</span><span className="edit-indicator">&#9998;</span></div>
-                    <button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(itemStr, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button>
-                  </>
-                )}
-              </div>
-              {isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  /* ═══════ RENDER: STRING FIELD with splitBySentence / splitBySemicolon ═══════ */
-  const renderStringField = (record, fn, idx, sid) => {
-    const val = getFieldValue(record, fn, idx); if (!hasVal(val)) return null;
-    const strVal = fmtVal(val);
-    const semiItems = splitBySemicolon(strVal);
-    const isSemicolon = semiItems.length >= 2;
-    const sentences = isSemicolon ? semiItems : splitBySentence(strVal);
-    const label = FIELD_LABELS[fn] || fn;
-    const showLabel = label.toLowerCase() !== (SECTION_TITLES[sid] || '').toLowerCase();
-    if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
-
-    /* Multi-sentence: render with period-first splitting, parseLabel for subtitles */
-    if (sentences.length > 1) {
-      const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
-      const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-
-      return (
-        <div key={fn}>
-          <div className="rec-mini-card">
-            {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-            {sentences.map((sentence, sIdx) => {
-              const sentenceKey = `${fn}-${idx}-s${sIdx}`;
-              const isEditing = editingField === sentenceKey;
-              const badge = editedSentences[sentenceKey];
-              const sentenceMatches = phraseMatch || labelMatch || (searchTerm.trim() && sentence.toLowerCase().includes(searchTerm.toLowerCase().trim()));
-              if (!sentenceMatches && searchTerm.trim()) return null;
-
-              const parsed = parseLabel(sentence);
-              if (parsed.isLabeled) {
-                const semiItems2 = splitBySemicolon(parsed.value);
-                const commaItems = semiItems2.length >= 2 ? semiItems2 : splitByComma(parsed.value);
-                const parsedLabelMatch = searchTerm.trim() && parsed.label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-                if (commaItems.length >= 2) {
-                  return (
-                    <React.Fragment key={sIdx}>
-                      {commaItems.map((ci, ciIdx) => {
-                        // First comma item is the value for the sentence label (e.g. "Active");
-                        // later items may carry their OWN embedded label (e.g. "Passive: ...") → own subtitle.
-                        const ciParsed = ciIdx === 0 ? { isLabeled: true, label: parsed.label, value: ci } : parseLabel(ci);
-                        const ciSubtitle = ciParsed.isLabeled ? ciParsed.label : null;
-                        const ciRowVal = ciParsed.isLabeled ? ciParsed.value : ci;
-                        const commaKey = `${sentenceKey}-c${ciIdx}`;
-                        const ciEditing = editingField === commaKey;
-                        const ciBadge = editedSentences[commaKey];
-                        const ciMatches = phraseMatch || labelMatch || parsedLabelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
-                        if (!ciMatches && searchTerm.trim()) return null;
-                        return (
-                          <div key={ciIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                            {ciSubtitle && <div className="nested-subtitle">{highlightText(ciSubtitle)}</div>}
-                            {/* edit operates on the FULL comma item (incl. its embedded label) so saveCommaItem round-trips */}
-                            <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
-                              {ciEditing ? (
-                                <div className="edit-field-container">
-                                  <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                                  {saveError && <div className="save-error">{saveError}</div>}
-                                  <div className="edit-actions">
-                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveCommaItem(record, fn, idx, sid, sIdx, ciIdx); }}>{saving ? 'Saving...' : 'Save'}</button>
-                                    <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="row-content"><span className="content-value">{highlightText(ciRowVal)}</span><span className="edit-indicator">&#9998;</span></div>
-                                  <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(ciSubtitle ? `${ciSubtitle}: ${ciRowVal}` : ci, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                                </>
-                              )}
-                            </div>
-                            {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
-                          </div>
-                        );
-                      })}
-                    </React.Fragment>
-                  );
-                }
-              }
-
-              /* Non-labeled sentence with 2+ comma items: split into rows */
-              if (!parsed.isLabeled) {
-                const nlCommaItems = splitByComma(sentence);
-                if (nlCommaItems.length >= 2) {
-                  return (
-                    <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                      {nlCommaItems.map((ci, ciIdx) => {
-                        const commaKey = `${sentenceKey}-c${ciIdx}`;
-                        const ciEditing = editingField === commaKey;
-                        const ciBadge = editedSentences[commaKey];
-                        const ciMatches = phraseMatch || labelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
-                        if (!ciMatches && searchTerm.trim()) return null;
-                        return (
-                          <div key={ciIdx}>
-                            <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
-                              {ciEditing ? (
-                                <div className="edit-field-container">
-                                  <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                                  {saveError && <div className="save-error">{saveError}</div>}
-                                  <div className="edit-actions">
-                                    <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveCommaItem(record, fn, idx, sid, sIdx, ciIdx); }}>{saving ? 'Saving...' : 'Save'}</button>
-                                    <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="row-content"><span className="content-value">{highlightText(ci)}</span><span className="edit-indicator">&#9998;</span></div>
-                                  <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(ci, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                                </>
-                              )}
-                            </div>
-                            {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added' : 'edited'} - click Pending Approve to save</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                }
-              }
-
-              /* Regular sentence row (single item, no comma split) — always rec-mini-card */
-              const rowValue = parsed.isLabeled ? parsed.value : sentence.replace(/[;.]+$/, '').trim();
-              const isDateValue = parsed.isLabeled && /^(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s*\d{4}/.test(rowValue.trim());
-
-              return (
-                <div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                  {parsed.isLabeled && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}
-                  <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(isDateValue ? toInputDate(new Date(rowValue.replace(/\.$/, ''))) : rowValue); setSaveError(null); } }}>
-                    {isEditing ? (
-                      <div className="edit-field-container">
-                        {isDateValue ? (
-                          <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                        ) : (
-                          <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                        )}
-                        {saveError && <div className="save-error">{saveError}</div>}
-                        <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (parsed.isLabeled) { let trimmed = editValue.trim(); if (isDateValue && /^\d{4}-\d{2}-\d{2}$/.test(trimmed)) { trimmed = formatDate(trimmed); } const subParts = trimmed.split(/\.\s+/).map(sp => sp.replace(/[;.]+$/, '').trim()).filter(sp => sp); const newValue = subParts.join(', '); const reconstructed = `${parsed.label}: ${newValue}`; const currentSentences = isSemicolon ? splitBySemicolon(String(getFieldValue(record, fn, idx) || '')) : splitBySentence(String(getFieldValue(record, fn, idx) || '')); currentSentences[sIdx] = reconstructed; const fullText = reconstructFullText(currentSentences, isSemicolon); setSaveError(null); setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullText })); setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true })); const marks = { [sentenceKey]: 'edited' }; for (let ei = 1; ei < subParts.length; ei++) marks[`${fn}-${idx}-s${sIdx}-c${ei}`] = 'added'; setEditedSentences(prev => ({ ...prev, ...marks })); stageDraft(record, fn, fullText, sid, idx); setEditingField(null); setEditValue(''); } else { saveSentence(record, fn, idx, sid, sIdx); } }}>{saving ? 'Saving...' : 'Save'}</button>
-                          <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="row-content"><span className="content-value">{highlightText(parsed.isLabeled ? parsed.value : sentence)}</span><span className="edit-indicator">&#9998;</span></div>
-                        <button className={`copy-btn ${copiedItems[sentenceKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(sentence, sentenceKey); }}>{copiedItems[sentenceKey] ? 'Copied!' : 'Copy'}</button>
-                      </>
-                    )}
-                  </div>
-                  {badge && <span className={`modified-badge ${badge === 'added' ? 'added' : ''}`}>{badge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    /* Single-value: split comma items into separate rows (labeled or not) */
-    const singleCommaItems = splitByComma(strVal);
-
-    if (singleCommaItems.length >= 2) {
-      const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid) || record._showAllSections;
-      const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-
-      return (
-        <div key={fn}>
-          <div className="rec-mini-card">
-            {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-            {singleCommaItems.map((ci, ciIdx) => {
-              const ciParsed = parseLabel(ci);
-              const commaKey = `${fn}-${idx}-s0-c${ciIdx}`;
-              const ciEditing = editingField === commaKey;
-              const ciBadge = editedSentences[commaKey];
-              const ciMatches = phraseMatch || labelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
-              if (!ciMatches && searchTerm.trim()) return null;
-
-              if (ciParsed.isLabeled) {
-                return (
-                  <div key={ciIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
-                    <div className="nested-subtitle">{highlightText(ciParsed.label)}</div>
-                    <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ciParsed.value); setSaveError(null); } }}>
-                      {ciEditing ? (
-                        <div className="edit-field-container">
-                          <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                          {saveError && <div className="save-error">{saveError}</div>}
-                          <div className="edit-actions">
-                            <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const allItems = splitByComma(String(getFieldValue(record, fn, idx) || '')); allItems[ciIdx] = `${ciParsed.label}: ${editValue.trim()}`; const fullText = allItems.join(', '); setSaveError(null); setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullText })); setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true })); setEditedSentences(prev => ({ ...prev, [commaKey]: 'edited' })); stageDraft(record, fn, fullText, sid, idx); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
-                            <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="row-content"><span className="content-value">{highlightText(ciParsed.value)}</span><span className="edit-indicator">&#9998;</span></div>
-                          <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${ciParsed.label}: ${ciParsed.value}`, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                        </>
-                      )}
-                    </div>
-                    {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added' : 'edited'} - click Pending Approve to save</span>}
-                  </div>
-                );
-              }
-
-              return (
-                <div key={ciIdx}>
-                  <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
-                    {ciEditing ? (
-                      <div className="edit-field-container">
-                        <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-                        {saveError && <div className="save-error">{saveError}</div>}
-                        <div className="edit-actions">
-                          <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); const id = safeId(record); if (!id) return; const allItems = splitByComma(String(getFieldValue(record, fn, idx) || '')); allItems[ciIdx] = editValue.trim(); const fullText = allItems.join(', '); setSaveError(null); setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullText })); setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true })); setEditedSentences(prev => ({ ...prev, [commaKey]: 'edited' })); stageDraft(record, fn, fullText, sid, idx); setEditingField(null); setEditValue(''); }}>{saving ? 'Saving...' : 'Save'}</button>
-                          <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="row-content"><span className="content-value">{highlightText(ci)}</span><span className="edit-indicator">&#9998;</span></div>
-                        <button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(ci, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button>
-                      </>
-                    )}
-                  </div>
-                  {ciBadge && <span className={`modified-badge ${ciBadge === 'added' ? 'added' : ''}`}>{ciBadge === 'added' ? 'added' : 'edited'} - click Pending Approve to save</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    /* Single-value string (no comma items): saveSentence editable */
-    const singleEditKey = `${fn}-${idx}-s0`;
-    const isEditing = editingField === singleEditKey;
-    const isModified = editedFields[`${fn}-${idx}`] || editedSentences[singleEditKey];
-
-    return (
-      <div key={fn} className="rec-mini-card">
-        {showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}
-        <div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(singleEditKey); setEditValue(strVal); setSaveError(null); } }}>
-          {isEditing ? (
-            <div className="edit-field-container">
-              <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />
-              {saveError && <div className="save-error">{saveError}</div>}
-              <div className="edit-actions">
-                <button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSentence(record, fn, idx, sid, 0); }}>{saving ? 'Saving...' : 'Save'}</button>
-                <button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="row-content"><span className="content-value">{highlightText(strVal)}</span><span className="edit-indicator">&#9998;</span></div>
-              <button className={`copy-btn ${copiedItems[singleEditKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${strVal}`, singleEditKey); }}>{copiedItems[singleEditKey] ? 'Copied!' : 'Copy'}</button>
-            </>
-          )}
-        </div>
-        {isModified && <span className={`modified-badge ${isModified === 'added' ? 'added' : ''}`}>edited - click Pending Approve to save</span>}
-      </div>
-    );
-  };
-
-  /* ═══════ RENDER: GENERIC SECTION ═══════ */
-  const renderSection = (record, idx, sid) => {
-    const title = SECTION_TITLES[sid];
-    if (!shouldShowSection(record, sid)) return null;
-    const fields = SECTION_FIELDS[sid] || [];
-
-    const hasAnyVal = fields.some(f => {
-      const val = getFieldValue(record, f, idx);
-      return hasVal(val);
-    });
-    if (!hasAnyVal) return null;
-
-    const copyId = `${sid}-${idx}`;
-    return (
-      <div key={sid} className="section">
-        <div className="mini-cards-container">
-          <div className="section-header">
-            <h4 className="section-title">{highlightText(title)}</h4>
-            <div className="header-right-actions">
-              <button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => copySectionText(buildSectionCopyText(record, idx, sid), copyId)}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>
-              {renderApproveButton(record, sid, idx)}
-            </div>
-          </div>
-          {fields.map(f => {
-            if (DATE_FIELDS.includes(f)) return renderDateField(record, f, idx, sid);
-            if (BOOLEAN_FIELDS.includes(f)) return renderBooleanField(record, f, idx, sid);
-            if (ARRAY_FIELDS.includes(f)) return renderArrayField(record, f, idx, sid);
-            return renderStringField(record, f, idx, sid);
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  /* ═══════ MAIN RENDER ═══════ */
-  if (!records || records.length === 0) {
-    return (
-      <div className="athletic-injury-assessment-document" ref={containerRef}>
-        <div className="document-header"><h2 className="document-title">Athletic Injury Assessment</h2></div>
-        <div className="empty-state">No athletic injury assessment data available</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="athletic-injury-assessment-document" ref={containerRef}>
-      <div className="document-header">
-        <h2 className="document-title">Athletic Injury Assessment</h2>
-        <div className="header-actions">
-          <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<AthleticInjuryAssessmentDocumentPDFTemplate document={pdfData} />} fileName={`athletic-injury-assessment-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
-            {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
-          </PDFDownloadLink>
-        </div>
-      </div>
-      <div className="search-container">
-        <input type="text" className="search-input" placeholder="Search athletic injury assessments..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-        {searchTerm && <span className="search-results">Showing {filteredRecords.length} of {records.length} records</span>}
-      </div>
-      <div className="records-container">
-        {filteredRecords.map((record, idx) => (
-          <div key={idx} className="record-card">
-            <div className="record-header">
-              {hasVal(record.date) && (
-                <div className="record-meta-row">
-                  <span className="record-date">{highlightText(formatDate(record.date))}</span>
-                </div>
-              )}
-              <h3 className="record-name">{highlightText(`Athletic Injury Assessment ${idx + 1}`)}</h3>
-            </div>
-            {renderSection(record, idx, 'record-info')}
-            {renderSection(record, idx, 'injury-details')}
-            {renderSection(record, idx, 'immediate-response')}
-            {renderSection(record, idx, 'physical-exam')}
-            {renderSection(record, idx, 'special-tests')}
-            {renderSection(record, idx, 'imaging-rehab')}
-            {renderSection(record, idx, 'return-to-play')}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  if (!records.length) return <article className="athletic-injury-assessment-document"><div className="empty-state">No athletic injury assessment data available.</div></article>;
+  return <article className="athletic-injury-assessment-document"><header className="document-header"><h1 className="document-title">Athletic Injury Assessment</h1><div className="header-actions"><button className={`copy-btn ${copied === 'all' ? 'copied' : ''}`} onClick={() => copyText(records.map(allText).join('\n\n'), 'all')}>{copied === 'all' ? 'Copied!' : 'Copy All'}</button><PDFDownloadLink document={<AthleticInjuryAssessmentDocumentPDFTemplate document={pdfData} />} fileName="Athletic_Injury_Assessment.pdf" className="pdf-btn">{({ loading }) => loading ? 'Preparing...' : 'Export PDF'}</PDFDownloadLink></div></header><div className="search-container"><input className="search-input" value={searchTerm} onChange={event => setSearchTerm(event.target.value)} placeholder="Search athletic injury assessments..." />{searchTerm && <button className="clear-search" onClick={() => setSearchTerm('')}>×</button>}</div><div className="records-container">{!filtered.length ? <div className="empty-state">No records match your search.</div> : filtered.map(({ record, index }) => <div className="record-card" key={recordIdOf(record) || index}><div className="record-header"><h2 className="record-name">Athletic Injury Assessment {index + 1}</h2></div>{SECTIONS.map(section => renderSection(record, index, section))}</div>)}</div></article>;
 };
 
+export { COMMA_ARRAY_FIELDS, COMMA_SPLIT_FIELDS, splitClauses };
 export default AthleticInjuryAssessmentDocument;

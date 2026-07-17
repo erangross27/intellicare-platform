@@ -168,6 +168,7 @@ import WorkplaceInjuryReportDocumentPDFTemplate from './WorkplaceInjuryReportDoc
 import WoundCareAssessmentsDocumentPDFTemplate from './WoundCareAssessmentsDocumentPDFTemplate';
 import WoundCareDocumentationDocumentPDFTemplate from './WoundCareDocumentationDocumentPDFTemplate';
 import WoundCareNotesDocumentPDFTemplate from './WoundCareNotesDocumentPDFTemplate';
+import WoundHealingHyperbaricDocumentPDFTemplate from './WoundHealingHyperbaricDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -325,6 +326,7 @@ const templateRegistry = {
   'wound_care_assessments': WoundCareAssessmentsDocumentPDFTemplate,
   'wound_care_documentation': WoundCareDocumentationDocumentPDFTemplate,
   'wound_care_notes': WoundCareNotesDocumentPDFTemplate,
+  'wound_healing_hyperbaric': WoundHealingHyperbaricDocumentPDFTemplate,
 };
 
 /**

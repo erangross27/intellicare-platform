@@ -1,5 +1,6 @@
 /* WoundHealingHyperbaricDocument.css — March 2026 Blue glow editing theme */
-.wound-healing-hyperbaric-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
+.wound-healing-hyperbaric-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; text-align: left; }
+.wound-healing-hyperbaric-document * { direction: ltr; text-align: left; }
 .wound-healing-hyperbaric-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
 .wound-healing-hyperbaric-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
 .wound-healing-hyperbaric-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
@@ -8,7 +9,6 @@
 .wound-healing-hyperbaric-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
 .wound-healing-hyperbaric-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
 .wound-healing-hyperbaric-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.wound-healing-hyperbaric-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
 .wound-healing-hyperbaric-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
 .wound-healing-hyperbaric-document .section { margin-top: 16px; }
 .wound-healing-hyperbaric-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
@@ -29,16 +29,17 @@
 .wound-healing-hyperbaric-document .editable-row:hover .edit-indicator { opacity: 1; }
 .wound-healing-hyperbaric-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
 .wound-healing-hyperbaric-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
-.wound-healing-hyperbaric-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; display: block; margin-top: 2px; }
+.wound-healing-hyperbaric-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
 .wound-healing-hyperbaric-document .modified-badge.added { color: #4ade80; }
 .wound-healing-hyperbaric-document .edit-field-container { width: 100%; }
+.wound-healing-hyperbaric-document .edit-input { flex: 1; min-width: 0; height: 40px; padding: 8px 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font: inherit; box-sizing: border-box; }
+.wound-healing-hyperbaric-document .num-step { width: 40px; height: 40px; border: 1px solid #60a5fa; border-radius: 6px; background: rgba(96, 165, 250, 0.14); color: #ececf1; cursor: pointer; font-size: 20px; text-align: center; }
 .wound-healing-hyperbaric-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.wound-healing-hyperbaric-document .edit-date { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.wound-healing-hyperbaric-document .edit-date::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 .wound-healing-hyperbaric-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
 .wound-healing-hyperbaric-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
 .wound-healing-hyperbaric-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
 .wound-healing-hyperbaric-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.wound-healing-hyperbaric-document .approve-btn { text-transform: capitalize; }
 .wound-healing-hyperbaric-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .wound-healing-hyperbaric-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
 .wound-healing-hyperbaric-document .search-container { margin-bottom: 20px; }
@@ -48,4 +49,11 @@
 .wound-healing-hyperbaric-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
 .wound-healing-hyperbaric-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
 .wound-healing-hyperbaric-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
+/* nested OBJECT renderer (results) */
+.wound-healing-hyperbaric-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.wound-healing-hyperbaric-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.wound-healing-hyperbaric-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.wound-healing-hyperbaric-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.wound-healing-hyperbaric-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.wound-healing-hyperbaric-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
 @media (max-width: 768px) { .wound-healing-hyperbaric-document .document-header { padding-bottom: 12px; } .wound-healing-hyperbaric-document .document-title { font-size: 24px; } .wound-healing-hyperbaric-document .header-actions { flex-direction: column; } }

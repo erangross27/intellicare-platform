@@ -1,454 +1,59 @@
-/* Advance Directives Document Template */
-/* March 2026 - Blue theme with inline editing */
-
-.advance-directives-document {
-  font-family: 'Comfortaa', sans-serif;
-  color: #ececf1;
-  padding: 20px;
-  max-width: 100%;
-  background: #0F1B33;
-  overflow-x: hidden;
-  box-sizing: border-box;
-}
-
-/* Document Header */
-.advance-directives-document .document-header {
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #565869;
-}
-
-.advance-directives-document .document-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #f1f5f9;
-  margin: 0 0 10px 0;
-  text-transform: none !important;
-}
-
-.advance-directives-document .header-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-/* Search Container */
-.advance-directives-document .search-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.advance-directives-document .clear-search {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 23px;
-  cursor: pointer;
-  padding: 4px 8px;
-}
-
-.advance-directives-document .clear-search:hover {
-  color: #ececf1;
-}
-
-.advance-directives-document .search-input {
-  flex: 1;
-  padding: 10px 14px;
-  background: rgba(96, 165, 250, 0.12);
-  border: 1px solid #565869;
-  border-radius: 6px;
-  color: #ececf1;
-  font-size: 16px;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-.advance-directives-document .search-input:focus {
-  outline: none;
-  border-color: #2563eb;
-}
-
-.advance-directives-document .search-input::placeholder {
-  color: #8e8ea0;
-}
-
-/* Records Container */
-.advance-directives-document .records-container {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-/* Record Card */
-.advance-directives-document .record-card {
-  background: rgba(96, 165, 250, 0.12);
-  border: 1px solid #565869;
-  border-radius: 12px;
-  padding: 20px;
-  overflow: hidden;
-}
-
-/* Record Header */
-.advance-directives-document .record-header {
-  margin-bottom: 20px;
-  border-bottom: 2px solid #2563eb;
-  padding-bottom: 12px;
-}
-
-.advance-directives-document .header-top-row {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
-}
-
-.advance-directives-document .date-badge {
-  background: rgba(37, 99, 235, 0.2);
-  color: #60a5fa;
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.advance-directives-document .record-title {
-  font-size: 19px;
-  font-weight: 700;
-  color: #f1f5f9;
-  margin: 0;
-  text-transform: none !important;
-}
-
-.advance-directives-document .record-subtitle {
-  font-size: 15px;
-  color: #9ca3af;
-  margin-top: 4px;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-/* Section */
-.advance-directives-document .section {
-  margin-bottom: 20px;
-}
-
-/* Mini Cards Container */
-.advance-directives-document .mini-cards-container {
-  background: rgba(96, 165, 250, 0.08);
-  border: 2px solid rgba(96, 165, 250, 0.3);
-  border-radius: 10px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* Section Header — INSIDE mini-cards-container */
-.advance-directives-document .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
-}
-
-.advance-directives-document .section-title {
-  font-size: 19px;
-  font-weight: 700;
-  color: #60a5fa;
-  margin: 0;
-  text-transform: none !important;
-  font-family: 'Comfortaa', sans-serif;
-}
-
-/* Header Right Actions — column layout (copy on top, approve below) */
-.advance-directives-document .header-right-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  margin-left: auto;
-}
-
-/* Rec Mini Card */
-.advance-directives-document .rec-mini-card {
-  background: rgba(96, 165, 250, 0.08);
-  border: 2px solid rgba(96, 165, 250, 0.3);
-  border-radius: 10px;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Nested Subtitle */
-.advance-directives-document .nested-subtitle {
-  font-size: 17px;
-  font-weight: 700;
-  color: #93c5fd;
-  text-transform: none !important;
-  font-family: 'Comfortaa', sans-serif;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
-  margin-bottom: 4px;
-}
-
-/* Numbered Row */
-.advance-directives-document .numbered-row {
-  background: #0d1929;
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  border-radius: 6px;
-  padding: 10px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.advance-directives-document .numbered-row.modified {
-  border-color: rgba(234, 179, 8, 0.5);
-  background: rgba(234, 179, 8, 0.05);
-}
-
-/* Row Content */
-.advance-directives-document .row-content {
-  flex: 1;
-  display: block !important;
-  line-height: 1.6;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.advance-directives-document .row-content.editable {
-  cursor: pointer;
-}
-
-.advance-directives-document .row-content.editable:hover {
-  background: rgba(96, 165, 250, 0.08);
-  border-radius: 4px;
-}
-
-.advance-directives-document .content-value {
-  color: #ececf1;
-  font-size: 16px;
-  line-height: 1.6;
-}
-
-/* Edit Indicator */
-.advance-directives-document .edit-indicator {
-  color: #60a5fa;
-  font-size: 14px;
-  margin-left: 8px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.advance-directives-document .row-content.editable:hover .edit-indicator {
-  opacity: 1;
-}
-
-/* Edit Field Container */
-.advance-directives-document .edit-field-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
-.advance-directives-document .edit-textarea {
-  width: 100%;
-  min-height: 60px;
-  padding: 10px 14px;
-  background: #1a1a2e;
-  border: 2px solid #2563eb;
-  border-radius: 6px;
-  color: #ececf1;
-  font-size: 16px;
-  font-family: 'Comfortaa', sans-serif;
-  line-height: 1.6;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.advance-directives-document .edit-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-}
-
-/* Date picker input (editable date field) */
-.advance-directives-document .edit-date-input {
-  background: #1a1a2e;
-  border: 2px solid #2563eb;
-  border-radius: 6px;
-  color: #ececf1;
-  font-size: 15px;
-  font-family: 'Comfortaa', sans-serif;
-  padding: 8px 12px;
-  box-sizing: border-box;
-}
-
-.advance-directives-document .edit-date-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-}
-
-.advance-directives-document .edit-date-input::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  cursor: pointer;
-}
-
-.advance-directives-document .edit-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.advance-directives-document .save-btn {
-  background: #2563eb;
-  color: #ffffff;
-  border: none;
-  padding: 6px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: 'Comfortaa', sans-serif;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.advance-directives-document .save-btn:hover {
-  background: #1d4ed8;
-}
-
-.advance-directives-document .save-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.advance-directives-document .cancel-btn {
-  background: transparent;
-  color: #9ca3af;
-  border: 1px solid #565869;
-  padding: 6px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: 'Comfortaa', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.advance-directives-document .cancel-btn:hover {
-  color: #ececf1;
-  border-color: #ececf1;
-}
-
-/* Modified Badge */
-.advance-directives-document .modified-badge {
-  font-size: 11px;
-  color: #eab308;
-  font-style: italic;
-  padding: 2px 8px;
-  margin-top: 2px;
-}
-
-/* Copy Button */
-.advance-directives-document .copy-btn {
-  background: rgba(96, 165, 250, 0.15);
-  color: #93c5fd;
-  border: 1px solid rgba(96, 165, 250, 0.4);
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: 'Comfortaa', sans-serif;
-  white-space: nowrap;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.advance-directives-document .copy-btn:hover {
-  background: rgba(96, 165, 250, 0.25);
-  border-color: rgba(96, 165, 250, 0.6);
-}
-
-.advance-directives-document .copy-btn.copied {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
-}
-
-/* Header Copy All / Export PDF — COPIED state */
-.advance-directives-document .header-actions .copy-btn.copied {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
-}
-
-/* Approve Button */
-.advance-directives-document .approve-btn {
-  margin-top: 4px;
-  border-radius: 6px;
-  padding: 3px 12px;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: capitalize;
-  letter-spacing: 0.3px;
-  transition: all 0.2s ease;
-}
-
-.advance-directives-document .approve-btn.pending {
-  background: rgba(234, 179, 8, 0.15);
-  border: 1px solid rgba(234, 179, 8, 0.5);
-  color: #eab308;
-}
-
-.advance-directives-document .approve-btn.pending:hover {
-  background: rgba(234, 179, 8, 0.25);
-  border-color: rgba(234, 179, 8, 0.7);
-  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
-}
-
-.advance-directives-document .approve-btn.approved {
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  color: #22c55e;
-}
-
-.advance-directives-document .approve-btn.approved:hover {
-  background: rgba(34, 197, 94, 0.25);
-  border-color: rgba(34, 197, 94, 0.6);
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
-}
-
-/* Mark Element Override */
-.advance-directives-document mark {
-  display: inline !important;
-  background-color: yellow !important;
-  color: black !important;
-  padding: 0 2px !important;
-  margin: 0 !important;
-  border: none !important;
-  font-weight: inherit !important;
-  border-radius: 2px !important;
-}
-
-/* Empty State */
-.advance-directives-document .empty-state,
-.advance-directives-document .no-results {
-  text-align: center;
-  padding: 40px;
-  color: #a1a1aa;
-  font-size: 19px;
-}
+/* AdvanceDirectivesDocument.css — March 2026 blue-glow editing theme */
+.advance-directives-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; direction: ltr; text-align: left; }
+.advance-directives-document * { direction: ltr; text-align: left; }
+.advance-directives-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
+.advance-directives-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
+.advance-directives-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
+.advance-directives-document .records-container { display: flex; flex-direction: column; gap: 24px; }
+.advance-directives-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
+.advance-directives-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
+.advance-directives-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
+.advance-directives-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
+.advance-directives-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
+.advance-directives-document .section { margin-top: 16px; }
+.advance-directives-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
+.advance-directives-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
+.advance-directives-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
+.advance-directives-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
+.advance-directives-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.advance-directives-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
+.advance-directives-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
+.advance-directives-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
+.advance-directives-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
+.advance-directives-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
+.advance-directives-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
+.advance-directives-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
+.advance-directives-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
+.advance-directives-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: white; }
+.advance-directives-document .editable-row { cursor: pointer; }
+.advance-directives-document .editable-row:hover .edit-indicator { opacity: 1; }
+.advance-directives-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
+.advance-directives-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
+.advance-directives-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
+.advance-directives-document .modified-badge.added { color: #4ade80; }
+.advance-directives-document .edit-field-container { width: 100%; }
+.advance-directives-document .edit-input { flex: 1; min-width: 0; height: 40px; padding: 8px 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font: inherit; box-sizing: border-box; }
+.advance-directives-document .num-step { width: 40px; height: 40px; border: 1px solid #60a5fa; border-radius: 6px; background: rgba(96, 165, 250, 0.14); color: #ececf1; cursor: pointer; font-size: 20px; text-align: center; }
+.advance-directives-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
+.advance-directives-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.advance-directives-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
+.advance-directives-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+.advance-directives-document .save-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
+.advance-directives-document .approve-btn { text-transform: capitalize; }
+.advance-directives-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.advance-directives-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
+.advance-directives-document .search-container { margin-bottom: 20px; }
+.advance-directives-document .search-input { width: 100%; padding: 12px 16px; background: #0d1929; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; }
+.advance-directives-document .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+.advance-directives-document .search-input::placeholder { color: #9ca3af; }
+.advance-directives-document .search-results { display: inline-block; margin-top: 8px; font-size: 13px; color: #93c5fd; }
+.advance-directives-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
+.advance-directives-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
+/* nested OBJECT renderer (results) */
+.advance-directives-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.advance-directives-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
+.advance-directives-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.advance-directives-document .number-edit-row { display: flex; align-items: center; gap: 8px; }
+.advance-directives-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.advance-directives-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }
+@media (max-width: 768px) { .advance-directives-document .document-header { padding-bottom: 12px; } .advance-directives-document .document-title { font-size: 24px; } .advance-directives-document .header-actions { flex-direction: column; } }

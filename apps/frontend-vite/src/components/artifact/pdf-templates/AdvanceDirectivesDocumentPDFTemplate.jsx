@@ -1,326 +1,77 @@
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
-
-const safeString = (str) => {
-  if (!str) return '';
-  return String(str)
-    .replace(/μm/g, 'um')
-    .replace(/°/g, 'deg')
-    .replace(/±/g, '+/-')
-    .replace(/×/g, 'x')
-    .replace(/÷/g, '/')
-    .replace(/≤/g, '<=')
-    .replace(/≥/g, '>=')
-    .replace(/→/g, '->')
-    .replace(/←/g, '<-')
-    .replace(/•/g, '-')
-    .replace(/[^\x00-\x7F]/g, '');
-};
+import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 13,
-    lineHeight: 1.5,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 24,
-    color: '#000000',
-    textAlign: 'center',
-    borderBottom: '2pt solid #000000',
-    paddingBottom: 12,
-  },
-  recordContainer: {
-    marginBottom: 28,
-    paddingBottom: 20,
-    borderBottom: '1pt solid #000000',
-  },
-  recordHeader: {
-    marginBottom: 16,
-    paddingBottom: 8,
-    borderBottom: '1pt solid #000000',
-  },
-  recordTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  recordDate: {
-    fontSize: 12,
-    color: '#000000',
-    marginTop: 4,
-  },
-  recordSubtitle: {
-    fontSize: 12,
-    color: '#000000',
-    marginTop: 4,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  fieldBlock: {
-    marginBottom: 10,
-    paddingLeft: 8,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    marginBottom: 2,
-    letterSpacing: 0.3,
-  },
-  fieldValue: {
-    fontSize: 13,
-    color: '#000000',
-    lineHeight: 1.4,
-  },
-  listItem: {
-    fontSize: 13,
-    color: '#000000',
-    marginLeft: 12,
-    marginBottom: 4,
-    lineHeight: 1.4,
-  },
-  nestedSubtitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginTop: 8,
-    marginBottom: 4,
-    paddingLeft: 8,
-  },
-  noRecords: {
-    fontSize: 14,
-    color: '#000000',
-    textAlign: 'center',
-    marginTop: 40,
-  },
+  page: { paddingTop: 38, paddingBottom: 42, paddingHorizontal: 42, fontFamily: 'Helvetica', color: '#111827', fontSize: 14 },
+  documentHeader: { marginBottom: 18 }, documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#2563eb' },
+  recordHeader: { marginBottom: 16 }, recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold' },
+  section: { marginTop: 11, flexDirection: 'column', width: 528 }, sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, marginBottom: 7, borderBottomWidth: 1, borderBottomColor: '#000000' },
+  fieldBox: { marginTop: 4, marginBottom: 8, paddingBottom: 8, flexDirection: 'column', width: 528 }, fieldHeader: { marginTop: 8, marginBottom: 6, width: 528 }, fieldLabel: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 3, marginBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
+  nestedSubtitle: { width: 528, fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 4, marginBottom: 6, color: '#1d4ed8' }, rowBlock: { width: 528, alignSelf: 'stretch', minHeight: 24, marginBottom: 8, flexDirection: 'column' }, fieldValue: { width: 528, fontSize: 14, lineHeight: 1.45 }, noData: { fontSize: 14, color: '#6b7280', marginTop: 16 },
 });
-
-const AdvanceDirectivesDocumentPDFTemplate = ({ document, data }) => {
-  const templateData = document || data;
-
-  const splitBySentence = (text) => {
-    if (!text || typeof text !== 'string') return [];
-    const result = [];
-    let current = '';
-    let parenDepth = 0;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (ch === '(') parenDepth++;
-      else if (ch === ')') parenDepth = Math.max(0, parenDepth - 1);
-      if ((ch === '.' || ch === ';') && parenDepth === 0 && i + 1 < text.length && /\s/.test(text[i + 1])) {
-        if (ch === '.' && /\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|etc)$/.test(current)) {
-          current += ch;
-          continue;
-        }
-        const trimmed = current.trim();
-        if (trimmed) result.push(trimmed);
-        current = '';
-        while (i + 1 < text.length && /\s/.test(text[i + 1])) i++;
-      } else {
-        current += ch;
-      }
-    }
-    const trimmed = current.replace(/[.;]+$/, '').trim();
-    if (trimmed) result.push(trimmed);
-    return result;
-  };
-
-  const splitByComma = (text) => {
-    if (!text || typeof text !== 'string') return [];
-    const result = [];
-    let current = '';
-    let parenDepth = 0;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (ch === '(') parenDepth++;
-      else if (ch === ')') parenDepth = Math.max(0, parenDepth - 1);
-      if (ch === ',' && parenDepth === 0) {
-        const trimmed = current.trim();
-        if (trimmed) result.push(trimmed);
-        current = '';
-      } else {
-        current += ch;
-      }
-    }
-    const trimmed = current.trim();
-    if (trimmed) result.push(trimmed);
-    return result;
-  };
-
-  const parseLabel = (text) => {
-    if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-    const match = text.match(/^([^:]{2,40}):\s*(.+)/);
-    if (match) return { isLabeled: true, label: match[1].trim(), value: match[2].trim() };
-    return { isLabeled: false, label: '', value: text };
-  };
-
-  const getRecords = () => {
-    if (!templateData) return [];
-    let recordsArray = Array.isArray(templateData) ? templateData : [templateData];
-    recordsArray = recordsArray.flatMap(record => {
-      if (record?._records && Array.isArray(record._records)) return record._records;
-      if (record?.records && Array.isArray(record.records) && !record.documentType && !record.dateCompleted) return record.records;
-      if (record?.advance_directives && Array.isArray(record.advance_directives)) return record.advance_directives;
-      return record;
-    });
-    return recordsArray.filter(record =>
-      record && (record.documentType || record.dateCompleted || record.healthcareProxy || record.cprPreference)
-    );
-  };
-
-  const records = getRecords();
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return String(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
-
-  const hasValue = (val) => {
-    if (val === null || val === undefined) return false;
-    if (typeof val === 'string') return val.trim().length > 0;
-    return true;
-  };
-
-  const renderField = (label, value) => {
-    if (!hasValue(value)) return null;
-    return (
-      <View style={styles.fieldBlock}>
-        <Text style={styles.fieldLabel}>{safeString(label)}</Text>
-        <Text style={styles.fieldValue}>{safeString(String(value))}</Text>
-      </View>
-    );
-  };
-
-  const renderSentenceField = (label, value) => {
-    if (!hasValue(value)) return null;
-    const sentences = splitBySentence(value);
-    if (sentences.length <= 1 && splitByComma(String(value)).length < 2) {
-      return renderField(label, value);
-    }
-    let n = 1;
-    return (
-      <View style={styles.fieldBlock}>
-        <Text style={styles.fieldLabel}>{safeString(label)}</Text>
-        {sentences.map((s, sIdx) => {
-          const parsed = parseLabel(s);
-          const textToSplit = parsed.isLabeled ? parsed.value : s;
-          const parts = splitByComma(textToSplit);
-          if (parts.length >= 2) {
-            return (
-              <View key={sIdx}>
-                {parsed.isLabeled && <Text style={styles.nestedSubtitle}>{safeString(parsed.label)}</Text>}
-                {parts.map((item, pi) => (
-                  <Text key={pi} style={styles.listItem}>{n++}. {safeString(item)}</Text>
-                ))}
-              </View>
-            );
-          }
-          return <Text key={sIdx} style={styles.listItem}>{n++}. {safeString(s)}</Text>;
-        })}
-      </View>
-    );
-  };
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>Advance Directives</Text>
-
-        {records.length === 0 ? (
-          <Text style={styles.noRecords}>No advance directives available.</Text>
-        ) : (
-          records.map((record, index) => (
-            <View key={record._id || index} style={styles.recordContainer}>
-              <View style={styles.recordHeader} wrap={false}>
-                <Text style={styles.recordTitle}>{safeString(`Advance Directive ${index + 1}`)}</Text>
-                {record.dateCompleted && (
-                  <Text style={styles.recordDate}>{formatDate(record.dateCompleted)}</Text>
-                )}
-                {record.documentType && (
-                  <Text style={styles.recordSubtitle}>{safeString(record.documentType)}</Text>
-                )}
-              </View>
-
-              {/* Document Information */}
-              {(hasValue(record.documentType) || hasValue(record.dateCompleted) || hasValue(record.facility) || hasValue(record.reviewDate) || hasValue(record.documentLocation) || hasValue(record.witnessSignatures)) && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Document Information</Text>
-                  {renderField('Document Type', record.documentType)}
-                  {renderField('Date Completed', formatDate(record.dateCompleted))}
-                  {renderField('Facility', record.facility)}
-                  {renderField('Review Date', formatDate(record.reviewDate))}
-                  {renderField('Document Location', record.documentLocation)}
-                  {renderField('Witness Signatures', record.witnessSignatures)}
-                </View>
-              )}
-
-              {/* Treatment Preferences */}
-              {(hasValue(record.cprPreference) || hasValue(record.intubationPreference) || hasValue(record.dialysisPreference) || hasValue(record.artificialNutrition) || hasValue(record.comfortMeasures) || hasValue(record.organDonation)) && (
-                <View style={styles.section}>
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Treatment Preferences</Text>
-                    {renderField('CPR Preference', record.cprPreference)}
-                  </View>
-                  {renderField('Intubation Preference', record.intubationPreference)}
-                  {renderField('Dialysis Preference', record.dialysisPreference)}
-                  {renderField('Artificial Nutrition', record.artificialNutrition)}
-                  {renderSentenceField('Comfort Measures', record.comfortMeasures)}
-                  {renderField('Organ Donation', record.organDonation)}
-                </View>
-              )}
-
-              {/* Healthcare Proxy */}
-              {(hasValue(record.healthcareProxy) || hasValue(record.alternateProxy)) && (
-                <View style={styles.section} wrap={false}>
-                  <Text style={styles.sectionTitle}>Healthcare Proxy</Text>
-                  {renderField('Healthcare Proxy', record.healthcareProxy)}
-                  {renderField('Alternate Proxy', record.alternateProxy)}
-                </View>
-              )}
-
-              {/* Specific Instructions */}
-              {hasValue(record.specificInstructions) && (
-                <View style={styles.section}>
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Specific Instructions</Text>
-                  </View>
-                  {renderSentenceField('Instructions', record.specificInstructions)}
-                </View>
-              )}
-
-              {/* Additional Notes */}
-              {hasValue(record.notes) && (
-                <View style={styles.section}>
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>Additional Notes</Text>
-                  </View>
-                  {renderSentenceField('Notes', record.notes)}
-                </View>
-              )}
-            </View>
-          ))
-        )}
-      </Page>
-    </Document>
-  );
+const SECTIONS = [
+  { title: 'Directive Overview', fields: [['documentType', 'Document Type', 'comma'], ['dateCompleted', 'Date Completed', 'date'], ['reviewDate', 'Review Date', 'date'], ['facility', 'Facility']] },
+  { title: 'Resuscitation & Life Support', fields: [['cprPreference', 'CPR Preference'], ['intubationPreference', 'Intubation Preference'], ['dialysisPreference', 'Dialysis Preference'], ['artificialNutrition', 'Artificial Nutrition']] },
+  { title: 'Comfort & Donation', fields: [['comfortMeasures', 'Comfort Measures'], ['organDonation', 'Organ Donation']] },
+  { title: 'Healthcare Proxies', fields: [['healthcareProxy', 'Healthcare Proxy'], ['alternateProxy', 'Alternate Proxy']] },
+  { title: 'Instructions & Documentation', fields: [['specificInstructions', 'Specific Instructions', 'sentence'], ['witnessSignatures', 'Witness Signatures', 'sentence'], ['documentLocation', 'Document Location'], ['notes', 'Notes', 'sentence']] },
+];
+const PAGE_GROUPS = SECTIONS.map((_, index) => [index]);
+const hasVal = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasVal)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasVal));
+const humanize = key => String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, char => char.toUpperCase());
+const formatDate = value => { if (!value) return ''; try { const raw = value?.$date?.$numberLong ?? value?.$date ?? value?.$numberLong ?? value, normalized = typeof raw === 'string' && /^-?\d+$/.test(raw) ? Number(raw) : raw, date = new Date(normalized); return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(value); } };
+const parseLabel = value => { const text = String(value || ''), match = text.match(/^([^:]{1,60}):\s+(.+)$/); return match && !/[([\]]/.test(match[1]) ? { subtitle: match[1].trim(), content: match[2].trim() } : { subtitle: '', content: text }; };
+const splitComma = value => { const rows = []; let current = '', depth = 0; for (const char of String(value || '')) { if (char === '(') depth += 1; if (char === ')') depth = Math.max(0, depth - 1); if (char === ',' && depth === 0) { if (current.trim()) rows.push(current.trim()); current = ''; } else current += char; } if (current.trim()) rows.push(current.trim()); return rows; };
+const splitSentence = value => String(value || '').split(/;\s+|\.(?!\d)(?:\s+|$)/).map(row => row.trim()).filter(row => row && !/^[;.,!?]+$/.test(row));
+const textRows = (value, { sentences = false, commas = false, commasWhenLabeled = false } = {}) => { const source = String(value || '').trim(); return (sentences ? splitSentence(source) : [source]).flatMap(part => { const parsed = parseLabel(part), clauses = commas && (!commasWhenLabeled || parsed.subtitle) ? splitComma(parsed.content) : [parsed.content]; return clauses.filter(Boolean).map(row => ({ subtitle: parsed.subtitle, value: row })); }); };
+const SENTENCE_OBJECT_PATHS = new Set();
+const COMMA_OBJECT_PATHS = new Set();
+const normalizeIndexedPath = path => path.replace(/\.\d+(?=\.|$)/g, '.*');
+const pathIsDeclared = (set, path) => set.has(path) || set.has(normalizeIndexedPath(path));
+const isDatePath = path => /date/i.test(String(path || '').split('.').pop());
+const isDateObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && Object.hasOwn(value, '$date');
+const EXTENDED_NUMBER_KEYS = ['$numberInt', '$numberLong', '$numberDouble', '$numberDecimal'];
+const isExtendedNumberObject = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && EXTENDED_NUMBER_KEYS.includes(Object.keys(value)[0]);
+const unwrapExtendedNumber = value => { if (!isExtendedNumberObject(value)) return value; const raw = value[Object.keys(value)[0]], number = Number(raw); return Number.isFinite(number) ? number : raw; };
+const OBJECT_ARRAY_ITEM_LABELS = {};
+const flattenObject = (value, pathPrefix = '', labelPrefix = '') => {
+  if (Array.isArray(value)) return value.flatMap((child, index) => {
+    const path = pathPrefix ? `${pathPrefix}.${index}` : String(index), label = `${labelPrefix || 'Item'} ${index + 1}`;
+    return child && typeof child === 'object' && !isDateObject(child) && !isExtendedNumberObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: unwrapExtendedNumber(child) }] : [];
+  });
+  return Object.entries(value || {}).flatMap(([key, child]) => {
+    const path = pathPrefix ? `${pathPrefix}.${key}` : key, label = labelPrefix ? `${labelPrefix} — ${humanize(key)}` : humanize(key);
+    return child && typeof child === 'object' && !isDateObject(child) && !isExtendedNumberObject(child) ? flattenObject(child, path, label) : hasVal(child) ? [{ path, subtitle: label, value: unwrapExtendedNumber(child) }] : [];
+  });
+};
+const formatLeaf = leaf => ({ subtitle: leaf.subtitle, value: isDatePath(leaf.path) ? formatDate(leaf.value) : typeof leaf.value === 'boolean' ? (leaf.value ? 'Yes' : 'No') : String(leaf.value) });
+const objectLeafRows = (field, leaf, subtitlePrefix = '') => {
+  const path = `${field}.${leaf.path}`, subtitle = subtitlePrefix ? `${subtitlePrefix} — ${leaf.subtitle}` : leaf.subtitle;
+  if (typeof leaf.value === 'string' && (pathIsDeclared(SENTENCE_OBJECT_PATHS, path) || pathIsDeclared(COMMA_OBJECT_PATHS, path))) return textRows(leaf.value, { sentences: pathIsDeclared(SENTENCE_OBJECT_PATHS, path), commas: pathIsDeclared(COMMA_OBJECT_PATHS, path) }).map(row => ({ ...row, subtitle: row.subtitle ? `${subtitle} — ${row.subtitle}` : subtitle }));
+  return [{ ...formatLeaf({ ...leaf, subtitle }), path }];
+};
+const rowsFor = ([field, , type], value) => {
+  if (type === 'date') return [{ value: formatDate(value) }]; if (type === 'boolean') return [{ value: value ? 'Yes' : 'No' }]; if (type === 'number') return [{ value: String(value) }]; if (type === 'sentence') return textRows(value, { sentences: true }); if (type === 'sentenceComma') return textRows(value, { sentences: true, commas: true }); if (type === 'sentenceLabeledComma') return textRows(value, { sentences: true, commas: true, commasWhenLabeled: true }); if (type === 'comma') return textRows(value, { commas: true });
+  if (type === 'recommendationGroups') { const groups = []; (Array.isArray(value) ? value : []).forEach(item => { if (!hasVal(item)) return; const dateValue = item && typeof item === 'object' ? item.date : null, dateKey = dateValue ? formatDate(dateValue) : 'no-date'; let group = groups.find(candidate => candidate.dateKey === dateKey); if (!group) { group = { dateKey, dateValue, items: [] }; groups.push(group); } group.items.push(item); }); return groups.flatMap(group => { const rows = []; if (group.dateValue) rows.push({ subtitle: 'Date', value: formatDate(group.dateValue) }); group.items.forEach(item => { const objectItem = item && typeof item === 'object', raw = objectItem ? (item.recommendation ?? item.text ?? item.value) : item; if (hasVal(raw)) rows.push({ value: String(raw) }); }); return rows; }); }
+  if (type === 'arrayConditional') return (Array.isArray(value) ? value : []).flatMap(item => { const parsed = parseLabel(item); return parsed.subtitle ? textRows(item, { commas: true }) : [{ value: String(item) }]; });
+  if (type === 'arrayKeep') return (Array.isArray(value) ? value : []).map(item => ({ value: String(item) }));
+  if (type === 'arrayComma') return (Array.isArray(value) ? value : []).flatMap(item => textRows(item, { commas: true }));
+  if (type === 'arrayLabeledKeep') return (Array.isArray(value) ? value : []).map(item => { const parsed = parseLabel(item); return { subtitle: parsed.subtitle, value: parsed.content }; });
+  if (type === 'objectSplit') return flattenObject(value).flatMap(leaf => leaf.path === 'description' && typeof leaf.value === 'string' ? textRows(leaf.value, { sentences: true, commas: true }).map(row => ({ ...row, subtitle: row.subtitle ? `${leaf.subtitle} — ${row.subtitle}` : leaf.subtitle })) : [formatLeaf(leaf)]);
+  if (type === 'objectArray') return (Array.isArray(value) ? value : []).flatMap((item, index) => flattenObject(item).flatMap(leaf => objectLeafRows(`${field}.${index}`, leaf, `${OBJECT_ARRAY_ITEM_LABELS[field]} ${index + 1}`)));
+  if (type === 'object') return flattenObject(value).flatMap(leaf => objectLeafRows(field, leaf)); return textRows(value);
+};
+const renderField = (config, value, key, sectionTitle) => {
+  const [, label] = config, rows = rowsFor(config, value), showLabel = label !== sectionTitle;
+  if (!rows.length) return null;
+  const renderRow = (row, index, priorSubtitle) => { const showSubtitle = row.subtitle && row.subtitle !== priorSubtitle; return <View key={`${key}-${index}`} style={styles.rowBlock} wrap={false}>{showSubtitle && <Text style={styles.nestedSubtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}{'\n'}</Text></View>; };
+  const first = rows[0];
+  return <React.Fragment key={key}>{showLabel ? <View style={styles.fieldBox} wrap={false}><View style={styles.fieldHeader}><Text style={styles.fieldLabel}>{label}</Text></View>{renderRow(first, 0, '')}</View> : renderRow(first, 0, '')}{rows.slice(1).map((row, offset) => renderRow(row, offset + 1, rows[offset].subtitle || ''))}</React.Fragment>;
 };
 
+const AdvanceDirectivesDocumentPDFTemplate = ({ document: documentProp, data: dataProp, templateData }) => {
+  const records = React.useMemo(() => { const source = documentProp ?? dataProp ?? templateData; if (!source) return []; let rows = Array.isArray(source) ? source : [source]; rows = rows.flatMap(row => { if (Array.isArray(row?.records)) return row.records; if (Array.isArray(row?._records)) return row._records; if (row?.advance_directives) return Array.isArray(row.advance_directives) ? row.advance_directives : [row.advance_directives]; if (row?.documentData) { const nested = row.documentData; if (Array.isArray(nested)) return nested; if (nested?.advance_directives) return Array.isArray(nested.advance_directives) ? nested.advance_directives : [nested.advance_directives]; return [nested]; } return [row]; }); return rows.filter(row => row && typeof row === 'object'); }, [documentProp, dataProp, templateData]);
+  if (!records.length) return <Document><Page size="LETTER" style={styles.page}><View style={styles.documentHeader}><Text style={styles.documentTitle}>Advance Directives</Text></View><Text style={styles.noData}>No advance directives available</Text></Page></Document>;
+  return <Document>{records.flatMap((record, recordIndex) => PAGE_GROUPS.map((indexes, pageIndex) => { const visible = indexes.map(index => ({ section: SECTIONS[index], index, fields: SECTIONS[index].fields.filter(([field]) => hasVal(record[field])) })).filter(item => item.fields.length); if (!visible.length) return null; return <Page key={`${recordIndex}-${pageIndex}`} size="LETTER" style={styles.page}>{pageIndex === 0 && <View style={styles.documentHeader}><Text style={styles.documentTitle}>Advance Directives</Text></View>}{pageIndex === 0 && <View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>{record.documentType || `Advance Directives Record ${recordIndex + 1}`}</Text></View>}{visible.map(({ section, index, fields }) => <View key={`${index}-${section.title}`} style={styles.section}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text></View>{fields.map((config, fieldIndex) => renderField(config, record[config[0]], `${index}-${fieldIndex}`, section.title))}</View>)}</Page>; }))}</Document>;
+};
 export default AdvanceDirectivesDocumentPDFTemplate;

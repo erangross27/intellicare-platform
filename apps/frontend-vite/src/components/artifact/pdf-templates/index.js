@@ -59,6 +59,7 @@ import AdmissionRecommendationsDocumentPDFTemplate from './AdmissionRecommendati
 import AdultDayProgramInfoDocumentPDFTemplate from './AdultDayProgramInfoDocumentPDFTemplate';
 import AdvanceCarePlanningDocumentPDFTemplate from './AdvanceCarePlanningDocumentPDFTemplate';
 import AdvanceDirectiveDiscussionDocumentPDFTemplate from './AdvanceDirectiveDiscussionDocumentPDFTemplate';
+import AdvanceDirectivesDocumentPDFTemplate from './AdvanceDirectivesDocumentPDFTemplate';
 import TriageDataTemplate from './TriageDataDocumentPDFTemplate';
 import EdCourseTemplate from './EdCourseDocumentPDFTemplate';
 import EdDispositionTemplate from './EdDispositionDocumentPDFTemplate';
@@ -233,6 +234,7 @@ const templateRegistry = {
   'adult_day_program_info': AdultDayProgramInfoDocumentPDFTemplate,
   'advance_care_planning': AdvanceCarePlanningDocumentPDFTemplate,
   'advance_directive_discussion': AdvanceDirectiveDiscussionDocumentPDFTemplate,
+  'advance_directives': AdvanceDirectivesDocumentPDFTemplate,
   'triage_data': TriageDataTemplate,
   'ed_course': EdCourseTemplate,
   'ed_disposition': EdDispositionTemplate,

@@ -10,7 +10,10 @@
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
   min-height: 100%;
+  direction: ltr;
 }
+
+.autopsy-reports-document * { direction: ltr; }
 
 /* Header — block layout, buttons below title */
 .autopsy-reports-document .document-header {
@@ -80,16 +83,6 @@
   color: #ececf1;
   margin: 0;
   text-transform: none !important;
-}
-
-.autopsy-reports-document .record-date {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
 /* Section */
@@ -263,7 +256,7 @@
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .autopsy-reports-document .save-btn {
@@ -519,3 +512,6 @@
 }
 /* Sub-field label */
 .autopsy-reports-document .sub-field-label { font-size: 13px; font-weight: 600; color: #93c5fd; margin-right: 8px; flex-shrink: 0; }
+.autopsy-reports-document .save-error { color: #fca5a5; font-size: 12px; margin-top: 6px; }
+.autopsy-reports-document .sr-only { clip: rect(0, 0, 0, 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.autopsy-reports-document .pdf-btn { display: inline-flex; align-items: center; text-decoration: none; }

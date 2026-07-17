@@ -160,6 +160,7 @@ import WellChildExaminationsDocumentPDFTemplate from './WellChildExaminationsDoc
 import WellChildSummaryDocumentPDFTemplate from './WellChildSummaryDocumentPDFTemplate';
 import WellnessVisitDocumentationDocumentPDFTemplate from './WellnessVisitDocumentationDocumentPDFTemplate';
 import WorkAccommodationsDocumentPDFTemplate from './WorkAccommodationsDocumentPDFTemplate';
+import WorkRestrictionsDocumentPDFTemplate from './WorkRestrictionsDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -309,6 +310,7 @@ const templateRegistry = {
   'well_child_summary': WellChildSummaryDocumentPDFTemplate,
   'wellness_visit_documentation': WellnessVisitDocumentationDocumentPDFTemplate,
   'work_accommodations': WorkAccommodationsDocumentPDFTemplate,
+  'work_restrictions': WorkRestrictionsDocumentPDFTemplate,
 };
 
 /**

@@ -164,6 +164,7 @@ import WorkRestrictionsDocumentPDFTemplate from './WorkRestrictionsDocumentPDFTe
 import WorkersCompEvaluationsDocumentPDFTemplate from './WorkersCompEvaluationsDocumentPDFTemplate';
 import WorkersCompensationEvaluationDocumentPDFTemplate from './WorkersCompensationEvaluationDocumentPDFTemplate';
 import WorkplaceAccommodationsDocumentPDFTemplate from './WorkplaceAccommodationsDocumentPDFTemplate';
+import WorkplaceInjuryReportDocumentPDFTemplate from './WorkplaceInjuryReportDocumentPDFTemplate';
 
 // Template registry - add new templates here
 const templateRegistry = {
@@ -317,6 +318,7 @@ const templateRegistry = {
   'workers_comp_evaluations': WorkersCompEvaluationsDocumentPDFTemplate,
   'workers_compensation_evaluation': WorkersCompensationEvaluationDocumentPDFTemplate,
   'workplace_accommodations': WorkplaceAccommodationsDocumentPDFTemplate,
+  'workplace_injury_report': WorkplaceInjuryReportDocumentPDFTemplate,
 };
 
 /**

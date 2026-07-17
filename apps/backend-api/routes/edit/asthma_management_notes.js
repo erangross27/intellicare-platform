@@ -24,6 +24,7 @@ router.use(practiceModels);
 router.use(practiceAuth);
 
 const ALLOWED_FIELDS = [
+  'date',
   'asthmaType',
   'severity',
   'controlLevel',

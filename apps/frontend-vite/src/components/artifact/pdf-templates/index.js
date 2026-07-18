@@ -23,6 +23,7 @@ import AllergiesAssessmentDocumentPDFTemplate from './AllergiesAssessmentDocumen
 import AllergyAssessmentsDocumentPDFTemplate from './AllergyAssessmentsDocumentPDFTemplate';
 // Single source of truth: route to the same box-free template the Document's Export button imports.
 import BiopsyReportsDocumentPDFTemplate from './BiopsyReportsDocumentPDFTemplate';
+import BiopsychosocialFormulationDocumentPDFTemplate from './BiopsychosocialFormulationDocumentPDFTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
@@ -253,6 +254,7 @@ const templateRegistry = {
   'biologic_therapy_records': BiologicTherapyRecordsDocumentPDFTemplate,
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsDocumentPDFTemplate,
+  'biopsychosocial_formulation': BiopsychosocialFormulationDocumentPDFTemplate,
   'case_summaries': CaseSummariesTemplate,
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,

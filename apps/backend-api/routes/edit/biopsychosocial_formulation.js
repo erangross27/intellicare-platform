@@ -26,8 +26,9 @@ const ALLOWED_FIELDS = [
   'psychologicalFactors.cognitiveBiases', 'psychologicalFactors.copingMechanisms', 'psychologicalFactors.trauma',
   'socialFactors.occupationalStress', 'socialFactors.financialStressors', 'socialFactors.socialSupport',
   'socialFactors.familyDynamics', 'socialFactors.housingStability',
+  'biologicalFactors', 'psychologicalFactors', 'socialFactors',
   'strengths', 'vulnerabilities', 'perpetuatingFactors', 'protectiveFactors',
-  'recommendations', 'results', 'status',
+  'recommendations', 'results', 'status', 'type', 'additionalData',
   'integratedFormulation', 'findings', 'assessment', 'plan', 'notes',
   'date', 'provider', 'facility',
 ];

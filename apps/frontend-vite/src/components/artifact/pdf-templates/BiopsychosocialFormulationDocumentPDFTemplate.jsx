@@ -1,152 +1,81 @@
-/**
- * BiopsychosocialFormulationDocumentPDFTemplate.jsx
- * Helvetica font, 20/14/12pt hierarchy, numbered items, no label:value
- * Conditional wrap pattern, no page footers
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'biopsychosocial_formulation';
+const COMMA_SPLIT_FIELDS = [];
+const ARRAY_FIELDS = new Set(['strengths', 'vulnerabilities', 'perpetuatingFactors', 'protectiveFactors', 'recommendations']);
+const OBJECT_FIELDS = new Set(['biologicalFactors', 'psychologicalFactors', 'socialFactors', 'results', 'additionalData']);
+const NARRATIVE_FIELDS = new Set(['integratedFormulation', 'findings', 'assessment', 'plan', 'notes']);
+const DATE_FIELDS = new Set(['date']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  date: 'Date', type: 'Type', status: 'Status', provider: 'Provider', facility: 'Facility',
+  biologicalFactors: 'Biological Factors', psychologicalFactors: 'Psychological Factors',
+  socialFactors: 'Social Factors', strengths: 'Strengths', vulnerabilities: 'Vulnerabilities',
+  perpetuatingFactors: 'Perpetuating Factors', protectiveFactors: 'Protective Factors',
+  integratedFormulation: 'Integrated Formulation', findings: 'Findings', assessment: 'Assessment',
+  plan: 'Plan', recommendations: 'Recommendations', results: 'Results', notes: 'Notes',
+  additionalData: 'Additional Data',
+};
+const SECTIONS = [
+  { title: 'Date', fields: ['date'] },
+  { title: 'Record Information', fields: ['provider', 'facility'] },
+  { title: 'Record Details', fields: ['type', 'status'] },
+  { title: 'Biological Factors', fields: ['biologicalFactors'] },
+  { title: 'Psychological Factors', fields: ['psychologicalFactors'] },
+  { title: 'Social Factors', fields: ['socialFactors'] },
+  { title: 'Strengths', fields: ['strengths'] },
+  { title: 'Vulnerabilities', fields: ['vulnerabilities'] },
+  { title: 'Perpetuating Factors', fields: ['perpetuatingFactors'] },
+  { title: 'Protective Factors', fields: ['protectiveFactors'] },
+  { title: 'Integrated Formulation', fields: ['integratedFormulation'] },
+  { title: 'Findings', fields: ['findings'] },
+  { title: 'Assessment', fields: ['assessment'] },
+  { title: 'Plan', fields: ['plan'] },
+  { title: 'Recommendations', fields: ['recommendations'] },
+  { title: 'Results', fields: ['results'] },
+  { title: 'Notes', fields: ['notes'] },
+  { title: 'Additional Data', fields: ['additionalData'] },
+];
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 14, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  recordSection: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 6, backgroundColor: '#f0f0f0', padding: 6, borderWidth: 1, borderColor: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 2, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 10, marginTop: 4 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4 },
-  subSectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 3, marginTop: 6, paddingLeft: 4 },
-  listItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 3 },
-  nestedBlock: { marginBottom: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#cccccc', paddingTop: 4, paddingBottom: 4 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const keyToLabel = (key) => key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
-const safeArray = (val) => Array.isArray(val) ? val.filter(Boolean) : [];
-const isScalar = (v) => v === null || v === undefined || typeof v !== 'object';
-const isEmptyDeep = (v) => { if (v === null || v === undefined || v === '') return true; if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0; if (typeof v === 'object') return Object.values(v).every(isEmptyDeep); return false; };
-const countLeaves = (v) => { if (isEmptyDeep(v)) return 0; if (isScalar(v)) return 1; if (Array.isArray(v)) return v.reduce((n, x) => n + countLeaves(x), 0) + 1; return Object.entries(v).filter(([k]) => k !== '_id').reduce((n, [, vv]) => n + countLeaves(vv), 0) + 1; };
-// Built-in Helvetica lacks → ≥ ≤ µ × etc.; a missing glyph renders as garbage AND eats the next space — ASCII-map.
-const pdfSafe = (s) => String(s == null ? '' : s).replace(/→/g, '->').replace(/←/g, '<-').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/µ/g, 'u').replace(/μ/g, 'u').replace(/±/g, '+/-').replace(/×/g, 'x').replace(/÷/g, '/').replace(/°/g, ' deg').replace(/—/g, '-').replace(/–/g, '-');
-// IDENTICAL to the JSX splitByComma — paren-aware; depth-0 comma splits UNLESS between two digits
-// (1,500), before a 4-digit year, or before whole-word and/or. Read-only here → returns string[].
-const splitByComma = (text) => {
-  if (text === null || text === undefined) return [];
-  const s = String(text); const out = []; let buf = '', depth = 0;
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-    if (ch === '(' || ch === '[' || ch === '{') { depth++; buf += ch; continue; }
-    if (ch === ')' || ch === ']' || ch === '}') { if (depth > 0) depth--; buf += ch; continue; }
-    if (ch === ',' && depth === 0) {
-      const prev = s[i - 1] || ''; const rest = s.slice(i + 1).replace(/^\s+/, ''); const next = rest[0] || '';
-      if ((/\d/.test(prev) && /\d/.test(next)) || /^\d{4}\b/.test(rest) || /^(?:and|or)\b/i.test(rest)) { buf += ch; continue; }
-      const t = buf.trim(); if (t) out.push(t); buf = ''; continue;
-    }
-    buf += ch;
-  }
-  const t = buf.trim(); if (t) out.push(t);
-  return out;
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const BiopsychosocialFormulationDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => { if (r?.biopsychosocial_formulation) return Array.isArray(r.biopsychosocial_formulation) ? r.biopsychosocial_formulation : [r.biopsychosocial_formulation]; if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.biopsychosocial_formulation) return Array.isArray(dd.biopsychosocial_formulation) ? dd.biopsychosocial_formulation : [dd.biopsychosocial_formulation]; return [dd]; } return r; });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  // Each sub-field = one atomic nestedBlock (wrap={false}) so it never splits mid-list. String sub-fields
-  // are comma-split (mirrors JSX). When the whole section is tall (>8 rows) the title is GLUED to the
-  // first block in a wrap={false} sub-View and the rest flow → boolean wrap, orphan-proof (v4 6a3cda8c).
-  const renderMixedObject = (title, obj) => {
-    if (!obj || typeof obj !== 'object') return null;
-    const entries = Object.entries(obj).filter(([k, v]) => k !== '_id' && v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0));
-    if (entries.length === 0) return null;
-    const blocks = entries.map(([key, value], i) => {
-      const items = (Array.isArray(value) ? value.filter(Boolean).map(String) : splitByComma(String(value))).map(pdfSafe);
-      return (<View key={i} style={styles.nestedBlock} wrap={false}><Text style={styles.subSectionTitle}>{keyToLabel(key)}</Text>{items.map((item, j) => <Text key={j} style={styles.listItem}>{j + 1}. {item}</Text>)}</View>);
-    });
-    const totalItems = entries.reduce((n, [, v]) => n + (Array.isArray(v) ? v.filter(Boolean).length + 1 : splitByComma(String(v)).length + 1), 0);
-    if (totalItems <= 8) return (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{blocks}</View>);
-    return (<View style={styles.fieldContainer} wrap={true}><View wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{blocks[0]}</View>{blocks.slice(1)}</View>);
-  };
-
-  const renderArray = (title, items) => {
-    const safe = safeArray(items).map(pdfSafe);
-    if (safe.length === 0) return null;
-    if (safe.length <= 8) return (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{safe.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>)}</View>);
-    return (<View style={styles.fieldContainer} wrap={true}><View wrap={false}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.listItem}>1. {safe[0]}</Text></View>{safe.slice(1).map((item, i) => <Text key={i + 1} style={styles.listItem}>{i + 2}. {item}</Text>)}</View>);
-  };
-
-  const renderText = (title, text) => {
-    if (!text || !String(text).trim()) return null;
-    return (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.listItem}>{pdfSafe(text)}</Text></View>);
-  };
-
-  // Recommendations — array of { recommendation, date } objects (also tolerates legacy string items)
-  const renderRecommendations = (title, items) => {
-    const arr = Array.isArray(items) ? items.filter(it => !isEmptyDeep(it)) : [];
-    if (arr.length === 0) return null;
-    const rows = arr.map(it => pdfSafe(isScalar(it) ? String(it) : [it.recommendation, it.date].filter(Boolean).join(' — ')));
-    if (rows.length <= 8) return (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{rows.map((r, i) => <Text key={i} style={styles.listItem}>{i + 1}. {r}</Text>)}</View>);
-    return (<View style={styles.fieldContainer} wrap={true}><View wrap={false}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.listItem}>1. {rows[0]}</Text></View>{rows.slice(1).map((r, i) => <Text key={i + 1} style={styles.listItem}>{i + 2}. {r}</Text>)}</View>);
-  };
-
-  // Recursive grayscale renderer for arbitrary nested object (results). Hide-empty at every level.
-  const renderResultsNode = (value, label, depth, keyHint) => {
-    if (isEmptyDeep(value)) return null;
-    if (isScalar(value)) return (<View key={keyHint} style={styles.nestedBlock} wrap={false}><Text style={styles.subSectionTitle}>{label}</Text><Text style={styles.listItem}>{pdfSafe(value)}</Text></View>);
-    if (Array.isArray(value)) {
-      const items = value.map((it, i) => ({ it, i })).filter(({ it }) => !isEmptyDeep(it));
-      if (items.length === 0) return null;
-      return (<View key={keyHint} style={styles.nestedBlock} wrap={false}><Text style={styles.subSectionTitle}>{label}</Text>{items.map(({ it, i }) => isScalar(it) ? <Text key={i} style={styles.listItem}>{i + 1}. {pdfSafe(it)}</Text> : renderResultsNode(it, `${label} ${i + 1}`, depth + 1, `${keyHint}-${i}`))}</View>);
-    }
-    const entries = Object.entries(value).filter(([k, v]) => k !== '_id' && !isEmptyDeep(v));
-    if (entries.length === 0) return null;
-    return (<View key={keyHint} style={styles.nestedBlock}><Text style={styles.subSectionTitle}>{label}</Text>{entries.map(([k, v], i) => renderResultsNode(v, keyToLabel(k), depth + 1, `${keyHint}-${k}`))}</View>);
-  };
-
-  const renderResults = (title, obj) => {
-    if (isEmptyDeep(obj) || isScalar(obj)) return null;
-    const entries = Object.entries(obj).filter(([k, v]) => k !== '_id' && !isEmptyDeep(v));
-    if (entries.length === 0) return null;
-    const totalItems = entries.reduce((n, [, v]) => n + countLeaves(v), 0);
-    const blocks = entries.map(([k, v]) => renderResultsNode(v, keyToLabel(k), 0, `res-${k}`));
-    if (totalItems <= 8) return (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{blocks}</View>);
-    return (<View style={styles.fieldContainer} wrap={true}><View wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{blocks[0]}</View>{blocks.slice(1)}</View>);
-  };
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Biopsychosocial Formulation</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Biopsychosocial Formulation</Text>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordSection}>
-            <View wrap={false}><Text style={styles.recordTitle}>{`Biopsychosocial Formulation ${idx + 1}`}</Text>{record.date && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}{record.provider && <Text style={styles.recordMeta}>{pdfSafe(record.provider)}</Text>}{record.facility && <Text style={styles.recordMeta}>{pdfSafe(record.facility)}</Text>}</View>
-
-            {renderMixedObject('Biological Factors', record.biologicalFactors)}
-            {renderMixedObject('Psychological Factors', record.psychologicalFactors)}
-            {renderMixedObject('Social Factors', record.socialFactors)}
-            {renderArray('Strengths', record.strengths)}
-            {renderArray('Vulnerabilities', record.vulnerabilities)}
-            {renderArray('Perpetuating Factors', record.perpetuatingFactors)}
-            {renderArray('Protective Factors', record.protectiveFactors)}
-            {renderText('Integrated Formulation', record.integratedFormulation)}
-            {renderText('Findings', record.findings)}
-            {renderText('Assessment', record.assessment)}
-            {renderText('Plan', record.plan)}
-            {renderRecommendations('Recommendations', record.recommendations)}
-            {renderResults('Results', record.results)}
-            {renderText('Notes', record.notes)}
-            {renderText('Status', record.status)}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
+const BiopsychosocialFormulationDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Biopsychosocial Formulation</Text><Text style={styles.noData}>No biopsychosocial formulation data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Biopsychosocial Formulation</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Biopsychosocial Formulation {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
+};
 export default BiopsychosocialFormulationDocumentPDFTemplate;

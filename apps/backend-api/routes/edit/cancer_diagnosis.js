@@ -25,6 +25,7 @@ const ALLOWED_FIELDS = [
   'findings', 'assessment', 'plan', 'recommendations', 'results',
   'notes',
   'provider', 'facility', 'status',
+  'dateOfDiagnosis', 'date', 'type', 'additionalData',
 ];
 
 // Allow dotted sub-paths for the nested OBJECT field `results` (e.g. results.foo.bar)

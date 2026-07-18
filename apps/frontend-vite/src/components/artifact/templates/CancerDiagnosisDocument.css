@@ -1,54 +1,523 @@
-/* CancerDiagnosisDocument.css — Blue glow editing theme */
-.cancer-diagnosis-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
-.cancer-diagnosis-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
-.cancer-diagnosis-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
-.cancer-diagnosis-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
-.cancer-diagnosis-document .records-container { display: flex; flex-direction: column; gap: 24px; }
-.cancer-diagnosis-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
-.cancer-diagnosis-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
-.cancer-diagnosis-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
-.cancer-diagnosis-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.cancer-diagnosis-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
-.cancer-diagnosis-document .status-badge { font-size: 13px; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
-.cancer-diagnosis-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
-.cancer-diagnosis-document .section { margin-top: 16px; }
-.cancer-diagnosis-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
-.cancer-diagnosis-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
-.cancer-diagnosis-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
-.cancer-diagnosis-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
-.cancer-diagnosis-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
-.cancer-diagnosis-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
-.cancer-diagnosis-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
-.cancer-diagnosis-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
-.cancer-diagnosis-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
-.cancer-diagnosis-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
-.cancer-diagnosis-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
-.cancer-diagnosis-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
-.cancer-diagnosis-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
-.cancer-diagnosis-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
-.cancer-diagnosis-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
-.cancer-diagnosis-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
-.cancer-diagnosis-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: white; }
-.cancer-diagnosis-document .editable-row { cursor: pointer; }
-.cancer-diagnosis-document .editable-row:hover .edit-indicator { opacity: 1; }
-.cancer-diagnosis-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
-.cancer-diagnosis-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
-.cancer-diagnosis-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
-.cancer-diagnosis-document .modified-badge.added { color: #4ade80; }
-.cancer-diagnosis-document .edit-field-container { width: 100%; }
-.cancer-diagnosis-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.cancer-diagnosis-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
-.cancer-diagnosis-document .edit-select option { background: #0F1B33; color: #ececf1; }
-.cancer-diagnosis-document input.edit-textarea[type="number"] { min-height: 0; }
-/* Number picker: fills the row like the text/select editors, with the unit (cm, %, etc.) sitting to its right */
-.cancer-diagnosis-document .number-edit-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; width: 100%; }
-.cancer-diagnosis-document .edit-number { flex: 1; min-width: 0; padding: 10px; background: #1e1e2e; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
-.cancer-diagnosis-document .number-edit-unit { color: #9ca3af; font-family: 'Comfortaa', sans-serif; font-size: 14px; white-space: nowrap; }
-.cancer-diagnosis-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
-.cancer-diagnosis-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
-.cancer-diagnosis-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
-.cancer-diagnosis-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
-.cancer-diagnosis-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
-.cancer-diagnosis-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
-.cancer-diagnosis-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
-@media (max-width: 768px) { .cancer-diagnosis-document .document-header { padding-bottom: 12px; } .cancer-diagnosis-document .document-title { font-size: 24px; } .cancer-diagnosis-document .header-actions { flex-direction: column; } }
+/**
+ * CancerDiagnosisDocument.css
+ * Blue glow theme with inline editing support
+ */
+
+/* Container */
+.cancer-diagnosis-document {
+  padding: 20px;
+  background: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  min-height: 100%;
+  direction: ltr;
+}
+
+.cancer-diagnosis-document * { direction: ltr; }
+
+/* Header — block layout, buttons below title */
+.cancer-diagnosis-document .document-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #2563eb;
+}
+
+.cancer-diagnosis-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.cancer-diagnosis-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  margin-top: 10px;
+}
+
+/* Records Container */
+.cancer-diagnosis-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.cancer-diagnosis-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.cancer-diagnosis-document .record-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.cancer-diagnosis-document .record-meta-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.cancer-diagnosis-document .record-title-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.cancer-diagnosis-document .record-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Section */
+.cancer-diagnosis-document .section {
+  margin-bottom: 20px;
+}
+
+/* Section Header — INSIDE mini-cards-container */
+.cancer-diagnosis-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.cancer-diagnosis-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Header Right Actions — column layout (copy on top, approve below) */
+.cancer-diagnosis-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Mini Cards Container */
+.cancer-diagnosis-document .mini-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+/* Rec Mini Card */
+.cancer-diagnosis-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cancer-diagnosis-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 4px;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+/* Numbered Row */
+.cancer-diagnosis-document .numbered-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.cancer-diagnosis-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cancer-diagnosis-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ==================== EDITING STYLES ==================== */
+
+/* Editable row — pencil icon on hover */
+.cancer-diagnosis-document .editable-row {
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.cancer-diagnosis-document .editable-row:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.cancer-diagnosis-document .edit-indicator {
+  opacity: 0;
+  color: #60a5fa;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cancer-diagnosis-document .editable-row:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Modified row — blue glow */
+.cancer-diagnosis-document .numbered-row.modified {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.15);
+}
+
+/* Edit field container */
+.cancer-diagnosis-document .edit-field-container {
+  width: 100%;
+}
+
+.cancer-diagnosis-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.cancer-diagnosis-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+.cancer-diagnosis-document input.edit-date {
+  width: 100%;
+  display: block;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  color-scheme: dark;
+}
+
+.cancer-diagnosis-document input.edit-date:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+.cancer-diagnosis-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-start;
+}
+
+.cancer-diagnosis-document .save-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cancer-diagnosis-document .save-btn:hover {
+  background: #3b82f6;
+}
+
+.cancer-diagnosis-document .cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancer-diagnosis-document .cancel-btn:hover {
+  border-color: #9ca3af;
+  color: #ececf1;
+}
+
+/* Modified badge */
+.cancer-diagnosis-document .modified-badge {
+  font-size: 11px;
+  color: #facc15;
+  padding: 2px 8px;
+  font-style: italic;
+}
+
+.cancer-diagnosis-document .modified-badge.added {
+  color: #4ade80;
+}
+
+/* ==================== APPROVE BUTTON ==================== */
+
+.cancer-diagnosis-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+/* Pending — YELLOW */
+.cancer-diagnosis-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.cancer-diagnosis-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+/* Approved — GREEN */
+.cancer-diagnosis-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.cancer-diagnosis-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+/* ==================== COPY BUTTON ==================== */
+
+.cancer-diagnosis-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.cancer-diagnosis-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.cancer-diagnosis-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Header Copy All / Export PDF buttons */
+.cancer-diagnosis-document .header-actions .copy-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.cancer-diagnosis-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ==================== BAR CHART ==================== */
+
+.cancer-diagnosis-document .chart-category {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cancer-diagnosis-document .category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+.cancer-diagnosis-document .category-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none;
+}
+
+.cancer-diagnosis-document .category-description {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+  text-align: right;
+}
+
+.cancer-diagnosis-document .bar-chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+}
+
+.cancer-diagnosis-document .bar-chart-row:hover {
+  border-color: #60a5fa;
+}
+
+.cancer-diagnosis-document .bar-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.cancer-diagnosis-document .bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cancer-diagnosis-document .bar-background {
+  flex: 1;
+  height: 24px;
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #565869;
+}
+
+.cancer-diagnosis-document .bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.cancer-diagnosis-document .bar-value {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.cancer-diagnosis-document .bar-interpretation {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Highlight */
+.cancer-diagnosis-document mark {
+  background: #fbbf24;
+  color: #000;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+/* Empty State */
+.cancer-diagnosis-document .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cancer-diagnosis-document {
+    padding: 16px;
+  }
+
+  .cancer-diagnosis-document .document-title {
+    font-size: 22px;
+  }
+
+  .cancer-diagnosis-document .header-actions {
+    flex-direction: column;
+  }
+}
+/* Sub-field label */
+.cancer-diagnosis-document .sub-field-label { font-size: 13px; font-weight: 600; color: #93c5fd; margin-right: 8px; flex-shrink: 0; }
+.cancer-diagnosis-document .save-error { color: #fca5a5; font-size: 12px; margin-top: 6px; }
+.cancer-diagnosis-document .sr-only { clip: rect(0, 0, 0, 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.cancer-diagnosis-document .pdf-btn { display: inline-flex; align-items: center; text-decoration: none; }
+/* Object leaf sub-labels */
+.cancer-diagnosis-document .nested-subtitle.sub-label { font-size: 15px; padding-left: 0; opacity: 0.9; border-bottom: none; margin-bottom: 2px; padding-bottom: 2px; }
+/* Number stepper (edit-only) */
+.cancer-diagnosis-document .number-edit-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.cancer-diagnosis-document .num-step { min-width: 38px; padding: 8px 12px; background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.5); border-radius: 6px; color: #ececf1; font: inherit; cursor: pointer; }
+.cancer-diagnosis-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }

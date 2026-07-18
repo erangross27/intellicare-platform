@@ -40,6 +40,7 @@ import CardiovascularRiskReductionDocumentPDFTemplate from './CardiovascularRisk
 import CardiovascularRiskScreeningDocumentPDFTemplate from './CardiovascularRiskScreeningDocumentPDFTemplate';
 import CareCoordinationDocumentPDFTemplate from './CareCoordinationDocumentPDFTemplate';
 import CareCoordinationNotesDocumentPDFTemplate from './CareCoordinationNotesDocumentPDFTemplate';
+import CareTeamDocumentPDFTemplate from './CareTeamDocumentPDFTemplate';
 import CardiacRehabilitationReportsDocumentPDFTemplate from './CardiacRehabilitationReportsDocumentPDFTemplate';
 import BloodPressureReadingsDocumentPDFTemplate from './BloodPressureReadingsDocumentPDFTemplate';
 import BloodProductsDocumentPDFTemplate from './BloodProductsDocumentPDFTemplate';
@@ -313,6 +314,7 @@ const templateRegistry = {
   'cardiovascular_risk_screening': CardiovascularRiskScreeningDocumentPDFTemplate,
   'care_coordination': CareCoordinationDocumentPDFTemplate,
   'care_coordination_notes': CareCoordinationNotesDocumentPDFTemplate,
+  'care_team': CareTeamDocumentPDFTemplate,
   'cardiac_rehabilitation_reports': CardiacRehabilitationReportsDocumentPDFTemplate,
   'blood_pressure_readings': BloodPressureReadingsDocumentPDFTemplate,
   'blood_products': BloodProductsDocumentPDFTemplate,

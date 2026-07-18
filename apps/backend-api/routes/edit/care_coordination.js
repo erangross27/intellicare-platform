@@ -36,7 +36,12 @@ const ALLOWED_FIELDS = [
 // OBJECT fields edited via dotted sub-paths, e.g. "homeHealthServices.agency",
 // "advanceDirectives.POLST". The leaf segment is free-form (keys vary per record),
 // so we authorize any path whose root is one of these object fields.
-const OBJECT_ROOTS = ['homeHealthServices', 'caregiverInformation', 'advanceDirectives', 'socialDeterminants'];
+const OBJECT_ROOTS = [
+  'homeHealthServices', 'caregiverInformation', 'advanceDirectives', 'socialDeterminants',
+  // Array roots edited by index (e.g. followUpAppointments.0, primaryDiagnoses.2)
+  'primaryDiagnoses', 'activeMedications', 'dischargeMedications', 'followUpAppointments',
+  'pendingTests', 'medicalEquipmentNeeds', 'patientEducationProvided',
+];
 
 function isFieldAllowed(field) {
   if (ALLOWED_FIELDS.includes(field)) return true;

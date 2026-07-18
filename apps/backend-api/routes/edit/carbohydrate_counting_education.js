@@ -25,14 +25,18 @@ const ALLOWED_FIELDS = [
   'nutritionLabelReadingSkills', 'portionSizeEstimation', 'glycemicIndexKnowledge',
   'hypoglycemiaAwareness', 'severeHypoglycemiaHistory', 'diabeticKetoacidosisHistory', 'gastroparesisPresence',
   'mealTimingPatterns', 'learningObjectivesAchieved', 'followUpRecommendations',
+  'additionalData',
 ];
+
+// Allow dotted sub-paths for array items (e.g. mealTimingPatterns.0) and the nested object `additionalData`
+function isFieldAllowed(field) { return ALLOWED_FIELDS.includes(field) || ALLOWED_FIELDS.includes(field.split('.')[0]); }
 
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params;
     const { field, value, arrayIndex } = req.body;
     if (!field || value === undefined) return res.status(400).json({ success: false, error: 'field and value are required' });
-    if (!ALLOWED_FIELDS.includes(field)) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
+    if (!isFieldAllowed(field)) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     const objectId = toObjectId(id);
     if (!objectId) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const sda = getSecureDataAccess();

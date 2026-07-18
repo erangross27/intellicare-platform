@@ -30,6 +30,7 @@ import BleedingRiskAssessmentDocumentPDFTemplate from './BleedingRiskAssessmentD
 import BloodDisorderReportsDocumentPDFTemplate from './BloodDisorderReportsDocumentPDFTemplate';
 import BloodGlucoseLogsDocumentPDFTemplate from './BloodGlucoseLogsDocumentPDFTemplate';
 import BloodGlucoseMonitoringDocumentPDFTemplate from './BloodGlucoseMonitoringDocumentPDFTemplate';
+import CarbohydrateCountingEducationDocumentPDFTemplate from './CarbohydrateCountingEducationDocumentPDFTemplate';
 import BloodPressureReadingsDocumentPDFTemplate from './BloodPressureReadingsDocumentPDFTemplate';
 import BloodProductsDocumentPDFTemplate from './BloodProductsDocumentPDFTemplate';
 import BloodSmearsDocumentPDFTemplate from './BloodSmearsDocumentPDFTemplate';
@@ -290,6 +291,7 @@ const templateRegistry = {
   'blood_disorder_reports': BloodDisorderReportsDocumentPDFTemplate,
   'blood_glucose_logs': BloodGlucoseLogsDocumentPDFTemplate,
   'blood_glucose_monitoring': BloodGlucoseMonitoringDocumentPDFTemplate,
+  'carbohydrate_counting_education': CarbohydrateCountingEducationDocumentPDFTemplate,
   'blood_pressure_readings': BloodPressureReadingsDocumentPDFTemplate,
   'blood_products': BloodProductsDocumentPDFTemplate,
   'blood_smears': BloodSmearsDocumentPDFTemplate,

@@ -10,7 +10,10 @@
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
   min-height: 100%;
+  direction: ltr;
 }
+
+.basal-rate-adjustments-document * { direction: ltr; }
 
 /* Header — block layout, buttons below title */
 .basal-rate-adjustments-document .document-header {
@@ -80,16 +83,6 @@
   color: #ececf1;
   margin: 0;
   text-transform: none !important;
-}
-
-.basal-rate-adjustments-document .record-date {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
 /* Section */
@@ -239,17 +232,9 @@
   box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
 }
 
-/* Number stepper for numeric measurement fields (number editable, unit fixed) */
-.basal-rate-adjustments-document .num-unit-edit {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.basal-rate-adjustments-document input.edit-date {
   width: 100%;
-}
-
-.basal-rate-adjustments-document .edit-number {
-  flex: 1 1 auto;
-  min-width: 0;
+  display: block;
   background: #0d1929;
   border: 2px solid #2563eb;
   border-radius: 6px;
@@ -257,27 +242,21 @@
   font-family: 'Comfortaa', sans-serif;
   font-size: 14px;
   padding: 10px 14px;
-  box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+  box-sizing: border-box;
+  color-scheme: dark;
+}
 
-.basal-rate-adjustments-document .edit-number:focus {
+.basal-rate-adjustments-document input.edit-date:focus {
   outline: none;
   border-color: #60a5fa;
   box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
-}
-
-.basal-rate-adjustments-document .nu-affix {
-  flex: 0 0 auto;
-  color: #93c5fd;
-  font-family: 'Comfortaa', sans-serif;
-  font-size: 14px;
-  white-space: nowrap;
 }
 
 .basal-rate-adjustments-document .edit-actions {
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .basal-rate-adjustments-document .save-btn {
@@ -533,3 +512,11 @@
 }
 /* Sub-field label */
 .basal-rate-adjustments-document .sub-field-label { font-size: 13px; font-weight: 600; color: #93c5fd; margin-right: 8px; flex-shrink: 0; }
+.basal-rate-adjustments-document .save-error { color: #fca5a5; font-size: 12px; margin-top: 6px; }
+.basal-rate-adjustments-document .sr-only { clip: rect(0, 0, 0, 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.basal-rate-adjustments-document .pdf-btn { display: inline-flex; align-items: center; text-decoration: none; }
+/* Number stepper (edit-only) */
+.basal-rate-adjustments-document .number-edit-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.basal-rate-adjustments-document .num-step { min-width: 38px; padding: 8px 12px; background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.5); border-radius: 6px; color: #ececf1; font: inherit; cursor: pointer; }
+.basal-rate-adjustments-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
+.basal-rate-adjustments-document .number-edit-unit { font-size: 16px; color: #93c5fd; white-space: nowrap; }

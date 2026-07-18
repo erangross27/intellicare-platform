@@ -20,7 +20,7 @@ function buildContext(req, operation = 'read') { return { serviceId: 'blood-gluc
 function toObjectId(str) { try { return new mongoose.Types.ObjectId(str); } catch { return null; } }
 
 const ALLOWED_FIELDS = [
-  'monitoringMethod', 'deviceType', 'frequency',
+  'date', 'monitoringMethod', 'deviceType', 'frequency',
   'averageGlucose', 'timeInRange', 'timeAboveRange', 'timeBelowRange', 'glucoseVariability',
   'patterns', 'hypoglycemicEvents', 'adherence',
   'adjustments', 'notes',

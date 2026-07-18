@@ -1,368 +1,71 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * Blood Glucose Monitoring Document PDF Template
- * BOX-FREE clean black & white: no background fills, no box borders — only thin line
- * dividers under the document title, each section title, and the record header.
- * Helvetica font, A4. (checklist 6a3d4c85 §H)
- */
-
+const COLLECTION = 'blood_glucose_monitoring';
+const COMMA_SPLIT_FIELDS = ['notes'];
+const ARRAY_FIELDS = new Set(['patterns']);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set(['hypoglycemicEvents', 'adherence', 'adjustments', 'notes']);
+const DATE_FIELDS = new Set(['date']);
+const ZERO_SENTINEL_FIELDS = new Set([]);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  date: 'Date', provider: 'Provider', facility: 'Facility', monitoringMethod: 'Monitoring Method',
+  deviceType: 'Device Type', frequency: 'Frequency', reviewPeriod: 'Review Period',
+  averageGlucose: 'Average Glucose', timeInRange: 'Time in Range', timeAboveRange: 'Time Above Range',
+  timeBelowRange: 'Time Below Range', glucoseVariability: 'Glucose Variability', patterns: 'Patterns',
+  hypoglycemicEvents: 'Hypoglycemic Events', adherence: 'Adherence', adjustments: 'Adjustments',
+  notes: 'Notes',
+};
+const SECTIONS = [
+  { title: 'Date', fields: ['date'] },
+  { title: 'Record Information', fields: ['provider', 'facility'] },
+  { title: 'Monitoring Setup', fields: ['monitoringMethod', 'deviceType', 'frequency', 'reviewPeriod'] },
+  { title: 'Glucose Metrics', fields: ['averageGlucose', 'timeInRange', 'timeAboveRange', 'timeBelowRange', 'glucoseVariability'] },
+  { title: 'Patterns', fields: ['patterns'] },
+  { title: 'Events and Adherence', fields: ['hypoglycemicEvents', 'adherence'] },
+  { title: 'Adjustments', fields: ['adjustments'] },
+  { title: 'Notes', fields: ['notes'] },
+];
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  // Document header
-  documentHeader: {
-    marginBottom: 24,
-    borderBottomWidth: 3,
-    borderBottomColor: '#000000',
-    paddingBottom: 14,
-  },
-  documentTitle: {
-    fontSize: 22,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  documentSubtitle: {
-    fontSize: 10,
-    color: '#000000',
-    textAlign: 'center',
-    marginTop: 4,
-    fontFamily: 'Helvetica',
-  },
-  // Record container
-  recordContainer: {
-    marginBottom: 28,
-    paddingBottom: 16,
-  },
-  // Record header — box-free: just a thin underline, no fill/border box
-  recordHeader: {
-    marginBottom: 14,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  recordMeta: {
-    fontSize: 10,
-    marginTop: 6,
-    color: '#000000',
-    fontFamily: 'Helvetica',
-  },
-  // Section
-  section: {
-    marginBottom: 18,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 4,
-    marginBottom: 10,
-  },
-  // Field block — box-free: spacing only, no border/background
-  fieldBlock: {
-    marginBottom: 8,
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    marginBottom: 6,
-  },
-  // Sub-label inside a field block (for parseSubtitleItems nested labels)
-  subLabel: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    paddingLeft: 16,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  // Numbered value row
-  numberedItem: {
-    flexDirection: 'row',
-    paddingLeft: 10,
-    marginBottom: 3,
-  },
-  itemNumber: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    width: 22,
-  },
-  itemContent: {
-    fontSize: 11,
-    color: '#000000',
-    flex: 1,
-    lineHeight: 1.5,
-  },
-  // No data
-  noData: {
-    fontSize: 12,
-    color: '#000000',
-    textAlign: 'center',
-    marginTop: 40,
-  },
-  // Footer
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: 'center',
-    fontSize: 8,
-    color: '#000000',
-    borderTopWidth: 1,
-    borderTopColor: '#000000',
-    paddingTop: 6,
-  },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
-  } catch { return String(dateString); }
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'object') return '';
-  return String(val);
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-const safeArray = (val) => {
-  if (!val) return [];
-  if (Array.isArray(val)) return val.filter(v => v !== null && v !== undefined && v !== '');
-  return [];
+const BloodGlucoseMonitoringDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Blood Glucose Monitoring</Text><Text style={styles.noData}>No blood glucose monitoring data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Blood Glucose Monitoring</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Blood Glucose Monitoring {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
-const hasValue = (val) => {
-  if (val === null || val === undefined || val === '') return false;
-  if (typeof val === 'number') return true;
-  if (typeof val === 'boolean') return true;
-  if (typeof val === 'string') return val.trim() !== '';
-  return true;
-};
-
-// parseSubtitleItems: splits "Label1: value1. Label2: value2." into [{label, value, isGeneric}]
-const parseSubtitleItems = (text) => {
-  if (!text) return [];
-  const segments = text.split(/(?<!(?:Dr|Mr|Mrs|Ms|Jr|Sr|St|vs|etc)\.)(?<=\.)\s+(?=[A-Z])/).filter(s => s.trim());
-  if (segments.length === 0) return [];
-  return segments.map((segment) => {
-    const colonMatch = segment.match(/^([^:]+?):\s*(.+)$/s);
-    if (colonMatch && colonMatch[1].length < 80) {
-      return { label: colonMatch[1].trim(), value: colonMatch[2].trim().replace(/\.$/, ''), isGeneric: false };
-    }
-    return { label: '', value: segment.trim().replace(/\.$/, ''), isGeneric: true };
-  });
-};
-
-/* Title INSIDE the View; @react-pdf v4 BOOLEAN wrap (undefined === false on v4).
-   <=8 rows → atomic wrap={false} (moves whole block to next page → no orphan).
-   >8 rows → glue title+first row in a wrap={false} sub-View, rest flow → orphan-proof, no overprint. */
-const Block = (title, rows) => {
-  if (!rows.length) return null;
-  if (rows.length <= 8) {
-    return (
-      <View style={styles.section} wrap={false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {rows}
-      </View>
-    );
-  }
-  return (
-    <View style={styles.section} wrap>
-      <View wrap={false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {rows[0]}
-      </View>
-      {rows.slice(1)}
-    </View>
-  );
-};
-
-const BloodGlucoseMonitoringDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (Array.isArray(templateData)) return templateData;
-    if (templateData?.blood_glucose_monitoring) return templateData.blood_glucose_monitoring;
-    if (templateData?.documentData) {
-      const docData = templateData.documentData;
-      if (Array.isArray(docData)) return docData;
-      if (docData?.blood_glucose_monitoring) return docData.blood_glucose_monitoring;
-      return [docData];
-    }
-    if (templateData && typeof templateData === 'object') return [templateData];
-    return [];
-  }, [templateData]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Blood Glucose Monitoring</Text>
-          </View>
-          <Text style={styles.noData}>No blood glucose monitoring data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  // Field section — each field is a plain block (label + numbered value); box-free.
-  const renderFieldSection = (title, entries) => {
-    const valid = entries
-      .filter(([, val]) => typeof val === 'boolean' ? true : hasValue(val))
-      .map(([label, val]) => [label, typeof val === 'boolean' ? (val ? 'Yes' : 'No') : safeString(val)]);
-    if (valid.length === 0) return null;
-    const rows = valid.map(([label, val], i) => {
-      const subItems = parseSubtitleItems(val);
-      if (subItems.length > 1) {
-        return (
-          <View key={i} style={styles.fieldBlock} wrap={false}>
-            <Text style={styles.fieldLabel}>{label}</Text>
-            {subItems.map((item, j) => (
-              <View key={j}>
-                {!item.isGeneric && <Text style={styles.subLabel}>{item.label}</Text>}
-                <View style={styles.numberedItem}>
-                  <Text style={styles.itemNumber}>{j + 1}.</Text>
-                  <Text style={styles.itemContent}>{item.value}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        );
-      }
-      return (
-        <View key={i} style={styles.fieldBlock} wrap={false}>
-          <Text style={styles.fieldLabel}>{label}</Text>
-          <View style={styles.numberedItem}>
-            <Text style={styles.itemNumber}>1.</Text>
-            <Text style={styles.itemContent}>{val}</Text>
-          </View>
-        </View>
-      );
-    });
-    return Block(title, rows);
-  };
-
-  // Text section — each parsed item is a plain block; box-free.
-  const renderTextSection = (title, text) => {
-    if (!hasValue(text)) return null;
-    const items = parseSubtitleItems(text);
-    if (items.length === 0) return null;
-    const rows = items.map((item, i) => (
-      <View key={i} style={styles.fieldBlock} wrap={false}>
-        {!item.isGeneric && <Text style={styles.fieldLabel}>{item.label}</Text>}
-        <View style={styles.numberedItem}>
-          <Text style={styles.itemNumber}>{i + 1}.</Text>
-          <Text style={styles.itemContent}>{item.value}</Text>
-        </View>
-      </View>
-    ));
-    return Block(title, rows);
-  };
-
-  const renderPatternsSection = (record) => {
-    const patterns = safeArray(record.patterns);
-    if (patterns.length === 0) return null;
-    const rows = patterns.map((p, i) => (
-      <View key={i} style={styles.fieldBlock} wrap={false}>
-        <View style={styles.numberedItem}>
-          <Text style={styles.itemNumber}>{i + 1}.</Text>
-          <Text style={styles.itemContent}>{safeString(p)}</Text>
-        </View>
-      </View>
-    ));
-    return Block('Glucose Patterns', rows);
-  };
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Blood Glucose Monitoring</Text>
-          <Text style={styles.documentSubtitle}>Clinical Monitoring Report</Text>
-        </View>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>Record {idx + 1}</Text>
-              {(record.date || record.createdAt) && (
-                <Text style={styles.recordMeta}>Date: {formatDate(record.date || record.createdAt)}</Text>
-              )}
-            </View>
-
-            {/* 0. Provider Information */}
-            {renderFieldSection('Provider Information', [
-              ['Provider', record.provider],
-              ['Facility', record.facility],
-              ['Review Period', record.reviewPeriod],
-            ])}
-
-            {/* 1. Monitoring Details */}
-            {renderFieldSection('Monitoring Details', [
-              ['Monitoring Method', record.monitoringMethod],
-              ['Device Type', record.deviceType],
-              ['Frequency', record.frequency],
-            ])}
-
-            {/* 2. Glucose Metrics */}
-            {renderFieldSection('Glucose Metrics', [
-              ['Average Glucose', record.averageGlucose],
-              ['Time In Range', record.timeInRange],
-              ['Time Above Range', record.timeAboveRange],
-              ['Time Below Range', record.timeBelowRange],
-              ['Glucose Variability', record.glucoseVariability],
-            ])}
-
-            {/* 3. Glucose Patterns */}
-            {renderPatternsSection(record)}
-
-            {/* 4. Clinical Events */}
-            {renderFieldSection('Clinical Events', [
-              ['Hypoglycemic Events', record.hypoglycemicEvents],
-              ['Adherence', record.adherence],
-            ])}
-
-            {/* 5. Adjustments */}
-            {renderTextSection('Adjustments', record.adjustments)}
-
-            {/* 6. Notes */}
-            {renderTextSection('Notes', record.notes)}
-          </View>
-        ))}
-
-        <Text style={styles.footer}>Confidential Medical Document</Text>
-      </Page>
-    </Document>
-  );
-};
-
 export default BloodGlucoseMonitoringDocumentPDFTemplate;

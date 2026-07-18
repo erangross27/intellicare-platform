@@ -25,7 +25,7 @@ const ALLOWED_FIELDS = [
   'woundDressingType', 'woundCultureResults', 'graftingRequired', 'graftDonorSite',
   'tetanusProphylaxisStatus', 'caloricRequirementCalculation', 'prealbuminLevel',
   'bauxScore', 'absiScore', 'contractureRiskAreas',
-  'electricalBurnVoltage', 'chemicalAgentInvolved',
+  'electricalBurnVoltage', 'chemicalAgentInvolved', 'burnDate',
 ];
 
 router.put('/:id/edit', async (req, res) => {

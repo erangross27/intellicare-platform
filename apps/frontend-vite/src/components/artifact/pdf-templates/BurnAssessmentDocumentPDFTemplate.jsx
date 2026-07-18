@@ -1,273 +1,74 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * Burn Assessment Document PDF Template - February 2026
- * Helvetica font, professional layout, A4
- * wrap conditional pattern: items > 8 threshold
- */
-
+const COLLECTION = 'burn_assessment';
+const COMMA_SPLIT_FIELDS = ['graftDonorSite', 'woundDressingType'];
+const ARRAY_FIELDS = new Set(['anatomicalLocationsBurned', 'escharotomySites', 'burnCenterReferralCriteria', 'woundCultureResults', 'contractureRiskAreas']);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set(['graftDonorSite', 'woundDressingType']);
+const DATE_FIELDS = new Set(['burnDate']);
+const ZERO_SENTINEL_FIELDS = new Set(['fluidResuscitationRate', 'bauxScore', 'absiScore', 'prealbuminLevel', 'caloricRequirementCalculation']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  burnDate: 'Burn Date', tbsaPercentage: 'TBSA Percentage', burnDepthClassification: 'Burn Depth Classification', burnEtiology: 'Burn Etiology',
+  anatomicalLocationsBurned: 'Anatomical Locations Burned', inhalationInjuryPresent: 'Inhalation Injury Present', carboxyhemoglobinLevel: 'Carboxyhemoglobin Level',
+  parklandFormulaCalculation: 'Parkland Formula Calculation', fluidResuscitationRate: 'Fluid Resuscitation Rate', urineOutputTarget: 'Urine Output Target',
+  escharotomyRequired: 'Escharotomy Required', escharotomySites: 'Escharotomy Sites', bauxScore: 'Baux Score', absiScore: 'ABSI Score',
+  burnCenterReferralCriteria: 'Burn Center Referral Criteria', electricalBurnVoltage: 'Electrical Burn Voltage', chemicalAgentInvolved: 'Chemical Agent Involved',
+  woundCultureResults: 'Wound Culture Results', graftingRequired: 'Grafting Required', graftDonorSite: 'Graft Donor Site',
+  woundDressingType: 'Wound Dressing Type', tetanusProphylaxisStatus: 'Tetanus Prophylaxis Status', prealbuminLevel: 'Prealbumin Level',
+  caloricRequirementCalculation: 'Caloric Requirement Calculation', contractureRiskAreas: 'Contracture Risk Areas',
+};
+const SECTIONS = [
+  { title: 'Burn Overview', fields: ['burnDate', 'tbsaPercentage', 'burnDepthClassification', 'burnEtiology', 'electricalBurnVoltage', 'chemicalAgentInvolved'] },
+  { title: 'Anatomical Locations Burned', fields: ['anatomicalLocationsBurned'] },
+  { title: 'Inhalation and Resuscitation', fields: ['inhalationInjuryPresent', 'carboxyhemoglobinLevel', 'parklandFormulaCalculation', 'fluidResuscitationRate', 'urineOutputTarget'] },
+  { title: 'Escharotomy', fields: ['escharotomyRequired', 'escharotomySites'] },
+  { title: 'Severity Scores', fields: ['bauxScore', 'absiScore'] },
+  { title: 'Burn Center Referral Criteria', fields: ['burnCenterReferralCriteria'] },
+  { title: 'Grafting and Wound Care', fields: ['graftingRequired', 'graftDonorSite', 'woundDressingType', 'woundCultureResults'] },
+  { title: 'Nutrition and Prophylaxis', fields: ['tetanusProphylaxisStatus', 'prealbuminLevel', 'caloricRequirementCalculation'] },
+  { title: 'Contracture Risk Areas', fields: ['contractureRiskAreas'] },
+];
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentHeader: {
-    marginBottom: 20,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 12,
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  recordContainer: {
-    marginBottom: 24,
-    paddingBottom: 16,
-  },
-  recordHeader: {
-    marginBottom: 12,
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#000000',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-  },
-  recordMeta: {
-    fontSize: 11,
-    marginTop: 6,
-    color: '#333333',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-    paddingBottom: 4,
-    marginBottom: 8,
-  },
-  // Label-above-value block (mirrors the on-screen JSX: nested-subtitle label, then content-value).
-  fieldBlock: {
-    marginBottom: 8,
-    paddingLeft: 12,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    marginBottom: 2,
-  },
-  fieldValue: {
-    fontSize: 12,
-    color: '#000000',
-    lineHeight: 1.4,
-  },
-  // Array items render as plain values in the JSX (no numbering).
-  arrayItem: {
-    fontSize: 12,
-    color: '#000000',
-    lineHeight: 1.4,
-    marginBottom: 6,
-    paddingLeft: 12,
-  },
-  noData: {
-    fontSize: 12,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 40,
-  },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
-  } catch { return String(dateString); }
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'object') return '';
-  return String(val);
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => { const parsed = typeof item === 'string' ? parseLabel(item) : { subtitle: '', value: item }; return parsed.subtitle ? { subtitle: parsed.subtitle, value: parsed.value } : { subtitle: '', value: displayValue(item) }; }); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-const safeArray = (val) => {
-  if (!val) return [];
-  if (Array.isArray(val)) return val.filter(v => v !== null && v !== undefined && v !== '');
-  return [];
+const BurnAssessmentDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Burn Assessment</Text><Text style={styles.noData}>No burn assessment data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Burn Assessment</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Burn Assessment {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
-const hasValue = (val) => {
-  if (val === null || val === undefined || val === '') return false;
-  if (typeof val === 'number') return true;
-  if (typeof val === 'boolean') return true;
-  if (typeof val === 'string') return val.trim() !== '';
-  return true;
-};
-
-// Fields where a numeric 0 is a sentinel ("not calculated / not measured") and should be hidden.
-const hasNumber = (val) => hasValue(val) && !(typeof val === 'number' && val === 0);
-
-const BurnAssessmentDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (Array.isArray(templateData)) return templateData;
-    if (templateData?.burn_assessment) return templateData.burn_assessment;
-    if (templateData?.documentData) {
-      const docData = templateData.documentData;
-      if (Array.isArray(docData)) return docData;
-      if (docData?.burn_assessment) return docData.burn_assessment;
-      return [docData];
-    }
-    if (templateData && typeof templateData === 'object') return [templateData];
-    return [];
-  }, [templateData]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Burn Assessment</Text>
-          </View>
-          <Text style={styles.noData}>No burn assessment data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  // Build a field node (label-above-value). Booleans -> Yes/No; empty values are dropped at render time.
-  const field = (label, val) => ({
-    kind: 'field',
-    label,
-    value: typeof val === 'boolean' ? (val ? 'Yes' : 'No') : (hasValue(val) ? safeString(val) : ''),
-  });
-  // Build plain value nodes for an array field (no numbering, mirroring the JSX).
-  const items = (arr) => safeArray(arr).map((v) => ({ kind: 'item', value: safeString(v) }));
-
-  // Render a section as the on-screen JSX does: a Title, then label-above-value blocks and/or plain
-  // array values (NOT a two-column "label: value" row).
-  const renderBlockSection = (title, nodes) => {
-    const valid = nodes.filter((n) => hasValue(n.value));
-    if (valid.length === 0) return null;
-    return (
-      <View style={styles.section} wrap={valid.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {valid.map((n, i) => n.kind === 'field' ? (
-          <View key={i} style={styles.fieldBlock} wrap={false}>
-            <Text style={styles.fieldLabel}>{n.label}</Text>
-            <Text style={styles.fieldValue}>{n.value}</Text>
-          </View>
-        ) : (
-          <Text key={i} style={styles.arrayItem}>{n.value}</Text>
-        ))}
-      </View>
-    );
-  };
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Burn Assessment</Text>
-        </View>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer} minPresenceAhead={80}>
-            {/* Record Header — date above the title, mirroring the JSX */}
-            <View style={styles.recordHeader} wrap={false}>
-              {(record.burnDate || record.date) && (
-                <Text style={styles.recordMeta}>{formatDate(record.burnDate || record.date)}</Text>
-              )}
-              <Text style={styles.recordTitle}>Burn Assessment {idx + 1}</Text>
-            </View>
-
-            {/* Burn Information */}
-            {renderBlockSection('Burn Information', [
-              field('Burn Etiology', record.burnEtiology),
-              field('Burn Depth', record.burnDepthClassification),
-              field('TBSA %', record.tbsaPercentage),
-            ])}
-
-            {/* Anatomical Locations */}
-            {renderBlockSection('Anatomical Locations', items(record.anatomicalLocationsBurned))}
-
-            {/* Inhalation Injury */}
-            {renderBlockSection('Inhalation Injury', [
-              field('Inhalation Injury', record.inhalationInjuryPresent),
-              field('Carboxyhemoglobin Level', record.carboxyhemoglobinLevel),
-            ])}
-
-            {/* Fluid Resuscitation */}
-            {renderBlockSection('Fluid Resuscitation', [
-              field('Parkland Formula (mL)', record.parklandFormulaCalculation),
-              field('Fluid Rate (mL/hr)', hasNumber(record.fluidResuscitationRate) ? record.fluidResuscitationRate : null),
-              field('Urine Output Target (mL/kg/hr)', record.urineOutputTarget),
-            ])}
-
-            {/* Escharotomy — field + sites combined, like the JSX */}
-            {renderBlockSection('Escharotomy', [
-              field('Escharotomy Required', record.escharotomyRequired),
-              ...items(record.escharotomySites),
-            ])}
-
-            {/* Severity Scoring */}
-            {renderBlockSection('Severity Scoring', [
-              field('Baux Score', hasNumber(record.bauxScore) ? record.bauxScore : null),
-              field('ABSI Score', hasNumber(record.absiScore) ? record.absiScore : null),
-            ])}
-
-            {/* Referral Criteria */}
-            {renderBlockSection('Referral Criteria', items(record.burnCenterReferralCriteria))}
-
-            {/* Wound Care — fields + culture results combined, like the JSX */}
-            {renderBlockSection('Wound Care', [
-              field('Wound Dressing', record.woundDressingType),
-              field('Grafting Required', record.graftingRequired),
-              field('Graft Donor Site', record.graftDonorSite),
-              ...items(record.woundCultureResults),
-            ])}
-
-            {/* Clinical */}
-            {renderBlockSection('Clinical', [
-              field('Tetanus Prophylaxis', record.tetanusProphylaxisStatus),
-              field('Caloric Requirement', hasNumber(record.caloricRequirementCalculation) ? record.caloricRequirementCalculation : null),
-              field('Prealbumin Level', hasNumber(record.prealbuminLevel) ? record.prealbuminLevel : null),
-            ])}
-
-            {/* Contracture Risk */}
-            {renderBlockSection('Contracture Risk', items(record.contractureRiskAreas))}
-
-            {/* Etiology Details */}
-            {renderBlockSection('Etiology Details', [
-              field('Electrical Burn Voltage', record.electricalBurnVoltage),
-              field('Chemical Agent', record.chemicalAgentInvolved),
-            ])}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
-};
-
 export default BurnAssessmentDocumentPDFTemplate;

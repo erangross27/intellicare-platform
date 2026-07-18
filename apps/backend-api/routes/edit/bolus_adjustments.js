@@ -23,7 +23,7 @@ const ALLOWED_FIELDS = [
   'mealTime', 'oldRatio', 'newRatio', 'reason',
   'date', 'findings', 'assessment', 'plan', 'notes',
   'results', 'recommendations',
-  'provider', 'facility', 'status',
+  'provider', 'facility', 'status', 'type', 'additionalData',
 ];
 // Dotted-prefix fields allow editing nested leaves within OBJECT fields (e.g. results.glucose.value).
 const ALLOWED_DOTTED_PREFIXES = ['results.'];

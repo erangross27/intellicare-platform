@@ -26,6 +26,7 @@ import BiopsyReportsDocumentPDFTemplate from './BiopsyReportsDocumentPDFTemplate
 import BiopsychosocialFormulationDocumentPDFTemplate from './BiopsychosocialFormulationDocumentPDFTemplate';
 import BirthHistoryDocumentPDFTemplate from './BirthHistoryDocumentPDFTemplate';
 import BirthPlanDocumentPDFTemplate from './BirthPlanDocumentPDFTemplate';
+import BleedingRiskAssessmentDocumentPDFTemplate from './BleedingRiskAssessmentDocumentPDFTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
@@ -259,6 +260,7 @@ const templateRegistry = {
   'biopsychosocial_formulation': BiopsychosocialFormulationDocumentPDFTemplate,
   'birth_history': BirthHistoryDocumentPDFTemplate,
   'birth_plan': BirthPlanDocumentPDFTemplate,
+  'bleeding_risk_assessment': BleedingRiskAssessmentDocumentPDFTemplate,
   'case_summaries': CaseSummariesTemplate,
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,

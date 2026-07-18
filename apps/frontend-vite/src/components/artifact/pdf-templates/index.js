@@ -42,6 +42,7 @@ import BrainTumorCharacteristicsDocumentPDFTemplate from './BrainTumorCharacteri
 import BrainTumorMolecularMarkersDocumentPDFTemplate from './BrainTumorMolecularMarkersDocumentPDFTemplate';
 import BreastfeedingRecommendationDocumentPDFTemplate from './BreastfeedingRecommendationDocumentPDFTemplate';
 import BronchialHygieneTherapyDocumentPDFTemplate from './BronchialHygieneTherapyDocumentPDFTemplate';
+import BunionSurgeryEvaluationDocumentPDFTemplate from './BunionSurgeryEvaluationDocumentPDFTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
@@ -291,6 +292,7 @@ const templateRegistry = {
   'brain_tumor_molecular_markers': BrainTumorMolecularMarkersDocumentPDFTemplate,
   'breastfeeding_recommendation': BreastfeedingRecommendationDocumentPDFTemplate,
   'bronchial_hygiene_therapy': BronchialHygieneTherapyDocumentPDFTemplate,
+  'bunion_surgery_evaluation': BunionSurgeryEvaluationDocumentPDFTemplate,
   'case_summaries': CaseSummariesTemplate,
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,

@@ -1,252 +1,225 @@
-/**
- * RespiratoryInfectionsDocumentPDFTemplate.jsx
- * June 2026 — Helvetica — A4 — BLACK & WHITE ONLY (#000000 titles/borders, no blue) — BOX-FREE.
- * Collection: respiratory_infections
- *
- * Mirrors the on-screen template. Narrative strings split per-sentence (./;); array-of-strings →
- * numbered rows; recommendations → date-grouped; objects + arrays-of-objects recurse via renderNode
- * (humanizeKey, hide-empty everywhere). Single-name skip: field label hidden when == section title.
- * Page-break Rule #74: each section is ONE wrap-gated <View> with its title as the FIRST CHILD;
- * wrap={itemCount > 8 ? undefined : false}. Only the record header is unconditionally wrap={false}.
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  header: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 20, textAlign: 'center', color: '#000000', borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid', paddingBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { paddingBottom: 8, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#000000' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  field: { marginBottom: 8 },
-  fieldLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3, textTransform: 'uppercase' },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  value: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 1 },
-  nested: { marginLeft: 10, paddingLeft: 8, marginTop: 2 },
-  pageNumber: { position: 'absolute', bottom: 20, right: 40, fontSize: 10, color: '#9ca3af' },
+  page: { padding: 36, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 18 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 12 },
+  block: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999', borderBottomStyle: 'solid', marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14 },
+  listItem: { fontSize: 14, paddingLeft: 10 },
+  noDataText: { fontSize: 14, marginTop: 30 },
 });
 
-/* ═══════ CONSTANTS ═══════ */
-const SECTION_TITLES = {
-  'overview': 'Overview',
-  'current-infection': 'Current Infection',
-  'infection-history': 'Infection History',
-  'immunization-tb': 'Immunizations & TB Risk',
-  'findings-plan': 'Findings & Plan',
-  'results-section': 'Results',
-  'recommendations-section': 'Recommendations',
-};
-const FIELD_LABELS = {
-  date: 'Date', type: 'Type', provider: 'Provider', facility: 'Facility', status: 'Status',
-  currentInfection: 'Current Infection', recurrentInfections: 'Recurrent Infections',
-  pneumoniaHistory: 'Pneumonia History', tuberculosisRisk: 'Tuberculosis Risk', immunizations: 'Immunizations',
-  findings: 'Findings', assessment: 'Assessment', plan: 'Plan', notes: 'Notes', results: 'Results', recommendations: 'Recommendations',
-};
-const SECTION_FIELDS = {
-  'overview': ['date', 'type', 'provider', 'facility', 'status'],
-  'current-infection': ['currentInfection'],
-  'infection-history': ['recurrentInfections', 'pneumoniaHistory'],
-  'immunization-tb': ['immunizations', 'tuberculosisRisk'],
-  'findings-plan': ['findings', 'assessment', 'plan', 'notes'],
-  'results-section': ['results'],
-  'recommendations-section': ['recommendations'],
-};
-const DATE_FIELDS = ['date'];
-const STRING_FIELDS = ['type', 'provider', 'facility', 'status', 'tuberculosisRisk', 'findings', 'assessment', 'plan', 'notes'];
-const OBJECT_FIELDS = ['currentInfection', 'immunizations', 'results'];
-const OBJECT_ARRAY_DISPLAY_FIELDS = ['recurrentInfections'];
-const STRING_ARRAY_FIELDS = ['pneumoniaHistory'];
-const RECOMMENDATIONS_FIELDS = ['recommendations'];
+const SECTION_CONFIGS = [
+  {
+    title: 'Overview',
+    fields: [
+      { key: 'date', label: 'Date', type: 'date' },
+      { key: 'type', label: 'Type', type: 'narrative' },
+      { key: 'provider', label: 'Provider', type: 'narrative' },
+      { key: 'facility', label: 'Facility', type: 'narrative' },
+      { key: 'status', label: 'Status', type: 'narrative' },
+    ],
+  },
+  { title: 'Current Infection', fields: [{ key: 'currentInfection', label: 'Current Infection', type: 'object' }] },
+  {
+    title: 'Infection History',
+    fields: [
+      { key: 'recurrentInfections', label: 'Recurrent Infections', type: 'object' },
+      { key: 'pneumoniaHistory', label: 'Pneumonia History', type: 'stringArray' },
+    ],
+  },
+  {
+    title: 'Immunizations & TB Risk',
+    fields: [
+      { key: 'immunizations', label: 'Immunizations', type: 'object' },
+      { key: 'tuberculosisRisk', label: 'Tuberculosis Risk', type: 'narrative' },
+    ],
+  },
+  {
+    title: 'Findings & Plan',
+    fields: [
+      { key: 'findings', label: 'Findings', type: 'narrative' },
+      { key: 'assessment', label: 'Assessment', type: 'narrative' },
+      { key: 'plan', label: 'Plan', type: 'narrative' },
+      { key: 'notes', label: 'Notes', type: 'narrative' },
+    ],
+  },
+  { title: 'Results', fields: [{ key: 'results', label: 'Results', type: 'object' }] },
+  { title: 'Recommendations', fields: [{ key: 'recommendations', label: 'Recommendations', type: 'recommendations' }] },
+];
 
-/* ═══════ HELPERS ═══════ */
-const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
-const formatDate = (d) => { if (!d) return ''; try { const dt = new Date(d.$date || d); if (isNaN(dt.getTime())) return String(d); return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
-  return false;
+const COMMA_FIELDS = ['status'];
+const isEmptyDeep = value => value == null || value === '' || (Array.isArray(value) ? !value.some(item => !isEmptyDeep(item)) : typeof value === 'object' ? Object.values(value).every(isEmptyDeep) : false);
+const fmt = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const getValue = (record, path) => String(path).split('.').reduce((value, key) => value?.[key], record);
+const keyToLabel = key => String(key || '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/\b\w/g, char => char.toUpperCase()).trim();
+const isDateValue = value => Boolean(value?.$date || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(value)));
+const formatDate = value => {
+  try {
+    const date = new Date(value?.$date || value);
+    return Number.isNaN(date.getTime()) ? fmt(value) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return fmt(value); }
 };
-const hasVal = (v) => !isEmptyDeep(v);
-const isScalar = (v) => v === null || typeof v !== 'object';
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
-
-/* count leaf rows for the wrap heuristic */
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-/* recursive node: label = bold heading on its own line; value = plain line(s) below */
-const renderNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
-
-  if (isScalar(value)) {
-    return (<View key={keyPath}>{label ? <Text style={LabelTag}>{label}</Text> : null}<Text style={styles.value}>{fmtScalar(value)}</Text></View>);
+const splitByComma = text => {
+  const source = String(text || ''); const result = []; let current = ''; let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    if (char === ',' && depth === 0) { if (current.trim()) result.push(current.trim()); current = ''; }
+    else current += char;
   }
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [source];
+};
+// Split narrative delimiters /[.;]\s+/: semicolons always split; periods retain abbreviation/number guards.
+const splitSentences = text => String(text || '')
+  .split(/(?:;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/)
+  .map(value => value.replace(/^[;.,\s]+|[;.,\s]+$/g, '').trim())
+  .filter(Boolean);
+const splitTextRows = (path, value) => splitSentences(value).flatMap(sentence => COMMA_FIELDS.includes(path) ? splitByComma(sentence) : [sentence]);
 
+const scalarBlocks = (label, value, key, formatter = fmt) => isEmptyDeep(value) ? [] : [{ key, fieldLabel: label, value: formatter(value) }];
+const narrativeBlocks = (label, value, key) => splitTextRows(key, fmt(value)).map((row, index) => ({
+  key: `${key}-${index}`,
+  fieldLabel: index === 0 ? label : '',
+  value: row,
+  rowNumber: index + 1,
+}));
+const scalarLeafBlocks = (fieldLabel, subLabel, value, path) => {
+  if (isEmptyDeep(value)) return [];
+  if (isDateValue(value)) return [{ key: path, fieldLabel, subLabel, value: formatDate(value) }];
+  const rows = typeof value === 'string' ? splitTextRows(path, value) : [fmt(value)];
+  return rows.map((row, index) => ({
+    key: `${path}-${index}`,
+    fieldLabel: index === 0 ? fieldLabel : '',
+    subLabel: index === 0 ? subLabel : '',
+    value: row,
+    rowNumber: rows.length > 1 ? index + 1 : undefined,
+  }));
+};
+const objectBlocks = (label, value, key, prefix = '', path = key, showFieldLabel = true) => {
+  if (isEmptyDeep(value)) return [];
+  if (isDateValue(value) || typeof value !== 'object') return scalarLeafBlocks(showFieldLabel ? label : '', prefix, value, path);
+  const blocks = [];
   if (Array.isArray(value)) {
-    const items = value.filter(x => !isEmptyDeep(x));
-    if (items.length === 0) return null;
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        {items.map((item, i) => {
-          const ik = `${keyPath}-${i}`;
-          if (isScalar(item)) return <Text key={ik} style={styles.value}>{fmtScalar(item)}</Text>;
-          const entries = Object.entries(item).filter(([, v]) => !isEmptyDeep(v));
-          if (entries.length === 0) return null;
-          const headScalar = isScalar(entries[0][1]);
-          const head = headScalar ? fmtScalar(entries[0][1]) : null;
-          const rest = entries.slice(1);
-          if (head !== null && rest.length === 0) return <Text key={ik} style={styles.value}>{head}</Text>;
-          if (head !== null && rest.length === 1 && isScalar(rest[0][1])) {
-            return (<View key={ik}><Text style={styles.subLabel}>{head}</Text><Text style={styles.value}>{fmtScalar(rest[0][1])}</Text></View>);
-          }
-          return (
-            <View key={ik}>
-              {head !== null ? <Text style={styles.subLabel}>{head}</Text> : null}
-              <View style={styles.nested}>{(head !== null ? rest : entries).map(([k, v]) => renderNode(humanizeKey(k), v, `${ik}-${k}`, depth + 2))}</View>
-            </View>
-          );
-        })}
-      </View>
-    );
+    value.forEach((item, itemIndex) => {
+      if (isEmptyDeep(item)) return;
+      const itemPath = `${path}.${itemIndex}`;
+      if (isDateValue(item) || typeof item !== 'object') {
+        const itemBlocks = scalarLeafBlocks(blocks.length === 0 && showFieldLabel ? label : '', blocks.length === 0 ? prefix : '', item, itemPath)
+          .map(block => ({ ...block, rowNumber: itemIndex + 1 }));
+        blocks.push(...itemBlocks);
+      } else {
+        const itemLabel = prefix ? `${prefix} - Item ${itemIndex + 1}` : `Item ${itemIndex + 1}`;
+        Object.entries(item).filter(([, child]) => !isEmptyDeep(child)).forEach(([childKey, child]) => {
+          const childLabel = `${itemLabel} - ${keyToLabel(childKey)}`;
+          blocks.push(...objectBlocks(label, child, key, childLabel, `${itemPath}.${childKey}`, blocks.length === 0 && showFieldLabel));
+        });
+      }
+    });
+    return blocks;
   }
+  Object.entries(value).filter(([childKey, child]) => childKey !== '_id' && !isEmptyDeep(child)).forEach(([childKey, child]) => {
+    const childLabel = prefix ? `${prefix} - ${keyToLabel(childKey)}` : keyToLabel(childKey);
+    blocks.push(...objectBlocks(label, child, key, childLabel, `${path}.${childKey}`, blocks.length === 0 && showFieldLabel));
+  });
+  return blocks;
+};
+const stringArrayBlocks = (label, value, key) => {
+  const blocks = [];
+  (Array.isArray(value) ? value : []).forEach((item, itemIndex) => {
+    if (isEmptyDeep(item)) return;
+    const rows = splitTextRows(`${key}.${itemIndex}`, fmt(item));
+    rows.forEach((row, rowIndex) => blocks.push({
+      key: `${key}-${itemIndex}-${rowIndex}`,
+      fieldLabel: blocks.length === 0 ? label : '',
+      value: row,
+      rowNumber: blocks.length + 1,
+    }));
+  });
+  return blocks;
+};
+const recommendationBlocks = (label, value, key) => {
+  const entries = (Array.isArray(value) ? value : []).map((item, index) => ({ item, index })).filter(({ item }) => item && typeof item === 'object' && !isEmptyDeep(item));
+  const groups = [];
+  entries.forEach(entry => {
+    const dateKey = entry.item.date ? formatDate(entry.item.date) : '';
+    const previous = groups[groups.length - 1];
+    if (previous && previous.dateKey === dateKey) previous.entries.push(entry);
+    else groups.push({ dateKey, entries: [entry] });
+  });
+  const blocks = [];
+  groups.forEach((group, groupIndex) => {
+    let groupRow = 1;
+    group.entries.forEach(({ item, index }) => {
+      splitTextRows(`${key}.${index}.recommendation`, fmt(item.recommendation)).forEach((row, rowIndex) => blocks.push({
+        key: `${key}-${index}-${rowIndex}`,
+        fieldLabel: blocks.length === 0 ? label : '',
+        subLabel: groupRow === 1 && rowIndex === 0 ? group.dateKey : '',
+        value: row,
+        rowNumber: groupRow++,
+      }));
+    });
+    if (!group.entries.length && groupIndex === 0) return;
+  });
+  return blocks;
+};
+const sectionBlocks = (record, config) => config.fields.flatMap(field => {
+  const value = getValue(record, field.key);
+  if (field.type === 'date') return scalarBlocks(field.label, value, field.key, formatDate);
+  if (field.type === 'narrative') return narrativeBlocks(field.label, value, field.key);
+  if (field.type === 'object') return objectBlocks(field.label, value, field.key);
+  if (field.type === 'stringArray') return stringArrayBlocks(field.label, value, field.key);
+  if (field.type === 'recommendations') return recommendationBlocks(field.label, value, field.key);
+  return scalarBlocks(field.label, value, field.key);
+});
 
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
+const renderSection = (title, blocks, key) => {
+  if (!blocks.length) return null;
   return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
+    <React.Fragment key={key}>
+      {blocks.map((block, index) => (
+        <View key={block.key} style={styles.block} wrap={false}>
+          {index === 0 && <Text style={styles.sectionTitle}>{title}</Text>}
+          {block.fieldLabel && block.fieldLabel !== title && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+          {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+          <Text style={block.rowNumber ? styles.listItem : styles.fieldValue}>{block.rowNumber ? `${block.rowNumber}. ${block.value}` : block.value}</Text>
+        </View>
+      ))}
+    </React.Fragment>
   );
 };
 
-const RespiratoryInfectionsDocumentPDFTemplate = ({ document: data }) => {
-  const unwrapData = (inputData) => {
-    if (!inputData) return [];
-    if (Array.isArray(inputData)) {
-      if (inputData.length === 1 && inputData[0]?.respiratory_infections) return inputData[0].respiratory_infections;
-      return inputData;
-    }
-    if (inputData.respiratory_infections) return inputData.respiratory_infections;
-    if (inputData.documentData) { const dd = inputData.documentData; if (Array.isArray(dd)) return dd; if (dd?.respiratory_infections) return Array.isArray(dd.respiratory_infections) ? dd.respiratory_infections : [dd.respiratory_infections]; return [dd]; }
-    return [inputData];
-  };
-  let records = unwrapData(data);
-  records = (records || []).filter(r => r && typeof r === 'object');
+const unwrap = data => (Array.isArray(data) ? data : [data]).flatMap(record =>
+  record?.respiratory_infections
+    ? (Array.isArray(record.respiratory_infections) ? record.respiratory_infections : [record.respiratory_infections])
+    : record?.documentData
+      ? (Array.isArray(record.documentData) ? record.documentData : record.documentData?.respiratory_infections ? (Array.isArray(record.documentData.respiratory_infections) ? record.documentData.respiratory_infections : [record.documentData.respiratory_infections]) : [record.documentData])
+      : [record]
+).filter(record => record && typeof record === 'object');
 
-  // Render a single field inside a section. sectionTitle is rendered by the parent View.
-  const renderField = (record, field, sectionTitle) => {
-    const val = record[field];
-    if (!hasVal(val)) return null;
-    const label = FIELD_LABELS[field] || field;
-    // Single-name skip: hide the field label when it equals the section title.
-    const showLabel = label.trim().toLowerCase() !== (sectionTitle || '').trim().toLowerCase();
-
-    if (DATE_FIELDS.includes(field)) {
-      return (<View key={field} style={styles.field}>{showLabel && <Text style={styles.fieldLabel}>{label}</Text>}<Text style={styles.value}>{formatDate(val)}</Text></View>);
-    }
-
-    // Recommendations — array of {recommendation, date}: group consecutive same-date items.
-    if (RECOMMENDATIONS_FIELDS.includes(field)) {
-      const recs = Array.isArray(val) ? val : [];
-      if (recs.length === 0) return null;
-      const groups = [];
-      recs.forEach((r) => { const d = (r?.date || '').trim(); const last = groups[groups.length - 1]; if (last && last.date === d) last.items.push(r); else groups.push({ date: d, items: [r] }); });
-      return (
-        <View key={field} style={styles.field}>
-          {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-          {groups.map((group, gIdx) => (
-            <View key={gIdx}>
-              {group.date ? <Text style={styles.subLabel}>{group.date}</Text> : null}
-              {group.items.map((r, i) => (<Text key={i} style={styles.value}>{i + 1}. {(r?.recommendation || '').trim()}</Text>))}
-            </View>
-          ))}
-        </View>
-      );
-    }
-
-    // Array of strings — numbered rows.
-    if (STRING_ARRAY_FIELDS.includes(field)) {
-      const items = (Array.isArray(val) ? val : []).filter(x => hasVal(x));
-      if (items.length === 0) return null;
-      return (<View key={field} style={styles.field}>{showLabel && <Text style={styles.fieldLabel}>{label}</Text>}{items.map((it, i) => (<Text key={i} style={styles.value}>{i + 1}. {fmtVal(it)}</Text>))}</View>);
-    }
-
-    // Object / array-of-objects — recurse.
-    if (OBJECT_FIELDS.includes(field) || OBJECT_ARRAY_DISPLAY_FIELDS.includes(field)) {
-      return (<View key={field} style={styles.field}>{showLabel && <Text style={styles.fieldLabel}>{label}</Text>}{renderNode('', val, field, 0)}</View>);
-    }
-
-    // String field — split into sentences.
-    const strVal = fmtVal(val);
-    const sentences = splitBySentence(strVal);
-    if (sentences.length > 1) {
-      return (<View key={field} style={styles.field}>{showLabel && <Text style={styles.fieldLabel}>{label}</Text>}{sentences.map((s, i) => (<Text key={i} style={styles.value}>{i + 1}. {s}</Text>))}</View>);
-    }
-    return (<View key={field} style={styles.field}>{showLabel && <Text style={styles.fieldLabel}>{label}</Text>}<Text style={styles.value}>{strVal}</Text></View>);
-  };
-
-  // wrap-gating item count for a section (heaviest field's row count vs field count).
-  const sectionItemCount = (record, presentFields) => {
-    let max = presentFields.length;
-    presentFields.forEach(f => {
-      const val = record[f];
-      if (RECOMMENDATIONS_FIELDS.includes(f) && Array.isArray(val)) max = Math.max(max, val.length);
-      else if (STRING_ARRAY_FIELDS.includes(f) && Array.isArray(val)) max = Math.max(max, val.length);
-      else if (OBJECT_FIELDS.includes(f) || OBJECT_ARRAY_DISPLAY_FIELDS.includes(f)) max = Math.max(max, countRows(val));
-      else if (STRING_FIELDS.includes(f)) max = Math.max(max, splitBySentence(fmtVal(val)).length);
-    });
-    return max;
-  };
-
-  if (records.length === 0) {
-    return (<Document><Page size="A4" style={styles.page}><Text style={styles.header}>Respiratory Infections</Text></Page></Document>);
-  }
-
+export default function RespiratoryInfectionsDocumentPDFTemplate({ document: data }) {
+  const records = React.useMemo(() => unwrap(data), [data]);
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.header}>Respiratory Infections</Text>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>Respiratory Infections {String(record._recordNumber || idx + 1)}</Text>
-              {hasVal(record.date) && (<Text style={styles.recordDate}>{formatDate(record.date)}</Text>)}
-            </View>
-            {/* Sections — Rule #74: each section is ONE wrap-gated View with sectionTitle as FIRST CHILD */}
-            {Object.keys(SECTION_FIELDS).map((sid) => {
-              const fields = SECTION_FIELDS[sid];
-              const presentFields = fields.filter(f => hasVal(record[f]));
-              if (presentFields.length === 0) return null;
-              const itemCount = sectionItemCount(record, presentFields);
-              return (
-                <View key={sid} style={styles.section} wrap={itemCount > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
-                  {presentFields.map(f => renderField(record, f, SECTION_TITLES[sid]))}
-                </View>
-              );
-            })}
+      <Page size="LETTER" style={styles.page}>
+        <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Respiratory Infections</Text></View>
+        {!records.length && <Text style={styles.noDataText}>No respiratory infections data available</Text>}
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <View wrap={false}><Text style={styles.recordTitle}>{`Respiratory Infections ${index + 1}`}</Text></View>
+            {SECTION_CONFIGS.map((config, sectionIndex) => renderSection(config.title, sectionBlocks(record, config), `section-${sectionIndex}`))}
           </View>
         ))}
-        <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} fixed />
       </Page>
     </Document>
   );
-};
-
-export default RespiratoryInfectionsDocumentPDFTemplate;
+}

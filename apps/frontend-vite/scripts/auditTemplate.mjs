@@ -95,9 +95,15 @@ if (/approve-btn/.test(JSX)) {
 // item 11 — titles + fileName convention
 check('fileName not date-suffixed lowercase', !/fileName=\{`[a-z_]+_\$\{new Date/.test(JSX) && !/toISOString\(\)\.split\('T'\)\[0\]\}\.pdf/.test(JSX));
 check("fileName Underscore_Name.pdf convention", /fileName=["'][A-Z][A-Za-z0-9_]*\.pdf["']/.test(JSX) || /fileName=\{`[A-Z]/.test(JSX));
+const jsxDocumentTitle = (JSX.match(/className=["']document-title["'][^>]*>\s*([^<{]+?)\s*</) || [])[1]?.trim();
+const pdfDocumentTitle = (PDFSRC.match(/<Text\s+style=\{styles\.documentTitle\}>\s*([^<{]+?)\s*<\/Text>/) || [])[1]?.trim();
+if (jsxDocumentTitle && pdfDocumentTitle) check('JSX and PDF literal document titles match', jsxDocumentTitle === pdfDocumentTitle, `${JSON.stringify(jsxDocumentTitle)} vs ${JSON.stringify(pdfDocumentTitle)}`);
+else skip('JSX/PDF literal document-title parity');
 
 // item 10 — no record-header meta pills left rendering
-check('no .date-badge value pill', !/className="date-badge"/.test(JSX) && !/\.date-badge\s*\{/.test(CSS));
+check('no record-header date value pill (.date-badge or .record-date)',
+  !/className=["'][^"']*\b(?:date-badge|record-date)\b/.test(JSX)
+    && !/\.(?:date-badge|record-date)\s*\{/.test(CSS));
 
 // RTL + copied-blue + splitBySentence
 if (CSS) {
@@ -110,10 +116,16 @@ if (CSS) {
 // The split char-class must be [.;]/[;.] IMMEDIATELY followed by a whitespace matcher — i.e. the .split() regex
 // itself splits on ';'. (Old check just grepped for "[.;]" anywhere and was satisfied by a trailing-trim
 // /[;.]+$/ while splitBySentence split on PERIOD ONLY — FamilyMedicineVisits followUp/plan blob, July 9 2026.)
-if (/splitBySentence/.test(JSX)) check('splitBySentence splits on [.;] not just period', /\[[.;]{2}\](?:\(\?:)?\\s/.test(JSX));
+if (/splitBySentence|splitSentences/.test(JSX)) {
+  check('splitBySentence splits on semicolons and periods', /\[[.;]{2}\](?:\(\?:)?\\s/.test(JSX) || /;\\s\+/.test(JSX));
+  check('JSX digit guard applies to periods only (semicolon-after-digit remains splittable)', !/\(\?<!\\d\)\[[.;]{2}\]/.test(JSX));
+}
 
 // item 9 — PDF underline rules (box-free donor: title/section/label all get a borderBottom line)
 if (PDFSRC) {
+  if (/splitBySentence|splitSentences/.test(PDFSRC)) {
+    check('PDF digit guard applies to periods only (semicolon-after-digit remains splittable)', !/\(\?<!\\d\)\[[.;]{2}\]/.test(PDFSRC));
+  }
   check('PDF documentTitle has borderBottom rule', /documentTitle:\s*\{[^}]*borderBottom/s.test(PDFSRC));
   check('PDF sectionTitle has borderBottom rule (1pt black line)', /sectionTitle:\s*\{[^}]*borderBottom/s.test(PDFSRC));
   check('PDF fieldLabel has borderBottom rule (0.5pt #999 line)', /fieldLabel:\s*\{[^}]*borderBottom/s.test(PDFSRC));

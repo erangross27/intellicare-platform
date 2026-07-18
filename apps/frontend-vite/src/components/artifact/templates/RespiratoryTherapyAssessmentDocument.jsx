@@ -5,6 +5,8 @@
  */
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
 import RespiratoryTherapyAssessmentDocumentPDFTemplate from '../pdf-templates/RespiratoryTherapyAssessmentDocumentPDFTemplate';
 import secureApiClient from '../../../services/secureApiClient';
 import './RespiratoryTherapyAssessmentDocument.css';
@@ -25,6 +27,7 @@ const writeDrafts = (store) => {
 };
 
 const SECTION_TITLES = {
+  overview: 'Assessment Information',
   diagnosis: 'Diagnosis & Scoring',
   vitals: 'Respiratory Vitals',
   mechanics: 'Ventilator Mechanics',
@@ -67,6 +70,7 @@ const FIELD_LABELS = {
 };
 
 const SECTION_FIELDS = {
+  overview: ['assessmentDateTime'],
   diagnosis: ['primaryDiagnosis', 'apacheIIScore', 'murrayLungInjuryScore'],
   vitals: ['respiratoryRate', 'tidalVolume', 'minuteVentilation'],
   mechanics: ['peakInspiratoryPressure', 'plateauPressure', 'positiveEndExpiratoryPressure', 'staticCompliance', 'dynamicCompliance', 'airwayResistance', 'drivingPressure'],
@@ -207,7 +211,7 @@ const RespiratoryTherapyAssessmentDocument = ({ document: docProp }) => {
   const hasFieldVal = useCallback((fn, v) => { if (HIDE_ZERO_FIELDS.includes(fn) && v === 0) return false; return hasVal(v); }, [hasVal]);
   const formatDate = useCallback((d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } }, []);
   const fmtVal = useCallback((v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); }, []);
-  const splitBySentence = useCallback((text) => { if (!text || typeof text !== 'string') return []; const safe = text.replace(/\bvs\.\s/gi, 'vs\u200B ').replace(/\bRV\/TLC\b/g, 'RV\u200BTLC'); return safe.split(/\s+-\s+|[;.]\s+/).map(s => s.replace(/vs\u200B/g, 'vs.').replace(/RV\u200BTLC/g, 'RV/TLC').trim()).filter(s => s && !/^[;.,!?-]+$/.test(s)); }, []);
+  const splitBySentence = useCallback((text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?:;\s+|(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)\.\s+)/).map(s => s.replace(/^[;.,\s]+|[;.,\s]+$/g, '').trim()).filter(s => s && !/^[;.,!?-]+$/.test(s)); }, []);
   function reconstructFullText(sentences) { if (!sentences || sentences.length === 0) return ''; return sentences.map((s, i) => { let c = s.replace(/[;.]+$/, '').trim(); if (i < sentences.length - 1) c += '.'; return c; }).join(' '); }
   const getFieldValue = useCallback((record, fn, idx) => { const k = `${fn}-${idx}`; if (localEdits[k] !== undefined) return localEdits[k]; return record[fn]; }, [localEdits]);
   const getEffectiveArray = useCallback((record, fn, idx) => { const k = `${fn}-${idx}`; if (localEdits[k] !== undefined) { const v = localEdits[k]; return Array.isArray(v) ? v : [v]; } return Array.isArray(record[fn]) ? record[fn] : []; }, [localEdits]);
@@ -432,13 +436,12 @@ const RespiratoryTherapyAssessmentDocument = ({ document: docProp }) => {
   const copyAllText = useCallback(async () => {
     let text = '=== RESPIRATORY THERAPY ASSESSMENTS ===\n\n';
     pdfData.forEach((r, idx) => { text += `Respiratory Therapy Assessment ${idx + 1}\n${'='.repeat(40)}\n\n`;
-      if (r.assessmentDateTime) text += `Assessment Date\n${formatDate(r.assessmentDateTime)}\n\n`;
       Object.keys(SECTION_FIELDS).forEach(sid => { const fields = SECTION_FIELDS[sid]; const hasAny = fields.some(f => { if (ARRAY_FIELDS.includes(f)) return (Array.isArray(r[f]) ? r[f] : []).length > 0; return hasFieldVal(f, r[f]); }); if (!hasAny) return;
         text += `${SECTION_TITLES[sid]}\n${'-'.repeat(30)}\n`;
         fields.forEach(f => { const label = FIELD_LABELS[f] || f; const val = r[f]; if (!hasFieldVal(f, val)) return;
           if (ARRAY_FIELDS.includes(f)) { text += `${label}\n`; (Array.isArray(val) ? val : []).forEach((item, i) => { text += `${i + 1}. ${item}\n`; }); text += '\n'; }
           else if (SENTENCE_FIELDS.includes(f)) { text += `${label}\n`; splitBySentence(fmtVal(val)).forEach((s, i) => { const p = parseLabel(s); if (p) { const ci = p.content.split(/,\s*/).filter(Boolean); text += `${p.label}:\n`; ci.forEach((c, j) => { text += `  ${j + 1}. ${c.trim()}\n`; }); } else { text += `${i + 1}. ${s}\n`; } }); text += '\n'; }
-          else { text += `${label}\n${fmtVal(val)}\n\n`; }
+          else { text += `${label}\n${DATE_FIELDS.includes(f) ? formatDate(val) : fmtVal(val)}\n\n`; }
         });
       });
       text += buildAbgCopyText(r, idx);
@@ -454,18 +457,19 @@ const RespiratoryTherapyAssessmentDocument = ({ document: docProp }) => {
     if (searchTerm.trim() && !fieldMatches(record, fn, idx) && !sectionTitleMatches(sid)) return null;
     const startEdit = () => { if (!isEditing) { setEditingField(editKey); if (BOOLEAN_FIELDS.includes(fn)) { setEditValue(val ? 'yes' : 'no'); } else if (DATE_FIELDS.includes(fn)) { try { setEditValue(new Date(val.$date || val).toISOString().split('T')[0]); } catch { setEditValue(displayVal); } } else { setEditValue(displayVal); } setSaveError(null); } };
     const escHandler = e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } };
-    const renderEditInput = () => { if (NUMBER_FIELDS.includes(fn)) return <input type="number" step="any" className="edit-number" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={escHandler} />; if (BOOLEAN_FIELDS.includes(fn)) return <select className="edit-select" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={escHandler}><option value="yes">Yes</option><option value="no">No</option></select>; if (DATE_FIELDS.includes(fn)) return <input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { el.focus(); try { el.showPicker(); } catch {} } }} onKeyDown={escHandler} />; return <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={escHandler} />; };
-    return (<div key={fn} className={sl ? 'rec-mini-card' : ''}>{sl && <div className="nested-subtitle">{highlightText(label)}</div>}<div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={startEdit}>{isEditing ? (<div className="edit-field-container">{renderEditInput()}{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div>) : (<><div className="row-content"><span className="content-value">{highlightText(displayVal)}</span><span className="edit-indicator">✎</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>)}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div>);
+    const renderEditInput = () => { if (NUMBER_FIELDS.includes(fn)) { const parsed = Number.parseFloat(editValue); const base = Number.isFinite(parsed) ? parsed : 0; const step = String(val).includes('.') ? 0.1 : 1; return <div className="num-stepper-row"><button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(Number((base - step).toFixed(step < 1 ? 1 : 0)))); }}>−</button><input className="edit-number" inputMode="decimal" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={escHandler} /><button type="button" className="num-step" onClick={e => { e.stopPropagation(); setEditValue(String(Number((base + step).toFixed(step < 1 ? 1 : 0)))); }}>+</button></div>; } if (BOOLEAN_FIELDS.includes(fn)) return <BlueSelect value={editValue === 'yes' ? 'Yes' : 'No'} options={['Yes', 'No']} onChange={value => setEditValue(value.toLowerCase())} />; if (DATE_FIELDS.includes(fn)) return <BlueDatePicker value={editValue} onSelect={setEditValue} />; return <textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={escHandler} />; };
+    return (<div key={fn} className="rec-mini-card nested-mini-card">{sl && <div className="nested-subtitle">{highlightText(label)}</div>}<div data-edit-field={fn}><div className={`numbered-row ${isModified ? 'modified' : ''} editable-row`} onClick={startEdit}>{isEditing ? (<div className="edit-field-container">{renderEditInput()}{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); handleSaveField(record, fn, idx); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div>) : (<><div className="row-content"><span className="content-value">{DATE_FIELDS.includes(fn) ? highlightText(formatDate(val)) : highlightText(displayVal)}</span><span className="edit-indicator">✎</span></div><button className={`copy-btn ${copiedItems[editKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(`${label}\n${displayVal}`, editKey); }}>{copiedItems[editKey] ? 'Copied!' : 'Copy'}</button></>)}</div>{isModified && <span className="modified-badge">edited - click Pending Approve to save</span>}</div></div>);
   };
 
   const renderSentenceEditableField = (record, fn, idx, sid, title) => {
     const val = String(getFieldValue(record, fn, idx) || ''); if (!val.trim()) return null;
     const sentences = splitBySentence(val); if (sentences.length === 0) return null;
     const label = FIELD_LABELS[fn] || fn; const sl = label.toLowerCase() !== (title || '').toLowerCase();
+    const allUnlabeled = sentences.every(sentence => !parseLabel(sentence));
     const phraseMatch = !searchTerm.trim() || sectionTitleMatches(sid);
     if (searchTerm.trim() && !phraseMatch && !fieldMatches(record, fn, idx)) return null;
     const labelMatch = searchTerm.trim() && label.toLowerCase().includes(searchTerm.toLowerCase().trim());
-    return (<div key={fn}><div className="rec-mini-card">{sl && <div className="nested-subtitle">{highlightText(label)}</div>}{sentences.map((sentence, sIdx) => {
+    return (<div key={fn}><div className="rec-mini-card">{sl && <div className="nested-subtitle">{highlightText(label)}</div>}<div className={allUnlabeled ? 'nested-mini-card regular-row-group' : ''}>{sentences.map((sentence, sIdx) => {
       const sentenceKey = `${fn}-${idx}-s${sIdx}`; const isEditing = editingField === sentenceKey; const badge = editedSentences[sentenceKey];
       const sentenceMatches = phraseMatch || labelMatch || (searchTerm.trim() && sentence.toLowerCase().includes(searchTerm.toLowerCase().trim()));
       if (!sentenceMatches && searchTerm.trim()) return null;
@@ -481,7 +485,7 @@ const RespiratoryTherapyAssessmentDocument = ({ document: docProp }) => {
               const ciBadge = editedSentences[commaKey];
               const ciMatches = phraseMatch || labelMatch || !searchTerm.trim() || ci.toLowerCase().includes(searchTerm.toLowerCase().trim());
               if (!ciMatches && searchTerm.trim()) return null;
-              return (<div key={ciIdx}>
+              return (<div key={ciIdx} data-edit-field={fn}>
                 <div className={`numbered-row ${ciBadge ? 'modified' : ''} editable-row`} onClick={() => { if (!ciEditing) { setEditingField(commaKey); setEditValue(ci); setSaveError(null); } }}>
                   {ciEditing ? (<div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveCommaItem(record, fn, idx, sIdx, ciIdx, editValue); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div>
                   ) : (<><div className="row-content"><span className="content-value">{highlightText(ci)}</span><span className="edit-indicator">✎</span></div><button className={`copy-btn ${copiedItems[commaKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(ci, commaKey); }}>{copiedItems[commaKey] ? 'Copied!' : 'Copy'}</button></>)}
@@ -501,7 +505,7 @@ const RespiratoryTherapyAssessmentDocument = ({ document: docProp }) => {
             // Stage as a DRAFT (no DB write). localStorage keeps it across refresh; Approve commits it.
             setLocalEdits(prev => ({ ...prev, [`${fn}-${idx}`]: fullText })); setPendingEdits(prev => ({ ...prev, [`${fn}-${idx}`]: true })); setEditedSentences(prev => ({ ...prev, [sentenceKey]: 'edited' })); clearApprovedForField(idx, fn); stageDraft(id, fn, fullText); setEditingField(null); setEditValue('');
           };
-          return (<div key={sIdx} className="rec-mini-card" style={{ marginTop: 8 }}>
+          return (<div key={sIdx} className="rec-mini-card nested-mini-card" data-edit-field={fn} style={{ marginTop: 8 }}>
             <div className="nested-subtitle">{highlightText(parsed.label)}</div>
             <div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(parsed.content); setSaveError(null); } }}>
               {isEditing ? (<div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveLabeledSentence(); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div>
@@ -511,8 +515,8 @@ const RespiratoryTherapyAssessmentDocument = ({ document: docProp }) => {
           </div>);
         }
       }
-      return (<div key={sIdx}><div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>{isEditing ? (<div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); saveSentence(record, fn, idx, sid, sIdx); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div>) : (<><div className="row-content"><span className="content-value">{highlightText(sentence)}</span><span className="edit-indicator">✎</span></div><button className={`copy-btn ${copiedItems[sentenceKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(sentence, sentenceKey); }}>{copiedItems[sentenceKey] ? 'Copied!' : 'Copy'}</button></>)}</div>{badge && <span className={`modified-badge ${badge === 'added' ? 'added' : ''}`}>{badge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}</div>);
-    })}</div></div>);
+      return (<div key={sIdx} className={allUnlabeled ? '' : 'nested-mini-card'} data-edit-field={fn}><div className={`numbered-row ${badge ? 'modified' : ''} editable-row`} onClick={() => { if (!isEditing) { setEditingField(sentenceKey); setEditValue(sentence.replace(/[;.]+$/, '').trim()); setSaveError(null); } }}>{isEditing ? (<div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); setSaveError(null); } }} />{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" disabled={saving} onClick={e => { e.stopPropagation(); if (sentences.length === 1) handleSaveField(record, fn, idx); else saveSentence(record, fn, idx, sid, sIdx); }}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={e => { e.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(null); }}>Cancel</button></div></div>) : (<><div className="row-content"><span className="content-value">{highlightText(sentence)}</span><span className="edit-indicator">✎</span></div><button className={`copy-btn ${copiedItems[sentenceKey] ? 'copied' : ''}`} onClick={e => { e.stopPropagation(); copyItem(sentence, sentenceKey); }}>{copiedItems[sentenceKey] ? 'Copied!' : 'Copy'}</button></>)}</div>{badge && <span className={`modified-badge ${badge === 'added' ? 'added' : ''}`}>{badge === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</span>}</div>);
+    })}</div></div></div>);
   };
 
   const renderArraySection = (record, fn, idx, sid, title) => {
@@ -633,15 +637,15 @@ const RespiratoryTherapyAssessmentDocument = ({ document: docProp }) => {
     return (<div key={sid} className="section"><div className="mini-cards-container"><div className="section-header"><h4 className="section-title">{highlightText(title)}</h4><div className="header-right-actions"><button className={`copy-btn ${copiedSection === copyId ? 'copied' : ''}`} onClick={() => copySection(buildSectionCopyText(record, idx, sid), copyId)}>{copiedSection === copyId ? 'Copied!' : 'Copy Section'}</button>{renderApproveButton(record, sid, idx)}</div></div>{fields.map(f => { if (ARRAY_FIELDS.includes(f)) return renderArraySection(record, f, idx, sid, title); if (SENTENCE_FIELDS.includes(f)) return renderSentenceEditableField(record, f, idx, sid, title); return renderEditableField(record, f, idx, sid, title); })}</div></div>);
   };
 
-  if (!records || records.length === 0) return (<div className="respiratory-therapy-assessment-document" ref={containerRef}><div className="document-header"><h2 className="document-title">Respiratory Therapy Assessments</h2></div><div className="empty-state">No respiratory therapy assessment records available</div></div>);
+  if (!records || records.length === 0) return (<div className="respiratory-therapy-assessment-document" ref={containerRef}><div className="document-header"><h2 className="document-title">Respiratory Therapy Assessment</h2></div><div className="empty-state">No respiratory therapy assessment records available</div></div>);
 
   return (
     <div className="respiratory-therapy-assessment-document" ref={containerRef}>
       <div className="document-header">
-        <h2 className="document-title">Respiratory Therapy Assessments</h2>
+        <h2 className="document-title">Respiratory Therapy Assessment</h2>
         <div className="header-actions">
           <button className={`copy-btn ${showCopied ? 'copied' : ''}`} onClick={copyAllText}>{showCopied ? 'Copied!' : 'Copy All'}</button>
-          <PDFDownloadLink document={<RespiratoryTherapyAssessmentDocumentPDFTemplate document={pdfData} />} fileName={`respiratory-therapy-assessment-${new Date().toISOString().split('T')[0]}.pdf`} className="copy-btn">
+        <PDFDownloadLink document={<RespiratoryTherapyAssessmentDocumentPDFTemplate document={pdfData} />} fileName="Respiratory_Therapy_Assessment.pdf" className="copy-btn">
             {({ loading }) => loading ? 'Generating...' : 'Export PDF'}
           </PDFDownloadLink>
         </div>
@@ -650,7 +654,7 @@ const RespiratoryTherapyAssessmentDocument = ({ document: docProp }) => {
       <div className="records-container">
         {filteredRecords.map((record, idx) => (
           <div key={idx} className="record-card">
-            <div className="record-header"><div className="record-meta-row">{record.assessmentDateTime && <span className="record-date">{highlightText(formatDate(record.assessmentDateTime))}</span>}</div><h3 className="record-name">{highlightText(`Respiratory Therapy Assessment ${idx + 1}`)}</h3></div>
+            <div className="record-header"><h3 className="record-name">{highlightText(`Respiratory Therapy Assessment ${idx + 1}`)}</h3></div>
             {renderMixedSection(record, idx, 'diagnosis')}
             {renderMixedSection(record, idx, 'vitals')}
             {renderMixedSection(record, idx, 'mechanics')}

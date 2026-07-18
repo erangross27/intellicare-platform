@@ -1,365 +1,217 @@
-/**
- * ReproductiveHistoryDocumentPDFTemplate.jsx
- * March 2026 — Helvetica — LETTER size — reproductive history
- * Collection: reproductive_history
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#606060', borderBottomStyle: 'solid' },
-  recordDateRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  recordDate: { fontSize: 11, color: '#6b7280', fontFamily: 'Helvetica' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#606060', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 11, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  nestedHeader: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 5, marginBottom: 2 },
-  subLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#333333', marginTop: 4, marginBottom: 1 },
-  nestedItem: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nested: { paddingLeft: 10 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: { padding: 36, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.35, color: '#000' },
+  documentHeader: { marginBottom: 20 },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#000', borderBottomStyle: 'solid' },
+  recordContainer: { marginBottom: 18 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 12 },
+  block: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'solid', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999', borderBottomStyle: 'solid', marginBottom: 3 },
+  subLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  fieldValue: { fontSize: 14 },
+  listItem: { fontSize: 14, paddingLeft: 10, marginBottom: 2 },
+  noDataText: { fontSize: 14, marginTop: 30 }
 });
 
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try { const d = new Date(dateStr.$date || dateStr); return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(dateStr); }
+const COMMA_OBJECT_PATHS = ['pgtTesting.result'];
+const COMMA_STRING_FIELDS = ['notes'];
+const WHOLE_STRING_FIELDS = ['provider', 'facility'];
+const isDatePath = path => /(^|\.)(date|lmp|lastMenstrualPeriod|dateOfConception|estimatedDueDate|datePerformed|customDate)$/i.test(path);
+const isEmptyDeep = value => value == null || value === '' || (Array.isArray(value) ? !value.some(item => !isEmptyDeep(item)) : typeof value === 'object' ? Object.values(value).every(isEmptyDeep) : false);
+const fmt = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanize = key => String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/^./, char => char.toUpperCase());
+const formatDate = value => {
+  if (!value) return '';
+  try {
+    const date = new Date(value.$date || value);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return fmt(value); }
 };
-
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-
-const getNestedValue = (obj, path) => {
-  if (!obj || !path) return undefined;
-  const parts = path.split('.');
-  let val = obj;
-  for (const p of parts) {
-    if (val === null || val === undefined) return undefined;
-    val = val[p];
+const parseLabel = text => {
+  const match = String(text || '').match(/^([A-Za-z0-9][A-Za-z0-9\s/&(),.#'"%<>~+=-]{1,120}?):\s+([\s\S]+)$/);
+  return match ? { label: match[1].trim(), value: match[2].trim(), labeled: true } : { value: String(text || ''), labeled: false };
+};
+const splitByComma = text => {
+  const source = String(text || ''); const result = []; let current = ''; let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') { depth += 1; current += char; continue; }
+    if (char === ')') { depth = Math.max(0, depth - 1); current += char; continue; }
+    if (char === ',' && depth === 0) { if (current.trim()) result.push(current.trim()); current = ''; }
+    else current += char;
   }
-  return val;
+  if (current.trim()) result.push(current.trim());
+  return result.length ? result : [source];
 };
+const splitSentences = text => String(text || '')
+  .split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))(?<!\b[A-Z])(?<!\d)[.;]\s+/)
+  .map(value => value.replace(/^[;.,\s]+|[;.,\s]+$/g, '').trim())
+  .filter(Boolean);
 
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
+const narrativeBlocks = (label, value, key, fieldName) => {
+  const blocks = []; let plainRows = [];
+  const flushPlain = () => {
+    if (!plainRows.length) return;
+    blocks.push({ key: `${key}-plain-${blocks.length}`, fieldLabel: blocks.length ? '' : label, rows: plainRows });
+    plainRows = [];
+  };
+  splitSentences(fmt(value)).forEach(sentence => {
+    const parsed = parseLabel(sentence);
+    const source = parsed.labeled ? parsed.value : sentence;
+    const commaItems = splitByComma(source);
+    const shouldSplitComma = parsed.labeled || COMMA_STRING_FIELDS.includes(fieldName);
+    const rows = shouldSplitComma && commaItems.length >= 2 ? commaItems : [source];
+    if (parsed.labeled) {
+      flushPlain();
+      blocks.push({ key: `${key}-labeled-${blocks.length}`, fieldLabel: blocks.length ? '' : label, subLabel: parsed.label, rows });
+    } else plainRows.push(...rows);
+  });
+  flushPlain();
+  return blocks;
 };
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
+const dateBlock = (label, value, key) => isEmptyDeep(value) ? [] : [{ key, fieldLabel: label, rows: [formatDate(value)] }];
+const arrayBlocks = (label, value, key) => {
+  const rows = Array.isArray(value) ? value.filter(item => !isEmptyDeep(item)).map(fmt) : [];
+  return rows.length ? [{ key, fieldLabel: label, rows }] : [];
 };
-
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
+const objectBlocks = (label, value, key) => {
+  const blocks = [];
+  const visit = (node, path, labels) => {
+    if (isEmptyDeep(node)) return;
+    if (Array.isArray(node)) {
+      const items = node.filter(item => !isEmptyDeep(item));
+      if (items.every(item => typeof item !== 'object')) blocks.push({ key: path, fieldLabel: blocks.length ? '' : label, subLabel: labels.join(' - '), rows: items.map(fmt) });
+      else items.forEach((item, index) => visit(item, `${path}-${index}`, [...labels, `Item ${index + 1}`]));
+      return;
+    }
+    if (typeof node === 'object') {
+      Object.entries(node).forEach(([childKey, childValue]) => visit(childValue, `${path}-${childKey}`, [...labels, humanize(childKey)]));
+      return;
+    }
+    const fieldPath = path.replace(/-/g, '.').replace(new RegExp(`^${key}\\.`), `${key}.`);
+    if (typeof node === 'string' && isDatePath(fieldPath) && !isNaN(new Date(node).getTime())) {
+      blocks.push({ key: path, fieldLabel: blocks.length ? '' : label, subLabel: labels.join(' - '), rows: [formatDate(node)] });
+      return;
+    }
+    const sentences = typeof node === 'string' ? splitSentences(node) : [fmt(node)];
+    sentences.forEach((sentence, sentenceIndex) => {
+      const parsed = parseLabel(sentence);
+      const source = parsed.labeled ? parsed.value : sentence;
+      const commaItems = splitByComma(source);
+      const rows = (parsed.labeled || COMMA_OBJECT_PATHS.includes(fieldPath)) && commaItems.length >= 2 ? commaItems : [source];
+      blocks.push({ key: `${path}-${sentenceIndex}`, fieldLabel: blocks.length ? '' : label, subLabel: [...labels, ...(parsed.labeled ? [parsed.label] : [])].join(' - '), rows });
+    });
+  };
+  visit(value, key, []);
+  return blocks;
 };
-
-/* ======= FIELD DEFINITIONS ======= */
-const SECTION_FIELDS = {
-  'history-info': ['date', 'type', 'provider', 'facility'],
-  'infertility': ['infertilityDiagnosis', 'infertilityDuration'],
-  'art-cycles': ['artCycles'],
-  'pgt-testing': ['pgtTesting.performed', 'pgtTesting.result', 'pgtTesting.embryoAge'],
-  'menstrual-history': ['menstrualHistory.lmp', 'menstrualHistory.menarche', 'menstrualHistory.cycleRegularity', 'menstrualHistory.duration', 'menstrualHistory.flow', 'menstrualHistory.dysmenorrhea', 'menstrualHistory.intermenstrualBleeding', 'menstrualHistory.postcoitalBleeding'],
-  'contraceptive-history': ['contraceptiveHistory'],
-  'clinical-findings': ['findings', 'assessment', 'results', 'notes'],
-  'plan-recommendations': ['plan', 'recommendations'],
-  'status-info': ['status'],
+const artCycleBlocks = items => {
+  return (Array.isArray(items) ? items : []).map((item, itemIndex) => {
+    const pairs = Object.entries(item || {})
+      .filter(([, value]) => !isEmptyDeep(value))
+      .map(([field, value]) => ({
+        label: humanize(field),
+        rows: Array.isArray(value) ? value.filter(entry => !isEmptyDeep(entry)).map(fmt) : [fmt(value)]
+      }))
+      .filter(pair => pair.rows.length);
+    return pairs.length ? { key: `art-${itemIndex}`, preLabel: `ART Cycle ${itemIndex + 1}`, pairs } : null;
+  }).filter(Boolean);
 };
-
-const SECTION_TITLES = {
-  'history-info': 'History Information',
-  'infertility': 'Infertility',
-  'art-cycles': 'ART Cycles',
-  'pgt-testing': 'PGT Testing',
-  'menstrual-history': 'Menstrual History',
-  'contraceptive-history': 'Contraceptive History',
-  'clinical-findings': 'Clinical Findings',
-  'plan-recommendations': 'Plan & Recommendations',
-  'status-info': 'Status',
+const recommendationBlocks = items => {
+  const groups = [];
+  (Array.isArray(items) ? items : []).forEach(item => {
+    const rec = typeof item === 'string' ? { recommendation: item, date: '' } : item;
+    if (!rec?.recommendation) return;
+    const dateKey = String(rec.date || '');
+    const group = groups.find(entry => entry.dateKey === dateKey);
+    if (group) group.rows.push(rec.recommendation);
+    else groups.push({ dateKey, date: rec.date, rows: [rec.recommendation] });
+  });
+  const blocks = [];
+  groups.forEach((group, groupIndex) => {
+    const rows = group.rows.flatMap(row => { const parts = splitByComma(row); return parts.length >= 2 ? parts : [row]; });
+    rows.forEach((row, rowIndex) => blocks.push({
+      key: `recommendation-${groupIndex}-${rowIndex}`,
+      fieldLabel: blocks.length ? '' : 'Recommendations',
+      subLabel: rowIndex === 0 && group.date ? formatDate(group.date) : '',
+      rows: [row]
+    }));
+  });
+  return blocks;
 };
-
-const FIELD_LABELS = {
-  date: 'Date',
-  type: 'Type',
-  provider: 'Provider',
-  facility: 'Facility',
-  infertilityDiagnosis: 'Infertility Diagnosis',
-  infertilityDuration: 'Infertility Duration',
-  artCycles: 'ART Cycles',
-  'pgtTesting.performed': 'PGT Performed',
-  'pgtTesting.result': 'PGT Result',
-  'pgtTesting.embryoAge': 'Embryo Age',
-  'menstrualHistory.lmp': 'LMP',
-  'menstrualHistory.menarche': 'Menarche',
-  'menstrualHistory.cycleRegularity': 'Cycle Regularity',
-  'menstrualHistory.duration': 'Duration',
-  'menstrualHistory.flow': 'Flow',
-  'menstrualHistory.dysmenorrhea': 'Dysmenorrhea',
-  'menstrualHistory.intermenstrualBleeding': 'Intermenstrual Bleeding',
-  'menstrualHistory.postcoitalBleeding': 'Postcoital Bleeding',
-  contraceptiveHistory: 'Contraceptive History',
-  findings: 'Findings',
-  assessment: 'Assessment',
-  results: 'Results',
-  notes: 'Notes',
-  plan: 'Plan',
-  recommendations: 'Recommendations',
-  status: 'Status',
-};
-
-const BOOLEAN_FIELDS = ['pgtTesting.performed'];
-const DATE_FIELDS = ['date'];
-const ARRAY_FIELDS = ['contraceptiveHistory', 'recommendations'];
-const OBJECT_ARRAY_FIELDS = ['artCycles'];
-const OBJECT_FIELDS = ['results'];
-
-const humanizeKey = (key) => {
-  if (key === null || key === undefined || key === '') return '';
-  const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  return s.charAt(0).toUpperCase() + s.slice(1);
-};
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
-  return false;
-};
-const isScalar = (v) => v === null || typeof v !== 'object';
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-
-/* ======= RENDER HELPERS ======= */
-const renderSentenceField = (text, label) => {
-  if (!text || typeof text !== 'string') return null;
-  const sentences = splitBySentence(text);
-  if (sentences.length <= 1) {
-    return (
-      <View style={styles.fieldBox} wrap={false}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        <Text style={styles.fieldValue}>{text}</Text>
-      </View>
-    );
-  }
+const renderSection = (title, blocks, key) => {
+  const usable = (blocks || []).filter(block => block && (block.fieldLabel || block.subLabel || block.rows?.length || block.pairs?.length));
+  if (!usable.length) return null;
   return (
-    <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {sentences.map((sentence, sIdx) => {
-        const parsed = parseLabel(sentence);
-        if (parsed.isLabeled) {
-          const commaItems = splitByComma(parsed.value);
-          if (commaItems.length >= 2) {
-            return (
-              <View key={sIdx}>
-                <Text style={styles.nestedSubtitle}>{parsed.label}</Text>
-                {commaItems.map((ci, ciIdx) => (
-                  <Text key={ciIdx} style={styles.listItem}>{ciIdx + 1}. {ci}</Text>
-                ))}
-              </View>
-            );
-          }
-          return (
-            <View key={sIdx}>
-              <Text style={styles.nestedSubtitle}>{parsed.label}</Text>
-              <Text style={styles.listItem}>{parsed.value}</Text>
+    <React.Fragment key={key}>
+      {usable.map((block, index) => (
+        <View key={block.key || `${key}-${index}`} style={styles.block} wrap={false}>
+          {index === 0 && <Text style={styles.sectionTitle}>{title}</Text>}
+          {block.preLabel && <Text style={styles.subLabel}>{block.preLabel}</Text>}
+          {(block.pairs || []).map((pair, pairIndex) => (
+            <View key={`${block.key}-pair-${pairIndex}`}>
+              <Text style={styles.fieldLabel}>{pair.label}</Text>
+              {pair.rows.map((row, rowIndex) => <Text key={rowIndex} style={pair.rows.length > 1 ? styles.listItem : styles.fieldValue}>{pair.rows.length > 1 ? `${rowIndex + 1}. ${row}` : row}</Text>)}
             </View>
-          );
-        }
-        return <Text key={sIdx} style={styles.listItem}>{sIdx + 1}. {sentence}</Text>;
-      })}
-    </View>
+          ))}
+          {block.fieldLabel && block.fieldLabel.trim().toLowerCase() !== title.trim().toLowerCase() && <Text style={styles.fieldLabel}>{block.fieldLabel}</Text>}
+          {block.subLabel && <Text style={styles.subLabel}>{block.subLabel}</Text>}
+          {(block.rows || []).map((row, rowIndex) => <Text key={rowIndex} style={block.rows.length > 1 ? styles.listItem : styles.fieldValue}>{block.rows.length > 1 ? `${rowIndex + 1}. ${row}` : row}</Text>)}
+        </View>
+      ))}
+    </React.Fragment>
   );
 };
+const unwrap = data => (Array.isArray(data) ? data : [data]).flatMap(record =>
+  record?.reproductive_history
+    ? (Array.isArray(record.reproductive_history) ? record.reproductive_history : [record.reproductive_history])
+    : record?.documentData
+      ? (Array.isArray(record.documentData) ? record.documentData : record.documentData?.reproductive_history ? (Array.isArray(record.documentData.reproductive_history) ? record.documentData.reproductive_history : [record.documentData.reproductive_history]) : [record.documentData])
+      : [record]
+).filter(record => record && typeof record === 'object');
 
-/* recursive object node: label = bold heading; value = plain line below */
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.nestedHeader;
-  if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.nestedItem}>{fmtScalar(value)}</Text>
-      </View>
-    );
-  }
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
-  );
-};
-
-/* count rows for the wrap heuristic */
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-/* ======= COMPONENT ======= */
-const ReproductiveHistoryDocumentPDFTemplate = ({ document: data }) => {
-  let records = [];
-  if (Array.isArray(data)) {
-    records = data;
-  } else if (data?.records) {
-    records = data.records;
-  } else if (data) {
-    records = [data];
-  }
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>REPRODUCTIVE HISTORY REPORT</Text>
-          </View>
-          <Text style={styles.noDataText}>No reproductive history data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
+export default function ReproductiveHistoryDocumentPDFTemplate({ document: data }) {
+  const records = React.useMemo(() => unwrap(data), [data]);
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>REPRODUCTIVE HISTORY REPORT</Text>
-        </View>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            {idx > 0 && <View style={styles.separator} />}
-            <View style={styles.recordHeader}>
-              <View style={styles.recordDateRow}>
-                {hasVal(record.date) && <Text style={styles.recordDate}>{formatDate(record.date)}</Text>}
-              </View>
-              <Text style={styles.recordTitle}>{record.provider || `Reproductive History ${idx + 1}`}</Text>
-            </View>
-
-            {/* Sections */}
-            {Object.entries(SECTION_FIELDS).map(([sid, fields]) => {
-              const sectionHasData = fields.some(f => {
-                const val = getNestedValue(record, f);
-                return hasVal(val);
-              });
-              if (!sectionHasData) return null;
-
-              const sectionRows = fields.reduce((sum, f) => {
-                const v = getNestedValue(record, f);
-                if (!hasVal(v)) return sum;
-                if (OBJECT_FIELDS.includes(f)) return sum + countRows(v);
-                if (Array.isArray(v)) return sum + v.length;
-                if (typeof v === 'string') return sum + splitBySentence(v).length;
-                return sum + 1;
-              }, 0);
-
-              return (
-                <View key={sid} style={styles.section} wrap={sectionRows > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>{SECTION_TITLES[sid]}</Text>
-                  {fields.map(f => {
-                    const val = getNestedValue(record, f);
-                    if (!hasVal(val)) return null;
-                    const label = FIELD_LABELS[f] || f;
-
-                    if (DATE_FIELDS.includes(f)) {
-                      return (
-                        <View key={f} style={styles.fieldBox}>
-                          <Text style={styles.fieldLabel}>{label}</Text>
-                          <Text style={styles.fieldValue}>{formatDate(val)}</Text>
-                        </View>
-                      );
-                    }
-
-                    if (BOOLEAN_FIELDS.includes(f)) {
-                      return (
-                        <View key={f} style={styles.fieldBox}>
-                          <Text style={styles.fieldLabel}>{label}</Text>
-                          <Text style={styles.fieldValue}>{val ? 'Yes' : 'No'}</Text>
-                        </View>
-                      );
-                    }
-
-                    if (OBJECT_FIELDS.includes(f)) {
-                      const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
-                      if (entries.length === 0) return null;
-                      return (
-                        <View key={f} style={styles.fieldBox}>
-                          <Text style={styles.fieldLabel}>{label}</Text>
-                          {entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${f}-${k}`, 1))}
-                        </View>
-                      );
-                    }
-
-                    if (OBJECT_ARRAY_FIELDS.includes(f)) {
-                      const items = Array.isArray(val) ? val : [val];
-                      return (
-                        <View key={f} style={styles.fieldBox}>
-                          <Text style={styles.fieldLabel}>{label}</Text>
-                          {items.map((item, itemIdx) => {
-                            const parts = [];
-                            if (item.type) parts.push(`Type: ${item.type}`);
-                            if (item.cycleNumber) parts.push(`Cycle #${item.cycleNumber}`);
-                            if (item.outcome) parts.push(`Outcome: ${item.outcome}`);
-                            if (item.complications?.length) parts.push(`Complications: ${item.complications.join(', ')}`);
-                            return <Text key={itemIdx} style={styles.listItem}>{itemIdx + 1}. {parts.join(' | ')}</Text>;
-                          })}
-                        </View>
-                      );
-                    }
-
-                    if (ARRAY_FIELDS.includes(f)) {
-                      const items = Array.isArray(val) ? val : [val];
-                      return (
-                        <View key={f} style={styles.fieldBox}>
-                          <Text style={styles.fieldLabel}>{label}</Text>
-                          {items.map((item, itemIdx) => {
-                            const itemStr = typeof item === 'object' ? (item.text || item.recommendation || JSON.stringify(item)) : String(item);
-                            return <Text key={itemIdx} style={styles.listItem}>{itemIdx + 1}. {itemStr}</Text>;
-                          })}
-                        </View>
-                      );
-                    }
-
-                    /* String field with sentence parsing */
-                    return <React.Fragment key={f}>{renderSentenceField(fmtVal(val), label)}</React.Fragment>;
-                  })}
-                </View>
-              );
-            })}
+        <View style={styles.documentHeader} wrap={false}><Text style={styles.documentTitle}>Reproductive History</Text></View>
+        {!records.length && <Text style={styles.noDataText}>No reproductive history data available</Text>}
+        {records.map((record, index) => (
+          <View key={index} style={styles.recordContainer} break={index > 0}>
+            <View wrap={false}><Text style={styles.recordTitle}>{`Reproductive History ${index + 1}`}</Text></View>
+            {renderSection('History Information', [
+              ...dateBlock('Date', record.date, 'date'),
+              ...narrativeBlocks('Type', record.type, 'type', 'type'),
+              ...narrativeBlocks('Provider', record.provider, 'provider', WHOLE_STRING_FIELDS[0]),
+              ...narrativeBlocks('Facility', record.facility, 'facility', WHOLE_STRING_FIELDS[1])
+            ], 'history')}
+            {renderSection('Infertility', [
+              ...narrativeBlocks('Infertility Diagnosis', record.infertilityDiagnosis, 'diagnosis', 'infertilityDiagnosis'),
+              ...narrativeBlocks('Infertility Duration', record.infertilityDuration, 'duration', 'infertilityDuration')
+            ], 'infertility')}
+            {renderSection('ART Cycles', artCycleBlocks(record.artCycles), 'art-cycles')}
+            {renderSection('PGT Testing', objectBlocks('PGT Testing', record.pgtTesting, 'pgtTesting'), 'pgt-testing')}
+            {renderSection('Menstrual History', objectBlocks('Menstrual History', record.menstrualHistory, 'menstrualHistory'), 'menstrual-history')}
+            {renderSection('Contraceptive History', arrayBlocks('Contraceptive History', record.contraceptiveHistory, 'contraception'), 'contraception')}
+            {renderSection('Clinical Findings', [
+              ...narrativeBlocks('Findings', record.findings, 'findings', 'findings'),
+              ...narrativeBlocks('Assessment', record.assessment, 'assessment', 'assessment'),
+              ...objectBlocks('Results', record.results, 'results'),
+              ...objectBlocks('Additional Data', record.additionalData, 'additionalData'),
+              ...narrativeBlocks('Notes', record.notes, 'notes', 'notes')
+            ], 'clinical')}
+            {renderSection('Plan and Recommendations', [
+              ...narrativeBlocks('Plan', record.plan, 'plan', 'plan'),
+              ...recommendationBlocks(record.recommendations)
+            ], 'plan')}
+            {renderSection('Status', narrativeBlocks('Status', record.status, 'status', 'status'), 'status')}
           </View>
         ))}
       </Page>
     </Document>
   );
-};
-
-export default ReproductiveHistoryDocumentPDFTemplate;
+}

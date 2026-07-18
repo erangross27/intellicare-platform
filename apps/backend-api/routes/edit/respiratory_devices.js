@@ -23,14 +23,15 @@ function buildContext(req, operation = 'read') {
 function toObjectId(str) {
   try { return new mongoose.Types.ObjectId(str); } catch { return null; }
 }
-const ALLOWED_FIELDS = ['type', 'provider', 'facility', 'date', 'homeNebulizer', 'peakFlowMeter', 'spacerDevice', 'oxygenConcentrator', 'hepaFilter', 'airPurifier', 'cpapBipap.type', 'cpapBipap.settings', 'cpapBipap.compliance', 'findings', 'assessment', 'plan', 'recommendations', 'results', 'notes', 'status'];
+const ALLOWED_FIELDS = ['type', 'provider', 'facility', 'date', 'homeNebulizer', 'peakFlowMeter', 'spacerDevice', 'oxygenConcentrator', 'hepaFilter', 'airPurifier', 'cpapBipap.type', 'cpapBipap.settings', 'cpapBipap.compliance', 'cpapBipap.dataDownload', 'findings', 'assessment', 'plan', 'recommendations', 'results', 'notes', 'status'];
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params;
     const { field, value, arrayIndex } = req.body;
     if (!field || value === undefined) return res.status(400).json({ success: false, error: 'field and value are required' });
     const rootField = field.split('.')[0];
-    if (!ALLOWED_FIELDS.includes(field) && !ALLOWED_FIELDS.includes(rootField)) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
+    const allowed = ALLOWED_FIELDS.includes(rootField) || ALLOWED_FIELDS.some(candidate => field === candidate || field.startsWith(`${candidate}.`));
+    if (!allowed) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     const objectId = toObjectId(id);
     if (!objectId) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const sda = getSecureDataAccess();

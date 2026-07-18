@@ -31,7 +31,7 @@ const ALLOWED_FIELDS = [
   'menstrualHistory', 'menstrualHistory.lmp', 'menstrualHistory.menarche', 'menstrualHistory.cycleRegularity', 'menstrualHistory.duration', 'menstrualHistory.flow', 'menstrualHistory.dysmenorrhea', 'menstrualHistory.intermenstrualBleeding', 'menstrualHistory.postcoitalBleeding',
   'contraceptiveHistory',
   'findings', 'assessment', 'notes',
-  'results',
+  'results', 'additionalData',
   'plan', 'recommendations',
   'status',
 ];

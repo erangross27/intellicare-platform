@@ -10,7 +10,7 @@ let secureDataAccess;
 function getSecureDataAccess() { if (!secureDataAccess) secureDataAccess = require('../../services/secureDataAccess'); return secureDataAccess; }
 router.use(practiceContext); router.use(practiceModels); router.use(practiceAuth);
 
-const ALLOWED_FIELDS = ['barrierType', 'description', 'impactOnCare', 'financialConcerns', 'transportationIssues', 'housingStability', 'foodInsecurity', 'socialSupport', 'mentalHealth', 'substanceUse', 'literacyLanguage', 'interventions', 'resourcesProvided', 'socialWorker', 'provider', 'facility', 'notes'];
+const ALLOWED_FIELDS = ['date', 'barrierType', 'description', 'impactOnCare', 'financialConcerns', 'transportationIssues', 'housingStability', 'foodInsecurity', 'socialSupport', 'mentalHealth', 'substanceUse', 'literacyLanguage', 'interventions', 'resourcesProvided', 'socialWorker', 'provider', 'facility', 'notes'];
 
 function buildContext(req, op = 'read') { return { serviceId: 'barriers-psychosocial-issues-edit-service', userId: req.user?.id, operation: op, practiceId: req.practiceContext?.subdomain || req.practiceContext?.practiceId, permissions: [op === 'read' ? 'read' : 'write'] }; }
 function toObjectId(s) { try { return new mongoose.Types.ObjectId(s); } catch { return null; } }

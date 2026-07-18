@@ -1,94 +1,60 @@
-/**
- * BarriersPsychosocialIssuesDocumentPDFTemplate.jsx
- * PDFDownloadLink + pdfData memo pattern, ASCII separators, Helvetica
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'barriers_psychosocial_issues';
+const COMMA_SPLIT_FIELDS = ['description', 'impactOnCare', 'financialConcerns', 'socialSupport', 'mentalHealth'];
+const ARRAY_FIELDS = new Set(['interventions', 'resourcesProvided']);
+const NARRATIVE_FIELDS = new Set(['description', 'impactOnCare', 'financialConcerns', 'foodInsecurity', 'socialSupport', 'mentalHealth', 'notes']);
+const DATE_FIELDS = new Set(['date']);
+const LABELS = {
+  date: 'Date', provider: 'Provider', facility: 'Facility', barrierType: 'Barrier Type',
+  description: 'Description', impactOnCare: 'Impact on Care', financialConcerns: 'Financial Concerns',
+  transportationIssues: 'Transportation Issues', housingStability: 'Housing Stability',
+  foodInsecurity: 'Food Insecurity', socialSupport: 'Social Support', mentalHealth: 'Mental Health',
+  substanceUse: 'Substance Use', literacyLanguage: 'Literacy/Language', interventions: 'Interventions',
+  resourcesProvided: 'Resources Provided', socialWorker: 'Social Worker', notes: 'Notes',
+};
+const SECTIONS = [
+  { title: 'Date', fields: ['date'] },
+  { title: 'Record Information', fields: ['provider', 'facility'] },
+  { title: 'Barrier Information', fields: ['barrierType', 'description'] },
+  { title: 'Impact and Concerns', fields: ['impactOnCare', 'financialConcerns', 'transportationIssues', 'housingStability', 'foodInsecurity'] },
+  { title: 'Social and Mental Health', fields: ['socialSupport', 'mentalHealth', 'substanceUse', 'literacyLanguage'] },
+  { title: 'Interventions', fields: ['interventions'] },
+  { title: 'Resources Provided', fields: ['resourcesProvided'] },
+  { title: 'Support', fields: ['socialWorker'] },
+  { title: 'Notes', fields: ['notes'] },
+];
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 24, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  recordSection: { marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 8, backgroundColor: '#f0f0f0', padding: 8, borderWidth: 1, borderColor: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 4, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 14 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4 },
-  fieldBlock: { marginBottom: 6 },
-  fieldLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#404040', marginBottom: 1 },
-  fieldValue: { fontSize: 12, color: '#404040', paddingLeft: 12, lineHeight: 1.4 },
-  listItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 4 },
-  subLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
-  separator: { fontSize: 10, color: '#999999', marginBottom: 8, textAlign: 'center' },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const splitBySentence = (t) => { if (!t || typeof t !== 'string') return []; return t.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|Prof|Rev|Sr|Jr|St|Gen|Col|Sgt|Lt|Capt|vs|etc)\.)(?<=[.!?])\s+/).filter(s => { const tr = s.trim(); return tr.length > 0 && tr.replace(/[.!?;,]+/g, '').trim().length > 0; }); };
-// Paren-aware comma splitter (parity with the JSX): depth-0 ',' splits UNLESS inside parens, between two
-// digits, before a 4-digit year, or before whole-word "and"/"or".
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  const out = []; let cur = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; cur += ch; continue; }
-    if (ch === ')') { depth = Math.max(0, depth - 1); cur += ch; continue; }
-    if (ch === ',' && depth === 0) {
-      const prev = text[i - 1] || '', nx = text[i + 1] || ''; const rest = text.slice(i + 1).trimStart();
-      if ((/\d/.test(prev) && /\d/.test(nx)) || /^\d{4}\b/.test(rest) || /^(?:and|or)\b/i.test(rest)) { cur += ch; continue; }
-      const t = cur.trim(); if (t) out.push(t); cur = ''; continue;
-    }
-    cur += ch;
-  }
-  const t = cur.trim(); if (t) out.push(t);
-  return out;
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
-const parseLabel = (s) => { if (!s || typeof s !== 'string') return { isLabeled: false, label: '', value: s || '' }; const m = s.match(/^([^:]{1,80}):\s+(\S.*)$/s); if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() }; return { isLabeled: false, label: '', value: s }; };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const rowsFor = (record, field) => { const value = record[field]; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: String(item) })); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: String(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-const BarriersPsychosocialIssuesDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => {
-      if (r?.barriers_psychosocial_issues) return Array.isArray(r.barriers_psychosocial_issues) ? r.barriers_psychosocial_issues : [r.barriers_psychosocial_issues];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.barriers_psychosocial_issues) return Array.isArray(dd.barriers_psychosocial_issues) ? dd.barriers_psychosocial_issues : [dd.barriers_psychosocial_issues]; return [dd]; }
-      return r;
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  // Stacked (bold label ABOVE value, NO colon) — never side-by-side "Label: value".
-  const renderField = (label, value) => { if (!value || String(value).trim() === '') return null; return <View style={styles.fieldBlock} wrap={false}><Text style={styles.fieldLabel}>{label}</Text><Text style={styles.fieldValue}>{String(value)}</Text></View>; };
-  // Notes-style field: each sentence "Label: value" → bold sub-label + value (nested, no side-by-side);
-  // an unlabeled sentence → a plain line. Mirrors the JSX nested-subtitle.
-  const renderSentenceField = (label, value) => { if (!value || String(value).trim() === '') return null; const ss = splitBySentence(String(value)); if (ss.length === 0) return null; if (ss.length === 1 && !parseLabel(ss[0]).isLabeled) return renderField(label, value); return <View style={styles.fieldContainer} wrap={ss.length > 8}><Text style={styles.sectionTitle}>{label}</Text>{ss.map((s, i) => { const p = parseLabel(s); if (p.isLabeled) return <View key={i} wrap={false}><Text style={styles.subLabel}>{p.label}</Text><Text style={styles.listItem}>{p.value}</Text></View>; return <Text key={i} style={styles.listItem}>{s}</Text>; })}</View>; };
-  const renderArrayField = (label, items) => { if (!items || !Array.isArray(items) || items.length === 0) return null; return <View style={styles.fieldContainer} wrap={items.length > 8 ? undefined : false}><Text style={styles.sectionTitle}>{label}</Text>{items.map((it, i) => <Text key={i} style={styles.listItem}>{i + 1}. {String(it)}</Text>)}</View>; };
-  // Comma-split list field → numbered rows (one item, no comma → unchanged side-by-side renderField).
-  const renderCommaField = (label, value) => { if (!value || String(value).trim() === '') return null; const items = splitByComma(String(value)); if (items.length <= 1) return renderField(label, value); return <View style={styles.fieldContainer} wrap={items.length > 8}><Text style={styles.sectionTitle}>{label}</Text>{items.map((it, i) => <Text key={i} style={styles.listItem}>{i + 1}. {it}</Text>)}</View>; };
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Barriers and Psychosocial Issues</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Barriers and Psychosocial Issues</Text>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordSection}>
-            <View wrap={false}><Text style={styles.recordTitle}>{`Barriers & Psychosocial Issues ${idx + 1}`}</Text>{record.date && <Text style={styles.recordMeta}>Date: {formatDate(record.date)}</Text>}</View>
-            {idx > 0 && <Text style={styles.separator}>{'='.repeat(60)}</Text>}
-            {(record.provider || record.facility) && <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Record Information</Text>{renderField('Provider', record.provider)}{renderField('Facility', record.facility)}</View>}
-            {(record.barrierType || record.description) && <View style={styles.fieldContainer} wrap={splitByComma(String(record.description || '')).length > 8}><Text style={styles.sectionTitle}>Barrier Information</Text>{renderField('Barrier Type', record.barrierType)}{renderCommaField('Description', record.description)}</View>}
-            {(record.impactOnCare || record.financialConcerns || record.transportationIssues || record.housingStability || record.foodInsecurity) && <View style={styles.fieldContainer} wrap={(splitByComma(String(record.impactOnCare || '')).length + splitByComma(String(record.financialConcerns || '')).length) > 8}><Text style={styles.sectionTitle}>Impact and Concerns</Text>{renderCommaField('Impact on Care', record.impactOnCare)}{renderCommaField('Financial Concerns', record.financialConcerns)}{renderField('Transportation Issues', record.transportationIssues)}{renderField('Housing Stability', record.housingStability)}{renderField('Food Insecurity', record.foodInsecurity)}</View>}
-            {(record.socialSupport || record.mentalHealth || record.substanceUse || record.literacyLanguage) && <View style={styles.fieldContainer} wrap={(splitByComma(String(record.socialSupport || '')).length + splitByComma(String(record.mentalHealth || '')).length) > 8}><Text style={styles.sectionTitle}>Social and Mental Health</Text>{renderCommaField('Social Support', record.socialSupport)}{renderCommaField('Mental Health', record.mentalHealth)}{renderField('Substance Use', record.substanceUse)}{renderField('Literacy/Language', record.literacyLanguage)}</View>}
-            {renderArrayField('Interventions', record.interventions)}
-            {renderArrayField('Resources Provided', record.resourcesProvided)}
-            {renderField('Social Worker', record.socialWorker)}
-            {renderSentenceField('Notes', record.notes)}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const BarriersPsychosocialIssuesDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Barriers and Psychosocial Issues</Text><Text style={styles.noData}>No barriers and psychosocial issues data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Barriers and Psychosocial Issues</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Barriers and Psychosocial Issues {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
 export default BarriersPsychosocialIssuesDocumentPDFTemplate;

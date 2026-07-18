@@ -134,6 +134,7 @@ import AutoantibodyProfileDocumentPDFTemplate from './AutoantibodyProfileDocumen
 import AutoimmuneEvaluationsDocumentPDFTemplate from './AutoimmuneEvaluationsDocumentPDFTemplate';
 import AutoimmunePanelsDocumentPDFTemplate from './AutoimmunePanelsDocumentPDFTemplate';
 import AutopsyReportsDocumentPDFTemplate from './AutopsyReportsDocumentPDFTemplate';
+import BarriersPsychosocialIssuesDocumentPDFTemplate from './BarriersPsychosocialIssuesDocumentPDFTemplate';
 import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTemplate';
 import AcmgGuidelinesReferenceDocumentPDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
 import AcuteKidneyInjuryDocumentPDFTemplate from './AcuteKidneyInjuryDocumentPDFTemplate';
@@ -238,6 +239,7 @@ const templateRegistry = {
   'autoimmune_evaluations': AutoimmuneEvaluationsDocumentPDFTemplate,
   'autoimmune_panels': AutoimmunePanelsDocumentPDFTemplate,
   'autopsy_reports': AutopsyReportsDocumentPDFTemplate,
+  'barriers_psychosocial_issues': BarriersPsychosocialIssuesDocumentPDFTemplate,
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsTemplate,
   'case_summaries': CaseSummariesTemplate,

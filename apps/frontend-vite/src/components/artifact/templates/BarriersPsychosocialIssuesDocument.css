@@ -10,7 +10,10 @@
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
   min-height: 100%;
+  direction: ltr;
 }
+
+.barriers-psychosocial-issues-document * { direction: ltr; }
 
 /* Header — block layout, buttons below title */
 .barriers-psychosocial-issues-document .document-header {
@@ -80,16 +83,6 @@
   color: #ececf1;
   margin: 0;
   text-transform: none !important;
-}
-
-.barriers-psychosocial-issues-document .record-date {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
 /* Section */
@@ -239,11 +232,31 @@
   box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
 }
 
+.barriers-psychosocial-issues-document input.edit-date {
+  width: 100%;
+  display: block;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  color-scheme: dark;
+}
+
+.barriers-psychosocial-issues-document input.edit-date:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
 .barriers-psychosocial-issues-document .edit-actions {
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .barriers-psychosocial-issues-document .save-btn {
@@ -499,3 +512,6 @@
 }
 /* Sub-field label */
 .barriers-psychosocial-issues-document .sub-field-label { font-size: 13px; font-weight: 600; color: #93c5fd; margin-right: 8px; flex-shrink: 0; }
+.barriers-psychosocial-issues-document .save-error { color: #fca5a5; font-size: 12px; margin-top: 6px; }
+.barriers-psychosocial-issues-document .sr-only { clip: rect(0, 0, 0, 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.barriers-psychosocial-issues-document .pdf-btn { display: inline-flex; align-items: center; text-decoration: none; }

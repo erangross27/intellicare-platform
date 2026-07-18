@@ -38,6 +38,7 @@ import CardiologyConsultationsDocumentPDFTemplate from './CardiologyConsultation
 import CaregiverAssessmentDocumentPDFTemplate from './CaregiverAssessmentDocumentPDFTemplate';
 import CaregiverSupportDocumentPDFTemplate from './CaregiverSupportDocumentPDFTemplate';
 import CaregiverSupportGroupsDocumentPDFTemplate from './CaregiverSupportGroupsDocumentPDFTemplate';
+import CascadeTestingProtocolDocumentPDFTemplate from './CascadeTestingProtocolDocumentPDFTemplate';
 import CardiologyFollowupReportsDocumentPDFTemplate from './CardiologyFollowupReportsDocumentPDFTemplate';
 import CardiovascularRiskReductionDocumentPDFTemplate from './CardiovascularRiskReductionDocumentPDFTemplate';
 import CardiovascularRiskScreeningDocumentPDFTemplate from './CardiovascularRiskScreeningDocumentPDFTemplate';
@@ -315,6 +316,7 @@ const templateRegistry = {
   'caregiver_assessment': CaregiverAssessmentDocumentPDFTemplate,
   'caregiver_support': CaregiverSupportDocumentPDFTemplate,
   'caregiver_support_groups': CaregiverSupportGroupsDocumentPDFTemplate,
+  'cascade_testing_protocol': CascadeTestingProtocolDocumentPDFTemplate,
   'cardiology_followup_reports': CardiologyFollowupReportsDocumentPDFTemplate,
   'cardiovascular_risk_reduction': CardiovascularRiskReductionDocumentPDFTemplate,
   'cardiovascular_risk_screening': CardiovascularRiskScreeningDocumentPDFTemplate,

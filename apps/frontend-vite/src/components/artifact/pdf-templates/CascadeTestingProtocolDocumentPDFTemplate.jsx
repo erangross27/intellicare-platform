@@ -1,195 +1,74 @@
-/**
- * CascadeTestingProtocolDocumentPDFTemplate.jsx
- * Helvetica 22/13/11pt — LETTER size — US medical platform
- * Collection: cascade_testing_protocol
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/* Box-free line-based layout (mirrors user-approved ConsultationNotes style):
-   no backgroundColor/border boxes; underline under section titles (1pt black) and
-   field sub-labels (0.5pt gray); bigger fonts (page 15 / title 26 / section 16 / values 14). */
+const COLLECTION = 'cascade_testing_protocol';
+const COMMA_SPLIT_FIELDS = ['surveillanceProtocol', 'psychosocialSupport', 'followUpSchedule'];
+const ARRAY_FIELDS = new Set(['phenotypicScreeningResults', 'preventiveInterventions']);
+const OBJECT_FIELDS = new Set(['additionalData']);
+const NARRATIVE_FIELDS = new Set(['surveillanceProtocol', 'psychosocialSupport', 'followUpSchedule', 'cascadeRecruitmentMethod', 'disclosurePreferences', 'familyHistoryAccuracy']);
+const DATE_FIELDS = new Set(['informedConsentDate']);
+const ZERO_SENTINEL_FIELDS = new Set(['clinicalPenetrance', 'preTestProbability', 'riskStratificationScore']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  informedConsentDate: 'Informed Consent Date', indexCaseIdentifier: 'Index Case Identifier', geneticCondition: 'Genetic Condition', inheritancePattern: 'Inheritance Pattern',
+  familialRelationshipToIndex: 'Familial Relationship to Index', pedigreePosition: 'Pedigree Position', familyHistoryAccuracy: 'Family History Accuracy',
+  targetMutation: 'Target Mutation', testingMethodology: 'Testing Methodology', testingLaboratory: 'Testing Laboratory', carrierStatus: 'Carrier Status',
+  clinicalPenetrance: 'Clinical Penetrance', preTestProbability: 'Pre-Test Probability', riskStratificationScore: 'Risk Stratification Score',
+  priorRiskCounseling: 'Prior Risk Counseling', geneticCounselorInvolvement: 'Genetic Counselor Involvement', participationConsent: 'Participation Consent',
+  cascadeRecruitmentMethod: 'Cascade Recruitment Method', disclosurePreferences: 'Disclosure Preferences', psychosocialSupport: 'Psychosocial Support',
+  phenotypicScreeningResults: 'Phenotypic Screening Results', surveillanceProtocol: 'Surveillance Protocol', preventiveInterventions: 'Preventive Interventions', followUpSchedule: 'Follow-Up Schedule', additionalData: 'Additional Data',
+};
+const SECTIONS = [
+  { title: 'Protocol Information', fields: ['informedConsentDate', 'indexCaseIdentifier', 'geneticCondition', 'inheritancePattern', 'testingMethodology', 'testingLaboratory'] },
+  { title: 'Family and Pedigree', fields: ['familialRelationshipToIndex', 'pedigreePosition', 'familyHistoryAccuracy'] },
+  { title: 'Genetic Details', fields: ['targetMutation', 'carrierStatus', 'clinicalPenetrance', 'preTestProbability', 'riskStratificationScore'] },
+  { title: 'Counseling', fields: ['priorRiskCounseling', 'geneticCounselorInvolvement', 'participationConsent', 'psychosocialSupport'] },
+  { title: 'Recruitment and Disclosure', fields: ['cascadeRecruitmentMethod', 'disclosurePreferences'] },
+  { title: 'Phenotypic Screening Results', fields: ['phenotypicScreeningResults'] },
+  { title: 'Surveillance Protocol', fields: ['surveillanceProtocol'] },
+  { title: 'Preventive Interventions', fields: ['preventiveInterventions'] },
+  { title: 'Follow-Up Schedule', fields: ['followUpSchedule'] },
+  { title: 'Additional Data', fields: ['additionalData'] },
+];
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 15, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, borderBottomWidth: 3, borderBottomColor: '#000000', paddingBottom: 14 },
-  title: { fontSize: 26, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2 },
-  recordContainer: { marginBottom: 28, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordHeader: { marginBottom: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000' },
-  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold' },
-  recordMeta: { fontSize: 13, color: '#333333', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 3 },
-  fieldBox: { marginBottom: 8 },
-  fieldLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 3, paddingBottom: 2, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
-  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000', paddingLeft: 8 },
-  listItem: { fontSize: 14, lineHeight: 1.5, marginBottom: 2, paddingLeft: 8 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 16, color: '#666666' },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-// number 0 is a "not assessed" sentinel for the percentage/score fields -> treat as empty (matches main document)
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return v !== 0; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; return true; };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-const safeArr = (v) => Array.isArray(v) ? v.filter(Boolean) : [];
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/[;.]\s+/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
-
-const FL = {
-  geneticCondition: 'Genetic Condition', inheritancePattern: 'Inheritance Pattern', clinicalPenetrance: 'Clinical Penetrance (%)', carrierStatus: 'Carrier Status',
-  testingMethodology: 'Testing Methodology', targetMutation: 'Target Mutation', testingLaboratory: 'Testing Laboratory',
-  priorRiskCounseling: 'Prior Risk Counseling', informedConsentDate: 'Informed Consent Date', geneticCounselorInvolvement: 'Genetic Counselor Involvement', participationConsent: 'Participation Consent',
-  preTestProbability: 'Pre-Test Probability (%)', riskStratificationScore: 'Risk Stratification Score', familyHistoryAccuracy: 'Family History Accuracy',
-  indexCaseIdentifier: 'Index Case Identifier', familialRelationshipToIndex: 'Familial Relationship', pedigreePosition: 'Pedigree Position', cascadeRecruitmentMethod: 'Cascade Recruitment Method',
-  surveillanceProtocol: 'Surveillance Protocol', psychosocialSupport: 'Psychosocial Support',
-  disclosurePreferences: 'Disclosure Preferences', followUpSchedule: 'Follow-Up Schedule',
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-const COMMA_SPLIT_FIELDS = new Set(['surveillanceProtocol', 'psychosocialSupport']);
-const SENTENCE_SPLIT_FIELDS = new Set(['disclosurePreferences', 'followUpSchedule']);
-
-/* splitByComma: top-level commas only — NOT inside parentheses, NOT when "and"/"or"
-   sits right before or right after the comma, NOT without a following space ("$18,000") */
-const splitByComma = (text) => {
-  const s = String(text || ''); const out = []; let cur = ''; let depth = 0;
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-    if (ch === '(') { depth++; cur += ch; continue; }
-    if (ch === ')') { depth = Math.max(0, depth - 1); cur += ch; continue; }
-    if (ch === ',' && depth === 0) {
-      if (!/\s/.test(s[i + 1] || '')) { cur += ch; continue; }
-      const rest = s.slice(i + 1).replace(/^\s+/, '');
-      if (/^(and|or)\b/i.test(rest)) { cur += ch; continue; }
-      if (/\b(and|or)\s*$/i.test(cur)) { cur += ch; continue; }
-      const t = cur.trim(); if (t) out.push(t); cur = ''; continue;
-    }
-    cur += ch;
-  }
-  const t = cur.trim(); if (t) out.push(t);
-  return out.length ? out : (s.trim() ? [s.trim()] : []);
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-/* single-name rule: hide the field label when it duplicates the section title */
-const showFieldLabel = (f, sTitle) => (FL[f] || f).trim().toLowerCase() !== String(sTitle || '').trim().toLowerCase();
-
-/* Title INSIDE fieldBox + conditional wrap on fieldBox; every value numbered */
-const renderFieldSection = (sTitle, fields, record) => {
-  const visible = fields.filter(f => hasVal(record[f]));
-  if (visible.length === 0) return null;
-  return (
-    <View style={styles.section}>
-      <View style={styles.fieldBox} wrap={visible.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{sTitle}</Text>
-        {visible.map((f, i) => (
-          <View key={i} style={{ marginBottom: 4 }}>
-            {showFieldLabel(f, sTitle) && <Text style={styles.fieldLabel}>{FL[f] || f}</Text>}
-            <Text style={styles.listItem}>1. {f === 'informedConsentDate' ? formatDate(record[f]) : fmtVal(record[f])}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
+const CascadeTestingProtocolDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Cascade Testing Protocol</Text><Text style={styles.noData}>No cascade testing protocol data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Cascade Testing Protocol</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Cascade Testing Protocol {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
-/* Comma-split fields → numbered items */
-const renderCommaSplitFieldSection = (sTitle, fn, record) => {
-  if (!hasVal(record[fn])) return null;
-  const parts = splitByComma(record[fn]);
-  return (
-    <View style={styles.section}>
-      <View style={styles.fieldBox} wrap={parts.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{sTitle}</Text>
-        {showFieldLabel(fn, sTitle) && <Text style={styles.fieldLabel}>{FL[fn] || fn}</Text>}
-        {parts.map((p, i) => (
-          <Text key={i} style={styles.listItem}>{i + 1}. {p}</Text>
-        ))}
-      </View>
-    </View>
-  );
-};
-
-/* Sentence-split fields → numbered items */
-const renderSentenceSplitFieldSection = (sTitle, fn, record) => {
-  if (!hasVal(record[fn])) return null;
-  const sentences = splitBySentence(String(record[fn]));
-  if (sentences.length === 0) return null;
-  return (
-    <View style={styles.section}>
-      <View style={styles.fieldBox} wrap={sentences.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{sTitle}</Text>
-        {showFieldLabel(fn, sTitle) && <Text style={styles.fieldLabel}>{FL[fn] || fn}</Text>}
-        {sentences.map((s, i) => (
-          <Text key={i} style={styles.listItem}>{i + 1}. {s}</Text>
-        ))}
-      </View>
-    </View>
-  );
-};
-
-/* Array → numbered list */
-const renderArraySection = (sTitle, items) => {
-  const arr = safeArr(items);
-  if (arr.length === 0) return null;
-  return (
-    <View style={styles.section}>
-      <View style={styles.fieldBox} wrap={arr.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{sTitle}</Text>
-        {arr.map((it, i) => (
-          <Text key={i} style={styles.listItem}>{i + 1}. {it}</Text>
-        ))}
-      </View>
-    </View>
-  );
-};
-
-const CascadeTestingProtocolDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => {
-      if (r?.cascade_testing_protocol) return Array.isArray(r.cascade_testing_protocol) ? r.cascade_testing_protocol : [r.cascade_testing_protocol];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.cascade_testing_protocol) return Array.isArray(dd.cascade_testing_protocol) ? dd.cascade_testing_protocol : [dd.cascade_testing_protocol]; return [dd]; }
-      return r;
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}><Text style={styles.title}>Cascade Testing Protocol</Text></View>
-          <Text style={styles.emptyState}>No records available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.title}>Cascade Testing Protocol</Text>
-        </View>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>{`Cascade Testing Protocol ${idx + 1}`}</Text>
-              {record.date && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
-            </View>
-            {renderFieldSection('Genetic Condition', ['geneticCondition', 'inheritancePattern', 'clinicalPenetrance', 'carrierStatus'], record)}
-            {renderFieldSection('Testing Details', ['testingMethodology', 'targetMutation', 'testingLaboratory'], record)}
-            {renderFieldSection('Consent & Counseling', ['priorRiskCounseling', 'informedConsentDate', 'geneticCounselorInvolvement', 'participationConsent'], record)}
-            {renderFieldSection('Risk Assessment', ['preTestProbability', 'riskStratificationScore', 'familyHistoryAccuracy'], record)}
-            {renderFieldSection('Index Case & Family', ['indexCaseIdentifier', 'familialRelationshipToIndex', 'pedigreePosition', 'cascadeRecruitmentMethod'], record)}
-            {renderCommaSplitFieldSection('Surveillance Protocol', 'surveillanceProtocol', record)}
-            {renderArraySection('Phenotypic Screening', record.phenotypicScreeningResults)}
-            {renderCommaSplitFieldSection('Psychosocial Support', 'psychosocialSupport', record)}
-            {renderSentenceSplitFieldSection('Disclosure Preferences', 'disclosurePreferences', record)}
-            {renderArraySection('Preventive Interventions', record.preventiveInterventions)}
-            {renderSentenceSplitFieldSection('Follow-Up Schedule', 'followUpSchedule', record)}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
-};
-
 export default CascadeTestingProtocolDocumentPDFTemplate;

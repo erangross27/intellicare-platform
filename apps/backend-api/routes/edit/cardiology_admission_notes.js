@@ -31,6 +31,7 @@ const ALLOWED_FIELDS = [
   'thrombolyticEligibility', 'telemetryMonitoring', 'functionalCapacity',
   'admissionDate',
   'hemodynamicParameters', 'anticoagulationStatus', 'inotropicSupport',
+  'chestPainCharacteristics', 'echocardiogramResults', 'cardiacBiomarkerTrend',
 ];
 const isDotPathAllowed = (field) => ALLOWED_FIELDS.some(af => field === af || field.startsWith(af + '.'));
 

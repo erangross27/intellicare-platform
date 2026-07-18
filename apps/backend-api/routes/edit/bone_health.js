@@ -24,7 +24,7 @@ const ALLOWED_FIELDS = [
   'boneProtectionTherapy', 'riskFactors', 'fractures',
   'findings', 'assessment', 'plan', 'notes',
   'recommendations', 'provider', 'facility', 'status',
-  'results',
+  'results', 'dexaScan', 'date', 'type', 'additionalData',
 ];
 
 router.put('/:id/edit', async (req, res) => {

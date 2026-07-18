@@ -8,7 +8,7 @@ function getSecureDataAccess() { if (!secureDataAccess) secureDataAccess = requi
 router.use(practiceContext); router.use(practiceModels); router.use(practiceAuth);
 function buildContext(req, operation = 'read') { return { serviceId: 'cam-icu-edit-service', userId: req.user?.id, operation, practiceId: req.practiceContext?.subdomain || req.practiceContext?.practiceId, permissions: [operation === 'read' ? 'read' : 'write'] }; }
 function toObjectId(str) { try { return new mongoose.Types.ObjectId(str); } catch { return null; } }
-const ALLOWED_FIELDS = ['assessmentTime', 'clinicalStatus', 'vitalSigns', 'interventions', 'response', 'plan', 'recommendations', 'additionalData'];
+const ALLOWED_FIELDS = ['assessmentDate', 'assessmentTime', 'clinicalStatus', 'vitalSigns', 'interventions', 'response', 'plan', 'recommendations', 'additionalData'];
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params; const { field, value, arrayIndex } = req.body;

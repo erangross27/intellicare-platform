@@ -47,6 +47,7 @@ import BurnAssessmentDocumentPDFTemplate from './BurnAssessmentDocumentPDFTempla
 import BurnFluidResuscitationDocumentPDFTemplate from './BurnFluidResuscitationDocumentPDFTemplate';
 import BurnRehabilitationDocumentPDFTemplate from './BurnRehabilitationDocumentPDFTemplate';
 import BurnWoundCareDocumentPDFTemplate from './BurnWoundCareDocumentPDFTemplate';
+import CamIcuDocumentPDFTemplate from './CamIcuDocumentPDFTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
@@ -301,6 +302,7 @@ const templateRegistry = {
   'burn_fluid_resuscitation': BurnFluidResuscitationDocumentPDFTemplate,
   'burn_rehabilitation': BurnRehabilitationDocumentPDFTemplate,
   'burn_wound_care': BurnWoundCareDocumentPDFTemplate,
+  'cam_icu': CamIcuDocumentPDFTemplate,
   'case_summaries': CaseSummariesTemplate,
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,

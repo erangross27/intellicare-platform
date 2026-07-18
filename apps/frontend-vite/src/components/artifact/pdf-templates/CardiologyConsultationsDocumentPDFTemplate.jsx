@@ -1,96 +1,85 @@
-/**
- * CardiologyConsultationsDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt
- * Collection: cardiology_consultations
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'cardiology_consultations';
+const COMMA_SPLIT_FIELDS = ['cardiacRiskFactors', 'currentCardiacMedications', 'medicationsRecommended', 'lifestyleModifications', 'echoFindings', 'stressTestResults', 'cardiacExamFindings'];
+const ARRAY_FIELDS = new Set([]);
+const OBJECT_FIELDS = new Set(['recommendations', 'additionalData']);
+const NARRATIVE_FIELDS = new Set(['referralReason', 'chiefComplaint', 'cardiologyHistory', 'cardiacRiskFactors', 'currentCardiacMedications', 'cardiacExamFindings', 'ecgFindings', 'echoFindings', 'stressTestResults', 'cathResults', 'holterFindings', 'riskStratification', 'cardiologyDiagnosis', 'medicationsRecommended', 'proceduresRecommended', 'lifestyleModifications', 'followUpPlan']);
+const DATE_FIELDS = new Set(['consultDate']);
+const ZERO_SENTINEL_FIELDS = new Set([]);
+const NUMBER_UNIT_FIELDS = new Set([]);
+const ENUM_FIELDS = {};
+const STATUS_OPTIONS = ['Complete', 'In Progress', 'Pending'];
+const KEY_OVERRIDES = {};
+const LABELS = {
+  consultDate: 'Consult Date', referralReason: 'Referral Reason', referringProvider: 'Referring Provider', chiefComplaint: 'Chief Complaint', urgency: 'Urgency',
+  cardiologyHistory: 'Cardiology History', cardiacRiskFactors: 'Cardiac Risk Factors', currentCardiacMedications: 'Current Cardiac Medications',
+  cardiacExamFindings: 'Cardiac Exam Findings', ecgFindings: 'ECG Findings', echoFindings: 'Echo Findings', stressTestResults: 'Stress Test Results', cathResults: 'Cath Results', holterFindings: 'Holter Findings',
+  nyhaClass: 'NYHA Class', riskStratification: 'Risk Stratification', cardiologyDiagnosis: 'Cardiology Diagnosis',
+  medicationsRecommended: 'Medications Recommended', proceduresRecommended: 'Procedures Recommended', lifestyleModifications: 'Lifestyle Modifications', followUpPlan: 'Follow-Up Plan',
+  recommendations: 'Recommendations', additionalData: 'Additional Data',
+};
+const SECTIONS = [
+  { title: 'Consultation', fields: ['consultDate', 'referralReason', 'referringProvider', 'chiefComplaint', 'urgency'] },
+  { title: 'Cardiology History', fields: ['cardiologyHistory'] },
+  { title: 'Cardiac Risk Factors', fields: ['cardiacRiskFactors'] },
+  { title: 'Current Cardiac Medications', fields: ['currentCardiacMedications'] },
+  { title: 'Cardiac Exam Findings', fields: ['cardiacExamFindings'] },
+  { title: 'ECG Findings', fields: ['ecgFindings'] },
+  { title: 'Echo Findings', fields: ['echoFindings'] },
+  { title: 'Stress Test Results', fields: ['stressTestResults'] },
+  { title: 'Cath Results', fields: ['cathResults'] },
+  { title: 'Holter Findings', fields: ['holterFindings'] },
+  { title: 'NYHA Class', fields: ['nyhaClass'] },
+  { title: 'Risk Stratification', fields: ['riskStratification'] },
+  { title: 'Cardiology Diagnosis', fields: ['cardiologyDiagnosis'] },
+  { title: 'Medications Recommended', fields: ['medicationsRecommended'] },
+  { title: 'Procedures Recommended', fields: ['proceduresRecommended'] },
+  { title: 'Lifestyle Modifications', fields: ['lifestyleModifications'] },
+  { title: 'Follow-Up Plan', fields: ['followUpPlan'] },
+  { title: 'Recommendations', fields: ['recommendations'] },
+  { title: 'Additional Data', fields: ['additionalData'] },
+];
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 14, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  recordSection: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 6, backgroundColor: '#f0f0f0', padding: 6, borderWidth: 1, borderColor: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 2, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 10, marginTop: 4 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4 },
-  subSectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 3, marginTop: 6, paddingLeft: 4 },
-  subLabelLine: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 8, marginBottom: 4, paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#000000' },
-  listItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 3 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; return true; };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-const splitBySentence = (text) => { if (!text) return []; return String(text).split(/[;.]\s+/).map(s => s.trim()).filter(s => s.length > 0 && s.replace(/[.!?;,]+/g, '').trim().length > 0); };
-// Split a list on ", " only — parenthesis-aware, so "V3-V6 (anterolateral leads)" stays intact.
-const splitByComma = (text) => { const s = String(text || ''); const out = []; let cur = '', depth = 0; for (let i = 0; i < s.length; i++) { const ch = s[i]; if (ch === '(') depth++; else if (ch === ')') depth = Math.max(0, depth - 1); if (ch === ',' && depth === 0 && /\s/.test(s[i + 1] || '')) { const t = cur.trim(); if (t) out.push(t); cur = ''; } else cur += ch; } const t = cur.trim(); if (t) out.push(t); return out; };
-const parseLabel = (text) => { const m = String(text || '').match(/^([A-Za-z][A-Za-z0-9\s/&()₂%,-]{0,49}?):\s*(.+)$/); return m ? { label: m[1].trim(), content: m[2].trim() } : null; };
-// Comma-split a finding field into continuous numbered items; labeled part → underlined subtitle + numbered value.
-const renderDiagItems = (text) => { const items = []; splitBySentence(text).forEach(sent => splitByComma(sent).forEach(p => items.push(p))); let n = 0; return items.map((s, i) => { const pp = parseLabel(s); n += 1; return pp ? (<View key={i} wrap={false}><Text style={styles.subLabelLine}>{pp.label}</Text><Text style={styles.listItem}>{n}. {pp.content}</Text></View>) : (<Text key={i} style={styles.listItem}>{n}. {s}</Text>); }); };
-
-const FL = {
-  referralReason: 'Referral Reason', referringProvider: 'Referring Provider', chiefComplaint: 'Chief Complaint', urgency: 'Urgency',
-  cardiologyDiagnosis: 'Diagnosis', nyhaClass: 'NYHA Class', proceduresRecommended: 'Procedures',
-  ecgFindings: 'ECG Findings', echoFindings: 'Echo Findings', stressTestResults: 'Stress Test',
-  cathResults: 'Cath Results', holterFindings: 'Holter Findings', cardiacExamFindings: 'Cardiac Exam',
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const CardiologyConsultationsDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => {
-      if (r?.cardiology_consultations) return Array.isArray(r.cardiology_consultations) ? r.cardiology_consultations : [r.cardiology_consultations];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.cardiology_consultations) return Array.isArray(dd.cardiology_consultations) ? dd.cardiology_consultations : [dd.cardiology_consultations]; return [dd]; }
-      return r;
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Cardiology Consultations</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Cardiology Consultations</Text>
-        {records.map((record, idx) => {
-          const recs = Array.isArray(record.recommendations) ? record.recommendations.filter(r => r?.recommendation) : [];
-          return (
-            <View key={idx} style={styles.recordSection}>
-              <View wrap={false}><Text style={styles.recordTitle}>{`Cardiology Consultation ${idx + 1}`}</Text>{record.consultDate && <Text style={styles.recordMeta}>{formatDate(record.consultDate)}</Text>}</View>
-
-              {(['referralReason', 'referringProvider', 'chiefComplaint', 'urgency'].some(f => hasVal(record[f]))) && (
-                <View style={styles.fieldContainer}><Text style={styles.sectionTitle}>Consultation</Text>
-                  {['referralReason', 'referringProvider', 'chiefComplaint', 'urgency'].filter(f => hasVal(record[f])).map((f, i) => <View key={i}><Text style={styles.subSectionTitle}>{FL[f]}</Text><Text style={styles.listItem}>{fmtVal(record[f])}</Text></View>)}
-                </View>)}
-
-              {hasVal(record.cardiologyHistory) && (<View style={styles.fieldContainer}><Text style={styles.sectionTitle}>Cardiology History</Text>{splitBySentence(fmtVal(record.cardiologyHistory)).map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {s}</Text>)}</View>)}
-              {hasVal(record.cardiacRiskFactors) && (<View style={styles.fieldContainer}><Text style={styles.sectionTitle}>Cardiac Risk Factors</Text>{splitBySentence(fmtVal(record.cardiacRiskFactors)).map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {s}</Text>)}</View>)}
-
-              {['ecgFindings', 'echoFindings', 'stressTestResults', 'cathResults', 'holterFindings', 'cardiacExamFindings'].some(f => hasVal(record[f])) && (
-                <View style={styles.fieldContainer}><Text style={styles.sectionTitle}>Diagnostics</Text>
-                  {['ecgFindings', 'echoFindings', 'stressTestResults', 'cathResults', 'holterFindings', 'cardiacExamFindings'].filter(f => hasVal(record[f])).map((f, i) => <View key={i} wrap={false}><Text style={styles.subSectionTitle}>{FL[f] || f}</Text>{renderDiagItems(fmtVal(record[f]))}</View>)}
-                </View>)}
-
-              {hasVal(record.cardiologyDiagnosis) && (<View style={styles.fieldContainer}><Text style={styles.subSectionTitle}>Diagnosis</Text><Text style={styles.listItem}>{record.cardiologyDiagnosis}</Text></View>)}
-              {hasVal(record.riskStratification) && (<View style={styles.fieldContainer}><Text style={styles.sectionTitle}>Risk Stratification</Text>{splitBySentence(fmtVal(record.riskStratification)).map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {s}</Text>)}</View>)}
-
-              {hasVal(record.currentCardiacMedications) && (<View style={styles.fieldContainer}><Text style={styles.sectionTitle}>Current Medications</Text>{splitBySentence(fmtVal(record.currentCardiacMedications)).map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {s}</Text>)}</View>)}
-              {hasVal(record.medicationsRecommended) && (<View style={styles.fieldContainer}><Text style={styles.sectionTitle}>Medications Recommended</Text>{renderDiagItems(fmtVal(record.medicationsRecommended))}</View>)}
-              {hasVal(record.lifestyleModifications) && (<View style={styles.fieldContainer}><Text style={styles.sectionTitle}>Lifestyle Modifications</Text>{renderDiagItems(fmtVal(record.lifestyleModifications))}</View>)}
-              {hasVal(record.proceduresRecommended) && (<View style={styles.fieldContainer}><Text style={styles.subSectionTitle}>Procedures Recommended</Text><Text style={styles.listItem}>{record.proceduresRecommended}</Text></View>)}
-
-              {recs.length > 0 && (() => { const groups = {}; recs.forEach(r => { const d = r.date ? formatDate(r.date) : 'No Date'; if (!groups[d]) groups[d] = []; groups[d].push(r); }); return (<View style={styles.fieldContainer}><Text style={styles.sectionTitle}>Recommendations</Text>{Object.entries(groups).map(([date, items], gi) => <View key={gi}><Text style={styles.subSectionTitle}>{date}</Text>{items.map((rec, i) => <Text key={i} style={styles.listItem}>{i + 1}. {rec.recommendation}</Text>)}</View>)}</View>); })()}
-
-              {hasVal(record.followUpPlan) && (<View style={styles.fieldContainer}><Text style={styles.sectionTitle}>Follow-Up Plan</Text>{renderDiagItems(fmtVal(record.followUpPlan))}</View>)}
-            </View>
-          );
-        })}
-      </Page>
-    </Document>
-  );
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim().replace(/^\d{1,2}[.)]\s+/, ''); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const digitPeriod = character === '.' && /\d/.test(source[index - 1] || ''); const sentenceBreak = !protectedPeriod && !digitPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (field === 'recommendations' && Array.isArray(value) && value.every(item => item && typeof item === 'object' && 'date' in item)) return value.filter(hasValue).map(item => ({ subtitle: formatDate(item.date), value: displayValue(item.recommendation) })); if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
+const CardiologyConsultationsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Cardiology Consultations</Text><Text style={styles.noData}>No cardiology consultations data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Cardiology Consultations</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Cardiology Consultations {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
+};
 export default CardiologyConsultationsDocumentPDFTemplate;

@@ -25,13 +25,17 @@ const ALLOWED_FIELDS = [
   'currentCardiacMedications', 'medicationsRecommended',
   'lifestyleModifications', 'proceduresRecommended', 'followUpPlan',
   'cardiacExamFindings',
+  'consultDate', 'recommendations', 'additionalData',
 ];
+
+// Allow dotted sub-paths for the recommendations array-of-objects and the nested object additionalData
+function isFieldAllowed(field) { return ALLOWED_FIELDS.includes(field) || ALLOWED_FIELDS.includes(field.split('.')[0]); }
 
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params; const { field, value } = req.body;
     if (!field || value === undefined) return res.status(400).json({ success: false, error: 'field and value are required' });
-    if (!ALLOWED_FIELDS.includes(field)) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
+    if (!isFieldAllowed(field)) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     const objectId = toObjectId(id); if (!objectId) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const sda = getSecureDataAccess(); const context = buildContext(req, 'write');
     await sda.update('cardiology_consultations', { _id: objectId }, { $set: { [field]: value, 'doctorEdits.editedAt': new Date(), 'doctorEdits.editedBy': req.user?.id }, $addToSet: { 'doctorEdits.editedFields': field } }, context);

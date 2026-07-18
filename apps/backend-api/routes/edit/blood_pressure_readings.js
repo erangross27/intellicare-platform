@@ -26,7 +26,7 @@ const ALLOWED_FIELDS = [
   'orthostaticMeasurement', 'orthostaticSystolic', 'orthostaticDiastolic',
   'ankleBrachialIndex', 'toeBrachialIndex', 'centralAorticPressure', 'augmentationIndex', 'pulseWaveVelocity',
   'ambulatoryMonitoring', 'homeMonitoring', 'whiteCoatEffect', 'maskedHypertension',
-  'antihypertensiveMedications', 'cardiovascularRiskScore',
+  'antihypertensiveMedications', 'cardiovascularRiskScore', 'additionalData',
 ];
 
 router.put('/:id/edit', async (req, res) => {

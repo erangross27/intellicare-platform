@@ -30,6 +30,7 @@ import BleedingRiskAssessmentDocumentPDFTemplate from './BleedingRiskAssessmentD
 import BloodDisorderReportsDocumentPDFTemplate from './BloodDisorderReportsDocumentPDFTemplate';
 import BloodGlucoseLogsDocumentPDFTemplate from './BloodGlucoseLogsDocumentPDFTemplate';
 import BloodGlucoseMonitoringDocumentPDFTemplate from './BloodGlucoseMonitoringDocumentPDFTemplate';
+import BloodPressureReadingsDocumentPDFTemplate from './BloodPressureReadingsDocumentPDFTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
@@ -267,6 +268,7 @@ const templateRegistry = {
   'blood_disorder_reports': BloodDisorderReportsDocumentPDFTemplate,
   'blood_glucose_logs': BloodGlucoseLogsDocumentPDFTemplate,
   'blood_glucose_monitoring': BloodGlucoseMonitoringDocumentPDFTemplate,
+  'blood_pressure_readings': BloodPressureReadingsDocumentPDFTemplate,
   'case_summaries': CaseSummariesTemplate,
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,

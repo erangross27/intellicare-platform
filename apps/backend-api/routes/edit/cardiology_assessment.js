@@ -51,7 +51,7 @@ const ALLOWED_FIELDS = [
   'additionalTestingOrdered', 'scheduledProcedures', 'recommendations',
   // Nested object fields (dot-notation)
   'echocardiogram', 'electrocardiogram',
-  'coronaryArteryDiseaseRiskFactors',
+  'coronaryArteryDiseaseRiskFactors', 'additionalData',
 ];
 
 // --- PUT /:id/edit --- Edit a single field ----------------------------------------

@@ -1,160 +1,75 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * Burn Fluid Resuscitation Document PDF Template
- * Helvetica, A4, black/white only. Conditional wrap (items > 8 threshold),
- * section title INSIDE the section View (anti-orphan). Mirrors BurnWoundCare PDF.
- */
-
+const COLLECTION = 'burn_fluid_resuscitation';
+const COMMA_SPLIT_FIELDS = [];
+const ARRAY_FIELDS = new Set([]);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set([]);
+const DATE_FIELDS = new Set([]);
+const ZERO_SENTINEL_FIELDS = new Set([]);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  tbsaBurnPercentage: 'TBSA Burn Percentage', burnDepthClassification: 'Burn Depth Classification',
+  parklandFormulaCalculation: 'Parkland Formula Calculation', modifiedBrookeFormulaVolume: 'Modified Brooke Formula Volume',
+  firstEightHourVolume: 'First Eight Hour Volume', secondSixteenHourVolume: 'Second Sixteen Hour Volume',
+  hourlyUrineOutputTarget: 'Hourly Urine Output Target', currentUrineOutput: 'Current Urine Output',
+  lactatedRingersVolume: 'Lactated Ringers Volume', colloidInitiationTime: 'Colloid Initiation Time', albuminDoseCalculation: 'Albumin Dose Calculation',
+  fluidCreepIndicator: 'Fluid Creep Indicator', abdominalCompartmentPressure: 'Abdominal Compartment Pressure',
+  meanArterialPressureTarget: 'Mean Arterial Pressure Target', centralVenousPressure: 'Central Venous Pressure',
+  serumLactateLevel: 'Serum Lactate Level', baseDeficit: 'Base Deficit', hematocritLevel: 'Hematocrit Level',
+  inhalationInjuryPresent: 'Inhalation Injury Present', escharotomyPerformed: 'Escharotomy Performed',
+  timeFromBurnToResuscitation: 'Time from Burn to Resuscitation', vasopressorRequirement: 'Vasopressor Requirement',
+  cumulativeFluidBalance: 'Cumulative Fluid Balance', plasmaExchangeIndicated: 'Plasma Exchange Indicated', ascorbicAcidProtocol: 'Ascorbic Acid Protocol',
+};
+const SECTIONS = [
+  { title: 'Burn', fields: ['tbsaBurnPercentage', 'burnDepthClassification', 'timeFromBurnToResuscitation', 'inhalationInjuryPresent', 'escharotomyPerformed'] },
+  { title: 'Resuscitation Formulas', fields: ['parklandFormulaCalculation', 'modifiedBrookeFormulaVolume', 'firstEightHourVolume', 'secondSixteenHourVolume', 'lactatedRingersVolume'] },
+  { title: 'Colloid and Albumin', fields: ['colloidInitiationTime', 'albuminDoseCalculation'] },
+  { title: 'Urine Output', fields: ['hourlyUrineOutputTarget', 'currentUrineOutput'] },
+  { title: 'Hemodynamics', fields: ['meanArterialPressureTarget', 'centralVenousPressure', 'abdominalCompartmentPressure', 'vasopressorRequirement'] },
+  { title: 'Laboratory Values', fields: ['serumLactateLevel', 'baseDeficit', 'hematocritLevel'] },
+  { title: 'Fluid Balance and Adjuncts', fields: ['cumulativeFluidBalance', 'fluidCreepIndicator', 'plasmaExchangeIndicated', 'ascorbicAcidProtocol'] },
+];
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 20, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 12 },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1 },
-  recordContainer: { marginBottom: 24, paddingBottom: 16 },
-  recordHeader: { marginBottom: 12, backgroundColor: '#f0f0f0', padding: 10, borderWidth: 1, borderColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', textTransform: 'uppercase' },
-  recordMeta: { fontSize: 11, marginTop: 6, color: '#333333' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', textTransform: 'uppercase', borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4, marginBottom: 8 },
-  nestedSubtitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', paddingLeft: 12, marginBottom: 2, marginTop: 6 },
-  numberedItem: { flexDirection: 'row', marginBottom: 4, paddingLeft: 24 },
-  itemNumber: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', width: 24 },
-  itemContent: { fontSize: 12, color: '#000000', flex: 1, lineHeight: 1.4 },
-  noData: { fontSize: 12, color: '#666666', textAlign: 'center', marginTop: 40 },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  try { return new Date(dateString.$date || dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
-  catch { return String(dateString); }
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const hasValue = (val) => {
-  if (val === null || val === undefined || val === '') return false;
-  if (typeof val === 'number') return true;
-  if (typeof val === 'boolean') return true;
-  if (typeof val === 'string') return val.trim() !== '';
-  return true;
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => { const parsed = typeof item === 'string' ? parseLabel(item) : { subtitle: '', value: item }; return parsed.subtitle ? { subtitle: parsed.subtitle, value: parsed.value } : { subtitle: '', value: displayValue(item) }; }); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-const num = (v, unit) => hasValue(v) && v !== 0 ? `${v}${unit ? ' ' + unit : ''}` : null;
-const yn = (v) => (v === true ? 'Yes' : v === false ? 'No' : null);
-
-const BurnFluidResuscitationDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (Array.isArray(templateData)) return templateData;
-    if (templateData?.burn_fluid_resuscitation) return templateData.burn_fluid_resuscitation;
-    if (templateData?.documentData) {
-      const docData = templateData.documentData;
-      if (Array.isArray(docData)) return docData;
-      if (docData?.burn_fluid_resuscitation) return docData.burn_fluid_resuscitation;
-      return [docData];
-    }
-    if (templateData && typeof templateData === 'object') return [templateData];
-    return [];
-  }, [templateData]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <View style={styles.documentHeader}><Text style={styles.documentTitle}>Burn Fluid Resuscitation</Text></View>
-          <Text style={styles.noData}>No burn fluid resuscitation data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  // Section title INSIDE the View; conditional wrap (Rule #74). Each entry = [label, displayValue|null].
-  const renderFieldSection = (title, entries) => {
-    const valid = entries.filter(([, val]) => val !== null && val !== undefined && val !== '');
-    if (valid.length === 0) return null;
-    return (
-      <View style={styles.section} wrap={valid.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {valid.map(([label, val], i) => (
-          <View key={i}>
-            <Text style={styles.nestedSubtitle}>{label}</Text>
-            <View style={styles.numberedItem}>
-              <Text style={styles.itemNumber}>1.</Text>
-              <Text style={styles.itemContent}>{String(val)}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.documentTitle}>Burn Fluid Resuscitation</Text></View>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>Burn Fluid Resuscitation Record {idx + 1}</Text>
-              {record.createdAt && <Text style={styles.recordMeta}>Date: {formatDate(record.createdAt)}</Text>}
-            </View>
-
-            {/* Burn Overview */}
-            {renderFieldSection('Burn Overview', [
-              ['TBSA %', num(record.tbsaBurnPercentage, '%')],
-              ['Burn Depth Classification', hasValue(record.burnDepthClassification) ? String(record.burnDepthClassification) : null],
-            ])}
-
-            {/* Fluid Resuscitation Formulas */}
-            {renderFieldSection('Fluid Resuscitation Formulas', [
-              ['Parkland Formula', num(record.parklandFormulaCalculation, 'mL')],
-              ['Modified Brooke Formula', num(record.modifiedBrookeFormulaVolume, 'mL')],
-              ['First 8-Hour Volume', num(record.firstEightHourVolume, 'mL')],
-              ['Second 16-Hour Volume', num(record.secondSixteenHourVolume, 'mL')],
-              ["Lactated Ringer's Volume", num(record.lactatedRingersVolume, 'mL')],
-            ])}
-
-            {/* Colloid / Albumin */}
-            {renderFieldSection('Colloid / Albumin', [
-              ['Colloid Initiation Time', num(record.colloidInitiationTime, 'hrs post-burn')],
-              ['Albumin Dose', num(record.albuminDoseCalculation, 'mL')],
-            ])}
-
-            {/* Urine Output Targets */}
-            {renderFieldSection('Urine Output Targets', [
-              ['Hourly Urine Output Target', num(record.hourlyUrineOutputTarget, 'mL/kg/hr')],
-              ['Current Urine Output', num(record.currentUrineOutput, 'mL/hr')],
-            ])}
-
-            {/* Hemodynamic Monitoring */}
-            {renderFieldSection('Hemodynamic Monitoring', [
-              ['MAP Target', num(record.meanArterialPressureTarget, 'mmHg')],
-              ['Central Venous Pressure', num(record.centralVenousPressure, 'mmHg')],
-              ['Abdominal Compartment Pressure', num(record.abdominalCompartmentPressure, 'mmHg')],
-            ])}
-
-            {/* Perfusion Markers */}
-            {renderFieldSection('Perfusion Markers', [
-              ['Serum Lactate', num(record.serumLactateLevel, 'mmol/L')],
-              ['Base Deficit', hasValue(record.baseDeficit) && record.baseDeficit !== 0 ? `${record.baseDeficit} mmol/L` : null],
-              ['Hematocrit %', num(record.hematocritLevel, '%')],
-            ])}
-
-            {/* Resuscitation Status */}
-            {renderFieldSection('Resuscitation Status', [
-              ['Time From Burn to Resuscitation', num(record.timeFromBurnToResuscitation, 'hrs')],
-              ['Cumulative Fluid Balance', num(record.cumulativeFluidBalance, 'mL')],
-              ['Fluid Creep Indicator', yn(record.fluidCreepIndicator)],
-              ['Inhalation Injury Present', yn(record.inhalationInjuryPresent)],
-              ['Escharotomy Performed', yn(record.escharotomyPerformed)],
-              ['Vasopressor Requirement', yn(record.vasopressorRequirement)],
-              ['Plasma Exchange Indicated', yn(record.plasmaExchangeIndicated)],
-              ['High-Dose Ascorbic Acid Protocol', yn(record.ascorbicAcidProtocol)],
-            ])}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const BurnFluidResuscitationDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Burn Fluid Resuscitation</Text><Text style={styles.noData}>No burn fluid resuscitation data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Burn Fluid Resuscitation</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Burn Fluid Resuscitation {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
 export default BurnFluidResuscitationDocumentPDFTemplate;

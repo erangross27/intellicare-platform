@@ -27,7 +27,7 @@ const ALLOWED_FIELDS = [
   'whiteBloodCellDifferential', 'leukocyteAbnormalities',
   'erythrocyteInclusions', 'parasiteIdentification', 'microorganisms',
   'abnormalCells', 'microscopicFindings', 'interpretation',
-  'recommendedFollowUp', 'provider', 'facility',
+  'recommendedFollowUp', 'provider', 'facility', 'date',
 ];
 
 router.put('/:id/edit', async (req, res) => {

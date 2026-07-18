@@ -1,277 +1,82 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * Blood Smears Document PDF Template - December 2025
- * Black & White only for professional medical printing
- * Simple layout - text flows naturally to next page
- */
-
+const COLLECTION = 'blood_smears';
+const COMMA_SPLIT_FIELDS = ['microscopicFindings', 'whiteBloodCellDifferential'];
+const ARRAY_FIELDS = new Set(['redBloodCellMorphology', 'plateletMorphology', 'parasiteIdentification', 'abnormalCells', 'erythrocyteInclusions', 'leukocyteAbnormalities', 'microorganisms', 'recommendedFollowUp']);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set(['whiteBloodCellDifferential', 'rouleauxFormation', 'microscopicFindings', 'interpretation']);
+const DATE_FIELDS = new Set(['date']);
+const ZERO_SENTINEL_FIELDS = new Set(['whiteBloodCellCount', 'blastPercentage']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  date: 'Date', provider: 'Provider', facility: 'Facility', specimenType: 'Specimen Type',
+  collectionSite: 'Collection Site', stainingMethod: 'Staining Method', smearQuality: 'Smear Quality',
+  whiteBloodCellCount: 'White Blood Cell Count', blastPercentage: 'Blast Percentage',
+  plateletEstimate: 'Platelet Estimate', redBloodCellMorphology: 'Red Blood Cell Morphology',
+  erythrocyteInclusions: 'Erythrocyte Inclusions', whiteBloodCellDifferential: 'White Blood Cell Differential',
+  leukocyteAbnormalities: 'Leukocyte Abnormalities', plateletMorphology: 'Platelet Morphology',
+  parasiteIdentification: 'Parasite Identification', microorganisms: 'Microorganisms',
+  abnormalCells: 'Abnormal Cells', rouleauxFormation: 'Rouleaux Formation',
+  clinicalIndication: 'Clinical Indication', microscopicFindings: 'Microscopic Findings',
+  interpretation: 'Interpretation', recommendedFollowUp: 'Recommended Follow-Up',
+};
+const SECTIONS = [
+  { title: 'Date', fields: ['date'] },
+  { title: 'Record Information', fields: ['provider', 'facility'] },
+  { title: 'Specimen', fields: ['specimenType', 'collectionSite', 'stainingMethod', 'smearQuality'] },
+  { title: 'Counts and Estimates', fields: ['whiteBloodCellCount', 'blastPercentage', 'plateletEstimate'] },
+  { title: 'Red Blood Cell Morphology', fields: ['redBloodCellMorphology'] },
+  { title: 'Erythrocyte Inclusions', fields: ['erythrocyteInclusions'] },
+  { title: 'White Blood Cells', fields: ['whiteBloodCellDifferential', 'leukocyteAbnormalities'] },
+  { title: 'Platelet Morphology', fields: ['plateletMorphology'] },
+  { title: 'Parasites and Microorganisms', fields: ['parasiteIdentification', 'microorganisms'] },
+  { title: 'Abnormal Cells', fields: ['abnormalCells'] },
+  { title: 'Rouleaux Formation', fields: ['rouleauxFormation'] },
+  { title: 'Clinical Indication', fields: ['clinicalIndication'] },
+  { title: 'Microscopic Findings', fields: ['microscopicFindings'] },
+  { title: 'Interpretation', fields: ['interpretation'] },
+  { title: 'Recommended Follow-Up', fields: ['recommendedFollowUp'] },
+];
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontSize: 14,
-    fontFamily: 'Helvetica',
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 10,
-    color: '#000000',
-  },
-  recordSection: {
-    marginBottom: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-  },
-  recordTitle: {
-    fontSize: 19,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#000000',
-  },
-  recordMeta: {
-    fontSize: 13,
-    marginBottom: 12,
-    color: '#000000',
-  },
-  fieldContainer: {
-    marginBottom: 10,
-  },
-  fieldTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-    color: '#000000',
-  },
-  fieldContent: {
-    fontSize: 14,
-    lineHeight: 1.5,
-    paddingLeft: 8,
-    color: '#000000',
-  },
-  listItem: {
-    fontSize: 14,
-    lineHeight: 1.5,
-    paddingLeft: 8,
-    marginBottom: 2,
-    color: '#000000',
-  },
-  emptyState: {
-    fontSize: 14,
-    textAlign: 'center',
-    padding: 40,
-    color: '#000000',
-  },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-// Format date helper
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  } catch {
-    return dateString;
-  }
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const BloodSmearsDocumentPDFTemplate = ({ document: templateData }) => {
-  // Data unwrapping
-  const records = React.useMemo(() => {
-    if (Array.isArray(templateData)) return templateData;
-    if (templateData?.blood_smears) return Array.isArray(templateData.blood_smears) ? templateData.blood_smears : [templateData.blood_smears];
-    if (templateData?.documentData) {
-      const docData = templateData.documentData;
-      if (Array.isArray(docData)) return docData;
-      if (docData?.blood_smears) return Array.isArray(docData.blood_smears) ? docData.blood_smears : [docData.blood_smears];
-      return [docData];
-    }
-    if (templateData && typeof templateData === 'object') return [templateData];
-    return [];
-  }, [templateData]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <Text style={styles.documentTitle}>Blood Smear Analysis Report</Text>
-          <Text style={styles.emptyState}>No blood smear records available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Blood Smear Analysis Report</Text>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordSection}>
-            {/* Record Header */}
-            <View wrap={false}>
-              <Text style={styles.recordTitle}>
-                {String(record._documentTitle || `Blood Smear ${idx + 1}`)}
-              </Text>
-              {record.date && (
-                <Text style={styles.recordMeta}>
-                  Date: {formatDate(record.date)}
-                </Text>
-              )}
-            </View>
-
-            {/* Test Information */}
-            {(record.provider || record.facility || record.specimenType || record.collectionSite || record.stainingMethod || record.smearQuality || record.clinicalIndication) && (
-              <View style={styles.fieldContainer} wrap={false}>
-                <Text style={styles.fieldTitle}>Test Information</Text>
-                {record.provider && (
-                  <Text style={styles.fieldContent}>Provider: {String(record.provider || '')}</Text>
-                )}
-                {record.facility && (
-                  <Text style={styles.fieldContent}>Facility: {String(record.facility || '')}</Text>
-                )}
-                {record.specimenType && (
-                  <Text style={styles.fieldContent}>Specimen Type: {String(record.specimenType || '')}</Text>
-                )}
-                {record.collectionSite && (
-                  <Text style={styles.fieldContent}>Collection Site: {String(record.collectionSite || '')}</Text>
-                )}
-                {record.stainingMethod && (
-                  <Text style={styles.fieldContent}>Staining Method: {String(record.stainingMethod || '')}</Text>
-                )}
-                {record.smearQuality && (
-                  <Text style={styles.fieldContent}>Smear Quality: {String(record.smearQuality || '')}</Text>
-                )}
-                {record.clinicalIndication && (
-                  <Text style={styles.fieldContent}>Clinical Indication: {String(record.clinicalIndication || '')}</Text>
-                )}
-              </View>
-            )}
-
-            {/* RBC Morphology */}
-            {record.redBloodCellMorphology && record.redBloodCellMorphology.length > 0 && (
-              <View style={styles.fieldContainer} wrap={false}>
-                <Text style={styles.fieldTitle}>RBC Morphology</Text>
-                {record.redBloodCellMorphology.map((item, iIdx) => (
-                  <Text key={iIdx} style={styles.listItem}>{iIdx + 1}. {String(item || '')}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Erythrocyte Inclusions */}
-            {record.erythrocyteInclusions && record.erythrocyteInclusions.length > 0 && (
-              <View style={styles.fieldContainer} wrap={false}>
-                <Text style={styles.fieldTitle}>Erythrocyte Inclusions</Text>
-                {record.erythrocyteInclusions.map((item, iIdx) => (
-                  <Text key={iIdx} style={styles.listItem}>{iIdx + 1}. {String(item || '')}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Platelet Findings */}
-            {(record.plateletEstimate || (record.plateletMorphology && record.plateletMorphology.length > 0) || record.rouleauxFormation) && (
-              <View style={styles.fieldContainer} wrap={false}>
-                <Text style={styles.fieldTitle}>Platelet Findings</Text>
-                {record.plateletEstimate && (
-                  <Text style={styles.fieldContent}>Platelet Estimate: {String(record.plateletEstimate || '')}</Text>
-                )}
-                {record.plateletMorphology && record.plateletMorphology.length > 0 && (
-                  <Text style={styles.fieldContent}>Platelet Morphology: {String(Array.isArray(record.plateletMorphology) ? record.plateletMorphology.join(', ') : record.plateletMorphology || '')}</Text>
-                )}
-                {record.rouleauxFormation && (
-                  <Text style={styles.fieldContent}>Rouleaux Formation: {String(record.rouleauxFormation || '')}</Text>
-                )}
-              </View>
-            )}
-
-            {/* WBC Findings */}
-            {(record.whiteBloodCellCount || record.blastPercentage !== undefined && record.blastPercentage !== null && record.blastPercentage !== '' || record.whiteBloodCellDifferential) && (
-              <View style={styles.fieldContainer} wrap={false}>
-                <Text style={styles.fieldTitle}>WBC Findings</Text>
-                {record.whiteBloodCellCount && (
-                  <Text style={styles.fieldContent}>WBC Count: {String(record.whiteBloodCellCount || '')}</Text>
-                )}
-                {record.whiteBloodCellDifferential && (
-                  <Text style={styles.fieldContent}>WBC Differential: {String(record.whiteBloodCellDifferential || '')}</Text>
-                )}
-                {record.blastPercentage !== undefined && record.blastPercentage !== null && record.blastPercentage !== '' && (
-                  <Text style={styles.fieldContent}>Blast Percentage: {String(record.blastPercentage)}%</Text>
-                )}
-              </View>
-            )}
-
-            {/* Leukocyte Abnormalities */}
-            {record.leukocyteAbnormalities && record.leukocyteAbnormalities.length > 0 && (
-              <View style={styles.fieldContainer} wrap={false}>
-                <Text style={styles.fieldTitle}>Leukocyte Abnormalities</Text>
-                {record.leukocyteAbnormalities.map((item, iIdx) => (
-                  <Text key={iIdx} style={styles.listItem}>{iIdx + 1}. {String(item || '')}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Abnormal Cells */}
-            {record.abnormalCells && record.abnormalCells.length > 0 && (
-              <View style={styles.fieldContainer} wrap={false}>
-                <Text style={styles.fieldTitle}>Abnormal Cells</Text>
-                {record.abnormalCells.map((item, iIdx) => (
-                  <Text key={iIdx} style={styles.listItem}>{iIdx + 1}. {String(item || '')}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Parasite Identification */}
-            {record.parasiteIdentification && record.parasiteIdentification.length > 0 && (
-              <View style={styles.fieldContainer} wrap={record.parasiteIdentification.length > 8 ? undefined : false}>
-                <Text style={styles.fieldTitle}>Parasite Identification</Text>
-                {record.parasiteIdentification.map((item, iIdx) => (
-                  <Text key={iIdx} style={styles.listItem}>{iIdx + 1}. {String(item || '')}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Microorganisms */}
-            {record.microorganisms && record.microorganisms.length > 0 && (
-              <View style={styles.fieldContainer} wrap={record.microorganisms.length > 8 ? undefined : false}>
-                <Text style={styles.fieldTitle}>Microorganisms</Text>
-                {record.microorganisms.map((item, iIdx) => (
-                  <Text key={iIdx} style={styles.listItem}>{iIdx + 1}. {String(item || '')}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Microscopic Findings */}
-            {record.microscopicFindings && (() => { const items = String(record.microscopicFindings).split(/,\s*/).filter(s => s.trim()); return (<View style={styles.fieldContainer} wrap={false}><Text style={styles.fieldTitle}>Microscopic Findings</Text>{items.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item.trim()}</Text>)}</View>); })()}
-
-            {/* Interpretation */}
-            {record.interpretation && (() => { const sentences = String(record.interpretation).split(/\.\s+/).map(s => s.trim()).filter(s => s.length > 0 && s.replace(/[.!?;,]+/g, '').trim().length > 0); return (<View style={styles.fieldContainer}><Text style={styles.fieldTitle}>Interpretation</Text>{sentences.map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {s.replace(/\.$/, '')}</Text>)}</View>); })()}
-
-            {/* Recommended Follow-Up - handle empty arrays */}
-            {record.recommendedFollowUp && (Array.isArray(record.recommendedFollowUp) ? record.recommendedFollowUp.length > 0 : true) && (
-              <View style={styles.fieldContainer} wrap={false}>
-                <Text style={styles.fieldTitle}>Recommended Follow-Up</Text>
-                <Text style={styles.fieldContent}>
-                  {String(Array.isArray(record.recommendedFollowUp) ? record.recommendedFollowUp.join(', ') : record.recommendedFollowUp || '')}
-                </Text>
-              </View>
-            )}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
+const BloodSmearsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Blood Smears</Text><Text style={styles.noData}>No blood smear data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Blood Smears</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Blood Smear {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
+};
 export default BloodSmearsDocumentPDFTemplate;

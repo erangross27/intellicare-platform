@@ -26,6 +26,7 @@ const ALLOWED_FIELDS = [
   'monitoring', 'notes',
   'hematologist', 'facility',
   'vitaminLevels', // object of status sub-fields (B12, Folate, …) saved as a whole-object $set
+  'date', 'cbc', 'coagulationStudies', 'ironStudies', 'hemolysisWorkup',
 ];
 
 router.put('/:id/edit', async (req, res) => {
@@ -33,7 +34,7 @@ router.put('/:id/edit', async (req, res) => {
     const { id } = req.params;
     const { field, value, arrayIndex } = req.body;
     if (!field || value === undefined) return res.status(400).json({ success: false, error: 'field and value are required' });
-    if (!ALLOWED_FIELDS.includes(field)) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
+    if (!ALLOWED_FIELDS.includes(field) && !ALLOWED_FIELDS.includes(field.split('.')[0])) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     const objectId = toObjectId(id);
     if (!objectId) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const sda = getSecureDataAccess();

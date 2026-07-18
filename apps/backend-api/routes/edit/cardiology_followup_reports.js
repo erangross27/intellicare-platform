@@ -28,7 +28,8 @@ const ALLOWED_FIELDS = [
 ];
 
 /* OBJECT fields accept dotted sub-paths (e.g. lipidPanel.LDL, deviceInterrogation.battery.voltage) */
-const OBJECT_ROOT_FIELDS = ['lipidPanel', 'deviceInterrogation'];
+// Roots that accept dotted sub-paths: nested objects and arrays edited by index (e.g. currentMedications.0)
+const OBJECT_ROOT_FIELDS = ['lipidPanel', 'deviceInterrogation', 'currentMedications', 'edemaLocation'];
 function isAllowedField(field) {
   if (ALLOWED_FIELDS.includes(field)) return true;
   const dot = field.indexOf('.');

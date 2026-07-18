@@ -35,6 +35,7 @@ import CardiacMonitoringDocumentPDFTemplate from './CardiacMonitoringDocumentPDF
 import CardiologyAdmissionNotesDocumentPDFTemplate from './CardiologyAdmissionNotesDocumentPDFTemplate';
 import CardiologyAssessmentDocumentPDFTemplate from './CardiologyAssessmentDocumentPDFTemplate';
 import CardiologyConsultationsDocumentPDFTemplate from './CardiologyConsultationsDocumentPDFTemplate';
+import CardiologyFollowupReportsDocumentPDFTemplate from './CardiologyFollowupReportsDocumentPDFTemplate';
 import CardiacRehabilitationReportsDocumentPDFTemplate from './CardiacRehabilitationReportsDocumentPDFTemplate';
 import BloodPressureReadingsDocumentPDFTemplate from './BloodPressureReadingsDocumentPDFTemplate';
 import BloodProductsDocumentPDFTemplate from './BloodProductsDocumentPDFTemplate';
@@ -303,6 +304,7 @@ const templateRegistry = {
   'cardiology_admission_notes': CardiologyAdmissionNotesDocumentPDFTemplate,
   'cardiology_assessment': CardiologyAssessmentDocumentPDFTemplate,
   'cardiology_consultations': CardiologyConsultationsDocumentPDFTemplate,
+  'cardiology_followup_reports': CardiologyFollowupReportsDocumentPDFTemplate,
   'cardiac_rehabilitation_reports': CardiacRehabilitationReportsDocumentPDFTemplate,
   'blood_pressure_readings': BloodPressureReadingsDocumentPDFTemplate,
   'blood_products': BloodProductsDocumentPDFTemplate,

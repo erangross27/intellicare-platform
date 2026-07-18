@@ -1,294 +1,77 @@
-/**
- * BoneMarrowReportsDocumentPDFTemplate.jsx
- * June 2026 — Helvetica — LETTER size — bone marrow report
- * Collection: bone_marrow_reports
- * NO BLUE COLORS (#606060/#9a9a9a/#bcbcbc BANNED) — #000000/#333333/#cccccc/#f5f5f5 ONLY
- * Rule #74: sectionTitle rendered INSIDE the first present field's View (no orphan siblings).
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#333333', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 24, fontFamily: 'Helvetica-Bold', color: '#000000', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 17, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 14, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 14, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#cccccc', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 14, color: '#333333', textAlign: 'center', marginTop: 40 },
-});
-
-/* ======= UTILS ======= */
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  return String(val);
+const COLLECTION = 'bone_marrow_reports';
+const COMMA_SPLIT_FIELDS = [];
+const ARRAY_FIELDS = new Set(['flowCytometryResults', 'fishResults', 'molecularMutations', 'dysplasticChanges']);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set([]);
+const DATE_FIELDS = new Set([]);
+const ZERO_SENTINEL_FIELDS = new Set(['blastPercentage', 'ringSideroblasts', 'plasmaCellPercentage', 'lymphocytePercentage', 'biopsyLength', 'cd34PositiveCells']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  blastPercentage: 'Blast Percentage', cellularity: 'Cellularity',
+  myeloidToErythroidRatio: 'Myeloid to Erythroid Ratio', megakaryocyteCount: 'Megakaryocyte Count',
+  reticulinFibrosis: 'Reticulin Fibrosis', collagenFibrosis: 'Collagen Fibrosis',
+  ironStoresAssessment: 'Iron Stores Assessment', cytogeneticsKaryotype: 'Cytogenetics Karyotype',
+  flowCytometryResults: 'Flow Cytometry Results', fishResults: 'FISH Results',
+  molecularMutations: 'Molecular Mutations', mdsClassification: 'MDS Classification',
+  blastLineage: 'Blast Lineage', dysplasticChanges: 'Dysplastic Changes', ipssRiskScore: 'IPSS Risk Score',
+  ringSideroblasts: 'Ring Sideroblasts', plasmaCellPercentage: 'Plasma Cell Percentage',
+  lymphocytePercentage: 'Lymphocyte Percentage', aspirateQuality: 'Aspirate Quality',
+  biopsyLength: 'Biopsy Length', cd34PositiveCells: 'CD34 Positive Cells', tnfAlphaStaining: 'TNF-Alpha Staining',
 };
-
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
-};
-
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
-};
-
-/* hide-zero: numeric "not recorded" (0) hidden unless doctor-edited */
-const numberShowsPDF = (record, key) => {
-  const val = record[key];
-  if (val === null || val === undefined || val === '') return false;
-  const num = Number(val);
-  if (Number.isNaN(num)) return false;
-  if (num === 0) return Array.isArray(record?.doctorEdits?.editedFields) && record.doctorEdits.editedFields.includes(key);
-  return true;
-};
-
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
-};
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
-};
-
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(') { depth++; current += ch; }
-    else if (ch === ')') { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
-};
-
-/* renderFieldRow: optional sectionTitle inside the View (Rule #74) */
-const renderFieldRow = (label, value, sectionTitle) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox} wrap={false}>
-      {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceSection: parseLabel + comma-split — duplicate label suppression */
-const renderSentenceSection = (label, text, sectionTitle) => {
-  if (!hasVal(text)) return null;
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
-  const rows = [];
-  let n = 1;
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: n++ });
-    }
-  });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
-};
-
-/* renderArrayField */
-const renderArrayFieldPDF = (label, items, sectionTitle) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{i + 1}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* SECTION CONFIGS */
-const SECTION_CONFIGS = [
-  {
-    title: 'Cellularity & Morphology',
-    fields: [
-      { key: 'cellularity', label: 'Cellularity', isSentence: true },
-      { key: 'myeloidToErythroidRatio', label: 'Myeloid-to-Erythroid Ratio', isSentence: true },
-      { key: 'megakaryocyteCount', label: 'Megakaryocyte Count', isSentence: true },
-      { key: 'blastPercentage', label: 'Blast %', isNumber: true },
-      { key: 'blastLineage', label: 'Blast Lineage', isSentence: true },
-      { key: 'aspirateQuality', label: 'Aspirate Quality', isSentence: true },
-    ],
-  },
-  {
-    title: 'Dysplasia & Fibrosis',
-    fields: [
-      { key: 'dysplasticChanges', label: 'Dysplastic Changes', isArray: true },
-      { key: 'reticulinFibrosis', label: 'Reticulin Fibrosis', isSentence: true },
-      { key: 'collagenFibrosis', label: 'Collagen Fibrosis', isSentence: true },
-      { key: 'ringSideroblasts', label: 'Ring Sideroblasts (%)', isNumber: true },
-    ],
-  },
-  {
-    title: 'Cell Populations',
-    fields: [
-      { key: 'plasmaCellPercentage', label: 'Plasma Cell %', isNumber: true },
-      { key: 'lymphocytePercentage', label: 'Lymphocyte %', isNumber: true },
-      { key: 'cd34PositiveCells', label: 'CD34+ Cells (%)', isNumber: true },
-    ],
-  },
-  {
-    title: 'Ancillary Studies',
-    fields: [
-      { key: 'flowCytometryResults', label: 'Flow Cytometry Results', isArray: true },
-      { key: 'fishResults', label: 'FISH Results', isArray: true },
-      { key: 'molecularMutations', label: 'Molecular Mutations', isArray: true },
-      { key: 'cytogeneticsKaryotype', label: 'Cytogenetics / Karyotype', isSentence: true },
-    ],
-  },
-  {
-    title: 'Iron & Staining',
-    fields: [
-      { key: 'ironStoresAssessment', label: 'Iron Stores Assessment', isSentence: true },
-      { key: 'tnfAlphaStaining', label: 'TNF-Alpha Staining', isSentence: true },
-    ],
-  },
-  {
-    title: 'Classification & Risk',
-    fields: [
-      { key: 'mdsClassification', label: 'MDS Classification', isSentence: true },
-      { key: 'ipssRiskScore', label: 'IPSS Risk Score', isSentence: true },
-      { key: 'biopsyLength', label: 'Biopsy Length (mm)', isNumber: true },
-    ],
-  },
+const SECTIONS = [
+  { title: 'Cell Counts', fields: ['blastPercentage', 'ringSideroblasts', 'plasmaCellPercentage', 'lymphocytePercentage', 'cd34PositiveCells'] },
+  { title: 'Morphology', fields: ['cellularity', 'myeloidToErythroidRatio', 'megakaryocyteCount', 'aspirateQuality', 'biopsyLength'] },
+  { title: 'Fibrosis and Iron', fields: ['reticulinFibrosis', 'collagenFibrosis', 'ironStoresAssessment'] },
+  { title: 'Cytogenetics and Karyotype', fields: ['cytogeneticsKaryotype'] },
+  { title: 'Flow Cytometry Results', fields: ['flowCytometryResults'] },
+  { title: 'FISH Results', fields: ['fishResults'] },
+  { title: 'Molecular Mutations', fields: ['molecularMutations'] },
+  { title: 'Dysplastic Changes', fields: ['dysplasticChanges'] },
+  { title: 'MDS Assessment', fields: ['mdsClassification', 'blastLineage', 'ipssRiskScore'] },
+  { title: 'TNF-Alpha Staining', fields: ['tnfAlphaStaining'] },
 ];
-
-/* field presence respecting hide-zero + boolean */
-const fieldPresent = (record, field) => {
-  if (field.isNumber) return numberShowsPDF(record, field.key);
-  if (field.isBoolean) return typeof record[field.key] === 'boolean';
-  return hasVal(record[field.key]);
+const styles = StyleSheet.create({
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
+});
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const renderField = (record, field, sectionTitle, key) => {
-  const val = record[field.key];
-  if (field.isArray) return <View key={key}>{renderArrayFieldPDF(field.label, val, sectionTitle)}</View>;
-  if (field.isSentence) return <View key={key}>{renderSentenceSection(field.label, val, sectionTitle)}</View>;
-  return <View key={key}>{renderFieldRow(field.label, val, sectionTitle)}</View>;
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => { const parsed = typeof item === 'string' ? parseLabel(item) : { subtitle: '', value: item }; return parsed.subtitle ? { subtitle: parsed.subtitle, value: parsed.value } : { subtitle: '', value: displayValue(item) }; }); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-/* ======= COMPONENT ======= */
-const BoneMarrowReportsDocumentPDFTemplate = ({ document: data }) => {
-  const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.bone_marrow_reports) return Array.isArray(r.bone_marrow_reports) ? r.bone_marrow_reports : [r.bone_marrow_reports];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.bone_marrow_reports) return Array.isArray(dd.bone_marrow_reports) ? dd.bone_marrow_reports : [dd.bone_marrow_reports]; return [dd]; }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Bone Marrow Report</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Bone Marrow Report</Text>
-        </View>
-
-        {records.map((record, index) => (
-          <View key={index} style={styles.recordContainer}>
-            {index > 0 && <View style={styles.separator} />}
-
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>
-                {`Bone Marrow Report ${index + 1}`}
-              </Text>
-            </View>
-
-            {/* Sections — sectionTitle rendered inside the first present field (Rule #74) */}
-            {SECTION_CONFIGS.map((sectionConfig, sIdx) => {
-              const presentFields = sectionConfig.fields.filter(f => fieldPresent(record, f));
-              if (presentFields.length === 0) return null;
-
-              return (
-                <View key={sIdx} style={styles.section} wrap={presentFields.length > 8 ? undefined : false}>
-                  <Text style={styles.sectionTitle}>{sectionConfig.title}</Text>
-                  {presentFields.map((field, fIdx) =>
-                    renderField(record, field, null, fIdx)
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const BoneMarrowReportsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Bone Marrow Reports</Text><Text style={styles.noData}>No bone marrow report data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Bone Marrow Reports</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Bone Marrow Report {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
 export default BoneMarrowReportsDocumentPDFTemplate;

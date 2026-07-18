@@ -38,7 +38,7 @@ function toObjectId(str) {
 }
 
 const ALLOWED_FIELDS = [
-  'biopsySite', 'biopsyMethod', 'clinicalHistory',
+  'date', 'biopsySite', 'biopsyMethod', 'clinicalHistory',
   'grossDescription', 'microscopicDescription',
   'diagnosis', 'adequacy', 'pathologist',
 ];

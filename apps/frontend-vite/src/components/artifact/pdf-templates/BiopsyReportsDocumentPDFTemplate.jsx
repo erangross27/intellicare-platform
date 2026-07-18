@@ -1,128 +1,56 @@
-/**
- * BiopsyReportsDocumentPDFTemplate.jsx
- * Helvetica font, 20/14/12pt hierarchy, numbered items, no label:value
- * Conditional wrap pattern, no page footers
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'biopsy_reports';
+const COMMA_SPLIT_FIELDS = ['clinicalHistory', 'diagnosis'];
+const NARRATIVE_FIELDS = new Set(['clinicalHistory', 'grossDescription', 'microscopicDescription', 'diagnosis']);
+const DATE_FIELDS = new Set(['date']);
+const LABELS = {
+  date: 'Date', biopsySite: 'Biopsy Site', biopsyMethod: 'Biopsy Method',
+  clinicalHistory: 'Clinical History', grossDescription: 'Gross Description',
+  microscopicDescription: 'Microscopic Description', diagnosis: 'Diagnosis',
+  adequacy: 'Adequacy', pathologist: 'Pathologist',
+};
+const SECTIONS = [
+  { title: 'Date', fields: ['date'] },
+  { title: 'Biopsy Information', fields: ['biopsySite', 'biopsyMethod'] },
+  { title: 'Clinical History', fields: ['clinicalHistory'] },
+  { title: 'Gross Description', fields: ['grossDescription'] },
+  { title: 'Microscopic Description', fields: ['microscopicDescription'] },
+  { title: 'Diagnosis', fields: ['diagnosis'] },
+  { title: 'Adequacy and Pathologist', fields: ['adequacy', 'pathologist'] },
+];
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 24, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  recordSection: { marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 8, backgroundColor: '#f0f0f0', padding: 8, borderWidth: 1, borderColor: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 4, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 20, marginTop: 8 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 6 },
-  listItem: { fontSize: 12, lineHeight: 1.6, paddingLeft: 12, marginBottom: 5 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-
-// Built-in Helvetica lacks → ≥ ≤ µ × etc.; a missing glyph renders as garbage AND eats the next space — ASCII-map.
-const pdfSafe = (s) => String(s == null ? '' : s).replace(/→/g, '->').replace(/←/g, '<-').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/µ/g, 'u').replace(/μ/g, 'u').replace(/±/g, '+/-').replace(/×/g, 'x').replace(/÷/g, '/').replace(/°/g, ' deg').replace(/—/g, '-').replace(/–/g, '-');
-
-// Abbreviations whose trailing period must NOT end a clause (mirror of the JSX splitter).
-const ABBR_SET = new Set(['mr', 'mrs', 'ms', 'dr', 'prof', 'rev', 'sr', 'jr', 'st', 'gen', 'col', 'sgt', 'lt', 'capt', 'vs', 'etc', 'no', 'approx', 'fig', 'dx', 'hx']);
-const endsWithAbbrev = (buf) => { const m = String(buf).trim().match(/(\w+)$/); return m ? ABBR_SET.has(m[1].toLowerCase()) : false; };
-
-// IDENTICAL to BiopsyReportsDocument.jsx splitClauses — split on BOTH commas AND sentence terminators
-// (. ! ? ;), paren-aware, decimal-safe (3.5), thousands-safe (1,500), abbreviation-safe (Dr.).
-const splitClauses = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  const s = text.trim();
-  const out = [];
-  let buf = '', depth = 0;
-  const flush = () => { const t = buf.replace(/^[\s.;,!?]+/, '').replace(/[\s.;,!?]+$/, '').trim(); if (t) out.push(t); buf = ''; };
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-    if (ch === '(' || ch === '[' || ch === '{') { depth++; buf += ch; continue; }
-    if (ch === ')' || ch === ']' || ch === '}') { if (depth > 0) depth--; buf += ch; continue; }
-    const prev = s[i - 1] || '', next = s[i + 1] || '';
-    let boundary = false;
-    if (depth === 0) {
-      if (ch === ',') boundary = !(/\d/.test(prev) && /\d/.test(next));
-      else if (ch === '.' || ch === '!' || ch === '?' || ch === ';') boundary = (next === '' || /\s/.test(next)) && !(ch === '.' && /\d/.test(prev) && /\d/.test(next)) && !(ch === '.' && endsWithAbbrev(buf));
-    }
-    if (boundary) { flush(); while (i + 1 < s.length && /\s/.test(s[i + 1])) i++; continue; }
-    buf += ch;
-  }
-  flush();
-  return out;
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const rowsFor = (record, field) => { const value = record[field]; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-// One narrative section = ONE View. <=8 rows → atomic wrap={false} (moves whole → no orphan, no
-// overprint). >8 rows → boolean wrap={true} with the title GLUED to the first row in a wrap={false}
-// sub-View (orphan-proof). @react-pdf 4.3.2: wrap MUST be boolean — wrap={undefined} === wrap={false}.
-const renderNarrativeSection = (title, items) => {
-  if (!items || items.length === 0) return null;
-  if (items.length <= 8) return (
-    <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>{title}</Text>
-      {items.map((s, i) => <Text key={i} style={styles.listItem}>{i + 1}. {pdfSafe(s)}</Text>)}
-    </View>
-  );
-  return (
-    <View style={styles.fieldContainer} wrap={true}>
-      <View wrap={false}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.listItem}>1. {pdfSafe(items[0])}</Text></View>
-      {items.slice(1).map((s, i) => <Text key={i + 1} style={styles.listItem}>{i + 2}. {pdfSafe(s)}</Text>)}
-    </View>
-  );
+const BiopsyReportsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Biopsy Reports</Text><Text style={styles.noData}>No biopsy report data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Biopsy Reports</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Biopsy Report {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
-const BiopsyReportsDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => { if (r?.biopsy_reports) return Array.isArray(r.biopsy_reports) ? r.biopsy_reports : [r.biopsy_reports]; if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.biopsy_reports) return Array.isArray(dd.biopsy_reports) ? dd.biopsy_reports : [dd.biopsy_reports]; return [dd]; } return r; });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Biopsy Reports</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Biopsy Reports</Text>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordSection}>
-            <View wrap={false}><Text style={styles.recordTitle}>{`Biopsy Report ${idx + 1}`}</Text>{record.date && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}{record.pathologist && <Text style={styles.recordMeta}>{pdfSafe(record.pathologist)}</Text>}</View>
-
-            {/* Diagnosis */}
-            {record.diagnosis && (
-              <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Diagnosis</Text>
-                <Text style={styles.listItem}>{pdfSafe(record.diagnosis)}</Text>
-              </View>
-            )}
-
-            {/* Specimen Information */}
-            {(record.biopsySite || record.biopsyMethod) && (
-              <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Specimen Information</Text>
-                {record.biopsySite && <Text style={styles.listItem}>1. {pdfSafe(record.biopsySite)}</Text>}
-                {record.biopsyMethod && <Text style={styles.listItem}>{record.biopsySite ? '2' : '1'}. {pdfSafe(record.biopsyMethod)}</Text>}
-              </View>
-            )}
-
-            {/* Clinical History — split on commas + sentence terminators (mirrors JSX splitClauses) */}
-            {record.clinicalHistory && renderNarrativeSection('Clinical History', splitClauses(String(record.clinicalHistory)))}
-
-            {/* Gross Description — split on commas + sentence terminators */}
-            {record.grossDescription && renderNarrativeSection('Gross Description', splitClauses(String(record.grossDescription)))}
-
-            {/* Microscopic Description — split on commas + sentence terminators */}
-            {record.microscopicDescription && renderNarrativeSection('Microscopic Description', splitClauses(String(record.microscopicDescription)))}
-
-            {/* Specimen Adequacy */}
-            {record.adequacy && (
-              <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Specimen Adequacy</Text>
-                <Text style={styles.listItem}>{pdfSafe(record.adequacy)}</Text>
-              </View>
-            )}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
-};
-
 export default BiopsyReportsDocumentPDFTemplate;

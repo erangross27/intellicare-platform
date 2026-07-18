@@ -52,6 +52,7 @@ import CamIcuDocumentPDFTemplate from './CamIcuDocumentPDFTemplate';
 import CancerDiagnosisDocumentPDFTemplate from './CancerDiagnosisDocumentPDFTemplate';
 import CancerRelatedSideEffectsDocumentPDFTemplate from './CancerRelatedSideEffectsDocumentPDFTemplate';
 import CardiacCatheterizationReportsDocumentPDFTemplate from './CardiacCatheterizationReportsDocumentPDFTemplate';
+import CardiacDeviceInterrogationsDocumentPDFTemplate from './CardiacDeviceInterrogationsDocumentPDFTemplate';
 import CancerScreeningRecordsDocumentPDFTemplate from './CancerScreeningRecordsDocumentPDFTemplate';
 import CancerStagingDocumentPDFTemplate from './CancerStagingDocumentPDFTemplate';
 import CancerSurveillanceDocumentPDFTemplate from './CancerSurveillanceDocumentPDFTemplate';
@@ -314,6 +315,7 @@ const templateRegistry = {
   'cancer_diagnosis': CancerDiagnosisDocumentPDFTemplate,
   'cancer_related_side_effects': CancerRelatedSideEffectsDocumentPDFTemplate,
   'cardiac_catheterization_reports': CardiacCatheterizationReportsDocumentPDFTemplate,
+  'cardiac_device_interrogations': CardiacDeviceInterrogationsDocumentPDFTemplate,
   'cancer_screening_records': CancerScreeningRecordsDocumentPDFTemplate,
   'cancer_staging': CancerStagingDocumentPDFTemplate,
   'cancer_surveillance': CancerSurveillanceDocumentPDFTemplate,

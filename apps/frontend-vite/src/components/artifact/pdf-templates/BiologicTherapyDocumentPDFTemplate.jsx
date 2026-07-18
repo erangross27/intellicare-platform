@@ -1,111 +1,60 @@
-/**
- * BiologicTherapyDocumentPDFTemplate.jsx
- * Flat biologic_therapy collection. Box-free B&W, Helvetica, stacked colon-free fields
- * (bold label ABOVE value, never side-by-side "Label: value"). Rule #74 page breaks with
- * orphan-proof glue (title + first row) for sections > 8 rows. Boolean wrap (never undefined).
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 24, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  recordSection: { marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 8, backgroundColor: '#f0f0f0', padding: 8, borderWidth: 1, borderColor: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 4, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 14 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4 },
-  subLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  subLabel2: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#404040', marginTop: 2, marginBottom: 1, paddingLeft: 12 },
-  listItem: { fontSize: 12, color: '#404040', paddingLeft: 12, lineHeight: 1.4, marginBottom: 2 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
-});
-
-const SECTION_FIELDS = {
-  recordInfo: ['provider', 'facility'],
-  medication: ['medicationName', 'indication', 'dose', 'route', 'frequency', 'startDate'],
-  clinical: ['response', 'priorAuthorization'],
-  monitoring: ['monitoringLabs', 'baselineAssessment'],
-  safety: ['sideEffects', 'infusionReactions'],
-  plan: ['continuationPlan'],
-  notes: ['notes'],
-};
-const SECTION_TITLES = {
-  recordInfo: 'Record Information', medication: 'Medication', clinical: 'Clinical Response',
-  monitoring: 'Monitoring', safety: 'Side Effects & Reactions', plan: 'Continuation Plan', notes: 'Notes',
-};
-const FIELD_LABELS = {
-  provider: 'Provider', facility: 'Facility',
-  medicationName: 'Medication Name', indication: 'Indication', dose: 'Dose', route: 'Route', frequency: 'Frequency', startDate: 'Start Date',
-  response: 'Response', priorAuthorization: 'Prior Authorization',
-  monitoringLabs: 'Monitoring Labs', baselineAssessment: 'Baseline Assessment',
-  sideEffects: 'Side Effects', infusionReactions: 'Infusion Reactions',
+const COLLECTION = 'biologic_therapy';
+const COMMA_SPLIT_FIELDS = [];
+const ARRAY_FIELDS = new Set(['monitoringLabs']);
+const NARRATIVE_FIELDS = new Set(['priorAuthorization', 'baselineAssessment', 'sideEffects', 'infusionReactions', 'continuationPlan', 'notes']);
+const DATE_FIELDS = new Set(['date', 'startDate']);
+const LABELS = {
+  date: 'Date', provider: 'Provider', facility: 'Facility', medicationName: 'Medication Name',
+  indication: 'Indication', dose: 'Dose', route: 'Route', frequency: 'Frequency',
+  startDate: 'Start Date', priorAuthorization: 'Prior Authorization',
+  baselineAssessment: 'Baseline Assessment', monitoringLabs: 'Monitoring Labs',
+  response: 'Response', sideEffects: 'Side Effects', infusionReactions: 'Infusion Reactions',
   continuationPlan: 'Continuation Plan', notes: 'Notes',
 };
-const DATE_FIELDS = ['startDate'];
-const ARRAY_FIELDS = ['monitoringLabs'];
-const SENTENCE_FIELDS = ['priorAuthorization', 'baselineAssessment', 'sideEffects', 'infusionReactions', 'continuationPlan', 'notes'];
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const splitBySentence = (t) => { if (!t || typeof t !== 'string') return []; return t.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|Prof|Rev|Sr|Jr|St|Gen|Col|Sgt|Lt|Capt|vs|etc)\.)(?<=[.!?])\s+/).filter(s => { const tr = s.trim(); return tr.length > 0 && tr.replace(/[.!?;,]+/g, '').trim().length > 0; }); };
-const parseLabel = (s) => { if (!s || typeof s !== 'string') return { isLabeled: false, label: '', value: s || '' }; const m = s.match(/^([^:]{1,80}):\s+(\S.*)$/s); if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() }; return { isLabeled: false, label: '', value: s }; };
-// Built-in Helvetica lacks → ≥ ≤ µ etc.; a missing glyph renders as garbage AND eats the next space — ASCII-map.
-const pdfSafe = (s) => String(s == null ? '' : s).replace(/→/g, '->').replace(/←/g, '<-').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/µ/g, 'u').replace(/±/g, '+/-').replace(/×/g, 'x').replace(/÷/g, '/').replace(/°/g, ' deg').replace(/—/g, '-').replace(/–/g, '-');
-
-const BiologicTherapyDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => { if (r?.biologic_therapy) return Array.isArray(r.biologic_therapy) ? r.biologic_therapy : [r.biologic_therapy]; if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.biologic_therapy) return Array.isArray(dd.biologic_therapy) ? dd.biologic_therapy : [dd.biologic_therapy]; return [dd]; } return r; });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  // All renderable rows for one field, beginning with its bold label (stacked colon-free).
-  const fieldRows = (fn, value) => {
-    const label = FIELD_LABELS[fn] || fn;
-    if (DATE_FIELDS.includes(fn)) { const dv = formatDate(value); if (!dv) return []; return [<Text key={`${fn}-l`} style={styles.subLabel}>{label}</Text>, <Text key={`${fn}-v`} style={styles.listItem}>{pdfSafe(dv)}</Text>]; }
-    if (ARRAY_FIELDS.includes(fn)) { const items = (Array.isArray(value) ? value : []).filter(x => x !== null && x !== undefined && String(x).trim() !== ''); if (items.length === 0) return []; return [<Text key={`${fn}-l`} style={styles.subLabel}>{label}</Text>, ...items.map((it, i) => <Text key={`${fn}-${i}`} style={styles.listItem}>{i + 1}. {pdfSafe(it)}</Text>)]; }
-    if (value === null || value === undefined || String(value).trim() === '') return [];
-    // Only narrative fields are sentence-split; simple fields (e.g. provider "Dr. A. Lee, MD") stay one value.
-    const ss = SENTENCE_FIELDS.includes(fn) ? splitBySentence(String(value)) : [String(value).trim()];
-    if (ss.length <= 1) {
-      const p = parseLabel(String(value));
-      if (p.isLabeled) return [<Text key={`${fn}-l`} style={styles.subLabel}>{label}</Text>, <Text key={`${fn}-sl`} style={styles.subLabel2}>{pdfSafe(p.label)}</Text>, <Text key={`${fn}-v`} style={styles.listItem}>{pdfSafe(p.value)}</Text>];
-      return [<Text key={`${fn}-l`} style={styles.subLabel}>{label}</Text>, <Text key={`${fn}-v`} style={styles.listItem}>{pdfSafe(String(value))}</Text>];
-    }
-    const hasLabels = ss.some(s => parseLabel(s).isLabeled);
-    const rows = [<Text key={`${fn}-l`} style={styles.subLabel}>{label}</Text>];
-    ss.forEach((s, i) => { const p = parseLabel(s); if (p.isLabeled) { rows.push(<Text key={`${fn}-${i}-l`} style={styles.subLabel2}>{pdfSafe(p.label)}</Text>); rows.push(<Text key={`${fn}-${i}-v`} style={styles.listItem}>{pdfSafe(p.value)}</Text>); } else { rows.push(<Text key={`${fn}-${i}`} style={styles.listItem}>{hasLabels ? '' : `${i + 1}. `}{pdfSafe(s)}</Text>); } });
-    return rows;
-  };
-
-  // One section = ONE View, sectionTitle inside (Rule #74). <=8 rows → atomic wrap={false};
-  // >8 rows → wrap glue [title + first row] in a wrap={false} sub-View, rest flow (orphan-proof).
-  const renderSectionPDF = (record, sid) => {
-    const fs = SECTION_FIELDS[sid] || []; const title = SECTION_TITLES[sid] || sid;
-    const single = fs.length === 1 && (FIELD_LABELS[fs[0]] || fs[0]) === title;
-    let allRows = [];
-    fs.forEach(fn => { const rows = fieldRows(fn, record[fn]); if (rows.length === 0) return; allRows = allRows.concat(single ? rows.slice(1) : rows); });
-    if (allRows.length === 0) return null;
-    if (allRows.length <= 8) return <View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{allRows}</View>;
-    return <View style={styles.fieldContainer} wrap={true}><View wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{allRows[0]}</View>{allRows.slice(1)}</View>;
-  };
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Biologic Therapy</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Biologic Therapy</Text>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordSection} break={idx > 0}>
-            <View wrap={false}><Text style={styles.recordTitle}>{`Biologic Therapy ${idx + 1}`}</Text>{record.date && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}</View>
-            {Object.keys(SECTION_FIELDS).map(sid => <React.Fragment key={sid}>{renderSectionPDF(record, sid)}</React.Fragment>)}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const SECTIONS = [
+  { title: 'Date', fields: ['date'] },
+  { title: 'Record Information', fields: ['provider', 'facility'] },
+  { title: 'Medication', fields: ['medicationName', 'indication', 'dose', 'route', 'frequency', 'startDate'] },
+  { title: 'Authorization and Baseline', fields: ['priorAuthorization', 'baselineAssessment'] },
+  { title: 'Monitoring Labs', fields: ['monitoringLabs'] },
+  { title: 'Response and Side Effects', fields: ['response', 'sideEffects', 'infusionReactions'] },
+  { title: 'Continuation Plan', fields: ['continuationPlan'] },
+  { title: 'Notes', fields: ['notes'] },
+];
+const styles = StyleSheet.create({
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
+});
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const rowsFor = (record, field) => { const value = record[field]; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
+const BiologicTherapyDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Biologic Therapy</Text><Text style={styles.noData}>No biologic therapy data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Biologic Therapy</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Biologic Therapy {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
+};
 export default BiologicTherapyDocumentPDFTemplate;

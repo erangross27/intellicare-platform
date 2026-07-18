@@ -1,327 +1,96 @@
-/**
- * BiologicTherapyDocument.jsx
- * Flat biologic_therapy collection (medication, indication, dose, route, frequency, response,
- * monitoring labs, narratives). Distinct from the nested biologic_therapy_records template.
- * Inline editing with per-section approve, per-row copy, PDFDownloadLink + pdfData memo,
- * secureApiClient for all API calls.
- */
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import SearchBar from '../components/SearchBar';
 import BiologicTherapyDocumentPDFTemplate from '../pdf-templates/BiologicTherapyDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import SearchBar from '../components/SearchBar';
+import secureApiClient from '../../../services/secureApiClient';
 import './BiologicTherapyDocument.css';
 
-/* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
-   written to MongoDB and NOT shown in the PDF until the user clicks Approve.
-   Kept in a SEPARATE key so drafts never leak into the PDF/DB source.
-   Shape: { [recordId]: { [fieldName]: value } } */
-const DRAFT_KEY = 'biologic_therapyPendingEdits';
-const readDrafts = () => {
-  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; }
-};
-const writeDrafts = (store) => {
-  try {
-    if (store && Object.keys(store).length > 0) localStorage.setItem(DRAFT_KEY, JSON.stringify(store));
-    else localStorage.removeItem(DRAFT_KEY);
-  } catch { /* ignore quota/availability errors */ }
-};
-
-const SECTION_FIELDS = {
-  recordInfo: ['provider', 'facility'],
-  medication: ['medicationName', 'indication', 'dose', 'route', 'frequency', 'startDate'],
-  clinical: ['response', 'priorAuthorization'],
-  monitoring: ['monitoringLabs', 'baselineAssessment'],
-  safety: ['sideEffects', 'infusionReactions'],
-  plan: ['continuationPlan'],
-  notes: ['notes'],
-};
-const SECTION_TITLES = {
-  recordInfo: 'Record Information', medication: 'Medication', clinical: 'Clinical Response',
-  monitoring: 'Monitoring', safety: 'Side Effects & Reactions', plan: 'Continuation Plan', notes: 'Notes',
-};
+const COLLECTION = 'biologic_therapy';
+const DRAFT_KEY = `${COLLECTION}PendingEdits`;
+const COMMA_ARRAY_FIELDS = [];
+const COMMA_SPLIT_FIELDS = [];
+const ARRAY_FIELDS = new Set(['monitoringLabs']);
+const NARRATIVE_FIELDS = new Set(['priorAuthorization', 'baselineAssessment', 'sideEffects', 'infusionReactions', 'continuationPlan', 'notes']);
+const DATE_FIELDS = new Set(['date', 'startDate']);
+const NUMBER_UNIT_FIELDS = new Set(['dose']);
 const FIELD_LABELS = {
-  provider: 'Provider', facility: 'Facility',
-  medicationName: 'Medication Name', indication: 'Indication', dose: 'Dose', route: 'Route', frequency: 'Frequency', startDate: 'Start Date',
-  response: 'Response', priorAuthorization: 'Prior Authorization',
-  monitoringLabs: 'Monitoring Labs', baselineAssessment: 'Baseline Assessment',
-  sideEffects: 'Side Effects', infusionReactions: 'Infusion Reactions',
+  date: 'Date', provider: 'Provider', facility: 'Facility', medicationName: 'Medication Name',
+  indication: 'Indication', dose: 'Dose', route: 'Route', frequency: 'Frequency',
+  startDate: 'Start Date', priorAuthorization: 'Prior Authorization',
+  baselineAssessment: 'Baseline Assessment', monitoringLabs: 'Monitoring Labs',
+  response: 'Response', sideEffects: 'Side Effects', infusionReactions: 'Infusion Reactions',
   continuationPlan: 'Continuation Plan', notes: 'Notes',
 };
-const DATE_FIELDS = ['startDate'];
-const ARRAY_FIELDS = ['monitoringLabs'];
-const SENTENCE_FIELDS = ['priorAuthorization', 'baselineAssessment', 'sideEffects', 'infusionReactions', 'continuationPlan', 'notes'];
-const toInputDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toISOString().split('T')[0]; } catch { return ''; } };
-// A single sentence "Label: value" → {isLabeled,label,value}. ':\s+' (space after colon) avoids matching
-// times/ratios; the {1,80} cap stops a long sentence with a deep colon from false-matching.
-const parseLabel = (s) => { if (!s || typeof s !== 'string') return { isLabeled: false, label: '', value: s || '' }; const m = s.match(/^([^:]{1,80}):\s+(\S.*)$/s); if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() }; return { isLabeled: false, label: '', value: s }; };
-// "90mg" → edit ONLY the number with a stepper, keep the unit fixed; reassemble on save (lossless).
-// Returns null for prose, and for any value whose unit holds a digit (ranges like "140-180 mg/dL")
-// so the user can only increase/decrease a clean numeric measurement. (splitNumberUnit pattern, memory 6a4099a6.)
-const splitNumberUnit = (raw) => {
-  if (raw == null) return null;
-  const s = String(raw).trim();
-  const m = s.match(/^([<>≤≥=~]*)\s*(-?\d+(?:\.\d+)?)(\s*)(\S.*)?$/);
-  if (!m) return null;
-  const unit = (m[4] || '').trim();
-  if (/\d/.test(unit)) return null;
-  const decimals = (m[2].split('.')[1] || '').length;
-  return { prefix: m[1] || '', number: m[2], sep: m[3] || '', unit, step: decimals > 0 ? Math.pow(10, -decimals) : 1 };
+const SECTIONS = [
+  { id: 'date', title: 'Date', fields: ['date'] },
+  { id: 'recordInfo', title: 'Record Information', fields: ['provider', 'facility'] },
+  { id: 'medication', title: 'Medication', fields: ['medicationName', 'indication', 'dose', 'route', 'frequency', 'startDate'] },
+  { id: 'authorization', title: 'Authorization and Baseline', fields: ['priorAuthorization', 'baselineAssessment'] },
+  { id: 'monitoringLabs', title: 'Monitoring Labs', fields: ['monitoringLabs'] },
+  { id: 'responseSection', title: 'Response and Side Effects', fields: ['response', 'sideEffects', 'infusionReactions'] },
+  { id: 'continuationPlan', title: 'Continuation Plan', fields: ['continuationPlan'] },
+  { id: 'notes', title: 'Notes', fields: ['notes'] },
+];
+const DISPLAY_FIELDS = Object.keys(FIELD_LABELS);
+
+const readDrafts = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; } };
+const writeDrafts = store => { try { if (store && Object.keys(store).length) localStorage.setItem(DRAFT_KEY, JSON.stringify(store)); else localStorage.removeItem(DRAFT_KEY); } catch { /* best effort */ } };
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const fieldPresent = (record, field) => { const value = record?.[field]; return hasValue(value) && !(DATE_FIELDS.has(field) && isEpochDate(value)); };
+const recordIdOf = record => !record?._id ? null : typeof record._id === 'string' ? record._id : record._id.$oid || String(record._id);
+const getAtPath = (source, path) => path.split('.').reduce((value, part) => value?.[/^\d+$/.test(part) ? Number(part) : part], source);
+const setAtPath = (source, path, value) => { const parts = path.split('.'); let node = source; parts.forEach((part, index) => { const key = /^\d+$/.test(part) ? Number(part) : part; if (index === parts.length - 1) node[key] = value; else { const nextIsArray = /^\d+$/.test(parts[index + 1]); if (node[key] === undefined || node[key] === null) node[key] = nextIsArray ? [] : {}; node = node[key]; } }); };
+const formatDate = value => { if (!value) return ''; const raw = value.$date || value; const match = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const toInputDate = value => { const raw = value?.$date || value; const match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return match ? `${match[1]}-${match[2]}-${match[3]}` : ''; };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const splitNumberUnit = text => { if (text === null || text === undefined) return null; const s = String(text).trim(); if (s === '') return null; if (/^-?\d+(?:\.\d+)?\s*\/\s*\d/.test(s)) return null; const m = s.match(/^(-?[\d,]*\.?\d+)(\s*)(.*)$/); if (!m || !/\d/.test(m[1])) return null; return { num: m[1].replace(/,/g, ''), sep: m[2] || '', unit: (m[3] || '').trim() }; };
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { label: match[1].trim(), value: match[2].trim(), labeled: true } : { label: '', value: String(text || '').trim(), labeled: false }; };
+const splitClauses = (field, text, splitCommas = COMMA_SPLIT_FIELDS.includes(field)) => {
+  const source = String(text || ''); if (!source.trim()) return []; const clauses = []; let start = 0; let depth = 0;
+  const push = end => { let left = start; let right = end; while (left < right && /\s/.test(source[left])) left += 1; while (right > left && /\s/.test(source[right - 1])) right -= 1; if (right > left) clauses.push({ text: source.slice(left, right), start: left, end: right }); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return clauses;
+};
+const groupClauses = clauses => { const groups = []; let current = null; clauses.forEach((clause, index) => { const parsed = parseLabel(clause.text); const item = { ...clause, ...parsed, index }; if (parsed.labeled) { current = { subtitle: parsed.label, items: [item] }; groups.push(current); } else if (current?.subtitle) current.items.push(item); else { if (!current || current.subtitle) { current = { subtitle: null, items: [] }; groups.push(current); } current.items.push(item); } }); return groups; };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source]; const records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !DISPLAY_FIELDS.some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => DISPLAY_FIELDS.some(field => hasValue(record[field]))); };
+
+const BiologicTherapyDocument = ({ document: documentProp, data, templateData }) => {
+  const records = useMemo(() => unwrapRecords(documentProp || data || templateData), [documentProp, data, templateData]);
+  const [searchTerm, setSearchTerm] = useState(''); const [copied, setCopied] = useState(null); const [editingField, setEditingField] = useState(null); const [editValue, setEditValue] = useState(''); const [saveError, setSaveError] = useState(''); const [localEdits, setLocalEdits] = useState({}); const [pendingEdits, setPendingEdits] = useState({}); const [approvedSections, setApprovedSections] = useState({}); const [approving, setApproving] = useState(false);
+  useEffect(() => { const store = readDrafts(), nextLocal = {}, nextPending = {}; records.forEach((record, index) => { Object.entries(store[recordIdOf(record)] || {}).forEach(([path, value]) => { nextLocal[`${path}-${index}`] = value; nextPending[`${path}-${index}`] = true; }); }); if (Object.keys(nextLocal).length) { setLocalEdits(previous => ({ ...nextLocal, ...previous })); setPendingEdits(previous => ({ ...nextPending, ...previous })); } }, [records]);
+  const valueAt = useCallback((record, path, index) => localEdits[`${path}-${index}`] !== undefined ? localEdits[`${path}-${index}`] : getAtPath(record, path), [localEdits]);
+  const stagePath = useCallback((record, path, index, value) => { const id = recordIdOf(record); if (!id) return; const key = `${path}-${index}`; setLocalEdits(previous => ({ ...previous, [key]: value })); setPendingEdits(previous => ({ ...previous, [key]: true })); const store = readDrafts(); store[id] = { ...(store[id] || {}), [path]: value }; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(''); }, []);
+  const mergedRecord = useCallback((record, index, includePending) => { const merged = JSON.parse(JSON.stringify(record)); Object.entries(localEdits).forEach(([key, value]) => { if (!key.endsWith(`-${index}`) || (!includePending && pendingEdits[key])) return; setAtPath(merged, key.slice(0, -String(index).length - 1), value); }); return merged; }, [localEdits, pendingEdits]);
+  const pdfData = useMemo(() => records.map((record, index) => mergedRecord(record, index, false)), [records, mergedRecord]);
+  const copyText = async (text, id) => { await navigator.clipboard.writeText(text); setCopied(id); setTimeout(() => setCopied(null), 2500); };
+  const highlight = value => { const text = String(value ?? ''), query = searchTerm.trim(); if (!query) return text; const index = text.toLowerCase().indexOf(query.toLowerCase()); return index < 0 ? text : <>{text.slice(0, index)}<mark>{text.slice(index, index + query.length)}</mark>{text.slice(index + query.length)}</>; };
+  const pathFromKey = (key, index) => key.slice(0, -String(index).length - 1);
+  const sectionPending = (section, index) => Object.keys(pendingEdits).some(key => pendingEdits[key] && key.endsWith(`-${index}`) && section.fields.includes(pathFromKey(key, index).split('.')[0]));
+  const approveSection = async (record, index, section) => {
+    const id = recordIdOf(record); if (!id) return; const keys = Object.keys(pendingEdits).filter(key => pendingEdits[key] && key.endsWith(`-${index}`) && section.fields.includes(pathFromKey(key, index).split('.')[0])); if (!keys.length) return; setApproving(true);
+    try { for (const key of keys) { const path = pathFromKey(key, index); const response = await secureApiClient.put(`/api/edit/${COLLECTION}/${id}/edit`, { field: path, value: localEdits[key] }); if (response?.success === false) throw new Error(response.error || 'save failed'); } const response = await secureApiClient.put(`/api/edit/${COLLECTION}/${id}/approve`, { sectionId: section.id, approved: true }); if (response?.success === false) throw new Error(response.error || 'approval failed'); setPendingEdits(previous => { const next = { ...previous }; keys.forEach(key => delete next[key]); return next; }); const store = readDrafts(); if (store[id]) { keys.forEach(key => delete store[id][pathFromKey(key, index)]); if (!Object.keys(store[id]).length) delete store[id]; writeDrafts(store); } setApprovedSections(previous => ({ ...previous, [`${section.id}-${index}`]: true })); }
+    catch (error) { setSaveError(error.message || 'Unable to approve changes'); } finally { setApproving(false); }
+  };
+  const editControl = widget => { if (widget === 'date') return <BlueDatePicker value={editValue} onSelect={setEditValue} />; if (widget === 'number') return <div className="number-edit-row"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>&minus;</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button></div>; return <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />; };
+  const renderLeaf = ({ record, index, path, shown, raw, label, widget = 'text', leafKey, saveValue }) => {
+    const editKey = leafKey || `${path}-${index}`, editing = editingField === editKey, modified = !!pendingEdits[`${path}-${index}`];
+    const save = event => { event?.stopPropagation(); if (!String(editValue).trim()) { setSaveError('Please enter a value'); return; } if (widget === 'number' && Number.isNaN(Number(editValue))) { setSaveError('Please enter a valid number'); return; } let next; if (saveValue) next = saveValue(editValue); else if (widget === 'date') next = `${editValue}T00:00:00.000Z`; else next = String(editValue).trim(); stagePath(record, path, index, next); };
+    return <div data-edit-field={path} key={editKey}><span className="field-label sr-only">{label || path}</span><div className={`numbered-row editable-row${modified ? ' modified' : ''}`} onClick={() => { if (!editing) { setEditingField(editKey); setEditValue(widget === 'date' ? toInputDate(raw) : widget === 'number' ? (splitNumberUnit(raw)?.num ?? String(raw ?? '')) : String(raw ?? '')); setSaveError(''); } }}>{editing ? <div className="edit-field-container" onClick={event => event.stopPropagation()}>{editControl(widget)}{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={save}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlight(shown)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copied === editKey ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyText(String(shown), editKey); }}>{copied === editKey ? 'Copied!' : 'Copy'}</button></>}</div>{modified && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>;
+  };
+  const widgetFor = path => DATE_FIELDS.has(path) ? 'date' : NUMBER_UNIT_FIELDS.has(path) ? 'number' : 'text';
+  const renderScalar = (record, index, path, label, sectionTitle) => { const value = valueAt(record, path, index); if (!hasValue(value) || (DATE_FIELDS.has(path) && isEpochDate(value))) return null; const widget = widgetFor(path), shown = widget === 'date' ? formatDate(value) : displayValue(value); const parts = widget === 'number' ? splitNumberUnit(value) : null; const effectiveWidget = widget === 'number' ? (parts ? 'number' : 'text') : widget; const saveValue = parts ? (next => `${String(next).trim()}${parts.sep}${parts.unit}`) : undefined; return <div className={`rec-mini-card nested-mini-card${label === sectionTitle ? ' regular-row-group' : ''}`} key={path}>{label !== sectionTitle && <div className="nested-subtitle field-label">{label}</div>}{renderLeaf({ record, index, path, shown, raw: value, label, widget: effectiveWidget, saveValue })}</div>; };
+  const renderArray = (record, index, field, sectionTitle) => { const value = valueAt(record, field, index); if (!Array.isArray(value) || !value.some(hasValue)) return null; const label = FIELD_LABELS[field]; const showLabel = label !== sectionTitle; return <div className={`rec-mini-card nested-mini-card${showLabel ? '' : ' regular-row-group'}`} key={field}>{showLabel && <div className="nested-subtitle field-label">{label}</div>}{value.map((item, itemIndex) => hasValue(item) ? renderLeaf({ record, index, path: `${field}.${itemIndex}`, shown: displayValue(item), raw: item, label }) : null)}</div>; };
+  const renderDelimited = (record, index, field, sectionTitle) => { const source = String(valueAt(record, field, index) || ''); if (!source.trim()) return null; const groups = groupClauses(splitClauses(field, source)); const fieldLabel = FIELD_LABELS[field]; return groups.map((group, groupIndex) => { const subtitle = group.subtitle || (fieldLabel !== sectionTitle ? fieldLabel : null); return <div className={`rec-mini-card nested-mini-card${subtitle ? '' : ' regular-row-group'}`} key={`${field}-${groupIndex}`}>{subtitle && <div className="nested-subtitle">{subtitle}</div>}{group.items.map(item => renderLeaf({ record, index, path: field, leafKey: `${field}-${index}-clause-${item.index}`, shown: item.value, raw: item.value, label: subtitle || sectionTitle, saveValue: next => source.slice(0, item.start) + (item.labeled ? `${item.label}: ${String(next).trim()}` : String(next).trim()) + source.slice(item.end) }))}</div>; }); };
+  const rowsFor = (record, field) => { const value = record[field]; if (!fieldPresent(record, field)) return []; if (DATE_FIELDS.has(field)) return [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (NARRATIVE_FIELDS.has(field)) return splitClauses(field, value).map(clause => { const parsed = parseLabel(clause.text); return { subtitle: parsed.label, value: parsed.value }; }); return [{ subtitle: '', value: displayValue(value) }]; };
+  const sectionLines = (record, section) => { const lines = [section.title.toUpperCase(), '-'.repeat(40)]; section.fields.forEach(field => { const rows = rowsFor(record, field); if (!rows.length) return; if (FIELD_LABELS[field] !== section.title) lines.push(FIELD_LABELS[field]); let prior = null; rows.forEach((row, rowIndex) => { if (row.subtitle && row.subtitle !== prior) lines.push(row.subtitle); lines.push(`${rowIndex + 1}. ${row.value}`); prior = row.subtitle; }); }); return lines; };
+  const renderSection = (record, index, section) => { const merged = mergedRecord(record, index, true); if (!section.fields.some(field => fieldPresent(merged, field))) return null; const body = section.fields.flatMap(field => { if (!fieldPresent(merged, field)) return []; if (ARRAY_FIELDS.has(field)) return [renderArray(record, index, field, section.title)]; if (NARRATIVE_FIELDS.has(field)) return renderDelimited(record, index, field, section.title); return [renderScalar(record, index, field, FIELD_LABELS[field], section.title)]; }).filter(Boolean); const copyId = `${section.id}-${index}`, pending = sectionPending(section, index), approved = approvedSections[copyId]; return <section className="section" key={section.id}><div className="mini-cards-container"><div className="section-header"><h3 className="section-title">{section.title}</h3><div className="header-right-actions"><button className={`copy-btn ${copied === copyId ? 'copied' : ''}`} onClick={() => copyText(sectionLines(merged, section).join('\n'), copyId)}>{copied === copyId ? 'Copied!' : 'Copy Section'}</button>{pending && <button className="approve-btn pending" disabled={approving} onClick={() => approveSection(record, index, section)}>Pending Approve</button>}{approved && !pending && <span className="approve-btn approved">Approved</span>}</div></div>{body}</div></section>; };
+  const allText = (record, index) => { const merged = mergedRecord(record, index, true), lines = [`BIOLOGIC THERAPY ${index + 1}`, '='.repeat(40)]; SECTIONS.forEach(section => { const output = sectionLines(merged, section); if (output.length > 2) lines.push('', ...output); }); return lines.join('\n'); };
+  const filtered = useMemo(() => { const query = searchTerm.trim().toLowerCase(), values = records.map((record, index) => ({ record, index })); return query ? values.filter(({ record, index }) => JSON.stringify(mergedRecord(record, index, true)).toLowerCase().includes(query) || 'biologic therapy'.includes(query)) : values; }, [records, searchTerm, mergedRecord]);
+  if (!records.length) return <article className="biologic-therapy-document"><div className="empty-state">No biologic therapy data available.</div></article>;
+  return <article className="biologic-therapy-document"><header className="document-header"><h1 className="document-title">Biologic Therapy</h1><div className="header-actions"><button className={`copy-btn ${copied === 'all' ? 'copied' : ''}`} onClick={() => copyText(records.map(allText).join('\n\n'), 'all')}>{copied === 'all' ? 'Copied!' : 'Copy All'}</button><PDFDownloadLink document={<BiologicTherapyDocumentPDFTemplate document={pdfData} />} fileName="Biologic_Therapy.pdf" className="copy-btn pdf-btn">{({ loading }) => loading ? 'Preparing...' : 'Export PDF'}</PDFDownloadLink></div></header><SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} placeholder="Search biologic therapy..." /><div className="records-container">{!filtered.length ? <div className="empty-state">No records match your search.</div> : filtered.map(({ record, index }) => <div className="record-card" key={recordIdOf(record) || index}><div className="record-header"><h2 className="record-name">Biologic Therapy {index + 1}</h2></div>{SECTIONS.map(section => renderSection(record, index, section))}</div>)}</div></article>;
 };
 
-const BiologicTherapyDocument = ({ document: rawDoc }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [copiedId, setCopiedId] = useState(null);
-  const [editingField, setEditingField] = useState(null);
-  const [editValue, setEditValue] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [localEdits, setLocalEdits] = useState({});
-  const [editedFields, setEditedFields] = useState({});
-  const [editedSentences, setEditedSentences] = useState({});
-  const [approvedSections, setApprovedSections] = useState({});
-  // editKeys that are staged drafts (saved locally, NOT yet committed to DB/PDF). Cleared on Approve.
-  const [pendingEdits, setPendingEdits] = useState({});
-
-  const records = useMemo(() => {
-    if (!rawDoc) return [];
-    let arr = Array.isArray(rawDoc) ? rawDoc : [rawDoc];
-    arr = arr.flatMap(r => { if (r?.biologic_therapy) return Array.isArray(r.biologic_therapy) ? r.biologic_therapy : [r.biologic_therapy]; if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.biologic_therapy) return Array.isArray(dd.biologic_therapy) ? dd.biologic_therapy : [dd.biologic_therapy]; return [dd]; } return r; });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [rawDoc]);
-
-  // Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF).
-  useEffect(() => {
-    const store = readDrafts();
-    if (!store || Object.keys(store).length === 0) return;
-    const nLocal = {}, nPending = {}, nFields = {};
-    records.forEach((record, idx) => {
-      const rid = (() => { const id = record._id; if (!id) return null; if (typeof id === 'string') return id; if (id.$oid) return id.$oid; return String(id); })();
-      const recDrafts = rid ? store[rid] : null;
-      if (!recDrafts) return;
-      Object.entries(recDrafts).forEach(([fieldPart, value]) => {
-        const editKey = `${fieldPart}-${idx}`;
-        nLocal[editKey] = value;
-        nPending[editKey] = true;
-        nFields[editKey] = 'edited';
-      });
-    });
-    if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
-  }, [records]);
-
-  const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-  // Abbreviation-safe: do NOT split after Dr./Mr./St./etc. (so "Dr. Thomas Park, Gastroenterology" stays one unit in Copy).
-  const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|Prof|Rev|Sr|Jr|St|Gen|Col|Sgt|Lt|Capt|vs|etc)\.)(?<=[.!?])\s+/).filter(s => { const t = s.trim(); return t.length > 0 && t.replace(/[.!?;,]+/g, '').trim().length > 0; }); };
-  const getFieldValue = useCallback((record, fn, idx) => { const k = `${fn}-${idx}`; if (localEdits[k] !== undefined) return localEdits[k]; return record[fn]; }, [localEdits]);
-  const getRecordId = (r) => { const id = r._id; if (!id) return null; if (typeof id === 'string') return id; if (id.$oid) return id.$oid; return String(id); };
-  const copyToClipboard = async (text, id) => { try { await navigator.clipboard.writeText(text); setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); } catch {} };
-
-  // Save = stage a DRAFT locally + write it to the pending-drafts localStorage store (survives refresh).
-  // NOT written to MongoDB and NOT shown in the PDF until the user clicks Approve (handleApproveSection commits).
-  const handleSaveField = useCallback((record, fn, idx, sid, sentenceIdx, valueOverride, editTrackingKey) => {
-    const rid = getRecordId(record); if (!rid) { console.error('[BiologicTherapy] Cannot save — no record ID'); return; }
-    const nv = valueOverride !== undefined ? valueOverride : editValue;
-    const ek = editTrackingKey || `${fn}-${idx}`;
-    setLocalEdits(prev => ({ ...prev, [ek]: nv }));
-    setPendingEdits(prev => ({ ...prev, [ek]: true }));
-    if (sentenceIdx !== undefined && sentenceIdx !== null) setEditedSentences(prev => ({ ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }));
-    else setEditedFields(prev => ({ ...prev, [ek]: 'edited' }));
-    // Re-edit after approval → drop the section's 'approved' flag so the button goes back to yellow Pending Approve
-    setApprovedSections(prev => { if (!prev[`${sid}-${idx}`]) return prev; const n = { ...prev }; delete n[`${sid}-${idx}`]; return n; });
-    const store = readDrafts();
-    if (!store[rid]) store[rid] = {};
-    store[rid][fn] = nv;
-    writeDrafts(store);
-    setEditingField(null); setEditValue('');
-  }, [editValue]);
-
-  // Approve = COMMIT all staged drafts for this record/section to MongoDB, then clear pending so the
-  // committed values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
-  const handleApproveSection = useCallback(async (record, idx, sid) => {
-    const rid = getRecordId(record); if (!rid) return;
-    setSaving(true);
-    try {
-      const sf = SECTION_FIELDS[sid] || [];
-      const suffix = `-${idx}`;
-      const toCommit = Object.keys(localEdits).filter(k => pendingEdits[k] && k.endsWith(suffix) && sf.includes(k.slice(0, -suffix.length)));
-      const sc = (await import('../../../services/secureApiClient')).default;
-      for (const editKey of toCommit) {
-        const fieldPart = editKey.slice(0, -suffix.length);
-        await sc.put(`/api/edit/biologic_therapy/${rid}/edit`, { field: fieldPart, value: localEdits[editKey] });
-      }
-      await sc.put(`/api/edit/biologic_therapy/${rid}/approve`, { sectionId: sid, approved: true });
-      // Clear pending → committed edits now flow into pdfData/PDF
-      setPendingEdits(prev => { const next = { ...prev }; toCommit.forEach(k => delete next[k]); return next; });
-      // Drop this record's drafts for the committed fields from localStorage (now committed)
-      const store = readDrafts();
-      if (store[rid]) { toCommit.forEach(k => { delete store[rid][k.slice(0, -suffix.length)]; }); if (Object.keys(store[rid]).length === 0) delete store[rid]; writeDrafts(store); }
-      setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
-      setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { sf.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
-      setEditedSentences(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { sf.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
-    } catch (err) { console.error('[BiologicTherapy] Approve failed:', err); } finally { setSaving(false); }
-  }, [localEdits, pendingEdits]);
-
-  function reconstructFullText(ss) { return ss.map((s, i) => { const t = s.trim(); if (i < ss.length - 1 && !t.match(/[.!?;]$/)) return t + '.'; return t; }).join(' '); }
-  function saveSentence(record, fn, idx, sid, sIdx, newText) {
-    const cur = String(getFieldValue(record, fn, idx) || ''); const cs = splitBySentence(cur);
-    const cn = newText.trim(); const co = (cs[sIdx] || '').trim().replace(/[.!?;]+$/, '');
-    if (cn === co) { setEditingField(null); setEditValue(''); return; }
-    if (!cn || cn.replace(/[.!?;,]+/g, '').trim() === '') { cs.splice(sIdx, 1); setEditedSentences(prev => { const next = { ...prev }; Object.keys(next).forEach(k => { const m = k.match(new RegExp(`^${fn}-${idx}-s(\\d+)`)); if (m && parseInt(m[1], 10) >= sIdx) delete next[k]; }); return next; }); handleSaveField(record, fn, idx, sid, null, reconstructFullText(cs), `${fn}-${idx}`); return; }
-    let nt = cn; if (nt && !nt.match(/[.!?;]$/)) nt += '.'; cs[sIdx] = nt;
-    const ec = nt.split(/(?<=[.!?])\s+/).length - 1;
-    setEditedSentences(prev => { const n = { ...prev, [`${fn}-${idx}-s${sIdx}`]: 'edited' }; for (let e = 1; e <= ec; e++) n[`${fn}-${idx}-s${sIdx + e}`] = 'added'; return n; });
-    handleSaveField(record, fn, idx, sid, null, reconstructFullText(cs), `${fn}-${idx}`);
-  }
-
-  const highlightText = (text) => { if (!text) return ''; const str = String(text); if (!searchTerm.trim()) return str; const esc = searchTerm.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); const re = new RegExp(`(${esc})`, 'gi'); const p = str.split(re); if (p.length === 1) return str; return <>{p.map((x, i) => re.test(x) ? <mark key={i}>{x}</mark> : x)}</>; };
-  const phraseMatch = (text, term) => { if (!term.trim()) return true; return String(text || '').toLowerCase().includes(term.toLowerCase().trim()); };
-  const shouldShowSection = (record, title, contentParts, fieldNames) => { if (!searchTerm.trim()) return true; if (record._showAllSections) return true; const labels = (fieldNames || []).map(f => FIELD_LABELS[f] || f); const combined = [title, ...labels, ...(Array.isArray(contentParts) ? contentParts : [contentParts])].filter(Boolean).join(' '); return phraseMatch(combined, searchTerm); };
-  const sectionTitleMatches = (t) => searchTerm.trim() ? phraseMatch(t, searchTerm) : false;
-  const fieldMatches = (record, fn, idx) => { if (!searchTerm.trim()) return true; if (record._showAllSections) return true; const v = getFieldValue(record, fn, idx); const vText = Array.isArray(v) ? v.join(' ') : v; return phraseMatch(FIELD_LABELS[fn] || fn, searchTerm) || phraseMatch(vText, searchTerm); };
-
-  const filteredRecords = useMemo(() => {
-    if (!searchTerm.trim()) return records;
-    return records.filter((record, idx) => { const title = `Biologic Therapy ${idx + 1}`; const allText = [title, formatDate(record.date), formatDate(record.startDate), record.medicationName, record.indication, record.dose, record.route, record.frequency, record.response, record.priorAuthorization, record.baselineAssessment, Array.isArray(record.monitoringLabs) ? record.monitoringLabs.join(' ') : '', record.sideEffects, record.infusionReactions, record.continuationPlan, record.provider, record.facility, record.notes, ...Object.values(FIELD_LABELS), ...Object.values(SECTION_TITLES)].filter(Boolean).join(' '); const match = phraseMatch(allText, searchTerm); if (match && phraseMatch(title, searchTerm)) record._showAllSections = true; return match; });
-  }, [records, searchTerm]);
-
-  const sectionHasEdits = (idx, sid) => { const fs = SECTION_FIELDS[sid] || []; return fs.some(f => Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`)) || Object.keys(editedSentences).some(k => k.startsWith(`${f}-${idx}`))); };
-  const renderApproveButton = (idx, sid) => { const he = sectionHasEdits(idx, sid); const ia = approvedSections[`${sid}-${idx}`]; if (he) return <button className="approve-btn pending" onClick={(e) => { e.stopPropagation(); handleApproveSection(records[idx], idx, sid); }}>Pending Approve</button>; if (ia) return <span className="approve-btn approved">Approved</span>; return null; };
-
-  const renderEditableField = (record, fn, idx, sid, hideLabel) => {
-    const value = getFieldValue(record, fn, idx); if (!value && !localEdits[`${fn}-${idx}`]) return null;
-    const dv = String(value || ''); const ek = `${fn}-${idx}`; const ie = editingField === ek; const ed = editedFields[ek]; const cid = `row-${fn}-${idx}`;
-    // A single labeled value "X: y" → nested-subtitle = parsed label, row = value; reconstruct on save (lossless).
-    const p = parseLabel(dv);
-    // Numeric measurement (e.g. "90mg") → number stepper; the unit stays fixed. Labeled values are excluded.
-    const nu = p.isLabeled ? null : splitNumberUnit(dv);
-    const subtitle = p.isLabeled ? p.label : (hideLabel ? null : (FIELD_LABELS[fn] || fn));
-    const rowText = p.isLabeled ? p.value : dv; const editSeed = nu ? nu.number : (p.isLabeled ? p.value : dv);
-    const buildSave = (nv) => nu ? `${nu.prefix}${nv}${nu.sep}${nu.unit}` : (p.isLabeled ? `${p.label}: ${nv}` : nv);
-    const copyText = p.isLabeled ? `${p.label}: ${p.value}` : `${FIELD_LABELS[fn] || fn}: ${dv}`;
-    const useCard = !hideLabel || p.isLabeled;
-    if (ie) return (<div className={useCard ? 'rec-mini-card' : undefined}>{subtitle && <div className="nested-subtitle">{highlightText(subtitle)}</div>}<div className="edit-field-container">{nu ? (<div className="num-unit-edit">{nu.prefix && <span className="nu-affix">{nu.prefix}</span>}<input type="number" className="edit-number" step={nu.step} value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !(editValue === '' || isNaN(parseFloat(editValue)))) handleSaveField(record, fn, idx, sid, null, buildSave(editValue)); if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }} autoFocus disabled={saving} />{nu.unit && <span className="nu-affix">{nu.unit}</span>}</div>) : (<textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) handleSaveField(record, fn, idx, sid, null, buildSave(editValue)); if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }} autoFocus rows={2} disabled={saving} />)}<div className="edit-actions"><button className="save-btn" onClick={() => { if (nu && (editValue === '' || isNaN(parseFloat(editValue)))) return; handleSaveField(record, fn, idx, sid, null, buildSave(editValue)); }} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button></div></div></div>);
-    return (<div className={useCard ? 'rec-mini-card' : undefined}>{subtitle && <div className="nested-subtitle">{highlightText(subtitle)}</div>}<div className={`numbered-row editable-row${ed ? ' modified' : ''}`} onClick={() => { setEditingField(ek); setEditValue(editSeed); }}><div className="row-content"><span className="content-value">{highlightText(rowText)}</span>{!ed && <span className="edit-indicator">✎</span>}</div><button className={`copy-btn${copiedId === cid ? ' copied' : ''}`} onClick={(e) => { e.stopPropagation(); copyToClipboard(copyText, cid); }}>{copiedId === cid ? 'Copied' : 'Copy'}</button></div>{ed && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>);
-  };
-
-  const renderDateField = (record, fn, idx, sid, hideLabel) => {
-    const value = getFieldValue(record, fn, idx); if (!value && !localEdits[`${fn}-${idx}`]) return null;
-    const ek = `${fn}-${idx}`; const ie = editingField === ek; const ed = editedFields[ek]; const cid = `row-${fn}-${idx}`; const dv = formatDate(value);
-    if (ie) return (<div className={hideLabel ? undefined : 'rec-mini-card'}>{!hideLabel && <div className="nested-subtitle">{highlightText(FIELD_LABELS[fn] || fn)}</div>}<div className="edit-field-container"><input type="date" className="edit-date" value={editValue} onChange={e => setEditValue(e.target.value)} ref={el => { if (el) { try { el.showPicker(); } catch {} } }} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }} disabled={saving} /><div className="edit-actions"><button className="save-btn" onClick={() => { if (!editValue || isNaN(new Date(editValue).getTime())) return; handleSaveField(record, fn, idx, sid, null, editValue + 'T00:00:00.000Z'); }} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button></div></div></div>);
-    return (<div className={hideLabel ? undefined : 'rec-mini-card'}>{!hideLabel && <div className="nested-subtitle">{highlightText(FIELD_LABELS[fn] || fn)}</div>}<div className={`numbered-row editable-row${ed ? ' modified' : ''}`} onClick={() => { setEditingField(ek); setEditValue(toInputDate(value)); }}><div className="row-content"><span className="content-value">{highlightText(dv)}</span>{!ed && <span className="edit-indicator">✎</span>}</div><button className={`copy-btn${copiedId === cid ? ' copied' : ''}`} onClick={(e) => { e.stopPropagation(); copyToClipboard(`${FIELD_LABELS[fn] || fn}: ${dv}`, cid); }}>{copiedId === cid ? 'Copied' : 'Copy'}</button></div>{ed && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>);
-  };
-
-  // ARRAY field (monitoringLabs) — one nested-subtitle label, each item its own editable row.
-  const renderArrayField = (record, fn, idx, sid) => {
-    const value = getFieldValue(record, fn, idx); const arr = Array.isArray(value) ? value : [];
-    const items = arr.map((it, oi) => ({ text: String(it == null ? '' : it), _origIdx: oi })).filter(it => it.text.trim().length > 0);
-    if (items.length === 0) return null;
-    const label = FIELD_LABELS[fn] || fn; const ed = editedFields[`${fn}-${idx}`];
-    const vis = items.filter(item => { if (!searchTerm.trim() || record._showAllSections) return true; if (sectionTitleMatches(label)) return true; return phraseMatch(item.text, searchTerm); });
-    if (vis.length === 0) return null;
-    const saveItem = (itemIdx, newText) => { const cur = Array.isArray(getFieldValue(record, fn, idx)) ? [...getFieldValue(record, fn, idx)] : []; cur[itemIdx] = newText.trim(); const filtered = cur.filter(x => String(x).trim().length > 0); handleSaveField(record, fn, idx, sid, null, filtered, `${fn}-${idx}`); };
-    return (<div className="rec-mini-card"><div className="nested-subtitle">{highlightText(label)}</div>{vis.map(({ text, _origIdx: ii }) => {
-      const iKey = `${fn}-${idx}-a${ii}`; const ie = editingField === iKey; const cid = `row-${fn}-${idx}-${ii}`;
-      if (ie) return (<div key={ii} className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) saveItem(ii, editValue); if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }} autoFocus rows={1} disabled={saving} /><div className="edit-actions"><button className="save-btn" onClick={() => saveItem(ii, editValue)} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button></div></div>);
-      return (<div key={ii} className={`numbered-row editable-row${ed ? ' modified' : ''}`} onClick={() => { setEditingField(iKey); setEditValue(text); }}><div className="row-content"><span className="content-value">{highlightText(text)}</span>{!ed && <span className="edit-indicator">✎</span>}</div><button className={`copy-btn${copiedId === cid ? ' copied' : ''}`} onClick={(e) => { e.stopPropagation(); copyToClipboard(text, cid); }}>{copiedId === cid ? 'Copied' : 'Copy'}</button></div>);
-    })}{ed && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>);
-  };
-
-  const renderSentenceEditableField = (record, fn, idx, sid, hideLabel) => {
-    const value = getFieldValue(record, fn, idx); if (!value) return null;
-    const ss = splitBySentence(String(value)); if (ss.length <= 1) return renderEditableField(record, fn, idx, sid, hideLabel);
-    const label = FIELD_LABELS[fn] || fn;
-    const vis = ss.map((s, oi) => ({ text: s, _origIdx: oi })).filter(item => { if (!searchTerm.trim() || record._showAllSections) return true; if (sectionTitleMatches(label)) return true; return phraseMatch(item.text, searchTerm); });
-    if (vis.length === 0) return null;
-    return (<>{vis.map(({ text, _origIdx: sIdx }, vi) => { const sk = `${fn}-${idx}-s${sIdx}`; const ie = editingField === sk; const es = editedSentences[sk]; const scid = `row-${fn}-${idx}-s${sIdx}`; const p = parseLabel(text); const showLabel = vi === 0 && !hideLabel;
-      if (ie) return (<div key={sIdx} className="rec-mini-card">{showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}<div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) saveSentence(record, fn, idx, sid, sIdx, editValue); if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }} autoFocus rows={2} disabled={saving} /><div className="edit-actions"><button className="save-btn" onClick={() => saveSentence(record, fn, idx, sid, sIdx, editValue)} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button></div></div></div>);
-      return (<div key={sIdx} className="rec-mini-card">{showLabel && <div className="nested-subtitle">{highlightText(label)}</div>}{p.isLabeled && <div className="nested-subtitle">{highlightText(p.label)}</div>}<div className={`numbered-row editable-row${es ? ' modified' : ''}`} onClick={() => { setEditingField(sk); setEditValue(text.replace(/[.!?;]+$/, '')); }}><div className="row-content"><span className="content-value">{highlightText(p.isLabeled ? p.value : text)}</span>{!es && <span className="edit-indicator">✎</span>}</div><button className={`copy-btn${copiedId === scid ? ' copied' : ''}`} onClick={(e) => { e.stopPropagation(); copyToClipboard(text, scid); }}>{copiedId === scid ? 'Copied' : 'Copy'}</button></div>{es && <div className={`modified-badge${es === 'added' ? ' added' : ''}`}>{es === 'added' ? 'added - click Pending Approve to save' : 'edited - click Pending Approve to save'}</div>}</div>);
-    })}</>);
-  };
-
-  // Type-dispatched field renderer.
-  const renderField = (record, fn, idx, sid, hideLabel) => {
-    if (DATE_FIELDS.includes(fn)) return renderDateField(record, fn, idx, sid, hideLabel);
-    if (ARRAY_FIELDS.includes(fn)) return renderArrayField(record, fn, idx, sid);
-    if (SENTENCE_FIELDS.includes(fn)) return renderSentenceEditableField(record, fn, idx, sid, hideLabel);
-    return renderEditableField(record, fn, idx, sid, hideLabel);
-  };
-
-  const pdfData = useMemo(() => {
-    if (Object.keys(localEdits).length === 0) return records;
-    return records.map((record, idx) => { const m = { ...record }; Object.keys(localEdits).forEach(key => { if (pendingEdits[key]) return; const ld = key.lastIndexOf('-'); if (ld === -1) return; const fn = key.substring(0, ld); const ri = parseInt(key.substring(ld + 1), 10); if (ri === idx && fn in record) m[fn] = localEdits[key]; }); return m; });
-  }, [records, localEdits, pendingEdits]);
-
-  // Copy a field reflecting the JSX nested-subtitle: a labeled sentence "X: y" → nested (label line + indented
-  // value), plain multi-sentence → numbered, plain single value → "Label: value".
-  const formatFieldForCopy = (label, value) => {
-    const sv = String(value); const ss = splitBySentence(sv);
-    if (ss.length > 1) {
-      if (ss.some(s => parseLabel(s).isLabeled)) { let t = `${label}:\n`; ss.forEach(s => { const p = parseLabel(s); t += p.isLabeled ? `  ${p.label}:\n    ${p.value}\n` : `  ${s}\n`; }); return t; }
-      let t = `${label}:\n`; ss.forEach((s, i) => { t += `  ${i + 1}. ${s}\n`; }); return t;
-    }
-    const p = parseLabel(sv);
-    if (p.isLabeled) return `${label}:\n  ${p.label}:\n    ${p.value}\n`;
-    return `${label}:\n  ${sv}\n`;
-  };
-  const formatArrayForCopy = (label, arr) => { const items = (Array.isArray(arr) ? arr : []).filter(x => String(x).trim()); if (items.length === 0) return ''; let t = `${label}:\n`; items.forEach((it, i) => { t += `  ${i + 1}. ${it}\n`; }); return t; };
-  // Simple (non-narrative) fields are NEVER sentence-split (a provider like "Dr. A. Lee, MD" must stay one line).
-  const formatSimpleForCopy = (label, value) => { const p = parseLabel(String(value)); if (p.isLabeled) return `${label}:\n  ${p.label}:\n    ${p.value}\n`; return `${label}:\n  ${String(value)}\n`; };
-  const appendFieldCopy = (text, pr, f) => {
-    const l = FIELD_LABELS[f] || f;
-    if (ARRAY_FIELDS.includes(f)) return text + formatArrayForCopy(l, pr[f]);
-    if (DATE_FIELDS.includes(f)) { const dv = formatDate(pr[f]); return dv ? text + `${l}:\n  ${dv}\n` : text; }
-    const v = pr[f];
-    if (v === null || v === undefined || String(v).trim() === '') return text;
-    return text + (SENTENCE_FIELDS.includes(f) ? formatFieldForCopy(l, v) : formatSimpleForCopy(l, v));
-  };
-  const copySectionText = (record, idx, sid) => { const pr = pdfData[idx] || record; const fs = SECTION_FIELDS[sid] || []; let text = `${SECTION_TITLES[sid] || sid}\n`; fs.forEach(f => { text = appendFieldCopy(text, pr, f); }); copyToClipboard(text.trim(), `section-${sid}-${idx}`); };
-  const copyAllContent = () => { let text = '=== BIOLOGIC THERAPY ===\n\n'; pdfData.forEach((r, idx) => { if (idx > 0) text += '\n' + '='.repeat(60) + '\n\n'; text += `Biologic Therapy ${idx + 1}\n`; if (r.date) text += `Date: ${formatDate(r.date)}\n`; text += '\n'; Object.entries(SECTION_FIELDS).forEach(([, fs]) => { fs.forEach(f => { text = appendFieldCopy(text, r, f); }); }); }); copyToClipboard(text.trim(), 'copy-all'); };
-
-  const renderSection = (record, idx, sid, title, children) => { if (!children) return null; return (<div className="section"><div className="mini-cards-container"><div className="section-header"><h4 className="section-title">{highlightText(title)}</h4><div className="header-right-actions"><button className={`copy-btn${copiedId === `section-${sid}-${idx}` ? ' copied' : ''}`} onClick={() => copySectionText(record, idx, sid)}>{copiedId === `section-${sid}-${idx}` ? 'Copied' : 'Copy Section'}</button>{renderApproveButton(idx, sid)}</div></div>{children}</div></div>); };
-
-  // A section is rendered iff at least one of its fields has a value; the single-field narrative sections
-  // hide the duplicate field label (section title == field label).
-  const renderConfiguredSection = (record, idx, sid) => {
-    const fs = SECTION_FIELDS[sid] || []; const title = SECTION_TITLES[sid] || sid;
-    const hasData = fs.some(f => { const v = getFieldValue(record, f, idx); return Array.isArray(v) ? v.filter(x => String(x).trim()).length > 0 : (v !== null && v !== undefined && String(v).trim() !== ''); });
-    if (!hasData) return null;
-    const contentParts = fs.map(f => { const v = getFieldValue(record, f, idx); return DATE_FIELDS.includes(f) ? formatDate(record[f]) : (Array.isArray(v) ? v.join(' ') : v); }).filter(Boolean);
-    if (!shouldShowSection(record, title, contentParts, fs)) return null;
-    const stm = sectionTitleMatches(title); const sa = !searchTerm.trim() || record._showAllSections || stm;
-    const hideLabel = fs.length === 1 && (FIELD_LABELS[fs[0]] || fs[0]) === title;
-    const children = fs.map(f => (sa || fieldMatches(record, f, idx)) ? <React.Fragment key={f}>{renderField(record, f, idx, sid, hideLabel)}</React.Fragment> : null).filter(Boolean);
-    if (children.length === 0) return null;
-    return renderSection(record, idx, sid, title, <>{children}</>);
-  };
-
-  if (!filteredRecords || filteredRecords.length === 0) return (<article className="biologic-therapy-document"><header className="document-header"><h1 className="document-title">Biologic Therapy</h1></header><SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} /><div className="empty-state">No data available.</div></article>);
-
-  return (
-    <article className="biologic-therapy-document">
-      <header className="document-header">
-        <h1 className="document-title">Biologic Therapy</h1>
-        <div className="header-actions">
-          <button className={`copy-btn${copiedId === 'copy-all' ? ' copied' : ''}`} onClick={copyAllContent}>{copiedId === 'copy-all' ? 'Copied' : 'Copy All'}</button>
-          <PDFDownloadLink document={<BiologicTherapyDocumentPDFTemplate document={pdfData} />} fileName="Biologic_Therapy.pdf">
-            {({ loading }) => <button className="copy-btn">{loading ? 'Preparing...' : 'Export PDF'}</button>}
-          </PDFDownloadLink>
-        </div>
-      </header>
-      <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
-      <div className="records-container">
-        {filteredRecords.map((record, idx) => (
-          <div key={idx} className="record-card">
-            <div className="record-header">
-              <div className="record-meta-row">{record.date && <span className="record-date">{highlightText(formatDate(record.date))}</span>}</div>
-              <div className="record-title-row"><h3 className="record-name">{highlightText(`Biologic Therapy ${idx + 1}`)}</h3></div>
-            </div>
-            {Object.keys(SECTION_FIELDS).map(sid => <React.Fragment key={sid}>{renderConfiguredSection(record, idx, sid)}</React.Fragment>)}
-          </div>
-        ))}
-      </div>
-    </article>
-  );
-};
-
+export { COMMA_ARRAY_FIELDS, COMMA_SPLIT_FIELDS, splitClauses };
 export default BiologicTherapyDocument;

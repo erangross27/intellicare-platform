@@ -25,7 +25,7 @@ const ALLOWED_FIELDS = [
   'immediatePostpartum.cordBloodBanking', 'immediatePostpartum.placentaPreference',
   'feedingPlan', 'circumcisionPreference', 'visitorsPolicy',
   'religiousCulturalPreferences', 'provider', 'facility', 'status',
-  'findings', 'assessment', 'plan', 'recommendations', 'results', 'notes',
+  'findings', 'assessment', 'plan', 'recommendations', 'results', 'notes', 'type', 'additionalData',
 ];
 
 router.put('/:id/edit', async (req, res) => {

@@ -1,120 +1,78 @@
-/**
- * BirthPlanDocumentPDFTemplate.jsx
- * Helvetica 20/16/14/12pt, numbered items, conditional wrap, B&W only (#000000 + grayscale).
- * Renders all 18 non-system fields incl. findings, assessment, plan, results (object),
- * recommendations (array), date (header).
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'birth_plan';
+const COMMA_SPLIT_FIELDS = ['notes'];
+const ARRAY_FIELDS = new Set(['painManagement', 'laborSupport', 'religiousCulturalPreferences', 'recommendations']);
+const OBJECT_FIELDS = new Set(['immediatePostpartum', 'results', 'additionalData']);
+const NARRATIVE_FIELDS = new Set(['findings', 'assessment', 'plan', 'notes']);
+const DATE_FIELDS = new Set(['date']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  date: 'Date', type: 'Type', status: 'Status', provider: 'Provider', facility: 'Facility',
+  deliveryPreference: 'Delivery Preference', painManagement: 'Pain Management',
+  laborSupport: 'Labor Support', immediatePostpartum: 'Immediate Postpartum',
+  feedingPlan: 'Feeding Plan', circumcisionPreference: 'Circumcision Preference',
+  visitorsPolicy: 'Visitors Policy', religiousCulturalPreferences: 'Religious and Cultural Preferences',
+  findings: 'Findings', assessment: 'Assessment', plan: 'Plan', recommendations: 'Recommendations',
+  results: 'Results', notes: 'Notes', additionalData: 'Additional Data',
+};
+const SECTIONS = [
+  { title: 'Date', fields: ['date'] },
+  { title: 'Record Information', fields: ['provider', 'facility'] },
+  { title: 'Record Details', fields: ['type', 'status'] },
+  { title: 'Delivery Preferences', fields: ['deliveryPreference', 'feedingPlan', 'circumcisionPreference', 'visitorsPolicy'] },
+  { title: 'Pain Management', fields: ['painManagement'] },
+  { title: 'Labor Support', fields: ['laborSupport'] },
+  { title: 'Immediate Postpartum', fields: ['immediatePostpartum'] },
+  { title: 'Religious and Cultural Preferences', fields: ['religiousCulturalPreferences'] },
+  { title: 'Findings', fields: ['findings'] },
+  { title: 'Assessment', fields: ['assessment'] },
+  { title: 'Plan', fields: ['plan'] },
+  { title: 'Recommendations', fields: ['recommendations'] },
+  { title: 'Results', fields: ['results'] },
+  { title: 'Notes', fields: ['notes'] },
+  { title: 'Additional Data', fields: ['additionalData'] },
+];
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 14, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 8, textTransform: 'uppercase', letterSpacing: 1, color: '#000000' },
-  recordSection: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 6, backgroundColor: '#f0f0f0', padding: 6, borderWidth: 1, borderColor: '#000000', color: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 2, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 10, marginTop: 4 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4, color: '#000000' },
-  subSectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 3, marginTop: 6, paddingLeft: 4 },
-  nestedSubTitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 2, marginTop: 3, paddingLeft: 16 },
-  listItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 3, color: '#000000' },
-  nestedItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 24, marginBottom: 3, color: '#000000' },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
-  return false;
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-const isScalar = (v) => v === null || typeof v !== 'object';
-const humanizeKey = (key) => {
-  const OV = { skinToSkin: 'Skin to Skin', delayedCordClamping: 'Delayed Cord Clamping', cordBloodBanking: 'Cord Blood Banking', placentaPreference: 'Placenta Preference' };
-  if (OV[key]) return OV[key];
-  const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  return s.charAt(0).toUpperCase() + s.slice(1);
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-// Render a (possibly nested) object as label/value lines
-const renderObjectLines = (value, depth) => {
-  if (isScalar(value)) return null;
-  return Object.entries(value).filter(([, v]) => !isEmptyDeep(v)).map(([k, v]) => {
-    if (isScalar(v)) {
-      return (
-        <React.Fragment key={k}>
-          <Text style={depth > 0 ? styles.nestedSubTitle : styles.subSectionTitle}>{humanizeKey(k)}</Text>
-          <Text style={depth > 0 ? styles.nestedItem : styles.listItem}>{fmtScalar(v)}</Text>
-        </React.Fragment>
-      );
-    }
-    return (
-      <React.Fragment key={k}>
-        <Text style={depth > 0 ? styles.nestedSubTitle : styles.subSectionTitle}>{humanizeKey(k)}</Text>
-        {renderObjectLines(v, depth + 1)}
-      </React.Fragment>
-    );
-  });
+const BirthPlanDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Birth Plan</Text><Text style={styles.noData}>No birth plan data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Birth Plan</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Birth Plan {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
-const BirthPlanDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => { if (r?.birth_plan) return Array.isArray(r.birth_plan) ? r.birth_plan : [r.birth_plan]; if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.birth_plan) return Array.isArray(dd.birth_plan) ? dd.birth_plan : [dd.birth_plan]; return [dd]; } return r; });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Birth Plan</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Birth Plan</Text>
-        {records.map((record, idx) => {
-          const pp = record.immediatePostpartum;
-          const rs = record.results;
-          const painItems = Array.isArray(record.painManagement) ? record.painManagement.filter(Boolean) : [];
-          const laborItems = Array.isArray(record.laborSupport) ? record.laborSupport.filter(Boolean) : [];
-          const rcpItems = Array.isArray(record.religiousCulturalPreferences) ? record.religiousCulturalPreferences.filter(Boolean) : [];
-          const recItems = Array.isArray(record.recommendations) ? record.recommendations.filter(r => !isEmptyDeep(r)) : [];
-          const countSentences = (t) => (typeof t === 'string' ? t.split(/[.;]\s+/).filter(Boolean).length : 0);
-          const clinicalRows = countSentences(record.findings) + countSentences(record.assessment) + countSentences(record.plan) + (rs && !isEmptyDeep(rs) ? Object.keys(rs).length : 0);
-          const notesRows = countSentences(record.notes);
-          return (
-            <View key={idx} style={styles.recordSection}>
-              <View wrap={false}><Text style={styles.recordTitle}>{`Birth Plan ${idx + 1}`}</Text>{(record.date || record.createdAt) && <Text style={styles.recordMeta}>{formatDate(record.date || record.createdAt)}</Text>}</View>
-
-              {(record.date || record.provider || record.facility || record.status) && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Plan Information</Text>{record.date && <><Text style={styles.subSectionTitle}>Date</Text><Text style={styles.listItem}>{formatDate(record.date)}</Text></>}{record.provider && <><Text style={styles.subSectionTitle}>Provider</Text><Text style={styles.listItem}>{record.provider}</Text></>}{record.facility && <><Text style={styles.subSectionTitle}>Facility</Text><Text style={styles.listItem}>{record.facility}</Text></>}{record.status && <><Text style={styles.subSectionTitle}>Status</Text><Text style={styles.listItem}>{record.status}</Text></>}</View>)}
-
-              {record.deliveryPreference && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Delivery Preferences</Text><Text style={styles.subSectionTitle}>Delivery Preference</Text><Text style={styles.listItem}>{record.deliveryPreference}</Text></View>)}
-
-              {painItems.length > 0 && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Pain Management</Text>{painItems.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>)}</View>)}
-
-              {laborItems.length > 0 && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Labor Support</Text>{laborItems.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>)}</View>)}
-
-              {pp && !isEmptyDeep(pp) && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Immediate Postpartum</Text>{renderObjectLines(pp, 0)}</View>)}
-
-              {(record.feedingPlan || record.circumcisionPreference) && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Feeding & Newborn Care</Text>{record.feedingPlan && <><Text style={styles.subSectionTitle}>Feeding Plan</Text><Text style={styles.listItem}>{record.feedingPlan}</Text></>}{record.circumcisionPreference && <><Text style={styles.subSectionTitle}>Circumcision Preference</Text><Text style={styles.listItem}>{record.circumcisionPreference}</Text></>}</View>)}
-
-              {(record.visitorsPolicy || rcpItems.length > 0) && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Visitors & Cultural</Text>{record.visitorsPolicy && <><Text style={styles.subSectionTitle}>Visitors Policy</Text><Text style={styles.listItem}>{record.visitorsPolicy}</Text></>}{rcpItems.length > 0 && <><Text style={styles.subSectionTitle}>Religious/Cultural Preferences</Text>{rcpItems.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>)}</>}</View>)}
-
-              {(record.findings || record.assessment || record.plan || (rs && !isEmptyDeep(rs))) && (<View style={styles.fieldContainer} wrap={clinicalRows > 8 ? undefined : false}><Text style={styles.sectionTitle}>Clinical Summary</Text>{record.findings && <><Text style={styles.subSectionTitle}>Findings</Text><Text style={styles.listItem}>{record.findings}</Text></>}{record.assessment && <><Text style={styles.subSectionTitle}>Assessment</Text><Text style={styles.listItem}>{record.assessment}</Text></>}{record.plan && <><Text style={styles.subSectionTitle}>Plan</Text><Text style={styles.listItem}>{record.plan}</Text></>}{rs && !isEmptyDeep(rs) && <><Text style={styles.subSectionTitle}>Results</Text>{renderObjectLines(rs, 1)}</>}</View>)}
-
-              {recItems.length > 0 && (<View style={styles.fieldContainer} wrap={recItems.length > 8 ? undefined : false}><Text style={styles.sectionTitle}>Recommendations</Text>{recItems.map((r, i) => { const isObj = r && typeof r === 'object'; const t = isObj ? (r.recommendation || '') : String(r || ''); const d = isObj && r.date ? ` (${formatDate(r.date)})` : ''; return <Text key={i} style={styles.listItem}>{i + 1}. {t}{d}</Text>; })}</View>)}
-
-              {record.notes && (<View style={styles.fieldContainer} wrap={notesRows > 8 ? undefined : false}><Text style={styles.sectionTitle}>Notes</Text><Text style={styles.listItem}>{record.notes}</Text></View>)}
-            </View>
-          );
-        })}
-      </Page>
-    </Document>
-  );
-};
-
 export default BirthPlanDocumentPDFTemplate;

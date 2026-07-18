@@ -1,325 +1,78 @@
-/**
- * BronchialHygieneTherapyDocumentPDFTemplate.jsx
- * March 2026 -- Helvetica 26/20/19/15pt (large) -- LETTER size -- bronchial hygiene therapy
- * Collection: bronchial_hygiene_therapy
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'bronchial_hygiene_therapy';
+const COMMA_SPLIT_FIELDS = ['sputumCharacteristics'];
+const ARRAY_FIELDS = new Set(['posturalDrainagePositions']);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set(['sputumCharacteristics']);
+const DATE_FIELDS = new Set(['therapyDate']);
+const ZERO_SENTINEL_FIELDS = new Set(['postTherapySpO2', 'mieInsufflationPressureCmH2O', 'mieExsufflationPressureCmH2O', 'postTherapyPeakCoughFlowLPM']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  therapyDate: 'Therapy Date', primaryIndication: 'Primary Indication', baselineSpO2: 'Baseline SpO2', postTherapySpO2: 'Post-Therapy SpO2',
+  chestPhysiotherapyTechnique: 'Chest Physiotherapy Technique', posturalDrainagePositions: 'Postural Drainage Positions',
+  percussionDurationMinutes: 'Percussion Duration (Minutes)', highFrequencyChestWallOscillation: 'High Frequency Chest Wall Oscillation',
+  hfcwoFrequencyHz: 'HFCWO Frequency (Hz)', hfcwoPressureLevel: 'HFCWO Pressure Level',
+  positiveExpiratoryPressureDevice: 'Positive Expiratory Pressure Device', pepPressureRangeCmH2O: 'PEP Pressure Range (cmH2O)',
+  activeBreathingCycleCompleted: 'Active Breathing Cycle Completed', autogenicDrainagePhase: 'Autogenic Drainage Phase',
+  mechanicalInsufflationExsufflation: 'Mechanical Insufflation-Exsufflation', mieInsufflationPressureCmH2O: 'MIE Insufflation Pressure (cmH2O)',
+  mieExsufflationPressureCmH2O: 'MIE Exsufflation Pressure (cmH2O)', sputumCharacteristics: 'Sputum Characteristics', sputumVolumeML: 'Sputum Volume (mL)',
+  preTherapyPeakCoughFlowLPM: 'Pre-Therapy Peak Cough Flow (LPM)', postTherapyPeakCoughFlowLPM: 'Post-Therapy Peak Cough Flow (LPM)',
+  auscultationFindingsPreTherapy: 'Auscultation Findings Pre-Therapy', auscultationFindingsPostTherapy: 'Auscultation Findings Post-Therapy',
+  nebulizedMucolyticAgent: 'Nebulized Mucolytic Agent', bronchodilatorPretreatment: 'Bronchodilator Pretreatment', therapyToleranceScore: 'Therapy Tolerance Score',
+};
+const SECTIONS = [
+  { title: 'Session', fields: ['therapyDate', 'primaryIndication', 'therapyToleranceScore'] },
+  { title: 'Oxygenation', fields: ['baselineSpO2', 'postTherapySpO2'] },
+  { title: 'Chest Physiotherapy', fields: ['chestPhysiotherapyTechnique', 'percussionDurationMinutes'] },
+  { title: 'Postural Drainage Positions', fields: ['posturalDrainagePositions'] },
+  { title: 'HFCWO', fields: ['highFrequencyChestWallOscillation', 'hfcwoFrequencyHz', 'hfcwoPressureLevel'] },
+  { title: 'PEP and Breathing', fields: ['positiveExpiratoryPressureDevice', 'pepPressureRangeCmH2O', 'activeBreathingCycleCompleted', 'autogenicDrainagePhase'] },
+  { title: 'Mechanical Insufflation-Exsufflation', fields: ['mechanicalInsufflationExsufflation', 'mieInsufflationPressureCmH2O', 'mieExsufflationPressureCmH2O'] },
+  { title: 'Sputum and Cough', fields: ['sputumCharacteristics', 'sputumVolumeML', 'preTherapyPeakCoughFlowLPM', 'postTherapyPeakCoughFlowLPM'] },
+  { title: 'Auscultation', fields: ['auscultationFindingsPreTherapy', 'auscultationFindingsPostTherapy'] },
+  { title: 'Medications', fields: ['nebulizedMucolyticAgent', 'bronchodilatorPretreatment'] },
+];
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 15, lineHeight: 1.5, backgroundColor: '#ffffff' },
-  documentHeader: { marginBottom: 24, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', color: '#1f2937', textAlign: 'center', marginBottom: 4 },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#000000', borderBottomStyle: 'solid' },
-  recordTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1f2937' },
-  recordMeta: { fontSize: 14, color: '#6b7280', marginTop: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 8 },
-  fieldBox: { marginBottom: 10 },
-  fieldLabel: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333333', marginBottom: 2 },
-  fieldValue: { fontSize: 15, lineHeight: 1.5, color: '#000000' },
-  listItem: { fontSize: 15, lineHeight: 1.5, color: '#000000', marginBottom: 2, paddingLeft: 8 },
-  nestedSubtitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 3 },
-  separator: { marginTop: 20, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' },
-  noDataText: { fontSize: 15, color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-/* ======= UTILS ======= */
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr.$date || dateStr);
-    if (isNaN(date.getTime())) return String(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return String(dateStr); }
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (typeof val === 'object' && val.$date) return formatDate(val.$date);
-  return String(val);
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => { const parsed = typeof item === 'string' ? parseLabel(item) : { subtitle: '', value: item }; return parsed.subtitle ? { subtitle: parsed.subtitle, value: parsed.value } : { subtitle: '', value: displayValue(item) }; }); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-const hasVal = (v) => {
-  if (v === null || v === undefined || v === '') return false;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
-  if (typeof v === 'string') return v.trim() !== '';
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.keys(v).length > 0;
-  return true;
+const BronchialHygieneTherapyDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Bronchial Hygiene Therapy</Text><Text style={styles.noData}>No bronchial hygiene therapy data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Bronchial Hygiene Therapy</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Bronchial Hygiene Therapy {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
-const fmtVal = (v) => {
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (typeof v === 'number') return String(v);
-  return String(v || '');
-};
-
-const splitBySentence = (text) => {
-  if (!text || typeof text !== 'string') return [];
-  return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))\.(?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s));
-};
-
-const parseLabel = (text) => {
-  if (!text || typeof text !== 'string') return { isLabeled: false, label: '', value: text || '' };
-  const m = text.match(/^([A-Za-z][A-Za-z0-9\s/&(),.#'"-]{1,60}?):\s+([\s\S]*)/);
-  if (m) return { isLabeled: true, label: m[1].trim(), value: m[2].trim() };
-  return { isLabeled: false, label: '', value: text };
-};
-
-const splitByComma = (text) => {
-  if (!text || typeof text !== 'string') return [text || ''];
-  const result = []; let current = ''; let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '(' || ch === '"' || ch === "'") { depth++; current += ch; }
-    else if (ch === ')' || (depth > 0 && (ch === '"' || ch === "'"))) { depth = Math.max(0, depth - 1); current += ch; }
-    else if (ch === ',' && depth === 0) { const t = current.trim(); if (t) result.push(t); current = ''; }
-    else { current += ch; }
-  }
-  const t = current.trim(); if (t) result.push(t);
-  return result.length > 0 ? result : [text];
-};
-
-/* renderFieldRow: label + value inside fieldBox */
-const renderFieldRow = (label, value, sectionTitle) => {
-  if (!hasVal(value)) return null;
-  return (
-    <View style={styles.fieldBox} wrap={false}>
-      {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{safeString(fmtVal(value))}</Text>
-    </View>
-  );
-};
-
-/* renderSentenceField: parseLabel + comma-split with sequential counter */
-const renderSentenceField = (label, text, counterRef, sectionTitle) => {
-  if (!hasVal(text)) return null;
-  if (typeof text !== 'string') {
-    return renderFieldRow(label, text, sectionTitle);
-  }
-  const sentences = splitBySentence(fmtVal(text));
-  if (sentences.length === 0) return null;
-
-  const rows = [];
-  sentences.forEach(s => {
-    const parsed = parseLabel(s);
-    if (parsed.isLabeled) {
-      const commaItems = splitByComma(parsed.value);
-      if (commaItems.length >= 2) {
-        rows.push({ type: 'subtitle', text: safeString(parsed.label) });
-        commaItems.forEach(ci => { rows.push({ type: 'item', text: safeString(ci), num: counterRef.n++ }); });
-      } else {
-        rows.push({ type: 'item', text: safeString(s), num: counterRef.n++ });
-      }
-    } else {
-      rows.push({ type: 'item', text: safeString(s), num: counterRef.n++ });
-    }
-  });
-
-  const wrapProp = rows.length > 8 ? undefined : false;
-
-  return (
-    <View style={styles.fieldBox} wrap={wrapProp}>
-      {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {rows.map((row, i) => {
-        if (row.type === 'subtitle') {
-          return <Text key={i} style={styles.nestedSubtitle}>{row.text}</Text>;
-        }
-        return <Text key={i} style={styles.listItem}>{row.num}. {row.text}</Text>;
-      })}
-    </View>
-  );
-};
-
-/* renderArrayField */
-const renderArrayField = (label, items, counterRef, sectionTitle) => {
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const safeItems = items.filter(Boolean);
-  if (safeItems.length === 0) return null;
-
-  return (
-    <View style={styles.fieldBox} wrap={safeItems.length > 8 ? undefined : false}>
-      {sectionTitle && <Text style={styles.sectionTitle}>{sectionTitle}</Text>}
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {safeItems.map((item, i) => (
-        <Text key={i} style={styles.listItem}>{counterRef.n++}. {safeString(item)}</Text>
-      ))}
-    </View>
-  );
-};
-
-/* ======= COMPONENT ======= */
-const BronchialHygieneTherapyDocumentPDFTemplate = ({ document: data }) => {
-  const records = React.useMemo(() => {
-    if (!data) return [];
-    let arr = Array.isArray(data) ? data : [data];
-    arr = arr.flatMap(r => {
-      if (r?.bronchial_hygiene_therapy) return Array.isArray(r.bronchial_hygiene_therapy) ? r.bronchial_hygiene_therapy : [r.bronchial_hygiene_therapy];
-      if (r?.documentData) {
-        const dd = r.documentData;
-        if (Array.isArray(dd)) return dd;
-        if (dd?.bronchial_hygiene_therapy) return Array.isArray(dd.bronchial_hygiene_therapy) ? dd.bronchial_hygiene_therapy : [dd.bronchial_hygiene_therapy];
-        return [dd];
-      }
-      return [r];
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [data]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="LETTER" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Bronchial Hygiene Therapy</Text>
-          </View>
-          <Text style={styles.noDataText}>No data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* Document Header */}
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Bronchial Hygiene Therapy</Text>
-        </View>
-
-        {records.map((record, index) => {
-          const ctr = { n: 1 };
-
-          return (
-            <View key={index} style={styles.recordContainer}>
-              {index > 0 && <View style={styles.separator} />}
-
-              {/* Record Header */}
-              <View style={styles.recordHeader} wrap={false}>
-                <Text style={styles.recordTitle}>{`Bronchial Hygiene Therapy ${index + 1}`}</Text>
-                {record.therapyDate && <Text style={styles.recordMeta}>{formatDate(record.therapyDate)}</Text>}
-                {record.createdAt && <Text style={styles.recordMeta}>{formatDate(record.createdAt)}</Text>}
-              </View>
-
-              {/* 1. Session Information */}
-              {(hasVal(record.therapyDate) || hasVal(record.primaryIndication) || hasVal(record.baselineSpO2) || hasVal(record.postTherapySpO2)) && (() => {
-                let st = 'Session Information';
-                const g = () => { const v = st; st = undefined; return v; };
-                return (
-                  <View style={styles.section}>
-                    {hasVal(record.therapyDate) && renderFieldRow('Therapy Date', formatDate(record.therapyDate), g())}
-                    {hasVal(record.primaryIndication) && renderSentenceField('Primary Indication', record.primaryIndication, ctr, g())}
-                    {hasVal(record.baselineSpO2) && renderFieldRow('Baseline SpO2', record.baselineSpO2, g())}
-                    {hasVal(record.postTherapySpO2) && renderFieldRow('Post-Therapy SpO2', record.postTherapySpO2, g())}
-                  </View>
-                );
-              })()}
-
-              {/* 2. Chest Physiotherapy */}
-              {(hasVal(record.chestPhysiotherapyTechnique) || hasVal(record.posturalDrainagePositions) || hasVal(record.percussionDurationMinutes)) && (() => {
-                let st = 'Chest Physiotherapy';
-                const g = () => { const v = st; st = undefined; return v; };
-                return (
-                  <View style={styles.section}>
-                    {hasVal(record.chestPhysiotherapyTechnique) && renderSentenceField('Chest Physiotherapy Technique', record.chestPhysiotherapyTechnique, ctr, g())}
-                    {hasVal(record.posturalDrainagePositions) && renderArrayField('Postural Drainage Positions', record.posturalDrainagePositions, ctr, g())}
-                    {hasVal(record.percussionDurationMinutes) && renderFieldRow('Percussion Duration (minutes)', record.percussionDurationMinutes, g())}
-                  </View>
-                );
-              })()}
-
-              {/* 3. HFCWO */}
-              {(hasVal(record.highFrequencyChestWallOscillation) || hasVal(record.hfcwoFrequencyHz) || hasVal(record.hfcwoPressureLevel)) && (() => {
-                let st = 'High-Frequency Chest Wall Oscillation';
-                const g = () => { const v = st; st = undefined; return v; };
-                return (
-                  <View style={styles.section}>
-                    {hasVal(record.highFrequencyChestWallOscillation) && renderFieldRow('HFCWO Performed', record.highFrequencyChestWallOscillation, g())}
-                    {hasVal(record.hfcwoFrequencyHz) && renderFieldRow('HFCWO Frequency (Hz)', record.hfcwoFrequencyHz, g())}
-                    {hasVal(record.hfcwoPressureLevel) && renderFieldRow('HFCWO Pressure Level', record.hfcwoPressureLevel, g())}
-                  </View>
-                );
-              })()}
-
-              {/* 4. PEP & Breathing Techniques */}
-              {(hasVal(record.positiveExpiratoryPressureDevice) || hasVal(record.pepPressureRangeCmH2O) || hasVal(record.activeBreathingCycleCompleted) || hasVal(record.autogenicDrainagePhase)) && (() => {
-                let st = 'PEP & Breathing Techniques';
-                const g = () => { const v = st; st = undefined; return v; };
-                return (
-                  <View style={styles.section}>
-                    {hasVal(record.positiveExpiratoryPressureDevice) && renderSentenceField('PEP Device', record.positiveExpiratoryPressureDevice, ctr, g())}
-                    {hasVal(record.pepPressureRangeCmH2O) && renderSentenceField('PEP Pressure Range (cmH2O)', record.pepPressureRangeCmH2O, ctr, g())}
-                    {hasVal(record.activeBreathingCycleCompleted) && renderFieldRow('Active Breathing Cycle Completed', record.activeBreathingCycleCompleted, g())}
-                    {hasVal(record.autogenicDrainagePhase) && renderFieldRow('Autogenic Drainage Phase', record.autogenicDrainagePhase, g())}
-                  </View>
-                );
-              })()}
-
-              {/* 5. MI-E */}
-              {(hasVal(record.mechanicalInsufflationExsufflation) || hasVal(record.mieInsufflationPressureCmH2O) || hasVal(record.mieExsufflationPressureCmH2O)) && (() => {
-                let st = 'Mechanical Insufflation-Exsufflation';
-                const g = () => { const v = st; st = undefined; return v; };
-                return (
-                  <View style={styles.section}>
-                    {hasVal(record.mechanicalInsufflationExsufflation) && renderFieldRow('MI-E Performed', record.mechanicalInsufflationExsufflation, g())}
-                    {hasVal(record.mieInsufflationPressureCmH2O) && renderFieldRow('MI-E Insufflation Pressure (cmH2O)', record.mieInsufflationPressureCmH2O, g())}
-                    {hasVal(record.mieExsufflationPressureCmH2O) && renderFieldRow('MI-E Exsufflation Pressure (cmH2O)', record.mieExsufflationPressureCmH2O, g())}
-                  </View>
-                );
-              })()}
-
-              {/* 6. Sputum & Cough Findings */}
-              {(hasVal(record.sputumCharacteristics) || hasVal(record.sputumVolumeML) || hasVal(record.preTherapyPeakCoughFlowLPM) || hasVal(record.postTherapyPeakCoughFlowLPM)) && (() => {
-                let st = 'Sputum & Cough Findings';
-                const g = () => { const v = st; st = undefined; return v; };
-                return (
-                  <View style={styles.section}>
-                    {hasVal(record.sputumCharacteristics) && renderSentenceField('Sputum Characteristics', record.sputumCharacteristics, ctr, g())}
-                    {hasVal(record.sputumVolumeML) && renderFieldRow('Sputum Volume (mL)', record.sputumVolumeML, g())}
-                    {hasVal(record.preTherapyPeakCoughFlowLPM) && renderFieldRow('Pre-Therapy Peak Cough Flow (LPM)', record.preTherapyPeakCoughFlowLPM, g())}
-                    {hasVal(record.postTherapyPeakCoughFlowLPM) && renderFieldRow('Post-Therapy Peak Cough Flow (LPM)', record.postTherapyPeakCoughFlowLPM, g())}
-                  </View>
-                );
-              })()}
-
-              {/* 7. Auscultation */}
-              {(hasVal(record.auscultationFindingsPreTherapy) || hasVal(record.auscultationFindingsPostTherapy)) && (() => {
-                let st = 'Auscultation';
-                const g = () => { const v = st; st = undefined; return v; };
-                return (
-                  <View style={styles.section}>
-                    {hasVal(record.auscultationFindingsPreTherapy) && renderSentenceField('Auscultation Findings Pre-Therapy', record.auscultationFindingsPreTherapy, ctr, g())}
-                    {hasVal(record.auscultationFindingsPostTherapy) && renderSentenceField('Auscultation Findings Post-Therapy', record.auscultationFindingsPostTherapy, ctr, g())}
-                  </View>
-                );
-              })()}
-
-              {/* 8. Adjunct Therapy & Tolerance */}
-              {(hasVal(record.nebulizedMucolyticAgent) || hasVal(record.bronchodilatorPretreatment) || hasVal(record.therapyToleranceScore)) && (() => {
-                let st = 'Adjunct Therapy & Tolerance';
-                const g = () => { const v = st; st = undefined; return v; };
-                return (
-                  <View style={styles.section}>
-                    {hasVal(record.nebulizedMucolyticAgent) && renderSentenceField('Nebulized Mucolytic Agent', record.nebulizedMucolyticAgent, ctr, g())}
-                    {hasVal(record.bronchodilatorPretreatment) && renderSentenceField('Bronchodilator Pretreatment', record.bronchodilatorPretreatment, ctr, g())}
-                    {hasVal(record.therapyToleranceScore) && renderFieldRow('Therapy Tolerance Score', record.therapyToleranceScore, g())}
-                  </View>
-                );
-              })()}
-            </View>
-          );
-        })}
-      </Page>
-    </Document>
-  );
-};
-
 export default BronchialHygieneTherapyDocumentPDFTemplate;

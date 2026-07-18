@@ -51,6 +51,7 @@ import BurnWoundCareDocumentPDFTemplate from './BurnWoundCareDocumentPDFTemplate
 import CamIcuDocumentPDFTemplate from './CamIcuDocumentPDFTemplate';
 import CancerDiagnosisDocumentPDFTemplate from './CancerDiagnosisDocumentPDFTemplate';
 import CancerRelatedSideEffectsDocumentPDFTemplate from './CancerRelatedSideEffectsDocumentPDFTemplate';
+import CardiacCatheterizationReportsDocumentPDFTemplate from './CardiacCatheterizationReportsDocumentPDFTemplate';
 import CancerScreeningRecordsDocumentPDFTemplate from './CancerScreeningRecordsDocumentPDFTemplate';
 import CancerStagingDocumentPDFTemplate from './CancerStagingDocumentPDFTemplate';
 import CancerSurveillanceDocumentPDFTemplate from './CancerSurveillanceDocumentPDFTemplate';
@@ -312,6 +313,7 @@ const templateRegistry = {
   'cam_icu': CamIcuDocumentPDFTemplate,
   'cancer_diagnosis': CancerDiagnosisDocumentPDFTemplate,
   'cancer_related_side_effects': CancerRelatedSideEffectsDocumentPDFTemplate,
+  'cardiac_catheterization_reports': CardiacCatheterizationReportsDocumentPDFTemplate,
   'cancer_screening_records': CancerScreeningRecordsDocumentPDFTemplate,
   'cancer_staging': CancerStagingDocumentPDFTemplate,
   'cancer_surveillance': CancerSurveillanceDocumentPDFTemplate,

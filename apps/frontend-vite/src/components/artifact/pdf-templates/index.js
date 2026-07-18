@@ -37,6 +37,7 @@ import BolusAdjustmentsDocumentPDFTemplate from './BolusAdjustmentsDocumentPDFTe
 import BoneHealthDocumentPDFTemplate from './BoneHealthDocumentPDFTemplate';
 import BoneMarrowReportsDocumentPDFTemplate from './BoneMarrowReportsDocumentPDFTemplate';
 import BoneMarrowStudiesDocumentPDFTemplate from './BoneMarrowStudiesDocumentPDFTemplate';
+import BoneScanReportsDocumentPDFTemplate from './BoneScanReportsDocumentPDFTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
@@ -281,6 +282,7 @@ const templateRegistry = {
   'bone_health': BoneHealthDocumentPDFTemplate,
   'bone_marrow_reports': BoneMarrowReportsDocumentPDFTemplate,
   'bone_marrow_studies': BoneMarrowStudiesDocumentPDFTemplate,
+  'bone_scan_reports': BoneScanReportsDocumentPDFTemplate,
   'case_summaries': CaseSummariesTemplate,
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,

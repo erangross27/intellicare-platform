@@ -1,300 +1,127 @@
-/**
- * BrainTumorCharacteristicsDocument.jsx
- * Inline editing with per-section approve, per-row copy.
- * 4-level search, PDFDownloadLink + pdfData memo, secureApiClient.
- * No type conversion — always saves raw text.
- */
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import SearchBar from '../components/SearchBar';
 import BrainTumorCharacteristicsDocumentPDFTemplate from '../pdf-templates/BrainTumorCharacteristicsDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
+import SearchBar from '../components/SearchBar';
+import secureApiClient from '../../../services/secureApiClient';
 import './BrainTumorCharacteristicsDocument.css';
 
-/* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
-   written to MongoDB and NOT shown in the PDF until the user clicks Approve.
-   Kept in a SEPARATE key (NOT artifactGridData) so drafts never leak into the PDF/DB source.
-   Shape: { [recordId]: { [fieldPart]: value } } */
-const DRAFT_KEY = 'brain_tumor_characteristicsPendingEdits';
-const readDrafts = () => {
-  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; }
+const COLLECTION = 'brain_tumor_characteristics';
+const DRAFT_KEY = `${COLLECTION}PendingEdits`;
+const COMMA_ARRAY_FIELDS = [];
+const COMMA_SPLIT_FIELDS = [];
+const ARRAY_FIELDS = new Set([]);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set(['resectionExtent']);
+const DATE_FIELDS = new Set([]);
+const NUMBER_UNIT_FIELDS = new Set(['whoGrade', 'karnofskyPerformanceScore', 'glasgowComaScale', 'ki67Index']);
+const ZERO_SENTINEL_FIELDS = new Set(['karnofskyPerformanceScore', 'glasgowComaScale']);
+const ENUM_FIELDS = {};
+const STATUS_OPTIONS = ['Complete', 'In Progress', 'Pending'];
+const KEY_OVERRIDES = {};
+const FIELD_LABELS = {
+  tumorHistology: 'Tumor Histology', whoGrade: 'WHO Grade', tumorLocation: 'Tumor Location', tumorSize: 'Tumor Size',
+  enhancementPattern: 'Enhancement Pattern', perilesionalEdema: 'Perilesional Edema', midlineShift: 'Midline Shift',
+  karnofskyPerformanceScore: 'Karnofsky Performance Score', glasgowComaScale: 'Glasgow Coma Scale',
+  idh1Mutation: 'IDH1 Mutation', mgmtPromoterMethylation: 'MGMT Promoter Methylation', p53Expression: 'p53 Expression',
+  ki67Index: 'Ki-67 Index', chromosomeCodeletion: 'Chromosome Codeletion', resectionExtent: 'Resection Extent',
+  bloodBrainBarrierDisruption: 'Blood-Brain Barrier Disruption', cerebrospinalFluidSeeding: 'Cerebrospinal Fluid Seeding',
+  perfusionMetrics: 'Perfusion Metrics', diffusionRestriction: 'Diffusion Restriction',
+  eloquentCortexInvolvement: 'Eloquent Cortex Involvement', vascularInvolvement: 'Vascular Involvement',
 };
-const writeDrafts = (store) => {
-  try {
-    if (store && Object.keys(store).length > 0) localStorage.setItem(DRAFT_KEY, JSON.stringify(store));
-    else localStorage.removeItem(DRAFT_KEY);
-  } catch { /* ignore quota/availability errors */ }
+const SECTIONS = [
+  { id: 'histology', title: 'Histology and Grade', fields: ['tumorHistology', 'whoGrade', 'tumorLocation', 'tumorSize'] },
+  { id: 'imaging', title: 'Imaging Characteristics', fields: ['enhancementPattern', 'perilesionalEdema', 'midlineShift', 'perfusionMetrics', 'diffusionRestriction'] },
+  { id: 'performance', title: 'Performance Status', fields: ['karnofskyPerformanceScore', 'glasgowComaScale'] },
+  { id: 'molecular', title: 'Molecular Markers', fields: ['idh1Mutation', 'mgmtPromoterMethylation', 'p53Expression', 'ki67Index', 'chromosomeCodeletion'] },
+  { id: 'resection', title: 'Resection Extent', fields: ['resectionExtent'] },
+  { id: 'spread', title: 'Spread and Involvement', fields: ['bloodBrainBarrierDisruption', 'cerebrospinalFluidSeeding', 'eloquentCortexInvolvement', 'vascularInvolvement'] },
+];
+const DISPLAY_FIELDS = Object.keys(FIELD_LABELS);
+
+const readDrafts = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; } };
+const writeDrafts = store => { try { if (store && Object.keys(store).length) localStorage.setItem(DRAFT_KEY, JSON.stringify(store)); else localStorage.removeItem(DRAFT_KEY); } catch { /* best effort */ } };
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const fieldPresent = (record, field) => { const value = record?.[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return false; return hasValue(value) && !(DATE_FIELDS.has(field) && isEpochDate(value)); };
+const recordIdOf = record => !record?._id ? null : typeof record._id === 'string' ? record._id : record._id.$oid || String(record._id);
+const getAtPath = (source, path) => path.split('.').reduce((value, part) => value?.[/^\d+$/.test(part) ? Number(part) : part], source);
+const setAtPath = (source, path, value) => { const parts = path.split('.'); let node = source; parts.forEach((part, index) => { const key = /^\d+$/.test(part) ? Number(part) : part; if (index === parts.length - 1) node[key] = value; else { const nextIsArray = /^\d+$/.test(parts[index + 1]); if (node[key] === undefined || node[key] === null) node[key] = nextIsArray ? [] : {}; node = node[key]; } }); };
+const formatDate = value => { if (!value) return ''; const raw = value.$date || value; const match = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const toInputDate = value => { const raw = value?.$date || value; const match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return match ? `${match[1]}-${match[2]}-${match[3]}` : ''; };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const splitNumberUnit = text => { if (text === null || text === undefined) return null; const s = String(text).trim(); if (s === '') return null; if (/^-?\d+(?:\.\d+)?\s*\/\s*\d/.test(s)) return null; const m = s.match(/^(-?[\d,]*\.?\d+)(\s*)(.*)$/); if (!m || !/\d/.test(m[1])) return null; return { num: m[1].replace(/,/g, ''), sep: m[2] || '', unit: (m[3] || '').trim() }; };
+const splitRatio = text => { const m = String(text ?? '').trim().match(/^(-?\d+(?:\.\d+)?)(\s*\/\s*\d+(?:\.\d+)?[\s\S]*)$/); return m ? { num: m[1], rest: m[2] } : null; };
+const objectLeaves = (value, prefix, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap((item, index) => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, `${prefix}.${index}`, labelText) : [{ path: `${prefix}.${index}`, label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, `${prefix}.${key}`, childLabel); });
+  return [{ path: prefix, label: labelText, value }];
 };
-
-const SECTION_FIELDS = {
-  tumorInfo: ['tumorHistology', 'whoGrade', 'tumorLocation', 'tumorSize'],
-  imaging: ['enhancementPattern', 'perilesionalEdema', 'midlineShift', 'perfusionMetrics', 'diffusionRestriction'],
-  clinical: ['karnofskyPerformanceScore', 'glasgowComaScale'],
-  molecular: ['idh1Mutation', 'mgmtPromoterMethylation', 'p53Expression', 'ki67Index', 'chromosomeCodeletion'],
-  surgical: ['resectionExtent', 'eloquentCortexInvolvement', 'vascularInvolvement'],
-  advanced: ['bloodBrainBarrierDisruption', 'cerebrospinalFluidSeeding'],
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { label: match[1].trim(), value: match[2].trim(), labeled: true } : { label: '', value: String(text || '').trim(), labeled: false }; };
+const splitClauses = (field, text, splitCommas = COMMA_SPLIT_FIELDS.includes(field)) => {
+  const source = String(text || ''); if (!source.trim()) return []; const clauses = []; let start = 0; let depth = 0;
+  const push = end => { let left = start; let right = end; while (left < right && /\s/.test(source[left])) left += 1; while (right > left && /\s/.test(source[right - 1])) right -= 1; if (right > left) clauses.push({ text: source.slice(left, right), start: left, end: right }); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return clauses;
 };
-const FIELD_LABELS = { tumorHistology: 'Tumor Histology', whoGrade: 'WHO Grade', tumorLocation: 'Tumor Location', tumorSize: 'Tumor Size', enhancementPattern: 'Enhancement Pattern', perilesionalEdema: 'Perilesional Edema', midlineShift: 'Midline Shift', perfusionMetrics: 'Perfusion Metrics', diffusionRestriction: 'Diffusion Restriction', karnofskyPerformanceScore: 'Karnofsky Performance Score', glasgowComaScale: 'Glasgow Coma Scale', idh1Mutation: 'IDH1 Mutation', mgmtPromoterMethylation: 'MGMT Promoter Methylation', p53Expression: 'p53 Expression', ki67Index: 'Ki-67 Index', chromosomeCodeletion: 'Chromosome Co-deletion', resectionExtent: 'Resection Extent', eloquentCortexInvolvement: 'Eloquent Cortex Involvement', vascularInvolvement: 'Vascular Involvement', bloodBrainBarrierDisruption: 'Blood-Brain Barrier Disruption', cerebrospinalFluidSeeding: 'Cerebrospinal Fluid Seeding' };
-
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; return true; };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-
-/* Edit-control field typing (chosen by the STORED JS type, verified via get_patient_data):
-   - BOOLEAN_FIELDS → Yes/No <select>, saved as a real boolean.
-   - NUMBER_FIELDS  → bare numbers (unit lives in the label or none) → <input type=number>, saved as a real Number.
-   - UNIT_NUMBER_FIELDS → value is a STRING that contains its unit ("42%") → number stepper + fixed unit affix,
-     reassembled losslessly to the same string. Everything else stays a textarea. */
-const BOOLEAN_FIELDS = ['perilesionalEdema', 'diffusionRestriction', 'eloquentCortexInvolvement', 'bloodBrainBarrierDisruption', 'cerebrospinalFluidSeeding'];
-const NUMBER_FIELDS = ['whoGrade', 'karnofskyPerformanceScore', 'glasgowComaScale'];
-const UNIT_NUMBER_FIELDS = ['ki67Index'];
-const stepFor = (v) => { const d = (String(v).split('.')[1] || '').length; return d > 0 ? '0.' + '0'.repeat(d - 1) + '1' : '1'; };
-// String-with-unit splitter (e.g. "42%"): edit only the number, keep prefix/unit as fixed affixes. Returns null
-// (→ textarea) for non-numeric, ranges, or units that contain a digit (compound values like "4.2 × 3.8 cm").
-const splitNumberUnit = (raw) => {
-  if (raw == null) return null;
-  const s = String(raw).trim();
-  const m = s.match(/^([<>≤≥=~]*)\s*(-?\d+(?:\.\d+)?)(\s*)(\S[\s\S]*)?$/);
-  if (!m) return null;
-  const unit = (m[4] || '').trim();
-  if (/^[-–—]\s*\d/.test(unit)) return null;   // range -> textarea
-  if (/\d/.test(unit)) return null;            // digit-in-unit (compound) -> textarea
-  return { prefix: m[1] || '', number: m[2], sep: m[3] || '', unit, step: stepFor(m[2]) };
+const groupClauses = clauses => { const groups = []; let current = null; clauses.forEach((clause, index) => { const parsed = parseLabel(clause.text); const item = { ...clause, ...parsed, index }; if (parsed.labeled) { current = { subtitle: parsed.label, items: [item] }; groups.push(current); } else if (current?.subtitle) current.items.push(item); else { if (!current || current.subtitle) { current = { subtitle: null, items: [] }; groups.push(current); } current.items.push(item); } }); return groups; };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source]; const records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !DISPLAY_FIELDS.some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => DISPLAY_FIELDS.some(field => hasValue(record[field]))); };
+const LONG_DATE = /^(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}$/;
+const leafWidget = raw => {
+  if (typeof raw === 'boolean') return { widget: 'enum', options: ['Yes', 'No'], seed: raw ? 'Yes' : 'No', saveValue: next => next === 'Yes' };
+  const s = String(raw ?? '').trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return { widget: 'date', saveValue: next => s.includes('T') ? `${next}T00:00:00.000Z` : next };
+  if (LONG_DATE.test(s)) { const parsedDate = new Date(`${s} 00:00:00 UTC`); const iso = Number.isNaN(parsedDate.getTime()) ? '' : parsedDate.toISOString().slice(0, 10); return { widget: 'date', seed: iso, saveValue: next => new Date(`${next}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) }; }
+  const ratio = splitRatio(s);
+  if (ratio) return { widget: 'number', seed: ratio.num, saveValue: next => `${String(next).trim()}${ratio.rest}` };
+  const nu = splitNumberUnit(s);
+  if (nu) return { widget: 'number', seed: nu.num, saveValue: next => typeof raw === 'number' ? Number(next) : `${String(next).trim()}${nu.sep}${nu.unit}` };
+  return { widget: 'text' };
 };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { labeled: false }; const effectiveRaw = parsed.labeled ? parsed.value : leaf.value; const label = parsed.labeled ? (leaf.label ? `${leaf.label} - ${parsed.label}` : parsed.label) : leaf.label; const wrap = parsed.labeled ? (inner => `${parsed.label}: ${String(inner).trim()}`) : null; return { ...leaf, label, effectiveRaw, wrap }; };
 
-const BrainTumorCharacteristicsDocument = ({ document: rawDoc }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [copiedId, setCopiedId] = useState(null);
-  const [editingField, setEditingField] = useState(null);
-  const [editValue, setEditValue] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [localEdits, setLocalEdits] = useState({});
-  const [editedFields, setEditedFields] = useState({});
-  const [approvedSections, setApprovedSections] = useState({});
-  // editKeys that are staged drafts (saved locally, NOT yet committed to DB/PDF). Cleared on Approve.
-  const [pendingEdits, setPendingEdits] = useState({});
-
-  const records = useMemo(() => {
-    if (!rawDoc) return [];
-    let arr = Array.isArray(rawDoc) ? rawDoc : [rawDoc];
-    arr = arr.flatMap(r => { if (r?.brain_tumor_characteristics) return Array.isArray(r.brain_tumor_characteristics) ? r.brain_tumor_characteristics : [r.brain_tumor_characteristics]; if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.brain_tumor_characteristics) return Array.isArray(dd.brain_tumor_characteristics) ? dd.brain_tumor_characteristics : [dd.brain_tumor_characteristics]; return [dd]; } return r; });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [rawDoc]);
-
-  // Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF).
-  useEffect(() => {
-    const store = readDrafts();
-    if (!store || Object.keys(store).length === 0) return;
-    const nLocal = {}, nPending = {}, nFields = {};
-    records.forEach((record, idx) => {
-      const id = record && record._id;
-      const rid = id ? (typeof id === 'string' ? id : (id.$oid || String(id))) : null;
-      const recDrafts = rid ? store[rid] : null;
-      if (!recDrafts) return;
-      Object.entries(recDrafts).forEach(([fieldPart, value]) => {
-        const editKey = `${fieldPart}-${idx}`;
-        nLocal[editKey] = value;
-        nPending[editKey] = true;
-        nFields[editKey] = 'edited';
-      });
-    });
-    if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
-  }, [records]);
-
-  const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-  const getFieldValue = useCallback((record, fn, idx) => { const k = `${fn}-${idx}`; if (localEdits[k] !== undefined) return localEdits[k]; return record[fn]; }, [localEdits]);
-  const getRecordId = (r) => { const id = r._id; if (!id) return null; if (typeof id === 'string') return id; if (id.$oid) return id.$oid; return String(id); };
-  const copyToClipboard = async (text, id) => { try { await navigator.clipboard.writeText(text); setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); } catch {} };
-
-  // Save = stage a DRAFT locally + write it to the pending-drafts localStorage store (survives refresh).
-  // NOT written to MongoDB and NOT shown in the PDF until the user clicks Approve (handleApproveSection commits).
-  const handleSaveField = useCallback((record, fn, idx, sid, valueOverride) => {
-    const rid = getRecordId(record);
-    if (!rid) { console.error('[BrainTumorCharacteristics] Cannot save — no record ID'); return; }
-    const value = valueOverride !== undefined ? valueOverride : editValue;
-    const ek = `${fn}-${idx}`;
-    setLocalEdits(prev => ({ ...prev, [ek]: value }));
-    setPendingEdits(prev => ({ ...prev, [ek]: true }));
-    setEditedFields(prev => ({ ...prev, [ek]: 'edited' }));
-    // Re-edit after approval → drop the section's 'approved' flag so the button goes back to yellow Pending Approve
-    setApprovedSections(prev => {
-      const key = `${sid}-${idx}`;
-      if (!prev[key]) return prev;
-      const next = { ...prev };
-      delete next[key];
-      return next;
-    });
-    const store = readDrafts();
-    if (!store[rid]) store[rid] = {};
-    store[rid][fn] = value;
-    writeDrafts(store);
-    setEditingField(null);
-    setEditValue('');
-  }, [editValue]);
-
-  // Approve = COMMIT all staged drafts for this section's fields to MongoDB, then clear pending so the
-  // committed values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
-  const handleApproveSection = useCallback(async (record, idx, sid) => {
-    try {
-      const rid = getRecordId(record); if (!rid) return;
-      const sc = (await import('../../../services/secureApiClient')).default;
-      const sf = SECTION_FIELDS[sid] || [];
-      // Collect this section's staged (pending) edits from localEdits using the "-<idx>" suffix convention.
-      const suffix = `-${idx}`;
-      const toCommit = Object.keys(localEdits).filter(k => {
-        if (!pendingEdits[k] || !k.endsWith(suffix)) return false;
-        const fieldPart = k.slice(0, -suffix.length); // "field" or "field.arrayIndex"
-        const baseField = fieldPart.includes('.') ? fieldPart.split('.')[0] : fieldPart;
-        return sf.includes(baseField);
-      });
-      // Persist each staged field to the DB now. arrayIndex ONLY when the trailing dot-segment is purely numeric.
-      for (const editKey of toCommit) {
-        const fieldPart = editKey.slice(0, -suffix.length);
-        const lastDot = fieldPart.lastIndexOf('.');
-        const tail = lastDot === -1 ? '' : fieldPart.slice(lastDot + 1);
-        const payload = { value: localEdits[editKey] };
-        if (lastDot !== -1 && /^\d+$/.test(tail)) {
-          payload.field = fieldPart.slice(0, lastDot);
-          payload.arrayIndex = parseInt(tail, 10);
-        } else {
-          payload.field = fieldPart;
-        }
-        const resp = await sc.put(`/api/edit/brain_tumor_characteristics/${rid}/edit`, payload);
-        if (resp && resp.success === false) throw new Error(resp.error || 'save failed');
-      }
-      // Flag the section approved (audit trail)
-      await sc.put(`/api/edit/brain_tumor_characteristics/${rid}/approve`, { sectionId: sid, approved: true });
-
-      // Clear pending → committed edits now flow into pdfData/PDF
-      setPendingEdits(prev => { const next = { ...prev }; toCommit.forEach(k => delete next[k]); return next; });
-      // Drop this record's drafts for the committed fields from localStorage
-      const store = readDrafts();
-      if (store[rid]) { toCommit.forEach(k => { const fieldPart = k.slice(0, -suffix.length); delete store[rid][fieldPart]; }); if (Object.keys(store[rid]).length === 0) delete store[rid]; writeDrafts(store); }
-
-      setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
-      setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { sf.forEach(f => { if (k.startsWith(`${f}-${idx}`) || k.startsWith(`${f}.`)) delete n[k]; }); }); return n; });
-    } catch (err) { console.error('[BrainTumorCharacteristics] Approve failed:', err); }
-  }, [localEdits, pendingEdits]);
-
-  const highlightText = (text) => { if (!text) return ''; const str = String(text); if (!searchTerm.trim()) return str; const esc = searchTerm.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); const re = new RegExp(`(${esc})`, 'gi'); const p = str.split(re); if (p.length === 1) return str; return <>{p.map((x, i) => re.test(x) ? <mark key={i}>{x}</mark> : x)}</>; };
-  const phraseMatch = (text, term) => { if (!term.trim()) return true; return String(text || '').toLowerCase().includes(term.toLowerCase().trim()); };
-  const shouldShowSection = (record, title, contentParts, fieldNames) => { if (!searchTerm.trim()) return true; if (record._showAllSections) return true; const sl = searchTerm.toLowerCase().trim(); const tl = (title || '').toLowerCase(); if (tl.startsWith(sl) || sl.startsWith(tl)) return true; const labels = (fieldNames || []).map(f => FIELD_LABELS[f] || f); const combined = [...labels, ...(Array.isArray(contentParts) ? contentParts : [contentParts])].filter(Boolean).join(' '); return phraseMatch(combined, searchTerm); };
-  const sectionTitleMatches = (t) => { if (!searchTerm.trim()) return false; const sl = searchTerm.toLowerCase().trim(); const tl = (t || '').toLowerCase(); return tl.startsWith(sl) || sl.startsWith(tl); };
-  const fieldMatches = (record, fn, idx) => { if (!searchTerm.trim()) return true; if (record._showAllSections) return true; return phraseMatch(FIELD_LABELS[fn] || fn, searchTerm) || phraseMatch(fmtVal(getFieldValue(record, fn, idx)), searchTerm); };
-
-  const filteredRecords = useMemo(() => {
-    if (!searchTerm.trim()) return records;
-    const sl = searchTerm.toLowerCase().trim();
-    return records.filter((record, idx) => {
-      const title = `Brain Tumor ${idx + 1}`;
-      const allText = [title, formatDate(record.date || record.createdAt), ...Object.keys(FIELD_LABELS).map(f => fmtVal(record[f])), ...Object.values(FIELD_LABELS), 'Tumor Information', 'Imaging', 'Clinical Scores', 'Molecular Markers', 'Surgical Planning', 'Advanced'].filter(Boolean).join(' ');
-      const match = allText.toLowerCase().includes(sl);
-      record._showAllSections = match && title.toLowerCase().startsWith(sl);
-      return match;
-    });
-  }, [records, searchTerm]);
-
-  const sectionHasEdits = (idx, sid) => { const fs = SECTION_FIELDS[sid] || []; return fs.some(f => Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`) || k.startsWith(`${f}.`))); };
-  const renderApproveButton = (idx, sid) => { const he = sectionHasEdits(idx, sid); const ia = approvedSections[`${sid}-${idx}`]; if (he) return <button className="approve-btn pending" onClick={(e) => { e.stopPropagation(); handleApproveSection(records[idx], idx, sid); }}>Pending Approve</button>; if (ia) return <span className="approve-btn approved">Approved</span>; return null; };
-
-  const renderEditableField = (record, fn, idx, sid) => {
-    const raw = getFieldValue(record, fn, idx); if (!hasVal(raw)) return null;
-    const dv = fmtVal(raw);
-    const ek = `${fn}-${idx}`; const ie = editingField === ek; const ed = editedFields[ek]; const cid = `row-${fn}-${idx}`;
-    const isBool = BOOLEAN_FIELDS.includes(fn);
-    const isNum = NUMBER_FIELDS.includes(fn);
-    const nu = (!isBool && !isNum && UNIT_NUMBER_FIELDS.includes(fn)) ? splitNumberUnit(dv) : null;
-    const cancel = () => { setEditingField(null); setEditValue(''); };
-    const saveBool = () => handleSaveField(record, fn, idx, sid, editValue === 'Yes');
-    const saveNum = () => { const n = parseFloat(editValue); if (editValue === '' || isNaN(n)) return; handleSaveField(record, fn, idx, sid, n); };
-    const saveUnit = () => { const n = parseFloat(editValue); if (editValue === '' || isNaN(n)) return; handleSaveField(record, fn, idx, sid, `${nu.prefix}${editValue}${nu.sep}${nu.unit}`); };
-    const onSave = isBool ? saveBool : isNum ? saveNum : nu ? saveUnit : () => handleSaveField(record, fn, idx, sid);
-    const seed = isBool ? dv : nu ? nu.number : isNum ? String(raw) : dv;
-    if (ie) {
-      let control;
-      if (isBool) control = (<select className="edit-select" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') cancel(); }} disabled={saving}><option value="Yes">Yes</option><option value="No">No</option></select>);
-      else if (isNum) control = (<input type="number" className="edit-number" step={stepFor(dv)} value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveNum(); if (e.key === 'Escape') cancel(); }} disabled={saving} />);
-      else if (nu) control = (<div className="num-unit-edit">{nu.prefix && <span className="nu-affix">{nu.prefix}</span>}<input type="number" className="edit-number" step={nu.step} value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveUnit(); if (e.key === 'Escape') cancel(); }} disabled={saving} />{nu.unit && <span className="nu-affix">{nu.unit}</span>}</div>);
-      else control = (<textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) handleSaveField(record, fn, idx, sid); if (e.key === 'Escape') cancel(); }} autoFocus rows={fn === 'resectionExtent' ? 4 : 1} disabled={saving} />);
-      return (<div className="rec-mini-card"><div className="nested-subtitle">{highlightText(FIELD_LABELS[fn] || fn)}</div><div className="edit-field-container">{control}<div className="edit-actions"><button className="save-btn" onClick={onSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={cancel}>Cancel</button></div></div></div>);
-    }
-    return (<div className="rec-mini-card"><div className="nested-subtitle">{highlightText(FIELD_LABELS[fn] || fn)}</div><div className={`numbered-row editable-row${ed ? ' modified' : ''}`} onClick={() => { setEditingField(ek); setEditValue(seed); }}><div className="row-content"><span className="content-value">{highlightText(dv)}</span>{!ed && <span className="edit-indicator">✎</span>}</div><button className={`copy-btn${copiedId === cid ? ' copied' : ''}`} onClick={(e) => { e.stopPropagation(); copyToClipboard(dv, cid); }}>{copiedId === cid ? 'Copied' : 'Copy'}</button></div>{ed && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>);
+const BrainTumorCharacteristicsDocument = ({ document: documentProp, data, templateData }) => {
+  const records = useMemo(() => unwrapRecords(documentProp || data || templateData), [documentProp, data, templateData]);
+  const [searchTerm, setSearchTerm] = useState(''); const [copied, setCopied] = useState(null); const [editingField, setEditingField] = useState(null); const [editValue, setEditValue] = useState(''); const [saveError, setSaveError] = useState(''); const [localEdits, setLocalEdits] = useState({}); const [pendingEdits, setPendingEdits] = useState({}); const [approvedSections, setApprovedSections] = useState({}); const [approving, setApproving] = useState(false);
+  useEffect(() => { const store = readDrafts(), nextLocal = {}, nextPending = {}; records.forEach((record, index) => { Object.entries(store[recordIdOf(record)] || {}).forEach(([path, value]) => { nextLocal[`${path}-${index}`] = value; nextPending[`${path}-${index}`] = true; }); }); if (Object.keys(nextLocal).length) { setLocalEdits(previous => ({ ...nextLocal, ...previous })); setPendingEdits(previous => ({ ...nextPending, ...previous })); } }, [records]);
+  const valueAt = useCallback((record, path, index) => localEdits[`${path}-${index}`] !== undefined ? localEdits[`${path}-${index}`] : getAtPath(record, path), [localEdits]);
+  const stagePath = useCallback((record, path, index, value) => { const id = recordIdOf(record); if (!id) return; const key = `${path}-${index}`; setLocalEdits(previous => ({ ...previous, [key]: value })); setPendingEdits(previous => ({ ...previous, [key]: true })); const store = readDrafts(); store[id] = { ...(store[id] || {}), [path]: value }; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(''); }, []);
+  const mergedRecord = useCallback((record, index, includePending) => { const merged = JSON.parse(JSON.stringify(record)); Object.entries(localEdits).forEach(([key, value]) => { if (!key.endsWith(`-${index}`) || (!includePending && pendingEdits[key])) return; setAtPath(merged, key.slice(0, -String(index).length - 1), value); }); return merged; }, [localEdits, pendingEdits]);
+  const pdfData = useMemo(() => records.map((record, index) => mergedRecord(record, index, false)), [records, mergedRecord]);
+  const copyText = async (text, id) => { await navigator.clipboard.writeText(text); setCopied(id); setTimeout(() => setCopied(null), 2500); };
+  const highlight = value => { const text = String(value ?? ''), query = searchTerm.trim(); if (!query) return text; const index = text.toLowerCase().indexOf(query.toLowerCase()); return index < 0 ? text : <>{text.slice(0, index)}<mark>{text.slice(index, index + query.length)}</mark>{text.slice(index + query.length)}</>; };
+  const pathFromKey = (key, index) => key.slice(0, -String(index).length - 1);
+  const sectionPending = (section, index) => Object.keys(pendingEdits).some(key => pendingEdits[key] && key.endsWith(`-${index}`) && section.fields.includes(pathFromKey(key, index).split('.')[0]));
+  const approveSection = async (record, index, section) => {
+    const id = recordIdOf(record); if (!id) return; const keys = Object.keys(pendingEdits).filter(key => pendingEdits[key] && key.endsWith(`-${index}`) && section.fields.includes(pathFromKey(key, index).split('.')[0])); if (!keys.length) return; setApproving(true);
+    try { for (const key of keys) { const path = pathFromKey(key, index); const response = await secureApiClient.put(`/api/edit/${COLLECTION}/${id}/edit`, { field: path, value: localEdits[key] }); if (response?.success === false) throw new Error(response.error || 'save failed'); } const response = await secureApiClient.put(`/api/edit/${COLLECTION}/${id}/approve`, { sectionId: section.id, approved: true }); if (response?.success === false) throw new Error(response.error || 'approval failed'); setPendingEdits(previous => { const next = { ...previous }; keys.forEach(key => delete next[key]); return next; }); const store = readDrafts(); if (store[id]) { keys.forEach(key => delete store[id][pathFromKey(key, index)]); if (!Object.keys(store[id]).length) delete store[id]; writeDrafts(store); } setApprovedSections(previous => ({ ...previous, [`${section.id}-${index}`]: true })); }
+    catch (error) { setSaveError(error.message || 'Unable to approve changes'); } finally { setApproving(false); }
   };
-
-  const pdfData = useMemo(() => {
-    if (Object.keys(localEdits).length === 0) return records;
-    return records.map((record, idx) => { const m = { ...record }; Object.keys(localEdits).forEach(key => { if (pendingEdits[key]) return; const ld = key.lastIndexOf('-'); if (ld === -1) return; const fn = key.substring(0, ld); const ri = parseInt(key.substring(ld + 1), 10); if (ri === idx && fn in record) m[fn] = localEdits[key]; }); return m; });
-  }, [records, localEdits, pendingEdits]);
-
-  const SECTION_TITLES = { tumorInfo: 'TUMOR INFORMATION', imaging: 'IMAGING', clinical: 'CLINICAL SCORES', molecular: 'MOLECULAR MARKERS', surgical: 'SURGICAL PLANNING', advanced: 'ADVANCED' };
-
-  const copySectionText = (record, idx, sid) => {
-    const pr = pdfData[idx] || record; let text = `${SECTION_TITLES[sid] || sid.toUpperCase()}\n`;
-    const addF = (fn) => { if (hasVal(pr[fn])) text += `${FIELD_LABELS[fn] || fn}: ${fmtVal(pr[fn])}\n`; };
-    const fields = SECTION_FIELDS[sid] || [];
-    fields.forEach(addF);
-    copyToClipboard(text.trim(), `section-${sid}-${idx}`);
+  const editControl = (widget, options) => { if (widget === 'date') return <BlueDatePicker value={editValue} onSelect={setEditValue} />; if (widget === 'enum') return <BlueSelect value={editValue} options={options} onChange={setEditValue} />; if (widget === 'number') return <div className="number-edit-row"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>&minus;</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button></div>; return <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />; };
+  const renderLeaf = ({ record, index, path, shown, raw, label, widget = 'text', options = [], seed, leafKey, saveValue }) => {
+    const editKey = leafKey || `${path}-${index}`, editing = editingField === editKey, modified = !!pendingEdits[`${path}-${index}`];
+    const save = event => { event?.stopPropagation(); if (!String(editValue).trim()) { setSaveError('Please enter a value'); return; } if (widget === 'number' && Number.isNaN(Number(editValue))) { setSaveError('Please enter a valid number'); return; } let next; if (saveValue) next = saveValue(editValue); else if (widget === 'date') next = `${editValue}T00:00:00.000Z`; else next = String(editValue).trim(); stagePath(record, path, index, next); };
+    return <div data-edit-field={path} key={editKey}><span className="field-label sr-only">{label || path}</span><div className={`numbered-row editable-row${modified ? ' modified' : ''}`} onClick={() => { if (!editing) { setEditingField(editKey); setEditValue(seed !== undefined ? seed : widget === 'date' ? toInputDate(raw) : String(raw ?? '')); setSaveError(''); } }}>{editing ? <div className="edit-field-container" onClick={event => event.stopPropagation()}>{editControl(widget, options)}{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={save}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlight(shown)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copied === editKey ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyText(String(shown), editKey); }}>{copied === editKey ? 'Copied!' : 'Copy'}</button></>}</div>{modified && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>;
   };
-
-  const copyAllContent = () => {
-    let text = '=== BRAIN TUMOR CHARACTERISTICS ===\n\n';
-    pdfData.forEach((r, idx) => {
-      text += `Brain Tumor ${idx + 1}\n`;
-      if (r.date || r.createdAt) text += `${formatDate(r.date || r.createdAt)}\n`;
-      const addF = (fn) => { if (hasVal(r[fn])) text += `${FIELD_LABELS[fn] || fn}: ${fmtVal(r[fn])}\n`; };
-      Object.entries(SECTION_TITLES).forEach(([sid, title]) => {
-        const fields = SECTION_FIELDS[sid] || [];
-        const vis = fields.filter(f => hasVal(r[f]));
-        if (vis.length) { text += `\n${title}\n`; vis.forEach(addF); }
-      });
-      text += '\n';
-    });
-    copyToClipboard(text.trim(), 'copy-all');
-  };
-
-  const renderSection = (record, idx, sid, title, children) => { if (!children) return null; return (<div className="section"><div className="mini-cards-container"><div className="section-header"><h4 className="section-title">{highlightText(title)}</h4><div className="header-right-actions"><button className={`copy-btn${copiedId === `section-${sid}-${idx}` ? ' copied' : ''}`} onClick={() => copySectionText(record, idx, sid)}>{copiedId === `section-${sid}-${idx}` ? 'Copied' : 'Copy Section'}</button>{renderApproveButton(idx, sid)}</div></div>{children}</div></div>); };
-
-  const renderMultiFieldSection = (record, idx, sid, title, fields) => {
-    const visibleFields = fields.filter(f => hasVal(getFieldValue(record, f, idx)));
-    if (visibleFields.length === 0) return null;
-    if (!shouldShowSection(record, title, visibleFields.map(f => fmtVal(getFieldValue(record, f, idx))), visibleFields)) return null;
-    return renderSection(record, idx, sid, title, (() => { const stm = sectionTitleMatches(title); const sa = !searchTerm.trim() || record._showAllSections || stm; return <>{visibleFields.map(f => { if (!sa && !fieldMatches(record, f, idx)) return null; return <React.Fragment key={f}>{renderEditableField(record, f, idx, sid)}</React.Fragment>; })}</>; })());
-  };
-
-  if (!filteredRecords || filteredRecords.length === 0) return (<article className="brain-tumor-characteristics-document"><header className="document-header"><h1 className="document-title">Brain Tumor Characteristics</h1></header><SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} /><div className="empty-state">No data available.</div></article>);
-
-  return (
-    <article className="brain-tumor-characteristics-document">
-      <header className="document-header">
-        <h1 className="document-title">Brain Tumor Characteristics</h1>
-        <div className="header-actions">
-          <button className={`copy-btn${copiedId === 'copy-all' ? ' copied' : ''}`} onClick={copyAllContent}>{copiedId === 'copy-all' ? 'Copied' : 'Copy All'}</button>
-          <PDFDownloadLink document={<BrainTumorCharacteristicsDocumentPDFTemplate document={pdfData} />} fileName="Brain_Tumor_Characteristics.pdf">
-            {({ loading }) => <button className="copy-btn">{loading ? 'Preparing...' : 'Export PDF'}</button>}
-          </PDFDownloadLink>
-        </div>
-      </header>
-      <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
-      <div className="records-container">
-        {filteredRecords.map((record, idx) => (
-          <div key={idx} className="record-card">
-            <div className="record-header">
-              <div className="record-meta-row">{(record.date || record.createdAt) && <span className="record-date">{highlightText(formatDate(record.date || record.createdAt))}</span>}</div>
-              <div className="record-title-row"><h3 className="record-name">{highlightText(`Brain Tumor ${idx + 1}`)}</h3></div>
-            </div>
-
-            {renderMultiFieldSection(record, idx, 'tumorInfo', 'Tumor Information', ['tumorHistology', 'whoGrade', 'tumorLocation', 'tumorSize'])}
-            {renderMultiFieldSection(record, idx, 'imaging', 'Imaging', ['enhancementPattern', 'perilesionalEdema', 'midlineShift', 'perfusionMetrics', 'diffusionRestriction'])}
-            {renderMultiFieldSection(record, idx, 'clinical', 'Clinical Scores', ['karnofskyPerformanceScore', 'glasgowComaScale'])}
-            {renderMultiFieldSection(record, idx, 'molecular', 'Molecular Markers', ['idh1Mutation', 'mgmtPromoterMethylation', 'p53Expression', 'ki67Index', 'chromosomeCodeletion'])}
-            {renderMultiFieldSection(record, idx, 'surgical', 'Surgical Planning', ['resectionExtent', 'eloquentCortexInvolvement', 'vascularInvolvement'])}
-            {renderMultiFieldSection(record, idx, 'advanced', 'Advanced', ['bloodBrainBarrierDisruption', 'cerebrospinalFluidSeeding'])}
-          </div>
-        ))}
-      </div>
-    </article>
-  );
+  const renderObjectLeafRow = (record, index, view) => { const config = leafWidget(view.effectiveRaw); const shown = config.widget === 'date' && /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw)) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw); const saveValue = next => { const inner = config.saveValue ? config.saveValue(next) : String(next).trim(); return view.wrap && typeof inner === 'string' ? view.wrap(inner) : inner; }; return renderLeaf({ record, index, path: view.path, shown, raw: view.effectiveRaw, label: view.label, widget: config.widget, options: config.options || [], seed: config.seed, saveValue }); };
+  const renderLeafCard = (record, index, leaves, cardKey) => { const views = leaves.map(leafView); return <div className="rec-mini-card nested-mini-card" key={cardKey}>{views.map((view, viewIndex) => <React.Fragment key={view.path}>{view.label && view.label !== views[viewIndex - 1]?.label && <div className="nested-subtitle sub-label">{view.label}</div>}{renderObjectLeafRow(record, index, view)}</React.Fragment>)}</div>; };
+  const renderObjectField = (record, index, field, sectionTitle) => { const value = valueAt(record, field, index); if (!hasValue(value)) return null; if (Array.isArray(value)) { const cards = value.map((item, itemIndex) => { const leaves = typeof item === 'object' && item !== null ? objectLeaves(item, `${field}.${itemIndex}`) : (hasValue(item) ? [{ path: `${field}.${itemIndex}`, label: '', value: item }] : []); return leaves.length ? renderLeafCard(record, index, leaves, `${field}-${itemIndex}`) : null; }).filter(Boolean); return cards.length ? cards : null; } const leaves = objectLeaves(value, field); if (!leaves.length) return null; return renderLeafCard(record, index, leaves, field); };
+  const widgetFor = path => DATE_FIELDS.has(path) ? 'date' : (ENUM_FIELDS[path] || path === 'status') ? 'enum' : 'text';
+  const statusOptions = (path, current) => { const list = ENUM_FIELDS[path] || STATUS_OPTIONS; return list.includes(current) ? list : [...list, current].filter(Boolean); };
+  const renderScalar = (record, index, path, label, sectionTitle) => { const value = valueAt(record, path, index); if (!hasValue(value) || (DATE_FIELDS.has(path) && isEpochDate(value))) return null; let widget = widgetFor(path); let options = widget === 'enum' ? statusOptions(path, String(value)) : []; let seed; let saveValue; if (typeof value === 'boolean' || NUMBER_UNIT_FIELDS.has(path)) { const config = leafWidget(value); widget = config.widget; options = config.options || []; seed = config.seed; saveValue = config.saveValue; } const shown = widget === 'date' && typeof value !== 'boolean' ? formatDate(value) : displayValue(value); return <div className={`rec-mini-card nested-mini-card${label === sectionTitle ? ' regular-row-group' : ''}`} key={path}>{label !== sectionTitle && <div className="nested-subtitle field-label">{label}</div>}{renderLeaf({ record, index, path, shown, raw: value, label, widget, options, seed, saveValue })}</div>; };
+  const renderArray = (record, index, field, sectionTitle) => { const value = valueAt(record, field, index); if (!Array.isArray(value) || !value.some(hasValue)) return null; const label = FIELD_LABELS[field]; const showLabel = label !== sectionTitle; const anyLabeled = value.some(item => typeof item === 'string' && parseLabel(item).labeled); return <div className={`rec-mini-card nested-mini-card${showLabel || anyLabeled ? '' : ' regular-row-group'}`} key={field}>{showLabel && <div className="nested-subtitle field-label">{label}</div>}{value.map((item, itemIndex) => { if (!hasValue(item)) return null; const parsed = typeof item === 'string' ? parseLabel(item) : { labeled: false }; if (parsed.labeled) return <React.Fragment key={itemIndex}><div className="nested-subtitle sub-label">{highlight(parsed.label)}</div>{renderLeaf({ record, index, path: `${field}.${itemIndex}`, shown: parsed.value, raw: parsed.value, label: parsed.label, saveValue: next => `${parsed.label}: ${String(next).trim()}` })}</React.Fragment>; return renderLeaf({ record, index, path: `${field}.${itemIndex}`, shown: displayValue(item), raw: item, label }); })}</div>; };
+  const renderDelimited = (record, index, field, sectionTitle) => { const source = String(valueAt(record, field, index) || ''); if (!source.trim()) return null; const groups = groupClauses(splitClauses(field, source)); const fieldLabel = FIELD_LABELS[field]; return groups.map((group, groupIndex) => { const subtitle = group.subtitle || (fieldLabel !== sectionTitle ? fieldLabel : null); return <div className={`rec-mini-card nested-mini-card${subtitle ? '' : ' regular-row-group'}`} key={`${field}-${groupIndex}`}>{subtitle && <div className="nested-subtitle">{subtitle}</div>}{group.items.map(item => renderLeaf({ record, index, path: field, leafKey: `${field}-${index}-clause-${item.index}`, shown: item.value, raw: item.value, label: subtitle || sectionTitle, saveValue: next => source.slice(0, item.start) + (item.labeled ? `${item.label}: ${String(next).trim()}` : String(next).trim()) + source.slice(item.end) }))}</div>; }); };
+  const rowsFor = (record, field) => { const value = record[field]; if (!fieldPresent(record, field)) return []; if (DATE_FIELDS.has(field)) return [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => { const parsed = typeof item === 'string' ? parseLabel(item) : { labeled: false }; return parsed.labeled ? { subtitle: parsed.label, value: parsed.value } : { subtitle: '', value: displayValue(item) }; }); if (OBJECT_FIELDS.has(field)) return objectLeaves(value, field).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(field, value).map(clause => { const parsed = parseLabel(clause.text); return { subtitle: parsed.label, value: parsed.value }; }); return [{ subtitle: '', value: displayValue(value) }]; };
+  const sectionLines = (record, section) => { const lines = [section.title.toUpperCase(), '-'.repeat(40)]; section.fields.forEach(field => { const rows = rowsFor(record, field); if (!rows.length) return; if (FIELD_LABELS[field] !== section.title) lines.push(FIELD_LABELS[field]); let prior = null; rows.forEach((row, rowIndex) => { if (row.subtitle && row.subtitle !== prior) lines.push(row.subtitle); lines.push(`${rowIndex + 1}. ${row.value}`); prior = row.subtitle; }); }); return lines; };
+  const renderSection = (record, index, section) => { const merged = mergedRecord(record, index, true); if (!section.fields.some(field => fieldPresent(merged, field))) return null; const body = section.fields.flatMap(field => { if (!fieldPresent(merged, field)) return []; if (ARRAY_FIELDS.has(field)) return [renderArray(record, index, field, section.title)]; if (OBJECT_FIELDS.has(field)) { const rendered = renderObjectField(record, index, field, section.title); return rendered ? (Array.isArray(rendered) ? rendered : [rendered]) : []; } if (NARRATIVE_FIELDS.has(field)) return renderDelimited(record, index, field, section.title); return [renderScalar(record, index, field, FIELD_LABELS[field], section.title)]; }).filter(Boolean); const copyId = `${section.id}-${index}`, pending = sectionPending(section, index), approved = approvedSections[copyId]; return <section className="section" key={section.id}><div className="mini-cards-container"><div className="section-header"><h3 className="section-title">{section.title}</h3><div className="header-right-actions"><button className={`copy-btn ${copied === copyId ? 'copied' : ''}`} onClick={() => copyText(sectionLines(merged, section).join('\n'), copyId)}>{copied === copyId ? 'Copied!' : 'Copy Section'}</button>{pending && <button className="approve-btn pending" disabled={approving} onClick={() => approveSection(record, index, section)}>Pending Approve</button>}{approved && !pending && <span className="approve-btn approved">Approved</span>}</div></div>{body}</div></section>; };
+  const allText = (record, index) => { const merged = mergedRecord(record, index, true), lines = [`BRAIN TUMOR CHARACTERISTICS ${index + 1}`, '='.repeat(40)]; SECTIONS.forEach(section => { const output = sectionLines(merged, section); if (output.length > 2) lines.push('', ...output); }); return lines.join('\n'); };
+  const filtered = useMemo(() => { const query = searchTerm.trim().toLowerCase(), values = records.map((record, index) => ({ record, index })); return query ? values.filter(({ record, index }) => JSON.stringify(mergedRecord(record, index, true)).toLowerCase().includes(query) || 'brain tumor characteristics'.includes(query)) : values; }, [records, searchTerm, mergedRecord]);
+  if (!records.length) return <article className="brain-tumor-characteristics-document"><div className="empty-state">No brain tumor characteristics data available.</div></article>;
+  return <article className="brain-tumor-characteristics-document"><header className="document-header"><h1 className="document-title">Brain Tumor Characteristics</h1><div className="header-actions"><button className={`copy-btn ${copied === 'all' ? 'copied' : ''}`} onClick={() => copyText(records.map(allText).join('\n\n'), 'all')}>{copied === 'all' ? 'Copied!' : 'Copy All'}</button><PDFDownloadLink document={<BrainTumorCharacteristicsDocumentPDFTemplate document={pdfData} />} fileName="Brain_Tumor_Characteristics.pdf" className="copy-btn pdf-btn">{({ loading }) => loading ? 'Preparing...' : 'Export PDF'}</PDFDownloadLink></div></header><SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} placeholder="Search brain tumor characteristics..." /><div className="records-container">{!filtered.length ? <div className="empty-state">No records match your search.</div> : filtered.map(({ record, index }) => <div className="record-card" key={recordIdOf(record) || index}><div className="record-header"><h2 className="record-name">Brain Tumor Characteristics {index + 1}</h2></div>{SECTIONS.map(section => renderSection(record, index, section))}</div>)}</div></article>;
 };
 
+export { COMMA_ARRAY_FIELDS, COMMA_SPLIT_FIELDS, splitClauses };
 export default BrainTumorCharacteristicsDocument;

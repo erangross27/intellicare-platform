@@ -1,63 +1,71 @@
-/**
- * BrainTumorCharacteristicsDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt, wrap={false} on sections
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'brain_tumor_characteristics';
+const COMMA_SPLIT_FIELDS = [];
+const ARRAY_FIELDS = new Set([]);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set(['resectionExtent']);
+const DATE_FIELDS = new Set([]);
+const ZERO_SENTINEL_FIELDS = new Set(['karnofskyPerformanceScore', 'glasgowComaScale']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  tumorHistology: 'Tumor Histology', whoGrade: 'WHO Grade', tumorLocation: 'Tumor Location', tumorSize: 'Tumor Size',
+  enhancementPattern: 'Enhancement Pattern', perilesionalEdema: 'Perilesional Edema', midlineShift: 'Midline Shift',
+  karnofskyPerformanceScore: 'Karnofsky Performance Score', glasgowComaScale: 'Glasgow Coma Scale',
+  idh1Mutation: 'IDH1 Mutation', mgmtPromoterMethylation: 'MGMT Promoter Methylation', p53Expression: 'p53 Expression',
+  ki67Index: 'Ki-67 Index', chromosomeCodeletion: 'Chromosome Codeletion', resectionExtent: 'Resection Extent',
+  bloodBrainBarrierDisruption: 'Blood-Brain Barrier Disruption', cerebrospinalFluidSeeding: 'Cerebrospinal Fluid Seeding',
+  perfusionMetrics: 'Perfusion Metrics', diffusionRestriction: 'Diffusion Restriction',
+  eloquentCortexInvolvement: 'Eloquent Cortex Involvement', vascularInvolvement: 'Vascular Involvement',
+};
+const SECTIONS = [
+  { title: 'Histology and Grade', fields: ['tumorHistology', 'whoGrade', 'tumorLocation', 'tumorSize'] },
+  { title: 'Imaging Characteristics', fields: ['enhancementPattern', 'perilesionalEdema', 'midlineShift', 'perfusionMetrics', 'diffusionRestriction'] },
+  { title: 'Performance Status', fields: ['karnofskyPerformanceScore', 'glasgowComaScale'] },
+  { title: 'Molecular Markers', fields: ['idh1Mutation', 'mgmtPromoterMethylation', 'p53Expression', 'ki67Index', 'chromosomeCodeletion'] },
+  { title: 'Resection Extent', fields: ['resectionExtent'] },
+  { title: 'Spread and Involvement', fields: ['bloodBrainBarrierDisruption', 'cerebrospinalFluidSeeding', 'eloquentCortexInvolvement', 'vascularInvolvement'] },
+];
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 14, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 24, fontFamily: 'Helvetica-Bold', marginBottom: 14, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  recordSection: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', marginBottom: 6, backgroundColor: '#f0f0f0', padding: 6, borderWidth: 1, borderColor: '#000000' },
-  recordMeta: { fontSize: 13, marginBottom: 2, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 10, marginTop: 4 },
-  sectionTitle: { fontSize: 17, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4 },
-  subSectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 3, marginTop: 6, paddingLeft: 4 },
-  listItem: { fontSize: 14, lineHeight: 1.5, paddingLeft: 12, marginBottom: 3 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return v !== 0; if (typeof v === 'string') return v.trim() !== ''; return true; };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-
-const FL = { tumorHistology: 'Tumor Histology', whoGrade: 'WHO Grade', tumorLocation: 'Tumor Location', tumorSize: 'Tumor Size', enhancementPattern: 'Enhancement Pattern', perilesionalEdema: 'Perilesional Edema', midlineShift: 'Midline Shift', perfusionMetrics: 'Perfusion Metrics', diffusionRestriction: 'Diffusion Restriction', karnofskyPerformanceScore: 'Karnofsky Score', glasgowComaScale: 'Glasgow Coma Scale', idh1Mutation: 'IDH1 Mutation', mgmtPromoterMethylation: 'MGMT Methylation', p53Expression: 'p53 Expression', ki67Index: 'Ki-67 Index', chromosomeCodeletion: 'Chromosome Co-deletion', resectionExtent: 'Resection Extent', eloquentCortexInvolvement: 'Eloquent Cortex', vascularInvolvement: 'Vascular Involvement', bloodBrainBarrierDisruption: 'BBB Disruption', cerebrospinalFluidSeeding: 'CSF Seeding' };
-
-const renderFieldGroup = (title, fields, record) => {
-  const visible = fields.filter(f => hasVal(record[f]));
-  if (visible.length === 0) return null;
-  return (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{visible.map((f, i) => (<View key={i}><Text style={styles.subSectionTitle}>{FL[f] || f}</Text><Text style={styles.listItem}>{fmtVal(record[f])}</Text></View>))}</View>);
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const BrainTumorCharacteristicsDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => { if (r?.brain_tumor_characteristics) return Array.isArray(r.brain_tumor_characteristics) ? r.brain_tumor_characteristics : [r.brain_tumor_characteristics]; if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.brain_tumor_characteristics) return Array.isArray(dd.brain_tumor_characteristics) ? dd.brain_tumor_characteristics : [dd.brain_tumor_characteristics]; return [dd]; } return r; });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Brain Tumor Characteristics</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Brain Tumor Characteristics</Text>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordSection}>
-            <View wrap={false}><Text style={styles.recordTitle}>{`Brain Tumor ${idx + 1}`}</Text>{(record.date || record.createdAt) && <Text style={styles.recordMeta}>{formatDate(record.date || record.createdAt)}</Text>}</View>
-            {renderFieldGroup('Tumor Information', ['tumorHistology', 'whoGrade', 'tumorLocation', 'tumorSize'], record)}
-            {renderFieldGroup('Imaging', ['enhancementPattern', 'perilesionalEdema', 'midlineShift', 'perfusionMetrics', 'diffusionRestriction'], record)}
-            {renderFieldGroup('Clinical Scores', ['karnofskyPerformanceScore', 'glasgowComaScale'], record)}
-            {renderFieldGroup('Molecular Markers', ['idh1Mutation', 'mgmtPromoterMethylation', 'p53Expression', 'ki67Index', 'chromosomeCodeletion'], record)}
-            {renderFieldGroup('Surgical Planning', ['resectionExtent', 'eloquentCortexInvolvement', 'vascularInvolvement'], record)}
-            {renderFieldGroup('Advanced', ['bloodBrainBarrierDisruption', 'cerebrospinalFluidSeeding'], record)}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => { const parsed = typeof item === 'string' ? parseLabel(item) : { subtitle: '', value: item }; return parsed.subtitle ? { subtitle: parsed.subtitle, value: parsed.value } : { subtitle: '', value: displayValue(item) }; }); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
+const BrainTumorCharacteristicsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Brain Tumor Characteristics</Text><Text style={styles.noData}>No brain tumor characteristics data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Brain Tumor Characteristics</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Brain Tumor Characteristics {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
+};
 export default BrainTumorCharacteristicsDocumentPDFTemplate;

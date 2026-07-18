@@ -1,386 +1,131 @@
-/**
- * CardiacMonitoringDocument.jsx
- * March 2026 blue glow theme with inline editing.
- * 4-level search, PDFDownloadLink + pdfData memo, secureApiClient.
- * No type conversion — always saves raw text.
- * Collection: cardiac_monitoring
- */
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import SearchBar from '../components/SearchBar';
 import CardiacMonitoringDocumentPDFTemplate from '../pdf-templates/CardiacMonitoringDocumentPDFTemplate';
+import BlueDatePicker from '../components/BlueDatePicker';
+import BlueSelect from '../components/BlueSelect';
+import SearchBar from '../components/SearchBar';
+import secureApiClient from '../../../services/secureApiClient';
 import './CardiacMonitoringDocument.css';
 
-const SECTION_FIELDS = {
-  rhythm: ['rhythmType', 'heartRate', 'nyhaClass'],
-  bp: ['systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure'],
-  hemodynamics: ['centralVenousPressure', 'pulmonaryArterPressure', 'pulmonaryWedgePressure', 'cardiacOutput', 'cardiacIndex', 'strokeVolume', 'ejectionFraction', 'svr', 'pvr'],
-  ecg: ['stSegmentChanges', 'qtInterval', 'qtcInterval', 'prInterval', 'qrsWidth'],
-  pacing: ['pacingMode', 'pacingRate'],
-  events: ['arrhythmiaEvents', 'icdTherapies', 'telemetryAlarms'],
-};
+const COLLECTION = 'cardiac_monitoring';
+const DRAFT_KEY = `${COLLECTION}PendingEdits`;
+const COMMA_ARRAY_FIELDS = [];
+const COMMA_SPLIT_FIELDS = [];
+const ARRAY_FIELDS = new Set(['arrhythmiaEvents', 'icdTherapies', 'telemetryAlarms']);
+const OBJECT_FIELDS = new Set(['additionalData']);
+const NARRATIVE_FIELDS = new Set(['stSegmentChanges']);
+const DATE_FIELDS = new Set([]);
+const NUMBER_UNIT_FIELDS = new Set(['heartRate', 'systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure', 'centralVenousPressure', 'pulmonaryWedgePressure', 'cardiacOutput', 'cardiacIndex', 'strokeVolume', 'ejectionFraction', 'qtInterval', 'qtcInterval', 'prInterval', 'qrsWidth', 'svr', 'pvr', 'pacingRate']);
+const ZERO_SENTINEL_FIELDS = new Set(['heartRate', 'systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure', 'centralVenousPressure', 'pulmonaryWedgePressure', 'cardiacOutput', 'cardiacIndex', 'strokeVolume', 'ejectionFraction', 'qtInterval', 'qtcInterval', 'prInterval', 'qrsWidth', 'svr', 'pvr', 'pacingRate']);
+const ENUM_FIELDS = {};
+const STATUS_OPTIONS = ['Complete', 'In Progress', 'Pending'];
+const KEY_OVERRIDES = {};
 const FIELD_LABELS = {
   rhythmType: 'Rhythm Type', heartRate: 'Heart Rate', nyhaClass: 'NYHA Class',
-  systolicBloodPressure: 'Systolic BP', diastolicBloodPressure: 'Diastolic BP', meanArterialPressure: 'Mean Arterial Pressure',
-  centralVenousPressure: 'CVP', pulmonaryArterPressure: 'Pulmonary Artery Pressure', pulmonaryWedgePressure: 'PCWP',
-  cardiacOutput: 'Cardiac Output', cardiacIndex: 'Cardiac Index', strokeVolume: 'Stroke Volume',
-  ejectionFraction: 'Ejection Fraction', svr: 'SVR', pvr: 'PVR',
-  stSegmentChanges: 'ST Segment Changes', qtInterval: 'QT Interval', qtcInterval: 'QTc Interval',
-  prInterval: 'PR Interval', qrsWidth: 'QRS Width',
-  pacingMode: 'Pacing Mode', pacingRate: 'Pacing Rate',
-  arrhythmiaEvents: 'Arrhythmia Events', icdTherapies: 'ICD Therapies', telemetryAlarms: 'Telemetry Alarms',
+  systolicBloodPressure: 'Systolic Blood Pressure', diastolicBloodPressure: 'Diastolic Blood Pressure', meanArterialPressure: 'Mean Arterial Pressure',
+  centralVenousPressure: 'Central Venous Pressure', pulmonaryArterPressure: 'Pulmonary Artery Pressure', pulmonaryWedgePressure: 'Pulmonary Wedge Pressure',
+  cardiacOutput: 'Cardiac Output', cardiacIndex: 'Cardiac Index', strokeVolume: 'Stroke Volume', svr: 'Systemic Vascular Resistance', pvr: 'Pulmonary Vascular Resistance',
+  ejectionFraction: 'Ejection Fraction', qtInterval: 'QT Interval', qtcInterval: 'QTc Interval', prInterval: 'PR Interval', qrsWidth: 'QRS Width',
+  stSegmentChanges: 'ST Segment Changes', arrhythmiaEvents: 'Arrhythmia Events', pacingMode: 'Pacing Mode', pacingRate: 'Pacing Rate',
+  icdTherapies: 'ICD Therapies', telemetryAlarms: 'Telemetry Alarms', additionalData: 'Additional Data',
 };
-// NUMBER fields per schema — edited via number input, hide-zero
-const NUMBER_FIELDS = new Set([
-  'heartRate', 'systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure',
-  'centralVenousPressure', 'pulmonaryWedgePressure', 'cardiacOutput', 'cardiacIndex',
-  'strokeVolume', 'ejectionFraction', 'qtInterval', 'qtcInterval', 'prInterval', 'qrsWidth',
-  'svr', 'pvr', 'pacingRate',
-]);
-// ARRAY fields per schema — object/scalar array renderer
-const ARRAY_FIELDS = new Set(['arrhythmiaEvents', 'icdTherapies', 'telemetryAlarms']);
+const SECTIONS = [
+  { id: 'rhythm', title: 'Rhythm', fields: ['rhythmType', 'heartRate', 'nyhaClass'] },
+  { id: 'bloodPressure', title: 'Blood Pressure', fields: ['systolicBloodPressure', 'diastolicBloodPressure', 'meanArterialPressure'] },
+  { id: 'hemodynamics', title: 'Hemodynamics', fields: ['centralVenousPressure', 'pulmonaryArterPressure', 'pulmonaryWedgePressure', 'cardiacOutput', 'cardiacIndex', 'strokeVolume', 'svr', 'pvr'] },
+  { id: 'ventricular', title: 'Ventricular Function', fields: ['ejectionFraction'] },
+  { id: 'intervals', title: 'ECG Intervals', fields: ['qtInterval', 'qtcInterval', 'prInterval', 'qrsWidth'] },
+  { id: 'stSegment', title: 'ST Segment Changes', fields: ['stSegmentChanges'] },
+  { id: 'arrhythmia', title: 'Arrhythmia Events', fields: ['arrhythmiaEvents'] },
+  { id: 'pacing', title: 'Pacing', fields: ['pacingMode', 'pacingRate'] },
+  { id: 'icd', title: 'ICD Therapies', fields: ['icdTherapies'] },
+  { id: 'telemetry', title: 'Telemetry Alarms', fields: ['telemetryAlarms'] },
+  { id: 'additionalData', title: 'Additional Data', fields: ['additionalData'] },
+];
+const DISPLAY_FIELDS = Object.keys(FIELD_LABELS);
 
-const humanizeKey = (k) => String(k).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
-const fmtArrayItem = (it) => {
-  if (it === null || it === undefined) return '';
-  if (typeof it === 'object' && !Array.isArray(it)) {
-    return Object.entries(it).filter(([, v]) => v !== null && v !== undefined && v !== '').map(([k, v]) => `${humanizeKey(k)}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`).join(', ');
-  }
-  if (Array.isArray(it)) return it.map(x => (typeof x === 'object' ? JSON.stringify(x) : String(x))).join(', ');
-  if (typeof it === 'boolean') return it ? 'Yes' : 'No';
-  return String(it);
+const readDrafts = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; } };
+const writeDrafts = store => { try { if (store && Object.keys(store).length) localStorage.setItem(DRAFT_KEY, JSON.stringify(store)); else localStorage.removeItem(DRAFT_KEY); } catch { /* best effort */ } };
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const fieldPresent = (record, field) => { const value = record?.[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return false; return hasValue(value) && !(DATE_FIELDS.has(field) && isEpochDate(value)); };
+const recordIdOf = record => !record?._id ? null : typeof record._id === 'string' ? record._id : record._id.$oid || String(record._id);
+const getAtPath = (source, path) => path.split('.').reduce((value, part) => value?.[/^\d+$/.test(part) ? Number(part) : part], source);
+const setAtPath = (source, path, value) => { const parts = path.split('.'); let node = source; parts.forEach((part, index) => { const key = /^\d+$/.test(part) ? Number(part) : part; if (index === parts.length - 1) node[key] = value; else { const nextIsArray = /^\d+$/.test(parts[index + 1]); if (node[key] === undefined || node[key] === null) node[key] = nextIsArray ? [] : {}; node = node[key]; } }); };
+const formatDate = value => { if (!value) return ''; const raw = value.$date || value; const match = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const toInputDate = value => { const raw = value?.$date || value; const match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return match ? `${match[1]}-${match[2]}-${match[3]}` : ''; };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const splitNumberUnit = text => { if (text === null || text === undefined) return null; const s = String(text).trim(); if (s === '') return null; if (/^-?\d+(?:\.\d+)?\s*\/\s*\d/.test(s)) return null; const m = s.match(/^(-?[\d,]*\.?\d+)(\s*)(.*)$/); if (!m || !/\d/.test(m[1])) return null; return { num: m[1].replace(/,/g, ''), sep: m[2] || '', unit: (m[3] || '').trim() }; };
+const splitRatio = text => { const m = String(text ?? '').trim().match(/^(-?\d+(?:\.\d+)?)(\s*\/\s*\d+(?:\.\d+)?[\s\S]*)$/); return m ? { num: m[1], rest: m[2] } : null; };
+const objectLeaves = (value, prefix, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap((item, index) => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, `${prefix}.${index}`, labelText) : [{ path: `${prefix}.${index}`, label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, `${prefix}.${key}`, childLabel); });
+  return [{ path: prefix, label: labelText, value }];
 };
-
-// Number fields: zero is treated as blank (hide-zero)
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; return true; };
-const hasNumVal = (v) => { if (v === null || v === undefined || v === '') return false; const n = parseFloat(v); if (isNaN(n)) return typeof v === 'string' ? v.trim() !== '' : false; return n !== 0; };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-const splitBySentence = (text) => { if (!text) return []; return String(text).split(/[;.]\s+/).map(s => s.trim()).filter(s => s.length > 0 && s.replace(/[.!?;,]+/g, '').trim().length > 0); };
-function reconstructFullText(sentences) { return sentences.map((s, i) => { const t = s.trim().replace(/[.;]+$/, ''); return i < sentences.length - 1 ? t + ';' : t; }).join(' '); }
-const parseLabel = (text) => { const m = String(text || '').match(/^([A-Z][A-Za-z0-9\s/&(),-]+?):\s*(.*)/); return m ? { label: m[1], content: m[2] } : null; };
-
-/* Pending-edit DRAFT store (localStorage). Drafts survive refresh + show in the JSX, but are NOT
-   written to MongoDB and NOT shown in the PDF until the user clicks Approve.
-   Kept in a SEPARATE key (NOT artifactGridData) so drafts never leak into the PDF/DB source.
-   Shape: { [recordId]: { [fieldPart]: value } }  (fieldPart = "field" or "field.arrayIndex") */
-const DRAFT_KEY = 'cardiac_monitoringPendingEdits';
-const readDrafts = () => {
-  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch { return {}; }
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { label: match[1].trim(), value: match[2].trim(), labeled: true } : { label: '', value: String(text || '').trim(), labeled: false }; };
+const splitClauses = (field, text, splitCommas = COMMA_SPLIT_FIELDS.includes(field)) => {
+  const source = String(text || ''); if (!source.trim()) return []; const clauses = []; let start = 0; let depth = 0;
+  const push = end => { let left = start; let right = end; while (left < right && /\s/.test(source[left])) left += 1; while (right > left && /\s/.test(source[right - 1])) right -= 1; if (right > left) clauses.push({ text: source.slice(left, right), start: left, end: right }); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return clauses;
 };
-const writeDrafts = (store) => {
-  try {
-    if (store && Object.keys(store).length > 0) localStorage.setItem(DRAFT_KEY, JSON.stringify(store));
-    else localStorage.removeItem(DRAFT_KEY);
-  } catch { /* ignore quota/availability errors */ }
+const groupClauses = clauses => { const groups = []; let current = null; clauses.forEach((clause, index) => { const parsed = parseLabel(clause.text); const item = { ...clause, ...parsed, index }; if (parsed.labeled) { current = { subtitle: parsed.label, items: [item] }; groups.push(current); } else if (current?.subtitle) current.items.push(item); else { if (!current || current.subtitle) { current = { subtitle: null, items: [] }; groups.push(current); } current.items.push(item); } }); return groups; };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source]; const records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !DISPLAY_FIELDS.some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => DISPLAY_FIELDS.some(field => hasValue(record[field]))); };
+const LONG_DATE = /^(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}$/;
+const leafWidget = raw => {
+  if (typeof raw === 'boolean') return { widget: 'enum', options: ['Yes', 'No'], seed: raw ? 'Yes' : 'No', saveValue: next => next === 'Yes' };
+  const s = String(raw ?? '').trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return { widget: 'date', saveValue: next => s.includes('T') ? `${next}T00:00:00.000Z` : next };
+  if (LONG_DATE.test(s)) { const parsedDate = new Date(`${s} 00:00:00 UTC`); const iso = Number.isNaN(parsedDate.getTime()) ? '' : parsedDate.toISOString().slice(0, 10); return { widget: 'date', seed: iso, saveValue: next => new Date(`${next}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) }; }
+  const ratio = splitRatio(s);
+  if (ratio) return { widget: 'number', seed: ratio.num, saveValue: next => `${String(next).trim()}${ratio.rest}` };
+  const nu = splitNumberUnit(s);
+  if (nu) return { widget: 'number', seed: nu.num, saveValue: next => typeof raw === 'number' ? Number(next) : `${String(next).trim()}${nu.sep}${nu.unit}` };
+  return { widget: 'text' };
 };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { labeled: false }; const effectiveRaw = parsed.labeled ? parsed.value : leaf.value; const label = parsed.labeled ? (leaf.label ? `${leaf.label} - ${parsed.label}` : parsed.label) : leaf.label; const wrap = parsed.labeled ? (inner => `${parsed.label}: ${String(inner).trim()}`) : null; return { ...leaf, label, effectiveRaw, wrap }; };
 
-const CardiacMonitoringDocument = ({ document: rawDoc }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [copiedId, setCopiedId] = useState(null);
-  const [editingField, setEditingField] = useState(null);
-  const [editValue, setEditValue] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [localEdits, setLocalEdits] = useState({});
-  const [editedFields, setEditedFields] = useState({});
-  const [approvedSections, setApprovedSections] = useState({});
-  // editKeys that are staged drafts (saved locally, NOT yet committed to DB/PDF). Cleared on Approve.
-  const [pendingEdits, setPendingEdits] = useState({});
-
-  const records = useMemo(() => {
-    if (!rawDoc) return [];
-    let arr = Array.isArray(rawDoc) ? rawDoc : [rawDoc];
-    arr = arr.flatMap(r => {
-      if (r?.cardiac_monitoring) return Array.isArray(r.cardiac_monitoring) ? r.cardiac_monitoring : [r.cardiac_monitoring];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.cardiac_monitoring) return Array.isArray(dd.cardiac_monitoring) ? dd.cardiac_monitoring : [dd.cardiac_monitoring]; return [dd]; }
-      return r;
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [rawDoc]);
-
-  const getFieldValue = useCallback((record, fn, idx) => { const k = `${fn}-${idx}`; if (localEdits[k] !== undefined) return localEdits[k]; return record[fn]; }, [localEdits]);
-  const getRecordId = (r) => { const id = r._id; if (!id) return null; if (typeof id === 'string') return id; if (id.$oid) return id.$oid; return String(id); };
-  const copyToClipboard = async (text, id) => { try { await navigator.clipboard.writeText(text); setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); } catch {} };
-
-  // Rehydrate pending drafts from localStorage so a Save survives refresh (shown in JSX, NOT in DB/PDF).
-  useEffect(() => {
-    const store = readDrafts();
-    if (!store || Object.keys(store).length === 0) return;
-    const nLocal = {}, nPending = {}, nFields = {};
-    records.forEach((record, idx) => {
-      const rid = getRecordId(record);
-      const recDrafts = rid ? store[rid] : null;
-      if (!recDrafts) return;
-      Object.entries(recDrafts).forEach(([fieldPart, value]) => {
-        const editKey = `${fieldPart}-${idx}`;
-        nLocal[editKey] = value;
-        nPending[editKey] = true;
-        nFields[editKey] = 'edited';
-      });
-    });
-    if (Object.keys(nLocal).length === 0) return;
-    setLocalEdits(prev => ({ ...nLocal, ...prev }));
-    setPendingEdits(prev => ({ ...nPending, ...prev }));
-    setEditedFields(prev => ({ ...nFields, ...prev }));
-  }, [records]);
-
-  // Save = stage a DRAFT locally + write it to the pending-drafts localStorage store (survives refresh).
-  // NOT written to MongoDB and NOT shown in the PDF until the user clicks Approve (handleApproveSection commits).
-  const handleSaveField = useCallback((record, fn, idx, sid, valueOverride) => {
-    const rid = getRecordId(record); if (!rid) { console.error('[CardiacMonitoring] Cannot save — no record ID'); return; }
-    const val = valueOverride !== undefined ? valueOverride : editValue;
-    const ek = `${fn}-${idx}`;
-    setLocalEdits(prev => ({ ...prev, [ek]: val }));
-    setPendingEdits(prev => ({ ...prev, [ek]: true }));
-    setEditedFields(prev => ({ ...prev, [ek]: 'edited' }));
-    // Re-edit after approval → drop the section 'approved' flag so the button goes back to yellow Pending Approve
-    setApprovedSections(prev => { const k = `${sid}-${idx}`; if (!prev[k]) return prev; const n = { ...prev }; delete n[k]; return n; });
-    const store = readDrafts();
-    if (!store[rid]) store[rid] = {};
-    store[rid][fn] = val;
-    writeDrafts(store);
-    setEditingField(null); setEditValue('');
-  }, [editValue]);
-
-  // Approve = COMMIT all staged drafts for this section to MongoDB, then clear pending so the committed
-  // values now flow into pdfData/PDF. This is the ONLY path that writes to the database.
-  const handleApproveSection = useCallback(async (record, idx, sid) => {
-    setSaving(true);
-    try {
-      const rid = getRecordId(record); if (!rid) return;
-      const sc = (await import('../../../services/secureApiClient')).default;
-      const sf = SECTION_FIELDS[sid] || [];
-      // Pending edits for THIS record + THIS section. editKey = "field-idx" (no dotted/arrayIndex here).
-      const suffix = `-${idx}`;
-      const toCommit = Object.keys(localEdits).filter(k => pendingEdits[k] && k.endsWith(suffix) && sf.includes(k.slice(0, -suffix.length)));
-      // Persist each staged field to the DB now (field, or field+arrayIndex when the trailing segment is numeric)
-      for (const editKey of toCommit) {
-        const fieldPart = editKey.slice(0, -suffix.length); // "field" or "field.arrayIndex"
-        const dotIdx = fieldPart.lastIndexOf('.');
-        const trailing = dotIdx === -1 ? '' : fieldPart.slice(dotIdx + 1);
-        const isArrIdx = dotIdx !== -1 && /^\d+$/.test(trailing);
-        const payload = { field: isArrIdx ? fieldPart.slice(0, dotIdx) : fieldPart, value: localEdits[editKey] };
-        if (isArrIdx) payload.arrayIndex = parseInt(trailing, 10);
-        await sc.put(`/api/edit/cardiac_monitoring/${rid}/edit`, payload);
-      }
-      // Flag the section approved (audit trail)
-      await sc.put(`/api/edit/cardiac_monitoring/${rid}/approve`, { sectionId: sid, approved: true });
-      // Clear pending → committed edits now flow into pdfData/PDF
-      setPendingEdits(prev => { const n = { ...prev }; toCommit.forEach(k => delete n[k]); return n; });
-      // Drop this section's committed fields from the localStorage draft store
-      const store = readDrafts();
-      if (store[rid]) { toCommit.forEach(k => { delete store[rid][k.slice(0, -suffix.length)]; }); if (Object.keys(store[rid]).length === 0) delete store[rid]; writeDrafts(store); }
-      setApprovedSections(prev => ({ ...prev, [`${sid}-${idx}`]: true }));
-      const sf2 = SECTION_FIELDS[sid] || [];
-      setEditedFields(prev => { const n = { ...prev }; Object.keys(n).forEach(k => { sf2.forEach(f => { if (k.startsWith(`${f}-${idx}`)) delete n[k]; }); }); return n; });
-    }
-    catch (err) { console.error('[CardiacMonitoring] Approve failed:', err); } finally { setSaving(false); }
-  }, [localEdits, pendingEdits]);
-
-  // Save one sentence = stage a DRAFT (no DB write). localStorage keeps it across refresh; Approve commits it.
-  const saveSentence = useCallback((record, fn, idx, sid, sentenceIdx, valueOverride) => {
-    const rid = getRecordId(record); if (!rid) { console.error('[CardiacMonitoring] Cannot save — no record ID'); return; }
-    const currentVal = fmtVal(getFieldValue(record, fn, idx)); const currentSentences = splitBySentence(currentVal);
-    const cleanNew = (valueOverride !== undefined ? valueOverride : editValue).trim();
-    if (!cleanNew || cleanNew.replace(/[.!?;,]+/g, '').trim() === '') { currentSentences.splice(sentenceIdx, 1); }
-    else { const cleanOld = (currentSentences[sentenceIdx] || '').trim(); if (cleanNew === cleanOld) { setEditingField(null); setEditValue(''); return; } currentSentences[sentenceIdx] = cleanNew; }
-    const fullText = reconstructFullText(currentSentences);
-    const ek = `${fn}-${idx}`;
-    setLocalEdits(prev => ({ ...prev, [ek]: fullText }));
-    setPendingEdits(prev => ({ ...prev, [ek]: true }));
-    const newSentences = splitBySentence(fullText); const originalCount = splitBySentence(fmtVal(record[fn])).length;
-    const extraCount = newSentences.length - originalCount;
-    setEditedFields(prev => { const n = { ...prev, [`${fn}-${idx}-s${sentenceIdx}`]: 'edited' }; for (let ei = 0; ei < extraCount; ei++) { n[`${fn}-${idx}-s${sentenceIdx + 1 + ei}`] = 'added'; } return n; });
-    // Re-edit after approval → drop the section 'approved' flag so the button goes back to yellow Pending Approve
-    setApprovedSections(prev => { const k = `${sid}-${idx}`; if (!prev[k]) return prev; const n = { ...prev }; delete n[k]; return n; });
-    const store = readDrafts();
-    if (!store[rid]) store[rid] = {};
-    store[rid][fn] = fullText;
-    writeDrafts(store);
-    setEditingField(null); setEditValue('');
-  }, [editValue, localEdits, getFieldValue]);
-
-  const highlightText = (text) => { if (!text) return ''; const str = String(text); if (!searchTerm.trim()) return str; const esc = searchTerm.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); const re = new RegExp(`(${esc})`, 'gi'); const p = str.split(re); if (p.length === 1) return str; return <>{p.map((x, i) => re.test(x) ? <mark key={i}>{x}</mark> : x)}</>; };
-  const phraseMatch = (text, term) => { if (!term.trim()) return true; return String(text || '').toLowerCase().includes(term.toLowerCase().trim()); };
-  const shouldShowSection = (record, title, contentParts, fieldNames) => { if (!searchTerm.trim()) return true; if (record._showAllSections) return true; const sl = searchTerm.toLowerCase().trim(); const tl = (title || '').toLowerCase(); if (tl.startsWith(sl) || sl.startsWith(tl)) return true; const labels = (fieldNames || []).map(f => FIELD_LABELS[f] || f); const combined = [...labels, ...(Array.isArray(contentParts) ? contentParts : [contentParts])].filter(Boolean).join(' '); return phraseMatch(combined, searchTerm); };
-  const sectionTitleMatches = (t) => { if (!searchTerm.trim()) return false; const sl = searchTerm.toLowerCase().trim(); const tl = (t || '').toLowerCase(); return tl.startsWith(sl) || sl.startsWith(tl); };
-  const fieldMatches = (record, fn, idx) => { if (!searchTerm.trim()) return true; if (record._showAllSections) return true; return phraseMatch(FIELD_LABELS[fn] || fn, searchTerm) || phraseMatch(fmtVal(getFieldValue(record, fn, idx)), searchTerm); };
-
-  const filteredRecords = useMemo(() => {
-    if (!searchTerm.trim()) return records;
-    const sl = searchTerm.toLowerCase().trim();
-    return records.filter((record, idx) => {
-      const title = `Cardiac Monitoring ${idx + 1}`;
-      const allText = [title, ...Object.keys(FIELD_LABELS).map(f => ARRAY_FIELDS.has(f) ? arrItems(record[f]).map(fmtArrayItem).join(' ') : fmtVal(record[f])), ...Object.values(FIELD_LABELS), 'Rhythm & Rate', 'Blood Pressure', 'Hemodynamics', 'ECG Parameters', 'Pacing', 'Events & Alarms'].filter(Boolean).join(' ');
-      const match = allText.toLowerCase().includes(sl);
-      record._showAllSections = match && title.toLowerCase().startsWith(sl);
-      return match;
-    });
-  }, [records, searchTerm]);
-
-  const sectionHasEdits = (idx, sid) => { const fs = SECTION_FIELDS[sid] || []; return fs.some(f => Object.keys(editedFields).some(k => k.startsWith(`${f}-${idx}`) || k.startsWith(`${f}-${idx}-s`))); };
-  const renderApproveButton = (idx, sid) => { const he = sectionHasEdits(idx, sid); const ia = approvedSections[`${sid}-${idx}`]; if (he) return <button className="approve-btn pending" onClick={(e) => { e.stopPropagation(); handleApproveSection(records[idx], idx, sid); }}>Pending Approve</button>; if (ia) return <span className="approve-btn approved">Approved</span>; return null; };
-
-  const renderEditableField = (record, fn, idx, sid) => {
-    const isNum = NUMBER_FIELDS.has(fn);
-    const raw = getFieldValue(record, fn, idx);
-    if (isNum ? !hasNumVal(raw) : !hasVal(raw)) return null;
-    const dv = fmtVal(raw); const ek = `${fn}-${idx}`; const ie = editingField === ek; const ed = editedFields[ek]; const cid = `row-${fn}-${idx}`;
-    if (ie) {
-      if (isNum) return (<div className="rec-mini-card"><div className="nested-subtitle">{highlightText(FIELD_LABELS[fn] || fn)}</div><div className="edit-field-container"><input type="number" step="any" className="edit-number" value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { const n = parseFloat(editValue); if (!isNaN(n)) handleSaveField(record, fn, idx, sid, n); } if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }} disabled={saving} /><div className="edit-actions"><button className="save-btn" onClick={() => { const n = parseFloat(editValue); if (isNaN(n)) return; handleSaveField(record, fn, idx, sid, n); }} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button></div></div></div>);
-      return (<div className="rec-mini-card"><div className="nested-subtitle">{highlightText(FIELD_LABELS[fn] || fn)}</div><div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) handleSaveField(record, fn, idx, sid); if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }} autoFocus rows={fn === 'stSegmentChanges' ? 3 : 1} disabled={saving} /><div className="edit-actions"><button className="save-btn" onClick={() => handleSaveField(record, fn, idx, sid)} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button></div></div></div>);
-    }
-    return (<div className="rec-mini-card"><div className="nested-subtitle">{highlightText(FIELD_LABELS[fn] || fn)}</div><div className={`numbered-row editable-row${ed ? ' modified' : ''}`} onClick={() => { setEditingField(ek); setEditValue(dv); }}><div className="row-content"><span className="content-value">{highlightText(dv)}</span>{!ed && <span className="edit-indicator">✎</span>}</div><button className={`copy-btn${copiedId === cid ? ' copied' : ''}`} onClick={(e) => { e.stopPropagation(); copyToClipboard(dv, cid); }}>{copiedId === cid ? 'Copied' : 'Copy'}</button></div>{ed && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>);
+const CardiacMonitoringDocument = ({ document: documentProp, data, templateData }) => {
+  const records = useMemo(() => unwrapRecords(documentProp || data || templateData), [documentProp, data, templateData]);
+  const [searchTerm, setSearchTerm] = useState(''); const [copied, setCopied] = useState(null); const [editingField, setEditingField] = useState(null); const [editValue, setEditValue] = useState(''); const [saveError, setSaveError] = useState(''); const [localEdits, setLocalEdits] = useState({}); const [pendingEdits, setPendingEdits] = useState({}); const [approvedSections, setApprovedSections] = useState({}); const [approving, setApproving] = useState(false);
+  useEffect(() => { const store = readDrafts(), nextLocal = {}, nextPending = {}; records.forEach((record, index) => { Object.entries(store[recordIdOf(record)] || {}).forEach(([path, value]) => { nextLocal[`${path}-${index}`] = value; nextPending[`${path}-${index}`] = true; }); }); if (Object.keys(nextLocal).length) { setLocalEdits(previous => ({ ...nextLocal, ...previous })); setPendingEdits(previous => ({ ...nextPending, ...previous })); } }, [records]);
+  const valueAt = useCallback((record, path, index) => localEdits[`${path}-${index}`] !== undefined ? localEdits[`${path}-${index}`] : getAtPath(record, path), [localEdits]);
+  const stagePath = useCallback((record, path, index, value) => { const id = recordIdOf(record); if (!id) return; const key = `${path}-${index}`; setLocalEdits(previous => ({ ...previous, [key]: value })); setPendingEdits(previous => ({ ...previous, [key]: true })); const store = readDrafts(); store[id] = { ...(store[id] || {}), [path]: value }; writeDrafts(store); setEditingField(null); setEditValue(''); setSaveError(''); }, []);
+  const mergedRecord = useCallback((record, index, includePending) => { const merged = JSON.parse(JSON.stringify(record)); Object.entries(localEdits).forEach(([key, value]) => { if (!key.endsWith(`-${index}`) || (!includePending && pendingEdits[key])) return; setAtPath(merged, key.slice(0, -String(index).length - 1), value); }); return merged; }, [localEdits, pendingEdits]);
+  const pdfData = useMemo(() => records.map((record, index) => mergedRecord(record, index, false)), [records, mergedRecord]);
+  const copyText = async (text, id) => { await navigator.clipboard.writeText(text); setCopied(id); setTimeout(() => setCopied(null), 2500); };
+  const highlight = value => { const text = String(value ?? ''), query = searchTerm.trim(); if (!query) return text; const index = text.toLowerCase().indexOf(query.toLowerCase()); return index < 0 ? text : <>{text.slice(0, index)}<mark>{text.slice(index, index + query.length)}</mark>{text.slice(index + query.length)}</>; };
+  const pathFromKey = (key, index) => key.slice(0, -String(index).length - 1);
+  const sectionPending = (section, index) => Object.keys(pendingEdits).some(key => pendingEdits[key] && key.endsWith(`-${index}`) && section.fields.includes(pathFromKey(key, index).split('.')[0]));
+  const approveSection = async (record, index, section) => {
+    const id = recordIdOf(record); if (!id) return; const keys = Object.keys(pendingEdits).filter(key => pendingEdits[key] && key.endsWith(`-${index}`) && section.fields.includes(pathFromKey(key, index).split('.')[0])); if (!keys.length) return; setApproving(true);
+    try { for (const key of keys) { const path = pathFromKey(key, index); const response = await secureApiClient.put(`/api/edit/${COLLECTION}/${id}/edit`, { field: path, value: localEdits[key] }); if (response?.success === false) throw new Error(response.error || 'save failed'); } const response = await secureApiClient.put(`/api/edit/${COLLECTION}/${id}/approve`, { sectionId: section.id, approved: true }); if (response?.success === false) throw new Error(response.error || 'approval failed'); setPendingEdits(previous => { const next = { ...previous }; keys.forEach(key => delete next[key]); return next; }); const store = readDrafts(); if (store[id]) { keys.forEach(key => delete store[id][pathFromKey(key, index)]); if (!Object.keys(store[id]).length) delete store[id]; writeDrafts(store); } setApprovedSections(previous => ({ ...previous, [`${section.id}-${index}`]: true })); }
+    catch (error) { setSaveError(error.message || 'Unable to approve changes'); } finally { setApproving(false); }
   };
-
-  const renderArrayField = (record, fn, idx, sid) => {
-    const raw = getFieldValue(record, fn, idx);
-    const items = Array.isArray(raw) ? raw.filter(x => hasVal(x)) : (hasVal(raw) ? [raw] : []);
-    if (items.length === 0) return null;
-    const ek = `${fn}-${idx}`; const ie = editingField === ek; const ed = editedFields[ek];
-    const display = items.map(fmtArrayItem);
-    if (searchTerm.trim() && !record._showAllSections && !sectionTitleMatches('Events & Alarms') && !phraseMatch([FIELD_LABELS[fn] || fn, ...display].join(' '), searchTerm)) return null;
-    if (ie) return (<div className="rec-mini-card"><div className="nested-subtitle">{highlightText(FIELD_LABELS[fn] || fn)}</div><div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} autoFocus placeholder="One item per line" rows={Math.max(2, display.length)} onKeyDown={e => { if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }} disabled={saving} /><div className="edit-actions"><button className="save-btn" onClick={() => { const arr = editValue.split('\n').map(s => s.trim()).filter(s => s); handleSaveField(record, fn, idx, sid, arr); }} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button></div></div></div>);
-    return (<div className="rec-mini-card"><div className="nested-subtitle">{highlightText(FIELD_LABELS[fn] || fn)}</div>{display.map((it, i) => (<div key={i} className={`numbered-row editable-row${ed ? ' modified' : ''}`} style={{ marginBottom: i < display.length - 1 ? 8 : 0 }} onClick={() => { setEditingField(ek); setEditValue(display.join('\n')); }}><div className="row-content"><span className="content-value">{highlightText(it)}</span>{!ed && <span className="edit-indicator">✎</span>}</div><button className={`copy-btn${copiedId === `${ek}-${i}` ? ' copied' : ''}`} onClick={(e) => { e.stopPropagation(); copyToClipboard(it, `${ek}-${i}`); }}>{copiedId === `${ek}-${i}` ? 'Copied' : 'Copy'}</button></div>))}{ed && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>);
+  const editControl = (widget, options) => { if (widget === 'date') return <BlueDatePicker value={editValue} onSelect={setEditValue} />; if (widget === 'enum') return <BlueSelect value={editValue} options={options} onChange={setEditValue} />; if (widget === 'number') return <div className="number-edit-row"><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) - 1)); }}>&minus;</button><input type="text" inputMode="decimal" className="edit-number" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus /><button type="button" className="num-step" onClick={event => { event.stopPropagation(); setEditValue(String((Number(editValue) || 0) + 1)); }}>+</button></div>; return <textarea className="edit-textarea" value={editValue} onChange={event => setEditValue(event.target.value)} autoFocus />; };
+  const renderLeaf = ({ record, index, path, shown, raw, label, widget = 'text', options = [], seed, leafKey, saveValue }) => {
+    const editKey = leafKey || `${path}-${index}`, editing = editingField === editKey, modified = !!pendingEdits[`${path}-${index}`];
+    const save = event => { event?.stopPropagation(); if (!String(editValue).trim()) { setSaveError('Please enter a value'); return; } if (widget === 'number' && Number.isNaN(Number(editValue))) { setSaveError('Please enter a valid number'); return; } let next; if (saveValue) next = saveValue(editValue); else if (widget === 'date') next = `${editValue}T00:00:00.000Z`; else next = String(editValue).trim(); stagePath(record, path, index, next); };
+    return <div data-edit-field={path} key={editKey}><span className="field-label sr-only">{label || path}</span><div className={`numbered-row editable-row${modified ? ' modified' : ''}`} onClick={() => { if (!editing) { setEditingField(editKey); setEditValue(seed !== undefined ? seed : widget === 'date' ? toInputDate(raw) : String(raw ?? '')); setSaveError(''); } }}>{editing ? <div className="edit-field-container" onClick={event => event.stopPropagation()}>{editControl(widget, options)}{saveError && <div className="save-error">{saveError}</div>}<div className="edit-actions"><button className="save-btn" onClick={save}>Save</button><button className="cancel-btn" onClick={event => { event.stopPropagation(); setEditingField(null); setEditValue(''); setSaveError(''); }}>Cancel</button></div></div> : <><div className="row-content"><span className="content-value">{highlight(shown)}</span><span className="edit-indicator">&#9998;</span></div><button className={`copy-btn ${copied === editKey ? 'copied' : ''}`} onClick={event => { event.stopPropagation(); copyText(String(shown), editKey); }}>{copied === editKey ? 'Copied!' : 'Copy'}</button></>}</div>{modified && <div className="modified-badge">edited - click Pending Approve to save</div>}</div>;
   };
-
-  const pdfData = useMemo(() => {
-    if (Object.keys(localEdits).length === 0) return records;
-    return records.map((record, idx) => { const m = { ...record }; Object.keys(localEdits).forEach(key => { if (pendingEdits[key]) return; const ld = key.lastIndexOf('-'); if (ld === -1) return; const fn = key.substring(0, ld); const ri = parseInt(key.substring(ld + 1), 10); if (ri === idx && fn in record) m[fn] = localEdits[key]; }); return m; });
-  }, [records, localEdits, pendingEdits]);
-
-  const SECTION_TITLES = { rhythm: 'RHYTHM & RATE', bp: 'BLOOD PRESSURE', hemodynamics: 'HEMODYNAMICS', ecg: 'ECG PARAMETERS', pacing: 'PACING', events: 'EVENTS & ALARMS' };
-
-  const arrItems = (v) => Array.isArray(v) ? v.filter(x => hasVal(x)) : (hasVal(v) ? [v] : []);
-
-  const copySectionText = (record, idx, sid) => {
-    const pr = pdfData[idx] || record; let text = `${SECTION_TITLES[sid] || sid.toUpperCase()}\n`;
-    if (sid === 'ecg') {
-      if (hasVal(pr.stSegmentChanges)) { text += 'ST Segment Changes:\n'; splitBySentence(fmtVal(pr.stSegmentChanges)).forEach((s, i) => { text += `${i + 1}. ${s}\n`; }); }
-      ['qtInterval', 'qtcInterval', 'prInterval', 'qrsWidth'].forEach(f => { if (hasNumVal(pr[f])) text += `${FIELD_LABELS[f]}: ${fmtVal(pr[f])}\n`; });
-    } else if (sid === 'events') {
-      (SECTION_FIELDS.events).forEach(f => { const items = arrItems(pr[f]); if (items.length) { text += `${FIELD_LABELS[f]}:\n`; items.forEach((it, i) => { text += `${i + 1}. ${fmtArrayItem(it)}\n`; }); } });
-    } else {
-      (SECTION_FIELDS[sid] || []).forEach(f => { if (NUMBER_FIELDS.has(f) ? hasNumVal(pr[f]) : hasVal(pr[f])) text += `${FIELD_LABELS[f] || f}: ${fmtVal(pr[f])}\n`; });
-    }
-    copyToClipboard(text.trim(), `section-${sid}-${idx}`);
-  };
-
-  const copyAllContent = () => {
-    let text = '=== CARDIAC MONITORING ===\n\n';
-    pdfData.forEach((r, idx) => {
-      text += `Cardiac Monitoring ${idx + 1}\n`;
-      Object.entries(SECTION_TITLES).forEach(([sid, title]) => {
-        if (sid === 'ecg') {
-          const hasST = hasVal(r.stSegmentChanges); const ecgFs = ['qtInterval', 'qtcInterval', 'prInterval', 'qrsWidth'].filter(f => hasNumVal(r[f]));
-          if (hasST || ecgFs.length) { text += `\n${title}\n`; if (hasST) { text += 'ST Segment Changes:\n'; splitBySentence(fmtVal(r.stSegmentChanges)).forEach((s, i) => { text += `${i + 1}. ${s}\n`; }); } ecgFs.forEach(f => { text += `${FIELD_LABELS[f]}: ${fmtVal(r[f])}\n`; }); }
-        } else if (sid === 'events') {
-          const evFs = SECTION_FIELDS.events.filter(f => arrItems(r[f]).length);
-          if (evFs.length) { text += `\n${title}\n`; evFs.forEach(f => { text += `${FIELD_LABELS[f]}:\n`; arrItems(r[f]).forEach((it, i) => { text += `${i + 1}. ${fmtArrayItem(it)}\n`; }); }); }
-        } else {
-          const fields = SECTION_FIELDS[sid] || []; const vis = fields.filter(f => NUMBER_FIELDS.has(f) ? hasNumVal(r[f]) : hasVal(r[f]));
-          if (vis.length) { text += `\n${title}\n`; vis.forEach(f => { text += `${FIELD_LABELS[f] || f}: ${fmtVal(r[f])}\n`; }); }
-        }
-      });
-      text += '\n';
-    });
-    copyToClipboard(text.trim(), 'copy-all');
-  };
-
-  const renderSection = (record, idx, sid, title, children) => { if (!children) return null; return (<div className="section"><div className="mini-cards-container"><div className="section-header"><h4 className="section-title">{highlightText(title)}</h4><div className="header-right-actions"><button className={`copy-btn${copiedId === `section-${sid}-${idx}` ? ' copied' : ''}`} onClick={() => copySectionText(record, idx, sid)}>{copiedId === `section-${sid}-${idx}` ? 'Copied' : 'Copy Section'}</button>{renderApproveButton(idx, sid)}</div></div>{children}</div></div>); };
-
-  const fieldHasVal = (record, f, idx) => { const v = getFieldValue(record, f, idx); if (ARRAY_FIELDS.has(f)) { const items = Array.isArray(v) ? v.filter(x => hasVal(x)) : (hasVal(v) ? [v] : []); return items.length > 0; } return NUMBER_FIELDS.has(f) ? hasNumVal(v) : hasVal(v); };
-
-  const renderMultiFieldSection = (record, idx, sid, title, fields) => {
-    const visibleFields = fields.filter(f => fieldHasVal(record, f, idx));
-    if (visibleFields.length === 0) return null;
-    if (!shouldShowSection(record, title, visibleFields.map(f => fmtVal(getFieldValue(record, f, idx))), visibleFields)) return null;
-    return renderSection(record, idx, sid, title, (() => { const stm = sectionTitleMatches(title); const sa = !searchTerm.trim() || record._showAllSections || stm; return <>{visibleFields.map(f => { if (!sa && !fieldMatches(record, f, idx)) return null; return <React.Fragment key={f}>{renderEditableField(record, f, idx, sid)}</React.Fragment>; })}</>; })());
-  };
-
-  const renderSentenceSplitSection = (record, idx, sid, title, fieldName) => {
-    const raw = getFieldValue(record, fieldName, idx); if (!hasVal(raw)) return null;
-    const sentences = splitBySentence(fmtVal(raw)); if (sentences.length === 0) return null;
-    if (!shouldShowSection(record, title, sentences, [fieldName])) return null;
-    return renderSection(record, idx, sid, title, (() => {
-      const stm = sectionTitleMatches(title); const sa = !searchTerm.trim() || record._showAllSections || stm;
-      return sentences.map((sent, si) => {
-        if (!sa && !phraseMatch(sent, searchTerm)) return null;
-        const sentKey = `${fieldName}-${idx}-s${si}`; const ie = editingField === sentKey; const ed = editedFields[sentKey]; const cid = `sent-${fieldName}-${idx}-${si}`;
-        const parsed = parseLabel(sent);
-        const saveLbl = (label) => { saveSentence(record, fieldName, idx, sid, si, label ? `${label}: ${editValue}` : editValue); };
-        if (ie) return (<div key={si} className="rec-mini-card">{parsed && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}<div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) saveLbl(parsed?.label); if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }} autoFocus rows={2} disabled={saving} /><div className="edit-actions"><button className="save-btn" onClick={() => saveLbl(parsed?.label)} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button></div></div></div>);
-        const displayText = parsed ? parsed.content : sent;
-        return (<div key={si} className="rec-mini-card">{parsed && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}<div className={`numbered-row editable-row${ed ? ' modified' : ''}`} onClick={() => { setEditingField(sentKey); setEditValue(parsed ? parsed.content : sent); }}><div className="row-content"><span className="content-value">{highlightText(displayText)}</span>{!ed && <span className="edit-indicator">✎</span>}</div><button className={`copy-btn${copiedId === cid ? ' copied' : ''}`} onClick={(e) => { e.stopPropagation(); copyToClipboard(sent, cid); }}>{copiedId === cid ? 'Copied' : 'Copy'}</button></div>{ed === 'edited' && <div className="modified-badge">edited - click Pending Approve to save</div>}{ed === 'added' && <div className="modified-badge added">added - click Pending Approve to save</div>}</div>);
-      }).filter(Boolean);
-    })());
-  };
-
-  if (!filteredRecords || filteredRecords.length === 0) return (<article className="cardiac-monitoring-document"><header className="document-header"><h1 className="document-title">Cardiac Monitoring</h1></header><SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} /><div className="empty-state">No data available.</div></article>);
-
-  return (
-    <article className="cardiac-monitoring-document">
-      <header className="document-header">
-        <h1 className="document-title">Cardiac Monitoring</h1>
-        <div className="header-actions">
-          <button className={`copy-btn${copiedId === 'copy-all' ? ' copied' : ''}`} onClick={copyAllContent}>{copiedId === 'copy-all' ? 'Copied' : 'Copy All'}</button>
-          <PDFDownloadLink document={<CardiacMonitoringDocumentPDFTemplate document={pdfData} />} fileName="Cardiac_Monitoring.pdf">
-            {({ loading }) => <button className="copy-btn">{loading ? 'Preparing...' : 'Export PDF'}</button>}
-          </PDFDownloadLink>
-        </div>
-      </header>
-      <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
-      <div className="records-container">
-        {filteredRecords.map((record, idx) => (
-          <div key={idx} className="record-card">
-            <div className="record-header">
-              <div className="record-meta-row">
-                {record.rhythmType && <span className="record-date">{highlightText(record.rhythmType)}</span>}
-              </div>
-              <div className="record-title-row"><h3 className="record-name">{highlightText(`Cardiac Monitoring ${idx + 1}`)}</h3></div>
-            </div>
-            {renderMultiFieldSection(record, idx, 'rhythm', 'Rhythm & Rate', SECTION_FIELDS.rhythm)}
-            {renderMultiFieldSection(record, idx, 'bp', 'Blood Pressure', SECTION_FIELDS.bp)}
-            {renderMultiFieldSection(record, idx, 'hemodynamics', 'Hemodynamics', SECTION_FIELDS.hemodynamics)}
-            {/* ECG: stSegmentChanges as sentence-split, rest as editable fields */}
-            {(() => {
-              const ecgFields = ['qtInterval', 'qtcInterval', 'prInterval', 'qrsWidth'].filter(f => hasVal(getFieldValue(record, f, idx)));
-              const hasST = hasVal(getFieldValue(record, 'stSegmentChanges', idx));
-              if (!hasST && ecgFields.length === 0) return null;
-              if (!shouldShowSection(record, 'ECG Parameters', [fmtVal(getFieldValue(record, 'stSegmentChanges', idx)), ...ecgFields.map(f => fmtVal(getFieldValue(record, f, idx)))], ['stSegmentChanges', ...ecgFields])) return null;
-              return renderSection(record, idx, 'ecg', 'ECG Parameters', <>
-                {hasST && (() => {
-                  const sentences = splitBySentence(fmtVal(getFieldValue(record, 'stSegmentChanges', idx)));
-                  if (sentences.length <= 1) return renderEditableField(record, 'stSegmentChanges', idx, 'ecg');
-                  const stm = sectionTitleMatches('ECG Parameters'); const sa = !searchTerm.trim() || record._showAllSections || stm;
-                  return <>{sentences.map((sent, si) => {
-                    if (!sa && !phraseMatch(sent, searchTerm)) return null;
-                    const sentKey = `stSegmentChanges-${idx}-s${si}`; const ie = editingField === sentKey; const ed = editedFields[sentKey]; const cid = `sent-st-${idx}-${si}`;
-                    const parsed = parseLabel(sent);
-                    const saveLbl = (label) => { saveSentence(record, 'stSegmentChanges', idx, 'ecg', si, label ? `${label}: ${editValue}` : editValue); };
-                    if (ie) return (<div key={si} className="rec-mini-card">{parsed && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}<div className="edit-field-container"><textarea className="edit-textarea" value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) saveLbl(parsed?.label); if (e.key === 'Escape') { setEditingField(null); setEditValue(''); } }} autoFocus rows={2} disabled={saving} /><div className="edit-actions"><button className="save-btn" onClick={() => saveLbl(parsed?.label)} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button><button className="cancel-btn" onClick={() => { setEditingField(null); setEditValue(''); }}>Cancel</button></div></div></div>);
-                    const displayText = parsed ? parsed.content : sent;
-                    return (<div key={si} className="rec-mini-card">{parsed && <div className="nested-subtitle">{highlightText(parsed.label)}</div>}<div className={`numbered-row editable-row${ed ? ' modified' : ''}`} onClick={() => { setEditingField(sentKey); setEditValue(parsed ? parsed.content : sent); }}><div className="row-content"><span className="content-value">{highlightText(displayText)}</span>{!ed && <span className="edit-indicator">✎</span>}</div><button className={`copy-btn${copiedId === cid ? ' copied' : ''}`} onClick={(e) => { e.stopPropagation(); copyToClipboard(sent, cid); }}>{copiedId === cid ? 'Copied' : 'Copy'}</button></div>{ed === 'edited' && <div className="modified-badge">edited - click Pending Approve to save</div>}{ed === 'added' && <div className="modified-badge added">added - click Pending Approve to save</div>}</div>);
-                  }).filter(Boolean)}</>;
-                })()}
-                {ecgFields.map(f => <React.Fragment key={f}>{renderEditableField(record, f, idx, 'ecg')}</React.Fragment>)}
-              </>);
-            })()}
-            {renderMultiFieldSection(record, idx, 'pacing', 'Pacing', SECTION_FIELDS.pacing)}
-            {(() => {
-              const visibleFields = SECTION_FIELDS.events.filter(f => fieldHasVal(record, f, idx));
-              if (visibleFields.length === 0) return null;
-              if (!shouldShowSection(record, 'Events & Alarms', visibleFields.map(f => arrItems(getFieldValue(record, f, idx)).map(fmtArrayItem).join(' ')), visibleFields)) return null;
-              const stm = sectionTitleMatches('Events & Alarms'); const sa = !searchTerm.trim() || record._showAllSections || stm;
-              return renderSection(record, idx, 'events', 'Events & Alarms', <>{visibleFields.map(f => {
-                if (!sa && !phraseMatch([FIELD_LABELS[f], ...arrItems(getFieldValue(record, f, idx)).map(fmtArrayItem)].join(' '), searchTerm)) return null;
-                return <React.Fragment key={f}>{renderArrayField(record, f, idx, 'events')}</React.Fragment>;
-              })}</>);
-            })()}
-          </div>
-        ))}
-      </div>
-    </article>
-  );
+  const renderObjectLeafRow = (record, index, view) => { const config = leafWidget(view.effectiveRaw); const shown = config.widget === 'date' && /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw)) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw); const saveValue = next => { const inner = config.saveValue ? config.saveValue(next) : String(next).trim(); return view.wrap && typeof inner === 'string' ? view.wrap(inner) : inner; }; return renderLeaf({ record, index, path: view.path, shown, raw: view.effectiveRaw, label: view.label, widget: config.widget, options: config.options || [], seed: config.seed, saveValue }); };
+  const renderLeafCard = (record, index, leaves, cardKey) => { const views = leaves.map(leafView); return <div className="rec-mini-card nested-mini-card" key={cardKey}>{views.map((view, viewIndex) => <React.Fragment key={view.path}>{view.label && view.label !== views[viewIndex - 1]?.label && <div className="nested-subtitle sub-label">{view.label}</div>}{renderObjectLeafRow(record, index, view)}</React.Fragment>)}</div>; };
+  const renderObjectField = (record, index, field, sectionTitle) => { const value = valueAt(record, field, index); if (!hasValue(value)) return null; if (Array.isArray(value)) { const cards = value.map((item, itemIndex) => { const leaves = typeof item === 'object' && item !== null ? objectLeaves(item, `${field}.${itemIndex}`) : (hasValue(item) ? [{ path: `${field}.${itemIndex}`, label: '', value: item }] : []); return leaves.length ? renderLeafCard(record, index, leaves, `${field}-${itemIndex}`) : null; }).filter(Boolean); return cards.length ? cards : null; } const leaves = objectLeaves(value, field); if (!leaves.length) return null; return renderLeafCard(record, index, leaves, field); };
+  const widgetFor = path => DATE_FIELDS.has(path) ? 'date' : (ENUM_FIELDS[path] || path === 'status') ? 'enum' : 'text';
+  const statusOptions = (path, current) => { const list = ENUM_FIELDS[path] || STATUS_OPTIONS; return list.includes(current) ? list : [...list, current].filter(Boolean); };
+  const renderScalar = (record, index, path, label, sectionTitle) => { const value = valueAt(record, path, index); if (!hasValue(value) || (DATE_FIELDS.has(path) && isEpochDate(value))) return null; let widget = widgetFor(path); let options = widget === 'enum' ? statusOptions(path, String(value)) : []; let seed; let saveValue; if (typeof value === 'boolean' || NUMBER_UNIT_FIELDS.has(path)) { const config = leafWidget(value); widget = config.widget; options = config.options || []; seed = config.seed; saveValue = config.saveValue; } const shown = widget === 'date' && typeof value !== 'boolean' ? formatDate(value) : displayValue(value); return <div className={`rec-mini-card nested-mini-card${label === sectionTitle ? ' regular-row-group' : ''}`} key={path}>{label !== sectionTitle && <div className="nested-subtitle field-label">{label}</div>}{renderLeaf({ record, index, path, shown, raw: value, label, widget, options, seed, saveValue })}</div>; };
+  const renderArray = (record, index, field, sectionTitle) => { const value = valueAt(record, field, index); if (!Array.isArray(value) || !value.some(hasValue)) return null; const label = FIELD_LABELS[field]; const showLabel = label !== sectionTitle; return <div className={`rec-mini-card nested-mini-card${showLabel ? '' : ' regular-row-group'}${field === 'recommendations' ? ' recommendation-group' : ''}`} key={field}>{showLabel && <div className="nested-subtitle field-label">{label}</div>}{value.map((item, itemIndex) => hasValue(item) ? renderLeaf({ record, index, path: `${field}.${itemIndex}`, shown: displayValue(item), raw: item, label }) : null)}</div>; };
+  const renderDelimited = (record, index, field, sectionTitle) => { const source = String(valueAt(record, field, index) || ''); if (!source.trim()) return null; const groups = groupClauses(splitClauses(field, source)); const fieldLabel = FIELD_LABELS[field]; return groups.map((group, groupIndex) => { const subtitle = group.subtitle || (fieldLabel !== sectionTitle ? fieldLabel : null); return <div className={`rec-mini-card nested-mini-card${subtitle ? '' : ' regular-row-group'}`} key={`${field}-${groupIndex}`}>{subtitle && <div className="nested-subtitle">{subtitle}</div>}{group.items.map(item => renderLeaf({ record, index, path: field, leafKey: `${field}-${index}-clause-${item.index}`, shown: item.value, raw: item.value, label: subtitle || sectionTitle, saveValue: next => source.slice(0, item.start) + (item.labeled ? `${item.label}: ${String(next).trim()}` : String(next).trim()) + source.slice(item.end) }))}</div>; }); };
+  const rowsFor = (record, field) => { const value = record[field]; if (!fieldPresent(record, field)) return []; if (DATE_FIELDS.has(field)) return [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (OBJECT_FIELDS.has(field)) return objectLeaves(value, field).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(field, value).map(clause => { const parsed = parseLabel(clause.text); return { subtitle: parsed.label, value: parsed.value }; }); return [{ subtitle: '', value: displayValue(value) }]; };
+  const sectionLines = (record, section) => { const lines = [section.title.toUpperCase(), '-'.repeat(40)]; section.fields.forEach(field => { const rows = rowsFor(record, field); if (!rows.length) return; if (FIELD_LABELS[field] !== section.title) lines.push(FIELD_LABELS[field]); let prior = null; rows.forEach((row, rowIndex) => { if (row.subtitle && row.subtitle !== prior) lines.push(row.subtitle); lines.push(`${rowIndex + 1}. ${row.value}`); prior = row.subtitle; }); }); return lines; };
+  const renderSection = (record, index, section) => { const merged = mergedRecord(record, index, true); if (!section.fields.some(field => fieldPresent(merged, field))) return null; const body = section.fields.flatMap(field => { if (!fieldPresent(merged, field)) return []; if (ARRAY_FIELDS.has(field)) return [renderArray(record, index, field, section.title)]; if (OBJECT_FIELDS.has(field)) { const rendered = renderObjectField(record, index, field, section.title); return rendered ? (Array.isArray(rendered) ? rendered : [rendered]) : []; } if (NARRATIVE_FIELDS.has(field)) return renderDelimited(record, index, field, section.title); return [renderScalar(record, index, field, FIELD_LABELS[field], section.title)]; }).filter(Boolean); const copyId = `${section.id}-${index}`, pending = sectionPending(section, index), approved = approvedSections[copyId]; return <section className="section" key={section.id}><div className="mini-cards-container"><div className="section-header"><h3 className="section-title">{section.title}</h3><div className="header-right-actions"><button className={`copy-btn ${copied === copyId ? 'copied' : ''}`} onClick={() => copyText(sectionLines(merged, section).join('\n'), copyId)}>{copied === copyId ? 'Copied!' : 'Copy Section'}</button>{pending && <button className="approve-btn pending" disabled={approving} onClick={() => approveSection(record, index, section)}>Pending Approve</button>}{approved && !pending && <span className="approve-btn approved">Approved</span>}</div></div>{body}</div></section>; };
+  const allText = (record, index) => { const merged = mergedRecord(record, index, true), lines = [`CARDIAC MONITORING ${index + 1}`, '='.repeat(40)]; SECTIONS.forEach(section => { const output = sectionLines(merged, section); if (output.length > 2) lines.push('', ...output); }); return lines.join('\n'); };
+  const filtered = useMemo(() => { const query = searchTerm.trim().toLowerCase(), values = records.map((record, index) => ({ record, index })); return query ? values.filter(({ record, index }) => JSON.stringify(mergedRecord(record, index, true)).toLowerCase().includes(query) || 'cardiac monitoring'.includes(query)) : values; }, [records, searchTerm, mergedRecord]);
+  if (!records.length) return <article className="cardiac-monitoring-document"><div className="empty-state">No cardiac monitoring data available.</div></article>;
+  return <article className="cardiac-monitoring-document"><header className="document-header"><h1 className="document-title">Cardiac Monitoring</h1><div className="header-actions"><button className={`copy-btn ${copied === 'all' ? 'copied' : ''}`} onClick={() => copyText(records.map(allText).join('\n\n'), 'all')}>{copied === 'all' ? 'Copied!' : 'Copy All'}</button><PDFDownloadLink document={<CardiacMonitoringDocumentPDFTemplate document={pdfData} />} fileName="Cardiac_Monitoring.pdf" className="copy-btn pdf-btn">{({ loading }) => loading ? 'Preparing...' : 'Export PDF'}</PDFDownloadLink></div></header><SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} placeholder="Search cardiac monitoring..." /><div className="records-container">{!filtered.length ? <div className="empty-state">No records match your search.</div> : filtered.map(({ record, index }) => <div className="record-card" key={recordIdOf(record) || index}><div className="record-header"><h2 className="record-name">Cardiac Monitoring {index + 1}</h2></div>{SECTIONS.map(section => renderSection(record, index, section))}</div>)}</div></article>;
 };
 
+export { COMMA_ARRAY_FIELDS, COMMA_SPLIT_FIELDS, splitClauses };
 export default CardiacMonitoringDocument;

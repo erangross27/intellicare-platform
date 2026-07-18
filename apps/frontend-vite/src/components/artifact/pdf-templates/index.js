@@ -137,6 +137,7 @@ import AutopsyReportsDocumentPDFTemplate from './AutopsyReportsDocumentPDFTempla
 import BarriersPsychosocialIssuesDocumentPDFTemplate from './BarriersPsychosocialIssuesDocumentPDFTemplate';
 import BasalRateAdjustmentsDocumentPDFTemplate from './BasalRateAdjustmentsDocumentPDFTemplate';
 import BehavioralAssessmentDocumentPDFTemplate from './BehavioralAssessmentDocumentPDFTemplate';
+import BehavioralHealthGoalsDocumentPDFTemplate from './BehavioralHealthGoalsDocumentPDFTemplate';
 import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTemplate';
 import AcmgGuidelinesReferenceDocumentPDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
 import AcuteKidneyInjuryDocumentPDFTemplate from './AcuteKidneyInjuryDocumentPDFTemplate';
@@ -244,6 +245,7 @@ const templateRegistry = {
   'barriers_psychosocial_issues': BarriersPsychosocialIssuesDocumentPDFTemplate,
   'basal_rate_adjustments': BasalRateAdjustmentsDocumentPDFTemplate,
   'behavioral_assessment': BehavioralAssessmentDocumentPDFTemplate,
+  'behavioral_health_goals': BehavioralHealthGoalsDocumentPDFTemplate,
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsTemplate,
   'case_summaries': CaseSummariesTemplate,

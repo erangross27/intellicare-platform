@@ -139,6 +139,7 @@ import BasalRateAdjustmentsDocumentPDFTemplate from './BasalRateAdjustmentsDocum
 import BehavioralAssessmentDocumentPDFTemplate from './BehavioralAssessmentDocumentPDFTemplate';
 import BehavioralHealthGoalsDocumentPDFTemplate from './BehavioralHealthGoalsDocumentPDFTemplate';
 import BiologicTherapyDocumentPDFTemplate from './BiologicTherapyDocumentPDFTemplate';
+import BiologicTherapyRecordsDocumentPDFTemplate from './BiologicTherapyRecordsDocumentPDFTemplate';
 import PastMedicalHistoryPDFTemplate from './PastMedicalHistoryDocumentPDFTemplate';
 import AcmgGuidelinesReferenceDocumentPDFTemplate from './AcmgGuidelinesReferenceDocumentPDFTemplate';
 import AcuteKidneyInjuryDocumentPDFTemplate from './AcuteKidneyInjuryDocumentPDFTemplate';
@@ -248,6 +249,7 @@ const templateRegistry = {
   'behavioral_assessment': BehavioralAssessmentDocumentPDFTemplate,
   'behavioral_health_goals': BehavioralHealthGoalsDocumentPDFTemplate,
   'biologic_therapy': BiologicTherapyDocumentPDFTemplate,
+  'biologic_therapy_records': BiologicTherapyRecordsDocumentPDFTemplate,
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsTemplate,
   'case_summaries': CaseSummariesTemplate,

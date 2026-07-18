@@ -10,7 +10,10 @@
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
   min-height: 100%;
+  direction: ltr;
 }
+
+.biologic-therapy-records-document * { direction: ltr; }
 
 /* Header — block layout, buttons below title */
 .biologic-therapy-records-document .document-header {
@@ -80,16 +83,6 @@
   color: #ececf1;
   margin: 0;
   text-transform: none !important;
-}
-
-.biologic-therapy-records-document .record-date {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
 /* Section */
@@ -239,30 +232,31 @@
   box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
 }
 
-.biologic-therapy-records-document .edit-date {
+.biologic-therapy-records-document input.edit-date {
   width: 100%;
-  padding: 10px 14px;
+  display: block;
   background: #0d1929;
   border: 2px solid #2563eb;
   border-radius: 6px;
   color: #ececf1;
   font-family: 'Comfortaa', sans-serif;
   font-size: 14px;
-  outline: none;
+  padding: 10px 14px;
   box-sizing: border-box;
-  cursor: pointer;
+  color-scheme: dark;
 }
 
-.biologic-therapy-records-document .edit-date::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  cursor: pointer;
+.biologic-therapy-records-document input.edit-date:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
 }
 
 .biologic-therapy-records-document .edit-actions {
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .biologic-therapy-records-document .save-btn {
@@ -518,10 +512,12 @@
 }
 /* Sub-field label */
 .biologic-therapy-records-document .sub-field-label { font-size: 13px; font-weight: 600; color: #93c5fd; margin-right: 8px; flex-shrink: 0; }
-
-/* Recursive nested-object editor classes (switchingBiologics, responseAssessment) */
-.biologic-therapy-records-document .nested-mini-card { background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
-.biologic-therapy-records-document .nested-subtitle.sub-label { font-size: 15px; margin-bottom: 4px; }
-.biologic-therapy-records-document .nested-group { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(96, 165, 250, 0.2); display: flex; flex-direction: column; gap: 8px; }
-.biologic-therapy-records-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; appearance: auto; }
-.biologic-therapy-records-document .edit-select option { background: #0F1B33; color: #ececf1; }
+.biologic-therapy-records-document .save-error { color: #fca5a5; font-size: 12px; margin-top: 6px; }
+.biologic-therapy-records-document .sr-only { clip: rect(0, 0, 0, 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.biologic-therapy-records-document .pdf-btn { display: inline-flex; align-items: center; text-decoration: none; }
+/* Object leaf sub-labels */
+.biologic-therapy-records-document .nested-subtitle.sub-label { font-size: 15px; padding-left: 0; opacity: 0.9; border-bottom: none; margin-bottom: 2px; padding-bottom: 2px; }
+/* Number stepper (edit-only) */
+.biologic-therapy-records-document .number-edit-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.biologic-therapy-records-document .num-step { min-width: 38px; padding: 8px 12px; background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.5); border-radius: 6px; color: #ececf1; font: inherit; cursor: pointer; }
+.biologic-therapy-records-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }

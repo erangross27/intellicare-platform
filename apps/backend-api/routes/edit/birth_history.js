@@ -27,7 +27,7 @@ const ALLOWED_FIELDS = [
   'provider', 'facility',
   'findings', 'assessment', 'plan',
   'results', 'recommendations',
-  'notes', 'status',
+  'notes', 'status', 'additionalData',
 ];
 
 router.put('/:id/edit', async (req, res) => {

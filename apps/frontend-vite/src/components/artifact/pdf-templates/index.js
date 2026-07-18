@@ -24,6 +24,7 @@ import AllergyAssessmentsDocumentPDFTemplate from './AllergyAssessmentsDocumentP
 // Single source of truth: route to the same box-free template the Document's Export button imports.
 import BiopsyReportsDocumentPDFTemplate from './BiopsyReportsDocumentPDFTemplate';
 import BiopsychosocialFormulationDocumentPDFTemplate from './BiopsychosocialFormulationDocumentPDFTemplate';
+import BirthHistoryDocumentPDFTemplate from './BirthHistoryDocumentPDFTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
@@ -255,6 +256,7 @@ const templateRegistry = {
   'past_medical_history': PastMedicalHistoryPDFTemplate,
   'biopsy_reports': BiopsyReportsDocumentPDFTemplate,
   'biopsychosocial_formulation': BiopsychosocialFormulationDocumentPDFTemplate,
+  'birth_history': BirthHistoryDocumentPDFTemplate,
   'case_summaries': CaseSummariesTemplate,
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,

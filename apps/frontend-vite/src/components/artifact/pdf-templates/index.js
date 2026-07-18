@@ -32,6 +32,7 @@ import BloodGlucoseLogsDocumentPDFTemplate from './BloodGlucoseLogsDocumentPDFTe
 import BloodGlucoseMonitoringDocumentPDFTemplate from './BloodGlucoseMonitoringDocumentPDFTemplate';
 import CarbohydrateCountingEducationDocumentPDFTemplate from './CarbohydrateCountingEducationDocumentPDFTemplate';
 import CardiacMonitoringDocumentPDFTemplate from './CardiacMonitoringDocumentPDFTemplate';
+import CardiacRehabilitationReportsDocumentPDFTemplate from './CardiacRehabilitationReportsDocumentPDFTemplate';
 import BloodPressureReadingsDocumentPDFTemplate from './BloodPressureReadingsDocumentPDFTemplate';
 import BloodProductsDocumentPDFTemplate from './BloodProductsDocumentPDFTemplate';
 import BloodSmearsDocumentPDFTemplate from './BloodSmearsDocumentPDFTemplate';
@@ -296,6 +297,7 @@ const templateRegistry = {
   'blood_glucose_monitoring': BloodGlucoseMonitoringDocumentPDFTemplate,
   'carbohydrate_counting_education': CarbohydrateCountingEducationDocumentPDFTemplate,
   'cardiac_monitoring': CardiacMonitoringDocumentPDFTemplate,
+  'cardiac_rehabilitation_reports': CardiacRehabilitationReportsDocumentPDFTemplate,
   'blood_pressure_readings': BloodPressureReadingsDocumentPDFTemplate,
   'blood_products': BloodProductsDocumentPDFTemplate,
   'blood_smears': BloodSmearsDocumentPDFTemplate,

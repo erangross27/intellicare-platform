@@ -1,218 +1,71 @@
-/**
- * BloodProductsDocumentPDFTemplate.jsx
- * June 2026 — Helvetica — A4 — BLACK & WHITE only (#000000 titles/borders/values, NO blue).
- * Collection: blood_products.
- *
- * BOX-FREE (no backgroundColor/border on field/section views; recordHeader = black bottom-border only).
- * Rule #74: each field is ONE wrap-gated <View> (rows<=8 -> wrap={false}; rows>8 -> wrap=undefined),
- * with its sectionTitle as the FIRST child of the first present field's View (anti-orphan — never a sibling).
- * Single-name skip: hide a field label when it equals the section title.
- * OBJECT fields pretransfusionLabs / posttransfusionLabs rendered recursively as humanized key/value lines.
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 12, lineHeight: 1.5, backgroundColor: '#ffffff', color: '#000000' },
-  documentHeader: { marginBottom: 24, paddingBottom: 14, borderBottomWidth: 2, borderBottomColor: '#000000' },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1, color: '#000000' },
-  recordContainer: { marginBottom: 24 },
-  recordHeader: { marginBottom: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#000000' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#000000' },
-  recordMeta: { fontSize: 11, color: '#000000', marginTop: 3 },
-  section: { marginBottom: 16 },
-  fieldGroup: { marginBottom: 8 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 6, marginBottom: 2, textTransform: 'uppercase' },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4, marginBottom: 1 },
-  value: { fontSize: 11, lineHeight: 1.5, color: '#000000', marginBottom: 1 },
-  nested: { marginLeft: 10, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#000000', marginTop: 2 },
-  recDate: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#000000', marginTop: 4 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#000000' },
-  pageNumber: { position: 'absolute', bottom: 20, right: 40, fontSize: 10, color: '#000000' },
-});
-
-/* ═══════ CONSTANTS ═══════ */
-const SECTION_TITLES = {
-  'order-product': 'Order & Product',
-  'pretransfusion-labs': 'Pre-Transfusion Labs',
-  'posttransfusion-labs': 'Post-Transfusion Labs',
-  'administration': 'Administration',
-  'notes-section': 'Notes',
-};
-const FIELD_LABELS = {
-  date: 'Date', productType: 'Product Type', indication: 'Indication', unitsOrdered: 'Units Ordered',
-  unitsTransfused: 'Units Transfused', bloodType: 'Blood Type', crossmatch: 'Crossmatch',
-  transfusionReaction: 'Transfusion Reaction', vitalSigns: 'Vital Signs', orderingProvider: 'Ordering Provider',
-  administeringNurse: 'Administering Nurse', facility: 'Facility', notes: 'Notes',
+const COLLECTION = 'blood_products';
+const COMMA_SPLIT_FIELDS = ['indication'];
+const ARRAY_FIELDS = new Set([]);
+const OBJECT_FIELDS = new Set(['pretransfusionLabs', 'posttransfusionLabs']);
+const NARRATIVE_FIELDS = new Set(['indication', 'crossmatch', 'transfusionReaction', 'vitalSigns', 'notes']);
+const DATE_FIELDS = new Set(['date']);
+const ZERO_SENTINEL_FIELDS = new Set([]);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  date: 'Date', productType: 'Product Type', indication: 'Indication', bloodType: 'Blood Type',
+  unitsOrdered: 'Units Ordered', unitsTransfused: 'Units Transfused', crossmatch: 'Crossmatch',
   pretransfusionLabs: 'Pre-Transfusion Labs', posttransfusionLabs: 'Post-Transfusion Labs',
+  transfusionReaction: 'Transfusion Reaction', vitalSigns: 'Vital Signs',
+  orderingProvider: 'Ordering Provider', administeringNurse: 'Administering Nurse',
+  facility: 'Facility', notes: 'Notes',
 };
-const SECTION_FIELDS = {
-  'order-product': ['productType', 'indication', 'bloodType', 'unitsOrdered', 'unitsTransfused', 'crossmatch'],
-  'pretransfusion-labs': ['pretransfusionLabs'],
-  'posttransfusion-labs': ['posttransfusionLabs'],
-  'administration': ['administeringNurse', 'vitalSigns', 'transfusionReaction'],
-  'notes-section': ['notes'],
+const SECTIONS = [
+  { title: 'Date', fields: ['date'] },
+  { title: 'Product', fields: ['productType', 'indication', 'bloodType'] },
+  { title: 'Units and Crossmatch', fields: ['unitsOrdered', 'unitsTransfused', 'crossmatch'] },
+  { title: 'Pre-Transfusion Labs', fields: ['pretransfusionLabs'] },
+  { title: 'Post-Transfusion Labs', fields: ['posttransfusionLabs'] },
+  { title: 'Reaction and Vital Signs', fields: ['transfusionReaction', 'vitalSigns'] },
+  { title: 'Care Team', fields: ['orderingProvider', 'administeringNurse', 'facility'] },
+  { title: 'Notes', fields: ['notes'] },
+];
+const styles = StyleSheet.create({
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
+});
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-const SECTION_ORDER = ['order-product', 'pretransfusion-labs', 'posttransfusion-labs', 'administration', 'notes-section'];
-const DATE_FIELDS = ['date'];
-const STRING_FIELDS = ['productType', 'indication', 'unitsOrdered', 'unitsTransfused', 'bloodType', 'crossmatch', 'transfusionReaction', 'vitalSigns', 'orderingProvider', 'administeringNurse', 'facility', 'notes'];
-const OBJECT_FIELDS = ['pretransfusionLabs', 'posttransfusionLabs'];
-
-const KEY_OVERRIDES = {
-  hgb: 'Hgb', hb: 'Hb', hct: 'Hct', wbc: 'WBC', rbc: 'RBC', plt: 'Platelets', inr: 'INR',
-  ptt: 'PTT', pt: 'PT', abo: 'ABO', rh: 'Rh', bp: 'BP', hr: 'HR', spo2: 'SpO2',
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
-const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-const formatDate = (d) => { if (!d) return ''; try { const dt = new Date(d.$date || d); if (isNaN(dt.getTime())) return String(d); return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const isEmptyDeep = (v) => {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'boolean') return false;
-  if (typeof v === 'number') return !Number.isFinite(v);
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0;
-  if (typeof v === 'object') return Object.values(v).every(isEmptyDeep);
-  return false;
+const BloodProductsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Blood Products</Text><Text style={styles.noData}>No blood product data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Blood Products</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Blood Products {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-const hasVal = (v) => !isEmptyDeep(v);
-const isScalar = (v) => v === null || typeof v !== 'object';
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-const splitBySentence = (text) => { if (!text || typeof text !== 'string') return []; return text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Sgt|vs|etc))[.;](?:\s+)/).map(s => s.trim()).filter(s => s && !/^[;.,!?]+$/.test(s)); };
-
-/* recursive object node: label = bold heading; value = plain line below (NO inline "Label: value") */
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
-  if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.value}>{fmtScalar(value)}</Text>
-      </View>
-    );
-  }
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
-  );
-};
-
-/* count rows for the wrap heuristic */
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-/* Rule #74 (per-field gating): render a field as wrap-gated View(s) — EACH View is one wrap unit.
-   sectionTitle goes INSIDE the first View (isFirst) — never a sibling. Returns an ARRAY of Views. */
-const renderField = (record, field, sectionTitle, isFirst) => {
-  const val = record[field];
-  if (!hasVal(val)) return [];
-  const label = FIELD_LABELS[field] || field;
-  const showLabel = label.trim().toLowerCase() !== (sectionTitle || '').trim().toLowerCase();
-  const titleNode = isFirst ? <Text style={styles.sectionTitle}>{sectionTitle}</Text> : null;
-
-  if (DATE_FIELDS.includes(field)) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        <Text style={styles.value}>{formatDate(val)}</Text>
-      </View>
-    )];
-  }
-
-  if (OBJECT_FIELDS.includes(field)) {
-    const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return [];
-    return entries.map(([k, v], i) => {
-      const rows = countRows(v);
-      return (
-        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
-          {i === 0 ? titleNode : null}
-          {i === 0 && showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
-          {renderObjectNode(humanizeKey(k), v, `${field}-${k}`, 1)}
-        </View>
-      );
-    });
-  }
-
-  /* string — split into sentences */
-  const strVal = fmtVal(val);
-  const sentences = splitBySentence(strVal);
-  if (sentences.length > 1) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={sentences.length > 8 ? undefined : false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.value}>{sIdx + 1}. {s}</Text>))}
-      </View>
-    )];
-  }
-  return [(
-    <View key={field} style={styles.fieldGroup} wrap={false}>
-      {titleNode}
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.value}>{strVal}</Text>
-    </View>
-  )];
-};
-
-const BloodProductsDocumentPDFTemplate = ({ document: data }) => {
-  let records = [];
-  if (Array.isArray(data)) {
-    if (data.length === 1 && data[0]?.blood_products) records = Array.isArray(data[0].blood_products) ? data[0].blood_products : [data[0].blood_products];
-    else records = data;
-  } else if (data?.blood_products) records = Array.isArray(data.blood_products) ? data.blood_products : [data.blood_products];
-  else if (data?.documentData) { const dd = data.documentData; if (Array.isArray(dd)) records = dd; else if (dd?.blood_products) records = Array.isArray(dd.blood_products) ? dd.blood_products : [dd.blood_products]; else if (dd && typeof dd === 'object') records = [dd]; }
-  else if (data && typeof data === 'object') records = [data];
-  records = (records || []).filter(r => r && typeof r === 'object');
-
-  if (records.length === 0) {
-    return (<Document><Page size="A4" style={styles.page}><View style={styles.documentHeader}><Text style={styles.title}>Blood Products / Transfusion</Text></View><Text style={styles.emptyState}>No records available</Text></Page></Document>);
-  }
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.documentHeader}><Text style={styles.title}>Blood Products / Transfusion</Text></View>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer}>
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>{`Blood Products / Transfusion ${String(record._recordNumber || idx + 1)}`}</Text>
-              {hasVal(record.date) && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
-              {hasVal(record.orderingProvider) && <Text style={styles.recordMeta}>{fmtVal(record.orderingProvider)}</Text>}
-              {hasVal(record.facility) && <Text style={styles.recordMeta}>{fmtVal(record.facility)}</Text>}
-            </View>
-
-            {/* Rule #74 (per-field gating): section View only provides spacing and always FLOWS.
-                Each field is its own wrap-gated unit (via renderField), with the sectionTitle embedded
-                INSIDE the first present field's View (anti-orphan). */}
-            {SECTION_ORDER.map((sid) => {
-              const fields = SECTION_FIELDS[sid];
-              const presentFields = fields.filter(f => hasVal(record[f]));
-              if (presentFields.length === 0) return null;
-              const title = SECTION_TITLES[sid];
-              return (
-                <View key={sid} style={styles.section}>
-                  {presentFields.flatMap((f, fi) => renderField(record, f, title, fi === 0))}
-                </View>
-              );
-            })}
-          </View>
-        ))}
-        <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} fixed />
-      </Page>
-    </Document>
-  );
-};
-
 export default BloodProductsDocumentPDFTemplate;

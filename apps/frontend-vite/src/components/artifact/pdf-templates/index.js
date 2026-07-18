@@ -39,6 +39,7 @@ import BoneMarrowReportsDocumentPDFTemplate from './BoneMarrowReportsDocumentPDF
 import BoneMarrowStudiesDocumentPDFTemplate from './BoneMarrowStudiesDocumentPDFTemplate';
 import BoneScanReportsDocumentPDFTemplate from './BoneScanReportsDocumentPDFTemplate';
 import BrainTumorCharacteristicsDocumentPDFTemplate from './BrainTumorCharacteristicsDocumentPDFTemplate';
+import BrainTumorMolecularMarkersDocumentPDFTemplate from './BrainTumorMolecularMarkersDocumentPDFTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
@@ -285,6 +286,7 @@ const templateRegistry = {
   'bone_marrow_studies': BoneMarrowStudiesDocumentPDFTemplate,
   'bone_scan_reports': BoneScanReportsDocumentPDFTemplate,
   'brain_tumor_characteristics': BrainTumorCharacteristicsDocumentPDFTemplate,
+  'brain_tumor_molecular_markers': BrainTumorMolecularMarkersDocumentPDFTemplate,
   'case_summaries': CaseSummariesTemplate,
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,

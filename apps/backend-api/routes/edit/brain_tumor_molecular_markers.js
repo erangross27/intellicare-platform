@@ -22,7 +22,7 @@ const ALLOWED_FIELDS = [
   'idhStatus', 'mgmtStatus', 'codeletionStatus', 'tertPromoterStatus',
   'atrxStatus', 'tp53Status', 'ki67ProliferationIndex',
   'egfrStatus', 'cdkn2aStatus', 'brafStatus', 'h3Status', 'ngsPanel',
-  'treatmentRecommendations', 'clinicalTrialEligibility', 'specimen',
+  'treatmentRecommendations', 'clinicalTrialEligibility', 'specimen', 'date',
 ];
 
 router.put('/:id/edit', async (req, res) => {

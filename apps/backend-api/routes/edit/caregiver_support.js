@@ -18,6 +18,7 @@ function buildContext(req, operation = 'read') { return { serviceId: 'caregiver-
 function toObjectId(str) { try { return new mongoose.Types.ObjectId(str); } catch { return null; } }
 
 const ALLOWED_FIELDS = [
+  'date',
   'caregiverName', 'relationshipToPatient', 'provider', 'facility',
   'caregiverBurdenScore', 'hoursOfCarePerWeek', 'caregivingDuration', 'caregiverStressLevel',
   'assistanceWithAdls', 'assistanceWithIadls',
@@ -29,11 +30,14 @@ const ALLOWED_FIELDS = [
   'financialStrainLevel', 'employmentImpact',
 ];
 
+// Allow dotted sub-paths for array items edited by index (assistanceWithAdls.0, caregiverHealthConcerns.2)
+function isFieldAllowed(field) { return ALLOWED_FIELDS.includes(field) || ALLOWED_FIELDS.includes(field.split('.')[0]); }
+
 router.put('/:id/edit', async (req, res) => {
   try {
     const { id } = req.params; const { field, value, arrayIndex } = req.body;
     if (!field || value === undefined) return res.status(400).json({ success: false, error: 'field and value are required' });
-    if (!ALLOWED_FIELDS.includes(field)) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
+    if (!isFieldAllowed(field)) return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     const objectId = toObjectId(id); if (!objectId) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const sda = getSecureDataAccess(); const context = buildContext(req, 'write');
     let updateOp;

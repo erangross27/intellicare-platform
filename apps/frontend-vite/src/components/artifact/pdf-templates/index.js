@@ -36,6 +36,7 @@ import CardiologyAdmissionNotesDocumentPDFTemplate from './CardiologyAdmissionNo
 import CardiologyAssessmentDocumentPDFTemplate from './CardiologyAssessmentDocumentPDFTemplate';
 import CardiologyConsultationsDocumentPDFTemplate from './CardiologyConsultationsDocumentPDFTemplate';
 import CaregiverAssessmentDocumentPDFTemplate from './CaregiverAssessmentDocumentPDFTemplate';
+import CaregiverSupportDocumentPDFTemplate from './CaregiverSupportDocumentPDFTemplate';
 import CardiologyFollowupReportsDocumentPDFTemplate from './CardiologyFollowupReportsDocumentPDFTemplate';
 import CardiovascularRiskReductionDocumentPDFTemplate from './CardiovascularRiskReductionDocumentPDFTemplate';
 import CardiovascularRiskScreeningDocumentPDFTemplate from './CardiovascularRiskScreeningDocumentPDFTemplate';
@@ -311,6 +312,7 @@ const templateRegistry = {
   'cardiology_assessment': CardiologyAssessmentDocumentPDFTemplate,
   'cardiology_consultations': CardiologyConsultationsDocumentPDFTemplate,
   'caregiver_assessment': CaregiverAssessmentDocumentPDFTemplate,
+  'caregiver_support': CaregiverSupportDocumentPDFTemplate,
   'cardiology_followup_reports': CardiologyFollowupReportsDocumentPDFTemplate,
   'cardiovascular_risk_reduction': CardiovascularRiskReductionDocumentPDFTemplate,
   'cardiovascular_risk_screening': CardiovascularRiskScreeningDocumentPDFTemplate,

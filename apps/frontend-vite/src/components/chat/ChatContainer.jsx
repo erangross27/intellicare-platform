@@ -199,6 +199,11 @@ const ChatContainer = memo(({
     }
   });
 
+  // Gate for the DB write-through effect below: stays false until restoreArtifactState
+  // has run for the active session, so startup/session-switch defaults never overwrite
+  // the artifact state already saved in the database.
+  const artifactStateHydratedRef = useRef(false);
+
   // Patient-memory drawer (Phase 6) — persisted like the artifact panel.
   const [memoryPanelOpen, setMemoryPanelOpen] = useState(() => {
     try {
@@ -283,8 +288,12 @@ const ChatContainer = memo(({
     }
   }, [secureApi]);
 
-  // Restore artifact panel state - called directly in handleSessionChange
-  const restoreArtifactState = useCallback(async (targetSessionId) => {
+  // Restore artifact panel state - called on cold start (initSession) and in handleSessionChange.
+  // keepCurrentOnMissing: on cold start, a session saved before the DB write-through existed has
+  // no artifactState — keep whatever the localStorage initializers loaded instead of force-closing.
+  // On a session switch the close is intentional (that session genuinely had no artifacts).
+  const restoreArtifactState = useCallback(async (targetSessionId, { keepCurrentOnMissing = false } = {}) => {
+    artifactStateHydratedRef.current = false;
     try {
       console.log('🔍 [RESTORE] Fetching session data for:', targetSessionId);
       const response = await secureApi.get(`/api/chat/sessions/${targetSessionId}`);
@@ -310,19 +319,42 @@ const ChatContainer = memo(({
         if (state.artifactPatientName !== undefined) setArtifactPatientName(state.artifactPatientName);
       } else {
         // No saved state - close the artifact panel for this session
-        console.log('📭 No artifact state found for session:', targetSessionId, '- closing artifact panel');
+        console.log('📭 No artifact state found for session:', targetSessionId, keepCurrentOnMissing ? '- keeping locally restored state' : '- closing artifact panel');
         console.log('📭 Response structure:', {
           hasSuccess: !!response?.success,
           hasData: !!response?.data,
           hasArtifactState: !!response?.data?.artifactState,
           artifactStateValue: response?.data?.artifactState
         });
-        setArtifactPanelOpen(false);
+        if (!keepCurrentOnMissing) {
+          setArtifactPanelOpen(false);
+        }
       }
     } catch (error) {
       console.error('Failed to restore artifact state from database:', error);
+    } finally {
+      // Allow the write-through effect to persist state changes from here on
+      artifactStateHydratedRef.current = true;
     }
   }, [secureApi]);
+
+  // Write-through: persist the artifact panel state to the session document on every
+  // change, exactly like messages are saved. localStorage alone is not enough — the
+  // browser can clear it between visits, which left the restored chat without its
+  // artifact. Gated on hydration so startup/session-switch defaults never overwrite
+  // the state already saved in the database before restoreArtifactState resolves.
+  useEffect(() => {
+    if (!sessionId || !artifactStateHydratedRef.current) return;
+    saveArtifactStateToDatabase(sessionId, {
+      artifactPanelOpen,
+      artifactPatientId,
+      artifactCategory,
+      artifactDocumentId,
+      artifactLevel,
+      artifactGridData,
+      artifactPatientName
+    });
+  }, [sessionId, artifactPanelOpen, artifactPatientId, artifactCategory, artifactDocumentId, artifactLevel, artifactGridData, artifactPatientName, saveArtifactStateToDatabase]);
 
   // Use appointment notifications hook
   const {
@@ -569,8 +601,10 @@ const ChatContainer = memo(({
   //    in-memory current_session_id and its messages (existing behavior).
   //  - New login / browser restart (sessionStorage was wiped) → restore the user's most
   //    recent NON-EMPTY conversation from the database so the chat thread reappears
-  //    alongside the artifact panel (which restores itself from localStorage) instead of
-  //    a blank "Welcome" screen. Falls back to a fresh session when there is no prior chat.
+  //    instead of a blank "Welcome" screen. Falls back to a fresh session when there is
+  //    no prior chat. The artifact panel restores the same way (restoreArtifactState from
+  //    the session's DB artifactState) — localStorage alone is not reliable because the
+  //    browser can clear it between visits.
   const sessionInitializedRef = useRef(false);
   useEffect(() => {
     if (sessionInitializedRef.current) return;
@@ -584,6 +618,8 @@ const ChatContainer = memo(({
       setSessionId(newId);
       secureStorage.setItem(getUserStorageKey('current_session_id'), newId);
       setMessages([]);
+      // Nothing to restore for a brand-new session - open the write-through gate directly
+      artifactStateHydratedRef.current = true;
       if (onSessionChange) onSessionChange(newId);
     };
 
@@ -598,6 +634,7 @@ const ChatContainer = memo(({
         if (storedSessionId) {
           setSessionId(storedSessionId);
           loadMessages(storedSessionId);
+          restoreArtifactState(storedSessionId, { keepCurrentOnMissing: true });
           if (onSessionChange) onSessionChange(storedSessionId);
           return;
         }
@@ -618,6 +655,7 @@ const ChatContainer = memo(({
             setSessionId(latestId);
             secureStorage.setItem(getUserStorageKey('current_session_id'), latestId);
             loadMessages(latestId);
+            restoreArtifactState(latestId, { keepCurrentOnMissing: true });
             if (onSessionChange) onSessionChange(latestId);
             return;
           }

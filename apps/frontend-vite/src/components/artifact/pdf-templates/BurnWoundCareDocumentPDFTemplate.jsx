@@ -1,374 +1,73 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * Burn Wound Care Document PDF Template - February 2026
- * Helvetica font, professional layout, A4
- * Nested subtitle format: label on own line, value indented below
- * wrap conditional pattern: items > 8 threshold
- */
-
+const COLLECTION = 'burn_wound_care';
+const COMMA_SPLIT_FIELDS = ['topicalAntimicrobialAgent', 'woundBedPreparationStatus'];
+const ARRAY_FIELDS = new Set(['escharotomyLocations', 'contractureLocation']);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set(['topicalAntimicrobialAgent', 'woundBedPreparationStatus']);
+const DATE_FIELDS = new Set([]);
+const ZERO_SENTINEL_FIELDS = new Set(['lundBrowderScore', 'modifiedBauxScore', 'abbreviatedBurnSeverityIndex', 'quantitativeWoundBiopsy', 'graftTakePercentage', 'prealabuminLevel', 'curreriFormulaCalories', 'vancouverScarScaleScore']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  burnTotalBodySurfaceArea: 'Burn Total Body Surface Area', burnDepthClassification: 'Burn Depth Classification', lundBrowderScore: 'Lund-Browder Score',
+  baxterParklandFormula: 'Baxter-Parkland Formula', modifiedBauxScore: 'Modified Baux Score', abbreviatedBurnSeverityIndex: 'Abbreviated Burn Severity Index',
+  inhalationInjuryGrade: 'Inhalation Injury Grade', carboxyhemoglobinLevel: 'Carboxyhemoglobin Level',
+  escharotomyRequired: 'Escharotomy Required', escharotomyLocations: 'Escharotomy Locations',
+  burnWoundCultureResults: 'Burn Wound Culture Results', quantitativeWoundBiopsy: 'Quantitative Wound Biopsy',
+  topicalAntimicrobialAgent: 'Topical Antimicrobial Agent', woundBedPreparationStatus: 'Wound Bed Preparation Status', debridementMethod: 'Debridement Method',
+  skinGraftType: 'Skin Graft Type', graftMeshRatio: 'Graft Mesh Ratio', graftTakePercentage: 'Graft Take Percentage', dermalSubstitutePlaced: 'Dermal Substitute Placed',
+  negativeProressureWoundTherapySettings: 'Negative Pressure Wound Therapy Settings', prealabuminLevel: 'Prealbumin Level', curreriFormulaCalories: 'Curreri Formula Calories',
+  vancouverScarScaleScore: 'Vancouver Scar Scale Score', pressureGarmentCompliance: 'Pressure Garment Compliance', contractureLocation: 'Contracture Location',
+};
+const SECTIONS = [
+  { title: 'Burn Severity', fields: ['burnTotalBodySurfaceArea', 'burnDepthClassification', 'lundBrowderScore', 'baxterParklandFormula', 'modifiedBauxScore', 'abbreviatedBurnSeverityIndex'] },
+  { title: 'Inhalation and Escharotomy', fields: ['inhalationInjuryGrade', 'carboxyhemoglobinLevel', 'escharotomyRequired', 'escharotomyLocations'] },
+  { title: 'Wound Bed and Culture', fields: ['burnWoundCultureResults', 'quantitativeWoundBiopsy', 'woundBedPreparationStatus'] },
+  { title: 'Topical Antimicrobial Agent', fields: ['topicalAntimicrobialAgent'] },
+  { title: 'Debridement and Grafting', fields: ['debridementMethod', 'skinGraftType', 'graftMeshRatio', 'graftTakePercentage', 'dermalSubstitutePlaced', 'negativeProressureWoundTherapySettings'] },
+  { title: 'Nutrition and Scar', fields: ['prealabuminLevel', 'curreriFormulaCalories', 'vancouverScarScaleScore', 'pressureGarmentCompliance'] },
+  { title: 'Contracture Location', fields: ['contractureLocation'] },
+];
 const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-  },
-  documentHeader: {
-    marginBottom: 20,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    paddingBottom: 12,
-  },
-  documentTitle: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  recordContainer: {
-    marginBottom: 24,
-    paddingBottom: 16,
-  },
-  recordHeader: {
-    marginBottom: 12,
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#000000',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-  },
-  recordMeta: {
-    fontSize: 11,
-    marginTop: 6,
-    color: '#333333',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    textTransform: 'uppercase',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-    paddingBottom: 4,
-    marginBottom: 8,
-  },
-  nestedSubtitle: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    paddingLeft: 12,
-    marginBottom: 2,
-    marginTop: 6,
-  },
-  valueText: {
-    fontSize: 12,
-    color: '#000000',
-    paddingLeft: 24,
-    marginBottom: 6,
-    lineHeight: 1.4,
-  },
-  numberedItem: {
-    flexDirection: 'row',
-    marginBottom: 4,
-    paddingLeft: 24,
-  },
-  itemNumber: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: '#000000',
-    width: 24,
-  },
-  itemContent: {
-    fontSize: 12,
-    color: '#000000',
-    flex: 1,
-    lineHeight: 1.4,
-  },
-  noData: {
-    fontSize: 12,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 40,
-  },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
-  } catch { return String(dateString); }
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const safeString = (val) => {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'object') return '';
-  return String(val);
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => { const parsed = typeof item === 'string' ? parseLabel(item) : { subtitle: '', value: item }; return parsed.subtitle ? { subtitle: parsed.subtitle, value: parsed.value } : { subtitle: '', value: displayValue(item) }; }); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-const safeArray = (val) => {
-  if (!val) return [];
-  if (Array.isArray(val)) return val.filter(v => v !== null && v !== undefined && v !== '');
-  return [];
+const BurnWoundCareDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Burn Wound Care</Text><Text style={styles.noData}>No burn wound care data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Burn Wound Care</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Burn Wound Care {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
-const hasValue = (val) => {
-  if (val === null || val === undefined || val === '') return false;
-  if (typeof val === 'number') return true;
-  if (typeof val === 'boolean') return true;
-  if (typeof val === 'string') return val.trim() !== '';
-  return true;
-};
-
-// parseSubtitleItems: splits "Label1: value1. Label2: value2." into [{label, value, isGeneric}]
-const parseSubtitleItems = (text) => {
-  if (!text) return [];
-  const segments = text.split(/(?<!(?:Dr|Mr|Mrs|Ms|Jr|Sr|St|vs|etc)\.)(?<=\.)\s+(?=[A-Z])/).filter(s => s.trim());
-  if (segments.length === 0) return [];
-  return segments.map((segment) => {
-    const colonMatch = segment.match(/^([^:]+?):\s*(.+)$/s);
-    if (colonMatch && colonMatch[1].length < 80) {
-      return { label: colonMatch[1].trim(), value: colonMatch[2].trim().replace(/\.$/, ''), isGeneric: false };
-    }
-    return { label: '', value: segment.trim().replace(/\.$/, ''), isGeneric: true };
-  });
-};
-
-const BurnWoundCareDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (Array.isArray(templateData)) return templateData;
-    if (templateData?.burn_wound_care) return templateData.burn_wound_care;
-    if (templateData?.documentData) {
-      const docData = templateData.documentData;
-      if (Array.isArray(docData)) return docData;
-      if (docData?.burn_wound_care) return docData.burn_wound_care;
-      return [docData];
-    }
-    if (templateData && typeof templateData === 'object') return [templateData];
-    return [];
-  }, [templateData]);
-
-  if (!records || records.length === 0) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <View style={styles.documentHeader}>
-            <Text style={styles.documentTitle}>Burn Wound Care</Text>
-          </View>
-          <Text style={styles.noData}>No burn wound care data available</Text>
-        </Page>
-      </Document>
-    );
-  }
-
-  // Render field section - nested subtitle format (label on own line, value below)
-  const renderFieldSection = (title, entries) => {
-    const valid = entries
-      .filter(([, val]) => typeof val === 'boolean' ? true : hasValue(val))
-      .map(([label, val]) => [label, typeof val === 'boolean' ? (val ? 'Yes' : 'No') : safeString(val)]);
-    if (valid.length === 0) return null;
-    return (
-      <View style={styles.section} wrap={valid.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {valid.map(([label, val], i) => {
-          const subItems = parseSubtitleItems(val);
-          if (subItems.length > 1) {
-            return (
-              <View key={i}>
-                <Text style={styles.nestedSubtitle}>{label}</Text>
-                {subItems.map((item, j) => {
-                  const commaItems = item.value.split(/,\s*/).filter(s => s.trim());
-                  return (
-                    <View key={j} style={{ marginBottom: 4 }}>
-                      {!item.isGeneric && (
-                        <Text style={[styles.nestedSubtitle, { paddingLeft: 24 }]}>{item.label}</Text>
-                      )}
-                      {commaItems.length > 1 ? (
-                        commaItems.map((ci, k) => (
-                          <View key={k} style={[styles.numberedItem, { paddingLeft: 36 }]}>
-                            <Text style={styles.itemNumber}>{k + 1}.</Text>
-                            <Text style={styles.itemContent}>{ci.trim()}</Text>
-                          </View>
-                        ))
-                      ) : (
-                        <View style={[styles.numberedItem, { paddingLeft: 36 }]}>
-                          <Text style={styles.itemNumber}>1.</Text>
-                          <Text style={styles.itemContent}>{item.value}</Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            );
-          }
-          const topCommaItems = val.split(/,(?![^(]*\))/).map(s => s.trim()).filter(s => s);
-          if (topCommaItems.length > 1) {
-            return (
-              <View key={i}>
-                <Text style={styles.nestedSubtitle}>{label}</Text>
-                {topCommaItems.map((ci, k) => (
-                  <View key={k} style={styles.numberedItem}>
-                    <Text style={styles.itemNumber}>{k + 1}.</Text>
-                    <Text style={styles.itemContent}>{ci}</Text>
-                  </View>
-                ))}
-              </View>
-            );
-          }
-          return (
-            <View key={i}>
-              <Text style={styles.nestedSubtitle}>{label}</Text>
-              <View style={styles.numberedItem}>
-                <Text style={styles.itemNumber}>1.</Text>
-                <Text style={styles.itemContent}>{val}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
-
-  // Render array section (numbered list)
-  const renderArraySection = (title, items) => {
-    const safeItems = safeArray(items);
-    if (safeItems.length === 0) return null;
-    return (
-      <View style={styles.section} wrap={safeItems.length > 8 ? undefined : false}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {safeItems.map((item, i) => (
-          <View key={i} style={styles.numberedItem}>
-            <Text style={styles.itemNumber}>{i + 1}.</Text>
-            <Text style={styles.itemContent}>{safeString(item)}</Text>
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.documentHeader}>
-          <Text style={styles.documentTitle}>Burn Wound Care</Text>
-        </View>
-
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordContainer} minPresenceAhead={80}>
-            {/* Record Header */}
-            <View style={styles.recordHeader} wrap={false}>
-              <Text style={styles.recordTitle}>Burn Wound Care Record {idx + 1}</Text>
-              {record.createdAt && (
-                <Text style={styles.recordMeta}>Date: {formatDate(record.createdAt)}</Text>
-              )}
-            </View>
-
-            {/* 0. Provider Information */}
-            {renderFieldSection('Provider Information', [
-              ['Provider', record.provider],
-              ['Facility', record.facility],
-            ])}
-
-            {/* 1. Burn Overview */}
-            {renderFieldSection('Burn Overview', [
-              ['TBSA', hasValue(record.burnTotalBodySurfaceArea) ? `${record.burnTotalBodySurfaceArea}%` : null],
-              ['Burn Depth Classification', record.burnDepthClassification],
-            ])}
-
-            {/* 2. Severity Scoring */}
-            {renderFieldSection('Severity Scoring', [
-              ['Lund-Browder Score', hasValue(record.lundBrowderScore) ? String(record.lundBrowderScore) : null],
-              ['Baxter/Parkland Formula', hasValue(record.baxterParklandFormula) ? `${record.baxterParklandFormula} mL` : null],
-              ['Modified Baux Score', hasValue(record.modifiedBauxScore) ? String(record.modifiedBauxScore) : null],
-              ['Abbreviated Burn Severity Index', hasValue(record.abbreviatedBurnSeverityIndex) ? String(record.abbreviatedBurnSeverityIndex) : null],
-            ])}
-
-            {/* 3. Inhalation Injury */}
-            {renderFieldSection('Inhalation Injury', [
-              ['Inhalation Injury Grade', record.inhalationInjuryGrade],
-              ['Carboxyhemoglobin Level', hasValue(record.carboxyhemoglobinLevel) ? `${record.carboxyhemoglobinLevel}%` : null],
-            ])}
-
-            {/* 4. Escharotomy */}
-            {renderFieldSection('Escharotomy', [
-              ['Escharotomy Required', record.escharotomyRequired],
-            ])}
-
-            {/* 5. Escharotomy Locations */}
-            {renderArraySection('Escharotomy Locations', record.escharotomyLocations)}
-
-            {/* 6. Wound Bed Status — labeled sentence parsing */}
-            {record.woundBedPreparationStatus && (() => {
-              const sentences = String(record.woundBedPreparationStatus).split(/\.\s+/).map(s => s.trim()).filter(s => s.length > 0 && s.replace(/[.!?;,]+/g, '').trim().length > 0);
-              if (sentences.length <= 1) return renderFieldSection('Wound Bed Status', [['Wound Bed Preparation Status', record.woundBedPreparationStatus]]);
-              return (<View style={styles.section} wrap={sentences.length > 8 ? undefined : false}><Text style={styles.sectionTitle}>Wound Bed Status</Text>{sentences.map((s, si) => {
-                const colonIdx = s.indexOf(':');
-                if (colonIdx > 0 && colonIdx < 60) {
-                  const label = s.substring(0, colonIdx).trim();
-                  const rest = s.substring(colonIdx + 1).trim().replace(/\.$/, '');
-                  const items = rest.split(/,\s*/).filter(i => i.trim());
-                  return (<View key={si} style={{ marginBottom: 8 }}><Text style={styles.nestedSubtitle}>{label}</Text>{items.map((item, ii) => (<View key={ii} style={styles.numberedItem}><Text style={styles.itemNumber}>{ii + 1}.</Text><Text style={styles.itemContent}>{item.trim()}</Text></View>))}</View>);
-                }
-                return <Text key={si} style={styles.valueText}>{s.replace(/\.$/, '')}</Text>;
-              })}</View>);
-            })()}
-
-            {/* 6b. Wound Assessment — remaining fields */}
-            {renderFieldSection('Wound Assessment', [
-              ['Debridement Method', record.debridementMethod],
-              ['Topical Antimicrobial Agent', record.topicalAntimicrobialAgent],
-              ['Burn Wound Culture Results', record.burnWoundCultureResults],
-              ['Quantitative Wound Biopsy', hasValue(record.quantitativeWoundBiopsy) ? `${record.quantitativeWoundBiopsy} CFU/g` : null],
-            ])}
-
-            {/* 7. Grafting */}
-            {renderFieldSection('Grafting', [
-              ['Skin Graft Type', record.skinGraftType],
-              ['Graft Mesh Ratio', record.graftMeshRatio],
-              ['Graft Take Percentage', hasValue(record.graftTakePercentage) ? `${record.graftTakePercentage}%` : null],
-              ['Dermal Substitute Placed', record.dermalSubstitutePlaced],
-            ])}
-
-            {/* 8. Wound Therapy */}
-            {renderFieldSection('Wound Therapy', [
-              ['Negative Pressure Wound Therapy Settings', record.negativeProressureWoundTherapySettings],
-            ])}
-
-            {/* 9. Nutritional Support */}
-            {renderFieldSection('Nutritional Support', [
-              ['Prealbumin Level', hasValue(record.prealabuminLevel) ? `${record.prealabuminLevel} mg/dL` : null],
-              ['Curreri Formula Calories', hasValue(record.curreriFormulaCalories) ? `${record.curreriFormulaCalories} kcal/day` : null],
-            ])}
-
-            {/* 10. Scar Management */}
-            {renderFieldSection('Scar Management', [
-              ['Vancouver Scar Scale Score', hasValue(record.vancouverScarScaleScore) ? String(record.vancouverScarScaleScore) : null],
-              ['Pressure Garment Compliance', record.pressureGarmentCompliance],
-            ])}
-
-            {/* 11. Contracture Locations */}
-            {renderArraySection('Contracture Locations', record.contractureLocation)}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
-};
-
 export default BurnWoundCareDocumentPDFTemplate;

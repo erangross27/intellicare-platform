@@ -46,6 +46,7 @@ import BunionSurgeryEvaluationDocumentPDFTemplate from './BunionSurgeryEvaluatio
 import BurnAssessmentDocumentPDFTemplate from './BurnAssessmentDocumentPDFTemplate';
 import BurnFluidResuscitationDocumentPDFTemplate from './BurnFluidResuscitationDocumentPDFTemplate';
 import BurnRehabilitationDocumentPDFTemplate from './BurnRehabilitationDocumentPDFTemplate';
+import BurnWoundCareDocumentPDFTemplate from './BurnWoundCareDocumentPDFTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
@@ -299,6 +300,7 @@ const templateRegistry = {
   'burn_assessment': BurnAssessmentDocumentPDFTemplate,
   'burn_fluid_resuscitation': BurnFluidResuscitationDocumentPDFTemplate,
   'burn_rehabilitation': BurnRehabilitationDocumentPDFTemplate,
+  'burn_wound_care': BurnWoundCareDocumentPDFTemplate,
   'case_summaries': CaseSummariesTemplate,
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,

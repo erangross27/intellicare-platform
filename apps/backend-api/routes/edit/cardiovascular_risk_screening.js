@@ -18,6 +18,7 @@ function buildContext(req, operation = 'read') { return { serviceId: 'cardiovasc
 function toObjectId(str) { try { return new mongoose.Types.ObjectId(str); } catch { return null; } }
 
 const ALLOWED_FIELDS = [
+  'date',
   'framinghamRiskScore', 'reynoldsRiskScore', 'ascvdRiskScore', 'riskCategory',
   'systolicBloodPressure', 'diastolicBloodPressure',
   'totalCholesterol', 'hdlCholesterol', 'ldlCholesterol', 'triglycerides',

@@ -1,52 +1,523 @@
-/* CardiovascularRiskScreeningDocument.css — Blue glow editing theme */
-.cv-screening-document { font-family: 'Comfortaa', Geneva, Tahoma, sans-serif; font-size: 16px; letter-spacing: 0.5px; line-height: 1.8; color: #ececf1; max-width: 100%; padding: 24px; background: #0F1B33; box-sizing: border-box; }
-.cv-screening-document .document-header { display: block; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; }
-.cv-screening-document .document-title { font-size: 35px; font-weight: 700; color: #ececf1; margin: 0 0 12px 0; line-height: 1.2; text-transform: none !important; }
-.cv-screening-document .header-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
-.cv-screening-document .records-container { display: flex; flex-direction: column; gap: 24px; }
-.cv-screening-document .record-card { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 20px; transition: all 0.2s ease; }
-.cv-screening-document .record-card:hover { border-color: rgba(96, 165, 250, 0.4); }
-.cv-screening-document .record-header { display: flex; flex-direction: column; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(96, 165, 250, 0.3); }
-.cv-screening-document .record-meta-row { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
-.cv-screening-document .record-date { font-size: 14px; color: #60a5fa; background: rgba(96, 165, 250, 0.15); padding: 4px 12px; border-radius: 20px; }
-.cv-screening-document .record-name { font-size: 23px; font-weight: 600; color: #ececf1; margin: 0; text-transform: none !important; }
-.cv-screening-document .section { margin-top: 16px; }
-.cv-screening-document .mini-cards-container { border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 16px; background: rgba(37, 99, 235, 0.05); }
-.cv-screening-document .section-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(96, 165, 250, 0.4); padding-bottom: 10px; margin-bottom: 12px; }
-.cv-screening-document .section-title { font-size: 19px; font-weight: 700; color: #60a5fa; margin: 0; text-transform: none !important; }
-.cv-screening-document .header-right-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; }
-.cv-screening-document .rec-mini-card { background: rgba(96, 165, 250, 0.08); border: 2px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
-.cv-screening-document .nested-subtitle { font-size: 17px; font-weight: 700; color: #93c5fd; text-transform: none !important; padding-bottom: 4px; border-bottom: 1px solid rgba(96, 165, 250, 0.15); margin-bottom: 6px; }
-.cv-screening-document .numbered-row { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; background: #0d1929; border-radius: 6px; border: 1px solid rgba(96, 165, 250, 0.3); transition: all 0.2s ease; }
-.cv-screening-document .numbered-row:hover { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.5); }
-.cv-screening-document .row-content { flex: 1; display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; color: #ececf1; word-wrap: break-word; overflow-wrap: break-word; }
-.cv-screening-document .content-value { color: #ececf1; font-size: 16px; line-height: 1.6; }
-.cv-screening-document .copy-btn { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; font-family: 'Comfortaa', sans-serif; }
-.cv-screening-document .header-actions .copy-btn { font-size: 14px; padding: 8px 16px; }
-.cv-screening-document .copy-btn:hover { background: rgba(96, 165, 250, 0.25); border-color: rgba(96, 165, 250, 0.6); }
-.cv-screening-document .copy-btn.copied { background: #2563eb; border-color: #2563eb; color: white; }
-.cv-screening-document .editable-row { cursor: pointer; }
-.cv-screening-document .editable-row:hover .edit-indicator { opacity: 1; }
-.cv-screening-document .edit-indicator { opacity: 0; color: #60a5fa; font-size: 14px; transition: opacity 0.2s; flex-shrink: 0; }
-.cv-screening-document .numbered-row.modified { border-color: rgba(96, 165, 250, 0.6); box-shadow: 0 0 8px rgba(96, 165, 250, 0.15); }
-.cv-screening-document .modified-badge { font-size: 11px; color: #facc15; padding: 2px 8px; font-style: italic; }
-.cv-screening-document .edit-field-container { width: 100%; }
-.cv-screening-document .edit-textarea { width: 100%; min-height: 50px; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; resize: vertical; outline: none; box-sizing: border-box; }
-.cv-screening-document .edit-number { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }
-/* big +/- stepper instead of tiny native spinner arrows */
-.cv-screening-document .num-stepper-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
-.cv-screening-document .num-stepper-row .edit-number { flex: 1; min-width: 0; text-align: center; -moz-appearance: textfield; appearance: textfield; }
-.cv-screening-document .edit-number::-webkit-outer-spin-button, .cv-screening-document .edit-number::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.cv-screening-document .edit-number { -moz-appearance: textfield; }
-.cv-screening-document .num-step { width: 46px; flex-shrink: 0; background: rgba(96, 165, 250, 0.15); border: 2px solid #60a5fa; border-radius: 6px; color: #93c5fd; font-size: 22px; font-weight: bold; line-height: 1; cursor: pointer; user-select: none; transition: background 0.15s; }
-.cv-screening-document .num-step:hover { background: rgba(96, 165, 250, 0.35); }
-.cv-screening-document .num-step:active { background: rgba(96, 165, 250, 0.5); }
-.cv-screening-document .edit-select { width: 100%; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 15px; outline: none; box-sizing: border-box; cursor: pointer; }
-.cv-screening-document .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
-.cv-screening-document .save-btn { padding: 6px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; font-weight: 600; }
-.cv-screening-document .cancel-btn { padding: 6px 16px; background: transparent; color: #ececf1; border: 1px solid #565869; border-radius: 4px; cursor: pointer; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
-.cv-screening-document .approve-btn.pending { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.5); color: #eab308; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
-.cv-screening-document .approve-btn.approved { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'Comfortaa', sans-serif; }
-.cv-screening-document .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 17px; }
-.cv-screening-document mark { display: inline !important; background-color: #fef08a !important; color: #000 !important; padding: 0 !important; margin: 0 !important; border: none !important; font-weight: inherit !important; border-radius: 0 !important; }
-@media (max-width: 768px) { .cv-screening-document .document-header { padding-bottom: 12px; } .cv-screening-document .document-title { font-size: 24px; } .cv-screening-document .header-actions { flex-direction: column; } }
+/**
+ * CardiovascularRiskScreeningDocument.css
+ * Blue glow theme with inline editing support
+ */
+
+/* Container */
+.cardiovascular-risk-screening-document {
+  padding: 20px;
+  background: #0F1B33;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  min-height: 100%;
+  direction: ltr;
+}
+
+.cardiovascular-risk-screening-document * { direction: ltr; }
+
+/* Header — block layout, buttons below title */
+.cardiovascular-risk-screening-document .document-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #2563eb;
+}
+
+.cardiovascular-risk-screening-document .document-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+.cardiovascular-risk-screening-document .header-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end !important;
+  margin-top: 10px;
+}
+
+/* Records Container */
+.cardiovascular-risk-screening-document .records-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Record Card */
+.cardiovascular-risk-screening-document .record-card {
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.cardiovascular-risk-screening-document .record-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+}
+
+.cardiovascular-risk-screening-document .record-meta-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.cardiovascular-risk-screening-document .record-title-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.cardiovascular-risk-screening-document .record-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ececf1;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Section */
+.cardiovascular-risk-screening-document .section {
+  margin-bottom: 20px;
+}
+
+/* Section Header — INSIDE mini-cards-container */
+.cardiovascular-risk-screening-document .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.cardiovascular-risk-screening-document .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0;
+  text-transform: none !important;
+}
+
+/* Header Right Actions — column layout (copy on top, approve below) */
+.cardiovascular-risk-screening-document .header-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Mini Cards Container */
+.cardiovascular-risk-screening-document .mini-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+/* Rec Mini Card */
+.cardiovascular-risk-screening-document .rec-mini-card {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardiovascular-risk-screening-document .nested-subtitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 4px;
+  text-transform: none !important;
+  font-family: 'Comfortaa', sans-serif;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+/* Numbered Row */
+.cardiovascular-risk-screening-document .numbered-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.cardiovascular-risk-screening-document .row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cardiovascular-risk-screening-document .content-value {
+  font-size: 16px;
+  color: #ececf1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ==================== EDITING STYLES ==================== */
+
+/* Editable row — pencil icon on hover */
+.cardiovascular-risk-screening-document .editable-row {
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.cardiovascular-risk-screening-document .editable-row:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.cardiovascular-risk-screening-document .edit-indicator {
+  opacity: 0;
+  color: #60a5fa;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cardiovascular-risk-screening-document .editable-row:hover .edit-indicator {
+  opacity: 1;
+}
+
+/* Modified row — blue glow */
+.cardiovascular-risk-screening-document .numbered-row.modified {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.15);
+}
+
+/* Edit field container */
+.cardiovascular-risk-screening-document .edit-field-container {
+  width: 100%;
+}
+
+.cardiovascular-risk-screening-document .edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.cardiovascular-risk-screening-document .edit-textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+.cardiovascular-risk-screening-document input.edit-date {
+  width: 100%;
+  display: block;
+  background: #0d1929;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  color: #ececf1;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  color-scheme: dark;
+}
+
+.cardiovascular-risk-screening-document input.edit-date:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3);
+}
+
+.cardiovascular-risk-screening-document .edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-start;
+}
+
+.cardiovascular-risk-screening-document .save-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cardiovascular-risk-screening-document .save-btn:hover {
+  background: #3b82f6;
+}
+
+.cardiovascular-risk-screening-document .cancel-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #565869;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cardiovascular-risk-screening-document .cancel-btn:hover {
+  border-color: #9ca3af;
+  color: #ececf1;
+}
+
+/* Modified badge */
+.cardiovascular-risk-screening-document .modified-badge {
+  font-size: 11px;
+  color: #facc15;
+  padding: 2px 8px;
+  font-style: italic;
+}
+
+.cardiovascular-risk-screening-document .modified-badge.added {
+  color: #4ade80;
+}
+
+/* ==================== APPROVE BUTTON ==================== */
+
+.cardiovascular-risk-screening-document .approve-btn {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-family: 'Comfortaa', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+/* Pending — YELLOW */
+.cardiovascular-risk-screening-document .approve-btn.pending {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #eab308;
+}
+
+.cardiovascular-risk-screening-document .approve-btn.pending:hover {
+  background: rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
+}
+
+/* Approved — GREEN */
+.cardiovascular-risk-screening-document .approve-btn.approved {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.cardiovascular-risk-screening-document .approve-btn.approved:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.15);
+}
+
+/* ==================== COPY BUTTON ==================== */
+
+.cardiovascular-risk-screening-document .copy-btn {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.cardiovascular-risk-screening-document .copy-btn:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.cardiovascular-risk-screening-document .copy-btn.copied {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Header Copy All / Export PDF buttons */
+.cardiovascular-risk-screening-document .header-actions .copy-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.cardiovascular-risk-screening-document .header-actions .copy-btn.copied {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* ==================== BAR CHART ==================== */
+
+.cardiovascular-risk-screening-document .chart-category {
+  background: rgba(96, 165, 250, 0.08);
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardiovascular-risk-screening-document .category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  margin-bottom: 4px;
+}
+
+.cardiovascular-risk-screening-document .category-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+  text-transform: none;
+}
+
+.cardiovascular-risk-screening-document .category-description {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+  font-family: 'Comfortaa', sans-serif;
+  text-align: right;
+}
+
+.cardiovascular-risk-screening-document .bar-chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #0d1929;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+}
+
+.cardiovascular-risk-screening-document .bar-chart-row:hover {
+  border-color: #60a5fa;
+}
+
+.cardiovascular-risk-screening-document .bar-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.cardiovascular-risk-screening-document .bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cardiovascular-risk-screening-document .bar-background {
+  flex: 1;
+  height: 24px;
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #565869;
+}
+
+.cardiovascular-risk-screening-document .bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.cardiovascular-risk-screening-document .bar-value {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.cardiovascular-risk-screening-document .bar-interpretation {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+/* Highlight */
+.cardiovascular-risk-screening-document mark {
+  background: #fbbf24;
+  color: #000;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+/* Empty State */
+.cardiovascular-risk-screening-document .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cardiovascular-risk-screening-document {
+    padding: 16px;
+  }
+
+  .cardiovascular-risk-screening-document .document-title {
+    font-size: 22px;
+  }
+
+  .cardiovascular-risk-screening-document .header-actions {
+    flex-direction: column;
+  }
+}
+/* Sub-field label */
+.cardiovascular-risk-screening-document .sub-field-label { font-size: 13px; font-weight: 600; color: #93c5fd; margin-right: 8px; flex-shrink: 0; }
+.cardiovascular-risk-screening-document .save-error { color: #fca5a5; font-size: 12px; margin-top: 6px; }
+.cardiovascular-risk-screening-document .sr-only { clip: rect(0, 0, 0, 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.cardiovascular-risk-screening-document .pdf-btn { display: inline-flex; align-items: center; text-decoration: none; }
+/* Object leaf sub-labels */
+.cardiovascular-risk-screening-document .nested-subtitle.sub-label { font-size: 15px; padding-left: 0; opacity: 0.9; border-bottom: none; margin-bottom: 2px; padding-bottom: 2px; }
+/* Number stepper (edit-only) */
+.cardiovascular-risk-screening-document .number-edit-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.cardiovascular-risk-screening-document .num-step { min-width: 38px; padding: 8px 12px; background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.5); border-radius: 6px; color: #ececf1; font: inherit; cursor: pointer; }
+.cardiovascular-risk-screening-document .edit-number { flex: 1; padding: 10px; background: #0F1B33; border: 2px solid #60a5fa; border-radius: 6px; color: #ececf1; font-family: 'Comfortaa', sans-serif; font-size: 16px; outline: none; box-sizing: border-box; -moz-appearance: textfield; appearance: textfield; }

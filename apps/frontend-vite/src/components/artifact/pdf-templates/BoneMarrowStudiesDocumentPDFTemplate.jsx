@@ -1,82 +1,78 @@
-/**
- * BoneMarrowStudiesDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt, numbered items, conditional wrap
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
+const COLLECTION = 'bone_marrow_studies';
+const COMMA_SPLIT_FIELDS = [];
+const ARRAY_FIELDS = new Set(['molecularStudies', 'specialStains', 'dysplasticChanges', 'complications']);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set(['flowCytometryFindings', 'pathologicDiagnosis']);
+const DATE_FIELDS = new Set(['studyDate', 'previousStudyDate']);
+const ZERO_SENTINEL_FIELDS = new Set(['blastPercentage']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  studyDate: 'Study Date', previousStudyDate: 'Previous Study Date', provider: 'Provider', facility: 'Facility',
+  procedureType: 'Procedure Type', aspirationSite: 'Aspiration Site', indicationForStudy: 'Indication for Study',
+  cellularity: 'Cellularity', myeloidToErythroidRatio: 'Myeloid to Erythroid Ratio', blastPercentage: 'Blast Percentage',
+  erythroidSeries: 'Erythroid Series', myeloidSeries: 'Myeloid Series', megakaryocytes: 'Megakaryocytes',
+  ironStores: 'Iron Stores', ringedSideroblasts: 'Ringed Sideroblasts', cytogeneticResults: 'Cytogenetic Results',
+  flowCytometryFindings: 'Flow Cytometry Findings', molecularStudies: 'Molecular Studies', specialStains: 'Special Stains',
+  coreBiopsyLength: 'Core Biopsy Length', specimenAdequacy: 'Specimen Adequacy', pathologicDiagnosis: 'Pathologic Diagnosis',
+  dysplasticChanges: 'Dysplastic Changes', fibrosis: 'Fibrosis', complications: 'Complications',
+};
+const SECTIONS = [
+  { title: 'Dates', fields: ['studyDate', 'previousStudyDate'] },
+  { title: 'Record Information', fields: ['provider', 'facility'] },
+  { title: 'Procedure', fields: ['procedureType', 'aspirationSite', 'indicationForStudy', 'coreBiopsyLength', 'specimenAdequacy'] },
+  { title: 'Morphology', fields: ['cellularity', 'myeloidToErythroidRatio', 'blastPercentage', 'erythroidSeries', 'myeloidSeries', 'megakaryocytes'] },
+  { title: 'Iron and Sideroblasts', fields: ['ironStores', 'ringedSideroblasts'] },
+  { title: 'Cytogenetic Results', fields: ['cytogeneticResults'] },
+  { title: 'Flow Cytometry Findings', fields: ['flowCytometryFindings'] },
+  { title: 'Molecular Studies', fields: ['molecularStudies'] },
+  { title: 'Special Stains', fields: ['specialStains'] },
+  { title: 'Pathologic Diagnosis', fields: ['pathologicDiagnosis'] },
+  { title: 'Dysplastic Changes', fields: ['dysplasticChanges'] },
+  { title: 'Fibrosis', fields: ['fibrosis'] },
+  { title: 'Complications', fields: ['complications'] },
+];
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 14, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  recordSection: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 6, backgroundColor: '#f0f0f0', padding: 6, borderWidth: 1, borderColor: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 2, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 10, marginTop: 4 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4 },
-  subSectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 3, marginTop: 6, paddingLeft: 4 },
-  listItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 3 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
 });
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'number') return v !== 0; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; return true; };
-const fmtVal = (v) => { if (typeof v === 'number') return String(v); return String(v || ''); };
-/* Abbreviation-safe sentence split + label:value parse — mirrors the JSX template (segmentation parity). */
-const ABBR_RE = '(?:Mr|Mrs|Ms|Dr|Prof|Rev|Sr|Jr|St|Gen|Col|Sgt|Lt|Capt|vs|etc)';
-const splitBySentence = (text) => { if (!text) return []; return String(text).split(new RegExp(`(?<!\\b${ABBR_RE}\\.)(?<=[.!?])\\s+`)).map(s => s.trim()).filter(s => s.length > 0 && s.replace(/[.!?;,]+/g, '').trim().length > 0); };
-/* PAREN-AWARE: only a colon at paren-depth 0 counts (ratios inside parens like "(Kappa:Lambda 15:1)" are NOT labels). */
-const parseLabel = (s) => { const str = String(s ?? ''); let depth = 0; for (let i = 0; i < str.length; i++) { const c = str[i]; if (c === '(' || c === '[') depth++; else if (c === ')' || c === ']') depth = Math.max(0, depth - 1); else if (c === ':' && depth === 0) { const label = str.slice(0, i); const m = str.slice(i + 1).match(/^(\s+)(\S[\s\S]*)$/); if (m && label.trim().length >= 1 && label.length <= 80) return { isLabeled: true, label: label.trim(), value: m[2] }; return { isLabeled: false, label: '', value: str }; } } return { isLabeled: false, label: '', value: str }; };
-const FIELD_LABELS = { procedureType: 'Procedure Type', aspirationSite: 'Aspiration Site', indicationForStudy: 'Indication', coreBiopsyLength: 'Core Biopsy Length', specimenAdequacy: 'Specimen Adequacy', cellularity: 'Cellularity', blastPercentage: 'Blast %', myeloidToErythroidRatio: 'M:E Ratio', erythroidSeries: 'Erythroid Series', myeloidSeries: 'Myeloid Series', megakaryocytes: 'Megakaryocytes', ironStores: 'Iron Stores', ringedSideroblasts: 'Ringed Sideroblasts', fibrosis: 'Fibrosis', previousStudyDate: 'Previous Study Date', provider: 'Provider', facility: 'Facility' };
-
-const renderFieldGroup = (title, fields, record) => {
-  const visible = fields.filter(f => hasVal(record[f]));
-  if (visible.length === 0) return null;
-  return (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>{title}</Text>{visible.map((f, i) => (<View key={i}><Text style={styles.subSectionTitle}>{FIELD_LABELS[f] || f}</Text><Text style={styles.listItem}>{fmtVal(record[f])}</Text></View>))}</View>);
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const BoneMarrowStudiesDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => { if (r?.bone_marrow_studies) return Array.isArray(r.bone_marrow_studies) ? r.bone_marrow_studies : [r.bone_marrow_studies]; if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.bone_marrow_studies) return Array.isArray(dd.bone_marrow_studies) ? dd.bone_marrow_studies : [dd.bone_marrow_studies]; return [dd]; } return r; });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Bone Marrow Studies</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Bone Marrow Studies</Text>
-        {records.map((record, idx) => {
-          const specialStains = Array.isArray(record.specialStains) ? record.specialStains.filter(Boolean) : [];
-          const molecularStudies = Array.isArray(record.molecularStudies) ? record.molecularStudies.filter(Boolean) : [];
-          const dysplasticChanges = Array.isArray(record.dysplasticChanges) ? record.dysplasticChanges.filter(Boolean) : [];
-          const complications = Array.isArray(record.complications) ? record.complications.filter(Boolean) : [];
-          return (
-            <View key={idx} style={styles.recordSection}>
-              <View wrap={false}><Text style={styles.recordTitle}>{`Bone Marrow Study ${idx + 1}`}</Text>{(record.studyDate || record.date) && <Text style={styles.recordMeta}>{formatDate(record.studyDate || record.date)}</Text>}</View>
-
-              {renderFieldGroup('Procedure Information', ['procedureType', 'aspirationSite', 'indicationForStudy', 'coreBiopsyLength', 'specimenAdequacy'], record)}
-              {renderFieldGroup('Cellularity', ['cellularity', 'blastPercentage', 'myeloidToErythroidRatio'], record)}
-              {renderFieldGroup('Cell Lines', ['erythroidSeries', 'myeloidSeries', 'megakaryocytes'], record)}
-              {renderFieldGroup('Iron Studies', ['ironStores', 'ringedSideroblasts'], record)}
-
-              {hasVal(record.flowCytometryFindings) && (() => { const fcSents = splitBySentence(record.flowCytometryFindings).map(s => s.replace(/\.$/, '')); const fcLabeled = fcSents.some(s => parseLabel(s).isLabeled); return (<View style={styles.fieldContainer} wrap={fcSents.length > 8 ? undefined : false}><Text style={styles.sectionTitle}>Flow Cytometry</Text>{fcSents.map((s, i) => { const p = parseLabel(s); return p.isLabeled ? (<View key={i}><Text style={styles.subSectionTitle}>{p.label}</Text><Text style={styles.listItem}>{p.value}</Text></View>) : (<Text key={i} style={styles.listItem}>{fcLabeled ? s : `${i + 1}. ${s}`}</Text>); })}</View>); })()}
-              {hasVal(record.cytogeneticResults) && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Cytogenetics</Text><Text style={styles.listItem}>{record.cytogeneticResults}</Text></View>)}
-              {molecularStudies.length > 0 && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Molecular Studies</Text>{molecularStudies.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>)}</View>)}
-              {specialStains.length > 0 && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Special Stains</Text>{specialStains.map((item, i) => { const p = parseLabel(String(item)); return p.isLabeled ? (<View key={i}><Text style={styles.subSectionTitle}>{p.label}</Text><Text style={styles.listItem}>{p.value}</Text></View>) : (<Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>); })}</View>)}
-              {hasVal(record.pathologicDiagnosis) && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Pathologic Diagnosis</Text><Text style={styles.listItem}>{record.pathologicDiagnosis}</Text></View>)}
-              {(dysplasticChanges.length > 0 || hasVal(record.fibrosis)) && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Morphology</Text>{dysplasticChanges.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>)}{hasVal(record.fibrosis) && <><Text style={styles.subSectionTitle}>Fibrosis</Text><Text style={styles.listItem}>{record.fibrosis}</Text></>}</View>)}
-              {complications.length > 0 && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Complications</Text>{complications.map((item, i) => <Text key={i} style={styles.listItem}>{i + 1}. {item}</Text>)}</View>)}
-              {hasVal(record.previousStudyDate) && (<View style={styles.fieldContainer} wrap={false}><Text style={styles.sectionTitle}>Comparison</Text><Text style={styles.subSectionTitle}>{FIELD_LABELS.previousStudyDate}</Text><Text style={styles.listItem}>{formatDate(record.previousStudyDate)}</Text></View>)}
-              {renderFieldGroup('Provider Information', ['provider', 'facility'], record)}
-            </View>
-          );
-        })}
-      </Page>
-    </Document>
-  );
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => { const parsed = typeof item === 'string' ? parseLabel(item) : { subtitle: '', value: item }; return parsed.subtitle ? { subtitle: parsed.subtitle, value: parsed.value } : { subtitle: '', value: displayValue(item) }; }); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
+const BoneMarrowStudiesDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Bone Marrow Studies</Text><Text style={styles.noData}>No bone marrow study data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Bone Marrow Studies</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Bone Marrow Study {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
+};
 export default BoneMarrowStudiesDocumentPDFTemplate;

@@ -27,7 +27,7 @@ const ALLOWED_FIELDS = [
   'flowCytometryFindings', 'cytogeneticResults',
   'molecularStudies', 'specialStains',
   'pathologicDiagnosis', 'dysplasticChanges', 'fibrosis',
-  'complications', 'previousStudyDate', 'provider', 'facility',
+  'complications', 'previousStudyDate', 'studyDate', 'provider', 'facility',
 ];
 
 router.put('/:id/edit', async (req, res) => {

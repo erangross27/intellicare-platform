@@ -29,7 +29,7 @@ const ALLOWED_FIELDS = [
   'date',
   // STRINGS (per-sentence narratives + simple fields)
   'cognitiveChanges', 'secondaryMalignancyRisk', 'findings', 'assessment', 'plan',
-  'notes', 'type', 'provider', 'facility', 'status',
+  'notes', 'type', 'provider', 'facility', 'status', 'additionalData',
 ];
 
 // A field is allowed if it exactly matches an allowed field OR is a dotted/indexed

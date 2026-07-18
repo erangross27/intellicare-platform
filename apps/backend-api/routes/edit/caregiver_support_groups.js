@@ -56,6 +56,7 @@ const ALLOWED_FIELDS = [
   'careTransitionPlanning',
   'caregiverEducationNeeds',
   'copingStrategiesUsed',
+  'additionalData',
 ];
 
 router.put('/:id/edit', async (req, res) => {

@@ -20,13 +20,15 @@ function toObjectId(str) { try { return new mongoose.Types.ObjectId(str); } catc
 const ALLOWED_FIELDS = [
   'primaryCaregiver', 'caregiverBurden', 'caregiverHealth', 'respiteNeeds',
   'supportServices', 'educationProvided', 'financialStrain',
-  'date', 'provider', 'facility',
-  'findings', 'assessment', 'plan', 'recommendations', 'results', 'notes', 'status',
+  'date', 'type', 'provider', 'facility',
+  'findings', 'assessment', 'plan', 'recommendations', 'results', 'notes', 'status', 'additionalData',
 ];
 // `results` is a free-form OBJECT edited by dot-path (e.g. results.score) — allow nested paths under it.
 function isAllowedField(field) {
   if (ALLOWED_FIELDS.includes(field)) return true;
-  if (typeof field === 'string' && field.startsWith('results.')) return true;
+  // Allow dotted sub-paths for objects (results.*, additionalData.*) and arrays edited by index
+  // (recommendations.0.date, supportServices.1, educationProvided.2)
+  if (typeof field === 'string' && ALLOWED_FIELDS.includes(field.split('.')[0])) return true;
   return false;
 }
 

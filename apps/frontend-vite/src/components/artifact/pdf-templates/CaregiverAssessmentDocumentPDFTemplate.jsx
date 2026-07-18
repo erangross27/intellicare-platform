@@ -1,236 +1,78 @@
-/**
- * CaregiverAssessmentDocumentPDFTemplate.jsx
- * Helvetica 20/16/14/12pt. B&W ONLY (#000000 + grayscale; NO saturated colors).
- * FULL TEMPLATE STANDARD — 100% coverage of all 17 non-system fields.
- * Rule #74: each field is ONE wrap-gated <View> (rows<=8 -> wrap={false}; rows>8 -> wrap=undefined);
- *           sectionTitle goes INSIDE the first View (isFirst) — never a sibling.
- *   - OBJECT field `results` rendered recursively as humanized key/value lines.
- *   - recommendations (array of {recommendation, date}) date-grouped numbered list.
- *   - per-sentence numbering for narrative string fields.
- * Collection: caregiver_assessment
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff', color: '#000000' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 14, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 8, textTransform: 'uppercase', letterSpacing: 1, color: '#000000' },
-  recordSection: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 6, backgroundColor: '#f0f0f0', padding: 6, borderWidth: 1, borderColor: '#000000', color: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 2, color: '#333333', paddingLeft: 4 },
-  fieldGroup: { marginBottom: 10, marginTop: 4 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4, color: '#000000' },
-  fieldLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 4, marginTop: 6, paddingLeft: 4, paddingBottom: 3, borderBottomWidth: 0.5, borderBottomColor: '#999999' },
-  subLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#333333', marginBottom: 2, marginTop: 4, paddingLeft: 8 },
-  value: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 3, color: '#000000' },
-  recDate: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#333333', marginTop: 4, marginBottom: 2, paddingLeft: 8 },
-  nested: { paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: '#cccccc', marginLeft: 4 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
-});
-
+const COLLECTION = 'caregiver_assessment';
+const COMMA_SPLIT_FIELDS = ['primaryCaregiver', 'caregiverBurden', 'caregiverHealth', 'findings', 'assessment'];
+const ARRAY_FIELDS = new Set(['supportServices', 'educationProvided']);
+const OBJECT_FIELDS = new Set(['recommendations', 'results', 'additionalData']);
+const NARRATIVE_FIELDS = new Set(['primaryCaregiver', 'caregiverBurden', 'caregiverHealth', 'financialStrain', 'findings', 'assessment', 'plan', 'notes']);
+const DATE_FIELDS = new Set(['date']);
+const ZERO_SENTINEL_FIELDS = new Set([]);
+const NUMBER_UNIT_FIELDS = new Set([]);
+const ENUM_FIELDS = {};
+const STATUS_OPTIONS = ['Complete', 'In Progress', 'Pending'];
 const KEY_OVERRIDES = {};
-const humanizeKey = (key) => { if (key === null || key === undefined || key === '') return ''; if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key).replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
-const formatDate = (d) => { if (!d) return ''; try { const dt = new Date(d.$date || d); if (isNaN(dt.getTime())) return String(d); return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const isEmptyDeep = (v) => { if (v === null || v === undefined) return true; if (typeof v === 'boolean') return false; if (typeof v === 'number') return !Number.isFinite(v); if (typeof v === 'string') return v.trim() === ''; if (Array.isArray(v)) return v.filter(x => !isEmptyDeep(x)).length === 0; if (typeof v === 'object') return Object.values(v).every(isEmptyDeep); return false; };
-const hasVal = (v) => !isEmptyDeep(v);
-const isScalar = (v) => v === null || typeof v !== 'object';
-const fmtScalar = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v ?? ''); };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-const splitBySentence = (text) => { if (!text) return []; return String(text).split(/[;,.]\s+/).map(s => s.trim()).filter(s => s.length > 0 && s.replace(/[.!?;,]+/g, '').trim().length > 0); };
-
-const FIELD_LABELS = {
-  primaryCaregiver: 'Primary Caregiver', caregiverHealth: 'Caregiver Health', respiteNeeds: 'Respite Needs',
-  caregiverBurden: 'Caregiver Burden', financialStrain: 'Financial Strain',
-  supportServices: 'Support Services', educationProvided: 'Education Provided',
-  findings: 'Findings', assessment: 'Assessment', plan: 'Plan',
-  recommendations: 'Recommendations', results: 'Results', notes: 'Notes',
-  provider: 'Provider', facility: 'Facility', status: 'Status', date: 'Date',
+const LABELS = {
+  date: 'Date', type: 'Type', provider: 'Provider', facility: 'Facility', status: 'Status',
+  primaryCaregiver: 'Primary Caregiver', caregiverBurden: 'Caregiver Burden', caregiverHealth: 'Caregiver Health', respiteNeeds: 'Respite Needs',
+  supportServices: 'Support Services', educationProvided: 'Education Provided', financialStrain: 'Financial Strain',
+  findings: 'Findings', assessment: 'Assessment', plan: 'Plan', recommendations: 'Recommendations', results: 'Results', notes: 'Notes', additionalData: 'Additional Data',
 };
-const SECTION_TITLES = {
-  caregiver: 'Caregiver Information', burden: 'Burden & Strain', support: 'Support Services',
-  education: 'Education Provided', clinical: 'Clinical', recommendationsSection: 'Recommendations',
-  resultsSection: 'Results', notesSection: 'Notes', providerInfo: 'Provider Information',
+const SECTIONS = [
+  { title: 'Assessment Information', fields: ['date', 'type', 'provider', 'facility', 'status'] },
+  { title: 'Primary Caregiver', fields: ['primaryCaregiver'] },
+  { title: 'Caregiver Burden', fields: ['caregiverBurden'] },
+  { title: 'Caregiver Health', fields: ['caregiverHealth', 'respiteNeeds'] },
+  { title: 'Support Services', fields: ['supportServices'] },
+  { title: 'Education Provided', fields: ['educationProvided'] },
+  { title: 'Financial Strain', fields: ['financialStrain'] },
+  { title: 'Findings', fields: ['findings'] },
+  { title: 'Assessment', fields: ['assessment'] },
+  { title: 'Plan', fields: ['plan'] },
+  { title: 'Recommendations', fields: ['recommendations'] },
+  { title: 'Results', fields: ['results'] },
+  { title: 'Notes', fields: ['notes'] },
+  { title: 'Additional Data', fields: ['additionalData'] },
+];
+const styles = StyleSheet.create({
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
+});
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-const SECTION_FIELDS = {
-  caregiver: ['primaryCaregiver', 'caregiverHealth', 'respiteNeeds'],
-  burden: ['caregiverBurden', 'financialStrain'],
-  support: ['supportServices'],
-  education: ['educationProvided'],
-  clinical: ['findings', 'assessment', 'plan'],
-  recommendationsSection: ['recommendations'],
-  resultsSection: ['results'],
-  notesSection: ['notes'],
-  providerInfo: ['provider', 'facility', 'status'],
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim().replace(/^\d{1,2}[.)]\s+/, ''); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const digitPeriod = character === '.' && /\d/.test(source[index - 1] || ''); const sentenceBreak = !protectedPeriod && !digitPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
-const SECTION_ORDER = ['caregiver', 'burden', 'support', 'education', 'clinical', 'recommendationsSection', 'resultsSection', 'notesSection', 'providerInfo'];
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (field === 'recommendations' && Array.isArray(value) && value.every(item => item && typeof item === 'object' && 'date' in item)) return value.filter(hasValue).map(item => ({ subtitle: formatDate(item.date), value: displayValue(item.recommendation) })); if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => ({ subtitle: '', value: displayValue(item) })); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
-const ARRAY_FIELDS = ['supportServices', 'educationProvided'];
-const SENTENCE_FIELDS = ['caregiverBurden', 'caregiverHealth', 'financialStrain', 'findings', 'assessment', 'plan', 'notes'];
-const OBJECT_FIELDS = ['results'];
-const OBJECT_ARRAY_FIELDS = ['recommendations'];
-const DATE_FIELDS = ['date'];
-
-/* recursive object node: label = bold heading; value = plain line below */
-const renderObjectNode = (label, value, keyPath, depth) => {
-  if (isEmptyDeep(value)) return null;
-  const LabelTag = depth > 0 ? styles.subLabel : styles.fieldLabel;
-  if (isScalar(value)) {
-    return (
-      <View key={keyPath}>
-        {label ? <Text style={LabelTag}>{label}</Text> : null}
-        <Text style={styles.value}>1. {fmtScalar(value)}</Text>
-      </View>
-    );
-  }
-  const entries = Object.entries(value).filter(([, v]) => !isEmptyDeep(v));
-  if (entries.length === 0) return null;
-  return (
-    <View key={keyPath}>
-      {label ? <Text style={LabelTag}>{label}</Text> : null}
-      <View style={label ? styles.nested : undefined}>{entries.map(([k, v]) => renderObjectNode(humanizeKey(k), v, `${keyPath}-${k}`, depth + 1))}</View>
-    </View>
-  );
+const CaregiverAssessmentDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Caregiver Assessment</Text><Text style={styles.noData}>No caregiver assessment data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Caregiver Assessment</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Caregiver Assessment {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
 };
-
-const countRows = (val) => {
-  if (isEmptyDeep(val)) return 0;
-  if (isScalar(val)) return 1;
-  if (Array.isArray(val)) { let n = 0; val.filter(x => !isEmptyDeep(x)).forEach(it => { n += isScalar(it) ? 1 : 1 + countRows(it); }); return n; }
-  let n = 0; Object.values(val).forEach(sub => { if (!isEmptyDeep(sub)) n += isScalar(sub) ? 2 : 1 + countRows(sub); }); return n;
-};
-
-/* Rule #74: render a field as wrap-gated View(s). Returns an ARRAY of Views. */
-const renderFieldViews = (record, field, sectionTitle, isFirst) => {
-  const val = record[field];
-  if (!hasVal(val)) return [];
-  const label = FIELD_LABELS[field] || field;
-  const showLabel = label.trim().toLowerCase() !== (sectionTitle || '').trim().toLowerCase();
-  const titleNode = isFirst ? <Text style={styles.sectionTitle}>{sectionTitle}</Text> : null;
-
-  if (DATE_FIELDS.includes(field)) {
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        <Text style={styles.value}>1. {formatDate(val)}</Text>
-      </View>
-    )];
-  }
-
-  if (ARRAY_FIELDS.includes(field)) {
-    const items = Array.isArray(val) ? val.filter(Boolean) : [];
-    if (items.length === 0) return [];
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={items.length > 8 ? undefined : false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        {items.map((it, i) => <Text key={i} style={styles.value}>{i + 1}. {fmtVal(it)}</Text>)}
-      </View>
-    )];
-  }
-
-  if (OBJECT_ARRAY_FIELDS.includes(field)) {
-    const recs = Array.isArray(val) ? val : [];
-    if (recs.length === 0) return [];
-    const groups = [];
-    recs.forEach((r) => { const d = (r?.date || '').trim(); const last = groups[groups.length - 1]; if (last && last.date === d) last.items.push(r); else groups.push({ date: d, items: [r] }); });
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={recs.length > 8 ? undefined : false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        {groups.map((group, gIdx) => (
-          <View key={gIdx}>
-            {group.date ? <Text style={styles.recDate}>{group.date}</Text> : null}
-            {group.items.map((r, i) => (<Text key={i} style={styles.value}>{i + 1}. {(r?.recommendation || '').trim()}</Text>))}
-          </View>
-        ))}
-      </View>
-    )];
-  }
-
-  if (OBJECT_FIELDS.includes(field)) {
-    const entries = Object.entries(val).filter(([, v]) => !isEmptyDeep(v));
-    if (entries.length === 0) return [];
-    return entries.map(([k, v], i) => {
-      const rows = countRows(v);
-      return (
-        <View key={`${field}-${k}`} style={styles.fieldGroup} wrap={rows > 8 ? undefined : false}>
-          {i === 0 ? titleNode : null}
-          {i === 0 && showLabel ? <Text style={styles.fieldLabel}>{label}</Text> : null}
-          {renderObjectNode(humanizeKey(k), v, `${field}-${k}`, 1)}
-        </View>
-      );
-    });
-  }
-
-  if (SENTENCE_FIELDS.includes(field)) {
-    const strVal = fmtVal(val);
-    const sentences = splitBySentence(strVal);
-    if (sentences.length > 1) {
-      return [(
-        <View key={field} style={styles.fieldGroup} wrap={sentences.length > 8 ? undefined : false}>
-          {titleNode}
-          {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-          {sentences.map((s, sIdx) => (<Text key={sIdx} style={styles.value}>{sIdx + 1}. {s}</Text>))}
-        </View>
-      )];
-    }
-    return [(
-      <View key={field} style={styles.fieldGroup} wrap={false}>
-        {titleNode}
-        {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-        <Text style={styles.value}>1. {strVal}</Text>
-      </View>
-    )];
-  }
-
-  /* simple scalar (primaryCaregiver, respiteNeeds, provider, facility, status) */
-  return [(
-    <View key={field} style={styles.fieldGroup} wrap={false}>
-      {titleNode}
-      {showLabel && <Text style={styles.fieldLabel}>{label}</Text>}
-      <Text style={styles.value}>1. {fmtVal(val)}</Text>
-    </View>
-  )];
-};
-
-const CaregiverAssessmentDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => {
-      if (r?.caregiver_assessment) return Array.isArray(r.caregiver_assessment) ? r.caregiver_assessment : [r.caregiver_assessment];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.caregiver_assessment) return Array.isArray(dd.caregiver_assessment) ? dd.caregiver_assessment : [dd.caregiver_assessment]; return [dd]; }
-      return r;
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Caregiver Assessment</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Caregiver Assessment</Text>
-        {records.map((record, idx) => (
-          <View key={idx} style={styles.recordSection}>
-            <View wrap={false}>
-              <Text style={styles.recordTitle}>{`Caregiver Assessment ${idx + 1}`}</Text>
-              {hasVal(record.date) && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
-              {hasVal(record.provider) && <Text style={styles.recordMeta}>{fmtVal(record.provider)}</Text>}
-              {hasVal(record.facility) && <Text style={styles.recordMeta}>{fmtVal(record.facility)}</Text>}
-            </View>
-            {SECTION_ORDER.flatMap(sid => {
-              const fields = (SECTION_FIELDS[sid] || []).filter(f => hasVal(record[f]));
-              if (fields.length === 0) return [];
-              const title = SECTION_TITLES[sid];
-              return fields.flatMap((f, fi) => renderFieldViews(record, f, title, fi === 0));
-            })}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
-};
-
 export default CaregiverAssessmentDocumentPDFTemplate;

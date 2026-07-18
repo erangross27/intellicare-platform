@@ -47,6 +47,7 @@ function toObjectId(str) {
 const ALLOWED_FIELDS = [
   'type', 'status', 'frequency', 'method', 'biopsyProtocol', 'nextDue',
   'findings', 'assessment', 'plan', 'notes', 'results', 'recommendations',
+  'date', 'provider', 'facility', 'additionalData',
 ];
 
 // ─── PUT /:id/edit — Edit a single field ──────────────────────────────────────
@@ -60,7 +61,7 @@ router.put('/:id/edit', async (req, res) => {
       return res.status(400).json({ success: false, error: 'field and value are required' });
     }
 
-    if (!ALLOWED_FIELDS.includes(field)) {
+    if (!ALLOWED_FIELDS.includes(field) && !ALLOWED_FIELDS.includes(field.split('.')[0])) {
       return res.status(400).json({ success: false, error: `Field "${field}" is not editable` });
     }
 

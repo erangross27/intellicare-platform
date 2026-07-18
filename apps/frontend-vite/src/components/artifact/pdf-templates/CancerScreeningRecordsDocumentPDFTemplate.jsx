@@ -1,117 +1,73 @@
-/**
- * CancerScreeningRecordsDocumentPDFTemplate.jsx
- * Helvetica 20/14/12pt
- * Collection: cancer_screening_records
- */
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 12, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
-  documentTitle: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 14, textAlign: 'center', borderBottomWidth: 2, borderBottomColor: '#000000', paddingBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  recordSection: { marginBottom: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#cccccc' },
-  recordTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 6, backgroundColor: '#f0f0f0', padding: 6, borderWidth: 1, borderColor: '#000000' },
-  recordMeta: { fontSize: 11, marginBottom: 2, color: '#333333', paddingLeft: 4 },
-  fieldContainer: { marginBottom: 10, marginTop: 4 },
-  sectionTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#000000', paddingBottom: 4 },
-  subSectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#000000', marginBottom: 3, marginTop: 6, paddingLeft: 4 },
-  listItem: { fontSize: 12, lineHeight: 1.5, paddingLeft: 12, marginBottom: 3 },
-  emptyState: { textAlign: 'center', padding: 40, fontSize: 14, color: '#666666' },
-});
-
-const formatDate = (d) => { if (!d) return ''; try { return new Date(d.$date || d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); } };
-const hasVal = (v) => { if (v === null || v === undefined || v === '') return false; if (typeof v === 'boolean') return true; if (typeof v === 'number') return true; if (typeof v === 'string') return v.trim() !== ''; return true; };
-const fmtVal = (v) => { if (typeof v === 'boolean') return v ? 'Yes' : 'No'; if (typeof v === 'number') return String(v); return String(v || ''); };
-
-const FL = {
-  screeningType: 'Screening Type', cancerTypeScreened: 'Cancer Type Screened',
-  screeningInterval: 'Screening Interval', indicationForScreening: 'Indication',
-  imagingModalityUsed: 'Imaging Modality', riskCategory: 'Risk Category',
+const COLLECTION = 'cancer_screening_records';
+const COMMA_SPLIT_FIELDS = [];
+const ARRAY_FIELDS = new Set([]);
+const OBJECT_FIELDS = new Set([]);
+const NARRATIVE_FIELDS = new Set(['colonoscopyFindings']);
+const DATE_FIELDS = new Set(['date', 'screeningDate', 'previousScreeningDate', 'nextRecommendedScreeningDate']);
+const ZERO_SENTINEL_FIELDS = new Set(['polypCount', 'psaLevel', 'packYearHistory']);
+const KEY_OVERRIDES = {};
+const LABELS = {
+  date: 'Date', screeningDate: 'Screening Date', previousScreeningDate: 'Previous Screening Date', nextRecommendedScreeningDate: 'Next Recommended Screening Date',
+  screeningType: 'Screening Type', cancerTypeScreened: 'Cancer Type Screened', screeningInterval: 'Screening Interval',
+  indicationForScreening: 'Indication for Screening', riskCategory: 'Risk Category', imagingModalityUsed: 'Imaging Modality Used',
   familyHistoryOfCancer: 'Family History of Cancer', biRadsCategory: 'BI-RADS Category',
-  colonoscopyFindings: 'Colonoscopy Findings', polypCount: 'Polyp Count',
-  polypHistology: 'Polyp Histology', cecalIntubation: 'Cecal Intubation',
-  bowelPrepQuality: 'Bowel Prep Quality', papSmearResult: 'Pap Smear Result',
-  hpvTestResult: 'HPV Test Result', psaLevel: 'PSA Level',
-  ldctLungRadsScore: 'LDCT Lung-RADS Score', packYearHistory: 'Pack-Year History',
-  biopsyPerformed: 'Biopsy Performed', biopsySite: 'Biopsy Site',
-  pathologyReportNumber: 'Pathology Report Number', requiresFollowUp: 'Requires Follow-Up',
+  colonoscopyFindings: 'Colonoscopy Findings', polypCount: 'Polyp Count', polypHistology: 'Polyp Histology',
+  cecalIntubation: 'Cecal Intubation', bowelPrepQuality: 'Bowel Prep Quality', papSmearResult: 'Pap Smear Result',
+  hpvTestResult: 'HPV Test Result', psaLevel: 'PSA Level', ldctLungRadsScore: 'LDCT Lung-RADS Score', packYearHistory: 'Pack-Year History',
+  biopsyPerformed: 'Biopsy Performed', biopsySite: 'Biopsy Site', pathologyReportNumber: 'Pathology Report Number', requiresFollowUp: 'Requires Follow-Up',
 };
-
-// Rule #74 (anti-orphan / anti-split): each field is ONE wrap={false} View holding label+value together,
-// and the sectionTitle lives INSIDE the first field's View (never a standalone sibling). These fields are
-// single-value (1 row each) so wrap={false} never has to compress → no orphan, no label/value split.
-const renderFieldGroup = (title, fields, record) => {
-  const visible = fields.filter(f => hasVal(record[f]));
-  if (visible.length === 0) return null;
-  return (
-    <View style={styles.fieldContainer}>
-      {visible.map((f, i) => (
-        <View key={i} wrap={false}>
-          {i === 0 && <Text style={styles.sectionTitle}>{title}</Text>}
-          <Text style={styles.subSectionTitle}>{FL[f] || f}</Text>
-          <Text style={styles.listItem}>{fmtVal(record[f])}</Text>
-        </View>
-      ))}
-    </View>
-  );
+const SECTIONS = [
+  { title: 'Screening', fields: ['screeningType', 'cancerTypeScreened', 'imagingModalityUsed', 'screeningInterval', 'indicationForScreening', 'riskCategory', 'familyHistoryOfCancer'] },
+  { title: 'Screening Dates', fields: ['date', 'screeningDate', 'previousScreeningDate', 'nextRecommendedScreeningDate'] },
+  { title: 'Breast', fields: ['biRadsCategory'] },
+  { title: 'Colorectal', fields: ['colonoscopyFindings', 'polypCount', 'polypHistology', 'cecalIntubation', 'bowelPrepQuality'] },
+  { title: 'Cervical', fields: ['papSmearResult', 'hpvTestResult'] },
+  { title: 'Prostate', fields: ['psaLevel'] },
+  { title: 'Lung', fields: ['ldctLungRadsScore', 'packYearHistory'] },
+  { title: 'Biopsy and Follow-Up', fields: ['biopsyPerformed', 'biopsySite', 'pathologyReportNumber', 'requiresFollowUp'] },
+];
+const styles = StyleSheet.create({
+  page: { padding: 32, fontFamily: 'Helvetica', fontSize: 14, lineHeight: 1.32, color: '#000000', backgroundColor: '#ffffff' },
+  documentTitle: { fontSize: 26, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', textAlign: 'center', borderBottom: '2pt solid #000000', paddingBottom: 6, marginBottom: 14 },
+  recordHeader: { marginBottom: 12 },
+  recordTitle: { fontSize: 19, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 4 },
+  section: { marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '1pt solid #000000', paddingBottom: 2, marginBottom: 6 },
+  fieldGroup: { marginBottom: 7 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', borderBottom: '0.5pt solid #999999', paddingBottom: 1, marginBottom: 3 },
+  subtitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', fontWeight: 'bold', marginTop: 3, marginBottom: 2 },
+  fieldValue: { fontSize: 14, lineHeight: 1.32, marginBottom: 4, paddingLeft: 10 },
+  noData: { fontSize: 14, marginTop: 40, textAlign: 'center' },
+});
+const hasValue = value => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.some(hasValue)) && (typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(hasValue));
+const isEpochDate = value => /^1970-01-01/.test(String(value?.$date || value || ''));
+const formatDate = value => { const raw = value?.$date || value, match = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!match) return String(raw || ''); const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`); return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }); };
+const displayValue = value => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '');
+const humanizeKey = key => { if (KEY_OVERRIDES[key]) return KEY_OVERRIDES[key]; const s = String(key ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); return s.charAt(0).toUpperCase() + s.slice(1); };
+const objectLeaves = (value, labelText = '') => {
+  if (!hasValue(value)) return [];
+  if (Array.isArray(value)) return value.flatMap(item => hasValue(item) ? (typeof item === 'object' ? objectLeaves(item, labelText) : [{ label: labelText, value: item }]) : []);
+  if (typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => { const childLabel = typeof child === 'object' && child !== null && !Array.isArray(child) ? (labelText ? `${labelText} - ${humanizeKey(key)}` : humanizeKey(key)) : humanizeKey(key); return objectLeaves(child, childLabel); });
+  return [{ label: labelText, value }];
 };
-
-const CancerScreeningRecordsDocumentPDFTemplate = ({ document: templateData }) => {
-  const records = React.useMemo(() => {
-    if (!templateData) return [];
-    let arr = Array.isArray(templateData) ? templateData : [templateData];
-    arr = arr.flatMap(r => {
-      if (r?.cancer_screening_records) return Array.isArray(r.cancer_screening_records) ? r.cancer_screening_records : [r.cancer_screening_records];
-      if (r?.documentData) { const dd = r.documentData; if (Array.isArray(dd)) return dd; if (dd?.cancer_screening_records) return Array.isArray(dd.cancer_screening_records) ? dd.cancer_screening_records : [dd.cancer_screening_records]; return [dd]; }
-      return r;
-    });
-    return arr.filter(r => r && typeof r === 'object');
-  }, [templateData]);
-
-  if (!records || records.length === 0) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Cancer Screening Records</Text><Text style={styles.emptyState}>No records available</Text></Page></Document>;
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.documentTitle}>Cancer Screening Records</Text>
-        {records.map((record, idx) => (
-          // Rule #75: every record after the first starts on a NEW page (break = page-break-before; not on record 0).
-          <View key={idx} style={styles.recordSection} break={idx > 0}>
-            <View wrap={false}>
-              <Text style={styles.recordTitle}>{`Cancer Screening Record ${idx + 1}`}</Text>
-              {record.date && <Text style={styles.recordMeta}>{formatDate(record.date)}</Text>}
-              {record.cancerTypeScreened && <Text style={styles.recordMeta}>{record.cancerTypeScreened}</Text>}
-            </View>
-
-            {renderFieldGroup('Screening Information', ['screeningType', 'cancerTypeScreened', 'screeningInterval', 'indicationForScreening', 'imagingModalityUsed'], record)}
-
-            {(record.screeningDate || record.previousScreeningDate || record.nextRecommendedScreeningDate) && (
-              <View style={styles.fieldContainer}>
-                {[['Screening Date', record.screeningDate], ['Previous Screening', record.previousScreeningDate], ['Next Recommended', record.nextRecommendedScreeningDate]]
-                  .filter(([, v]) => hasVal(v))
-                  .map(([label, v], i) => (
-                    <View key={i} wrap={false}>
-                      {i === 0 && <Text style={styles.sectionTitle}>Screening Dates</Text>}
-                      <Text style={styles.subSectionTitle}>{label}</Text>
-                      <Text style={styles.listItem}>{formatDate(v)}</Text>
-                    </View>
-                  ))}
-              </View>
-            )}
-
-            {renderFieldGroup('Risk Factors', ['riskCategory', 'familyHistoryOfCancer'], record)}
-            {renderFieldGroup('Mammography', ['biRadsCategory'], record)}
-            {renderFieldGroup('Colonoscopy', ['colonoscopyFindings', 'polypCount', 'polypHistology', 'cecalIntubation', 'bowelPrepQuality'], record)}
-            {renderFieldGroup('Cervical Screening', ['papSmearResult', 'hpvTestResult'], record)}
-            {renderFieldGroup('Prostate Screening', ['psaLevel'], record)}
-            {renderFieldGroup('Lung Screening', ['ldctLungRadsScore', 'packYearHistory'], record)}
-            {renderFieldGroup('Biopsy', ['biopsyPerformed', 'biopsySite', 'pathologyReportNumber'], record)}
-            {renderFieldGroup('Follow-Up', ['requiresFollowUp'], record)}
-          </View>
-        ))}
-      </Page>
-    </Document>
-  );
+const parseLabel = text => { const match = String(text || '').match(/^([A-Z][A-Za-z0-9 /&()'"-]{1,60}?):\s+([\s\S]+)$/); return match ? { subtitle: match[1].trim(), value: match[2].trim() } : { subtitle: '', value: String(text || '').trim() }; };
+const splitClauses = (text, splitCommas) => {
+  const source = String(text || ''); if (!source.trim()) return []; const output = []; let start = 0; let depth = 0;
+  const push = end => { const piece = source.slice(start, end).trim(); if (piece) output.push(piece); };
+  for (let index = 0; index < source.length; index += 1) { const character = source[index]; if (character === '(') { depth += 1; continue; } if (character === ')') { depth = Math.max(0, depth - 1); continue; } if (depth) continue; const prefix = source.slice(0, index + 1), suffix = source.slice(index + 1); const protectedPeriod = character === '.' && (/\b(?:Dr|Mr|Mrs|Ms|Prof|Rev|Gen|Col|Sgt|St|Jr|Sr|vs|etc)\.$/.test(prefix) || /(?:^|\s)[A-Z]\.$/.test(prefix) && /^\s+[A-Z][A-Za-z'-]+,\s*(?:MD|DO|PhD|PharmD|PA|RN|NP|DDS|DMD|DVM|JD|FACP|FCAP|FACS|MPH|MBA|MSN|BSN|CSFA|CRNA)\b/.test(suffix)); const sentenceBreak = !protectedPeriod && (character === '.' || character === ';') && (index + 1 === source.length || /\s/.test(source[index + 1])); const commaBreak = splitCommas && character === ',' && !(/\d/.test(source[index - 1] || '') && /\d/.test(source[index + 1] || '')) && !/^\s*(?:and|or)\b/i.test(suffix) && (index + 1 === source.length || /\s/.test(source[index + 1])); if (!sentenceBreak && !commaBreak) continue; push(index); start = index + 1; }
+  push(source.length); return output;
 };
+const unwrapRecords = source => { if (!source) return []; const queue = Array.isArray(source) ? [...source] : [source], records = []; while (queue.length) { const value = queue.shift(); if (!value) continue; if (Array.isArray(value)) { queue.unshift(...value); continue; } if (value[COLLECTION] !== undefined) { queue.unshift(value[COLLECTION]); continue; } if (value.documentData !== undefined) { queue.unshift(value.documentData); continue; } if (value.data !== undefined && !Object.keys(LABELS).some(field => hasValue(value[field]))) { queue.unshift(value.data); continue; } if (value.records !== undefined) { queue.unshift(value.records); continue; } if (typeof value === 'object') records.push(value); } return records.filter(record => Object.keys(LABELS).some(field => hasValue(record[field]))); };
+const leafView = leaf => { const parsed = typeof leaf.value === 'string' ? parseLabel(leaf.value) : { subtitle: '', value: leaf.value }; const labeled = !!parsed.subtitle; const effectiveRaw = labeled ? parsed.value : leaf.value; const label = labeled ? (leaf.label ? `${leaf.label} - ${parsed.subtitle}` : parsed.subtitle) : leaf.label; return { label, effectiveRaw }; };
+const rowsFor = (record, field) => { const value = record[field]; if (ZERO_SENTINEL_FIELDS.has(field) && (value === 0 || value === '0')) return []; if (!hasValue(value)) return []; if (DATE_FIELDS.has(field)) return isEpochDate(value) ? [] : [{ subtitle: '', value: formatDate(value) }]; if (ARRAY_FIELDS.has(field)) return value.filter(hasValue).map(item => { const parsed = typeof item === 'string' ? parseLabel(item) : { subtitle: '', value: item }; return parsed.subtitle ? { subtitle: parsed.subtitle, value: parsed.value } : { subtitle: '', value: displayValue(item) }; }); if (OBJECT_FIELDS.has(field)) return objectLeaves(value).map(leaf => { const view = leafView(leaf); return { subtitle: view.label, value: /^\d{4}-\d{2}-\d{2}/.test(String(view.effectiveRaw).trim()) ? formatDate(view.effectiveRaw) : displayValue(view.effectiveRaw) }; }); if (NARRATIVE_FIELDS.has(field)) return splitClauses(value, COMMA_SPLIT_FIELDS.includes(field)).map(text => parseLabel(text)); return [{ subtitle: '', value: displayValue(value) }]; };
+const renderSection = (record, section, key) => { const fields = section.fields.filter(field => rowsFor(record, field).length); if (!fields.length) return null; const units = fields.flatMap(field => { const rows = rowsFor(record, field), showLabel = LABELS[field] !== section.title; return rows.map((row, index) => { const prior = index > 0 ? rows[index - 1].subtitle : null; return <View style={styles.fieldGroup} key={`${field}-${index}`} wrap={false}>{showLabel && index === 0 && <Text style={styles.fieldLabel}>{LABELS[field]}</Text>}{row.subtitle && row.subtitle !== prior && <Text style={styles.subtitle}>{row.subtitle}</Text>}<Text style={styles.fieldValue}>{index + 1}. {row.value}</Text></View>; }); }); const [first, ...rest] = units; return <View style={styles.section} key={key}><View wrap={false}><Text style={styles.sectionTitle}>{section.title}</Text>{first}</View>{rest}</View>; };
 
+const CancerScreeningRecordsDocumentPDFTemplate = ({ document: documentProp, data, templateData }) => {
+  const records = unwrapRecords(documentProp || data || templateData);
+  if (!records.length) return <Document><Page size="A4" style={styles.page}><Text style={styles.documentTitle}>Cancer Screening Records</Text><Text style={styles.noData}>No cancer screening records data available</Text></Page></Document>;
+  return <Document><Page size="A4" style={styles.page} wrap><Text style={styles.documentTitle}>Cancer Screening Records</Text>{records.map((record, index) => <React.Fragment key={record._id?.$oid || String(record._id || index)}><View style={styles.recordHeader} wrap={false}><Text style={styles.recordTitle}>Cancer Screening Record {index + 1}</Text></View>{SECTIONS.map((section, sectionIndex) => renderSection(record, section, sectionIndex))}</React.Fragment>)}</Page></Document>;
+};
 export default CancerScreeningRecordsDocumentPDFTemplate;

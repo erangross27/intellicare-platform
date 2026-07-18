@@ -51,6 +51,7 @@ import CamIcuDocumentPDFTemplate from './CamIcuDocumentPDFTemplate';
 import CancerDiagnosisDocumentPDFTemplate from './CancerDiagnosisDocumentPDFTemplate';
 import CancerRelatedSideEffectsDocumentPDFTemplate from './CancerRelatedSideEffectsDocumentPDFTemplate';
 import CancerScreeningRecordsDocumentPDFTemplate from './CancerScreeningRecordsDocumentPDFTemplate';
+import CancerStagingDocumentPDFTemplate from './CancerStagingDocumentPDFTemplate';
 import CaseSummariesTemplate from './CaseSummariesTemplate';
 // Single source of truth: route to the same audited template the Document export button imports.
 import SecondOpinionReportsTemplate from './SecondOpinionReportsDocumentPDFTemplate';
@@ -309,6 +310,7 @@ const templateRegistry = {
   'cancer_diagnosis': CancerDiagnosisDocumentPDFTemplate,
   'cancer_related_side_effects': CancerRelatedSideEffectsDocumentPDFTemplate,
   'cancer_screening_records': CancerScreeningRecordsDocumentPDFTemplate,
+  'cancer_staging': CancerStagingDocumentPDFTemplate,
   'case_summaries': CaseSummariesTemplate,
   'second_opinion_reports': SecondOpinionReportsTemplate,
   'prognosis': PrognosisTemplate,

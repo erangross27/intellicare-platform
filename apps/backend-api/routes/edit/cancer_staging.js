@@ -22,10 +22,10 @@ const ALLOWED_FIELDS = [
   'issStaging', 'rissStaging', 'durieSalmon', 'annArbor', 'figo',
   'otherStaging', 'results', 'recommendations',
   'findings', 'assessment', 'plan', 'notes',
-  'date', 'provider', 'facility', 'status',
+  'date', 'provider', 'facility', 'status', 'type', 'additionalData',
 ];
 // Nested object leaves are edited via dotted paths; allow any depth under these object roots.
-const ALLOWED_PREFIXES = ['tnmStaging.', 'otherStaging.', 'results.'];
+const ALLOWED_PREFIXES = ['tnmStaging.', 'otherStaging.', 'results.', 'additionalData.'];
 function isFieldAllowed(field) { if (ALLOWED_FIELDS.includes(field)) return true; return ALLOWED_PREFIXES.some(p => field.startsWith(p)); }
 
 router.put('/:id/edit', async (req, res) => {
